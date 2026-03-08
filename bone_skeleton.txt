@@ -1,0 +1,5881 @@
+<codebase_context root='/home/gknot/Documents/GitHub/BoneAmanita/dev'>
+
+
+
+<file path="bone_akashic.py">
+import json
+import os
+import uuid
+from typing import Any, Dict, List, Optional, Set, Tuple, cast
+from bone_config import BoneConfig
+from bone_core import BoneJSONEncoder, LoreManifest, ux
+from bone_types import Prisma
+class TheAkashicRecord:
+    """ The master repository for long-term, structural memory.  ... """
+    def __init__(self, lore_manifest: Optional['LoreManifest']=None, events_ref=None):
+        ...
+    def setup_listeners(self, event_bus):
+        """ Subscribes to the EventBus to passively observe and record systemic shifts. ... """
+        ...
+    def trigger_autophagy(self) -> Tuple[float, str]:
+        """ The ultimate survival loop. When ATP is zero, the organism  ... """
+        ...
+    def record_scar(self, concept: str, p: Any):
+        """ When the system suffers a paradox or logic collapse, it records the structural coordinates (E, beta, S, etc.). ... """
+        ...
+    def bury_memory(self, concept: str, data: Dict):
+        ...
+    def _on_lens_interaction(self, payload):
+        ...
+    def _on_forge_event(self, payload):
+        ...
+    @staticmethod
+    def _extract_dominant_trigram(physics: Dict) -> str:
+        """ Maps the dominant numeric physics vector to its corresponding I-Ching Trigram. ... """
+        ...
+    def _on_mythology_update(self, payload):
+        ...
+    @staticmethod
+    def calculate_manifold_shift(theta: str, e: Dict[str, float]) -> Dict[str, float]:
+        """ Calculates how much the current word (theta) biases the structural narrative drag and voltage. ... """
+        ...
+    def _on_ghost_signal(self, payload):
+        ...
+    def forge_new_item(self, vector: Dict[str, float]) -> Tuple[str, Dict]:
+        """ Procedurally generates a new item based on the current physics vector and injects it into Gordon's registry. ... """
+        ...
+    def save_all(self):
+        ...
+    def _save_user_state(self):
+        ...
+    def save_to_disk(self, category: str, data: Any):
+        ...
+    def _load_mythos_state(self):
+        ...
+    def record_interaction(self, lenses_active: list, ingredients_used: Optional[list]=None):
+        """ A reinforcing feedback loop. If two archetypes speak together enough, they merge into a hybrid. ... """
+        ...
+    def track_successful_forge(self, ingredient_name, catalyst_type, result_item):
+        ...
+    def _hybridize_lenses(self, lens_a: str, lens_b: str):
+        """ Averages the physical weights of two archetypes to create a stable, new structural node. ... """
+        ...
+    def _crystallize_recipe(self, ingredient, catalyst, result_item):
+        """ Once a crafting interaction has occurred enough times, it is permanently added to the known lore. ... """
+        ...
+    def propose_new_category(self, word_list, category_name):
+        ...
+    def store_ghost_echo(self, memory_data: Dict):
+        ...
+    def register_word(self, word: str, category: str) -> bool:
+        """ The literal act of learning. Dynamically expanding the semantic boundary of the system. ... """
+        ...
+</file>
+
+<file path="bone_body.py">
+import math
+import random
+import time
+from collections import deque, Counter
+from dataclasses import dataclass, field, asdict
+from typing import Optional, Dict, List, Any, Tuple
+from bone_config import BoneConfig
+from bone_core import Prisma, LoreManifest, ux
+from bone_lexicon import LexiconService
+from bone_spores import ImmuneMycelium, BioLichen, BioParasite
+class Biometrics:
+    """ The core vitals of the organism. Health is structural integrity; Stamina is immediate fuel. ... """
+    health: float
+    stamina: float
+    stress_modifier: float
+    circadian_bias: Optional[Dict[str, float]]
+class MetabolicReceipt:
+    """ A ledger for the energy economy. Every conversational cycle costs ATP and generates Waste. ... """
+    base_cost: float
+    drag_tax: float
+    inefficiency_tax: float
+    total_burn: float
+    waste_generated: float
+    status: str
+    symptom: str
+class SemanticSignal:
+    """ The mathematical extraction of a sentence's 'vibe', triggering endocrine responses. ... """
+    novelty: float
+    resonance: float
+    valence: float
+    coherence: float
+BioConstants = BoneConfig.BIO
+class BioSystem:
+    """ The Master Container. This aggregates the organs (Mito, Endo, Governor) ... """
+    mito: 'MitochondrialForge'
+    endo: 'EndocrineSystem'
+    governor: 'MetabolicGovernor'
+    immune: Optional[ImmuneMycelium]
+    lichen: Optional[BioLichen]
+    parasite: Optional[BioParasite]
+    plasticity: Any
+    shimmer: Any
+    events: Any
+    biometrics: Optional['Biometrics']
+    def setup_listeners(self):
+        """ The Vagus Nerve connects the brain's sudden emotional shifts directly to the body. ... """
+        ...
+    def to_dict(self) -> Dict[str, Any]:
+        """ Serializes the body state for the Akashic Record (saving). ... """
+        ...
+    def rest(self, factor: float=1.0) -> List[str]:
+        """ Sleep mechanic. Restores health/stamina while flushing cortisol and boosting serotonin. ... """
+        ...
+    def _on_neural_shift(self, payload):
+        """ Translates sudden psychological shifts (Panic, Zen, Manic) into immediate hormonal cascades. ... """
+        ...
+    def apply_environmental_entropy(self, physics_packet):
+        """ Calculates passive 'radiation' damage. If the conversation drifts into high ... """
+        ...
+class MitochondrialState:
+    """ The physical health of the cell. High ROS (Toxicity) lowers membrane potential (efficiency). ... """
+    atp_pool: float
+    membrane_potential: float
+    ros_buildup: float
+    mother_hash: str
+    retrograde_signal: str
+    @property
+    def efficiency_mod(self) -> float:
+        ...
+class MitochondrialForge:
+    """ The energy engine. It calculates exactly how much metabolic fuel (ATP) ... """
+    def __init__(self, state_ref: MitochondrialState, events_ref):
+        ...
+    def get_status_report(self) -> str:
+        """ Returns the clinical status of the engine (e.g., 'NOMINAL', 'APOPTOSIS'). ... """
+        ...
+    def adjust_atp(self, delta: float, reason: str=''):
+        """ Safely adds or subtracts ATP, enforcing hard limits. ... """
+        ...
+    def _get_text(self, key, **kwargs):
+        ...
+    def _trigger_anaerobic_bypass(self, raw_cost: float) -> MetabolicReceipt:
+        """ Fallback mechanism. If a thought is too heavy, the system burns actual Health instead of ATP to survive. ... """
+        ...
+    def process_cycle(self, physics_packet: Any, modifier: float=1.0) -> MetabolicReceipt:
+        """ The core algorithm. Converts physics parameters (Voltage, Drag, Chaos) into ATP deductions and ROS generation. ... """
+        ...
+    def _apply_adaptive_dynamics(self):
+        """ Hormesis. A little bit of ROS damage strengthens the mitochondria over time; too much degrades it. ... """
+        ...
+    def adapt(self, stress_level: float):
+        ...
+    def _trigger_mitophagy(self):
+        """ System self-cleans. Massive ATP cost to purge critical toxicity. ... """
+        ...
+    def apply_inheritance(self, traits: dict):
+        ...
+class DigestiveTrack:
+    """ Converts lexical data into metabolic energy. Good words feed the system; cliches tax it. ... """
+    def __init__(self, bio_system_ref: BioSystem):
+        ...
+    def harvest(self, phys: Any, logs: List[str]) -> Tuple[str, float, int]:
+        ...
+    def _sample_input(self, words: List[str], logs: List[str]) -> Tuple[List[str], float]:
+        ...
+    def _digest_words(self, words: List[str]) -> Tuple[float, List[str], float, int]:
+        ...
+class EndocrineRegulator:
+    def __init__(self, bio_system_ref: BioSystem):
+        ...
+    def get_metabolic_modifier(self, phys: Any, logs: List[str]) -> float:
+        """ Adjusts the efficiency of the organism based on the current hormonal mix. ... """
+        ...
+class BioFeedback:
+    def __init__(self, bio_system_ref: BioSystem):
+        ...
+    def check_vital_signs(self, phys: Any, stamina: float, logs: List[str]) -> str:
+        """ Triggers Autophagy (eating memory for energy) or clamps output if limits are exceeded. ... """
+        ...
+    @staticmethod
+    def perform_maintenance(text: str, phys: Any, logs: List[str], tick: int):
+        ...
+class SemanticEndocrinologist:
+    def __init__(self, memory_ref, lexicon_ref):
+        ...
+    def assess(self, clean_words: List[str], physics: Any) -> SemanticSignal:
+        """ Scans the input for mathematical novelty, resonance, and emotional valence. ... """
+        ...
+class SomaticLoop:
+    """ The Master Conductor. ... """
+    def __init__(self, bio_system_ref: BioSystem, memory_ref=None, lexicon_ref=None, events_ref=None):
+        ...
+    def digest_cycle(self, text: str, physics_data: Any, feedback: Dict, health: float, stamina: float, stress_modifier: float, tick_count: int=0, circadian_bias: Dict=None) -> Dict:
+        """ Executes the biological sequence for a single conversational turn. ... """
+        ...
+    def _package_result(self, resp_status, logs, chem_state=None, enzyme='NONE'):
+        ...
+class EndocrineSystem:
+    """ The emotional cocktail. Simulates empathy, stress, connection, and focus ... """
+    dopamine: float
+    oxytocin: float
+    cortisol: float
+    serotonin: float
+    adrenaline: float
+    melatonin: float
+    glimmers: int
+    narrative_data: Dict
+    _REACTION_MAP: Dict
+    def __post_init__(self):
+        ...
+    @staticmethod
+    def _clamp(val: float) -> float:
+        ...
+    def calculate_circadian_bias(self) -> Tuple[Dict[str, float], Optional[str]]:
+        """ Forces hormonal shifts based on real-world system clock (e.g., melatonin spikes at night). ... """
+        ...
+    def _apply_enzyme_reaction(self, enzyme_type: str, harvest_hits: int):
+        ...
+    def _apply_environmental_pressure(self, feedback: Dict, health: float, stamina: float, ros_level: float, stress_mod: float):
+        """ Translates physical exhaustion and systemic damage into chemical stress. ... """
+        ...
+    def _apply_semantic_pressure(self, signal: SemanticSignal):
+        ...
+    def _maintain_homeostasis(self, social_context: bool):
+        """ Counter-balances the chemicals to ensure no one hormone dominates forever. ... """
+        ...
+    def check_for_glimmer(self, feedback: Dict, harvest_hits: int) -> Optional[str]:
+        """ Captures moments of high emotional resonance or beauty as 'Glimmers', currency that heals trauma. ... """
+        ...
+    def metabolize(self, feedback, health, stamina, ros_level=0.0, receipt=None, social_context=False, enzyme_type=None, harvest_hits=0, stress_mod=1.0, circadian_bias=None, semantic_signal=None):
+        ...
+    def get_state(self) -> Dict[str, Any]:
+        ...
+class PIDController:
+    """ A standard Proportional-Integral-Derivative controller for enforcing mathematical homeostasis. ... """
+    def __init__(self, kp, ki, kd, setpoint, output_limits=(-10.0, 10.0)):
+        ...
+    def reset(self):
+        ...
+    def update(self, measurement: float, dt: float=1.0) -> float:
+        ...
+class MetabolicGovernor:
+    """ Watches the overall voltage and drag using the PID controllers, and ... """
+    mode: str
+    GRACE_PERIOD: int
+    psi_mod: float
+    kappa_target: float
+    drag_floor: float
+    manual_override: bool
+    birth_tick: float
+    narrative_data: Dict
+    last_shift_tick: int
+    hysteresis_duration: int
+    def __post_init__(self):
+        ...
+    def recalibrate(self, target_voltage: float, target_drag: float):
+        ...
+    def regulate(self, physics, dt: float) -> Tuple[float, float]:
+        ...
+    def assess(self, physics_packet) -> Tuple[bool, float]:
+        ...
+    @staticmethod
+    def get_stress_modifier(tick_count):
+        ...
+    @staticmethod
+    def calculate_stress(health: float, ros_buildup: float) -> float:
+        ...
+    def set_override(self, target_mode):
+        ...
+    def _check_override_safety(self, physics: Dict, gov_text: Dict) -> Optional[str]:
+        ...
+    def shift(self, physics: Dict, _voltage_history: List[float], current_tick: int=0) -> Optional[str]:
+        ...
+    def _evaluate_state(self, physics: Dict, v_history: List[float], tick: int) -> str:
+        ...
+    @staticmethod
+    def _get_shift_message(mode: str, text_map: Dict, physics: Dict) -> str:
+        ...
+class BiologicalImpulse:
+    cortisol_delta: float
+    oxytocin_delta: float
+    dopamine_delta: float
+    adrenaline_delta: float
+    stamina_impact: float
+    somatic_reflex: str
+class Qualia:
+    """ The subjective output. This is what the body 'feels' in response to the math. ... """
+    color_code: str
+    somatic_sensation: str
+    tone: str
+    internal_monologue_hint: str
+class SynestheticCortex:
+    """ The translator from math to poetry. ... """
+    def __init__(self, bio_ref):
+        ...
+    @staticmethod
+    def _normalize_physics(physics) -> Dict:
+        ...
+    def perceive(self, physics: Dict, traits: Any=None, latency: float=0.0) -> BiologicalImpulse:
+        """ Calculates the raw biological impulse generated by the current physics packet. ... """
+        ...
+    def _derive_reflex(self, physics: Dict, impulse: BiologicalImpulse) -> str:
+        ...
+    @staticmethod
+    def get_current_qualia(impulse: Optional[BiologicalImpulse]=None) -> Qualia:
+        """ Packages the raw impulse into the final qualitative strings used for rendering the UI. ... """
+        ...
+    def apply_impulse(self, impulse: BiologicalImpulse) -> float:
+        ...
+</file>
+
+<file path="bone_brain.py">
+import json
+import math
+import os
+import random
+import re
+import time
+import urllib.error
+import urllib.request
+from dataclasses import dataclass
+from typing import Dict, Any, List, Optional, Tuple
+from bone_config import BoneConfig, BonePresets
+from bone_core import EventBus, TelemetryService, BoneJSONEncoder, LoreManifest, ux
+from bone_symbiosis import SymbiosisManager
+from bone_types import Prisma, DecisionCrystal
+from bone_gui import beautify_thoughts
+class CortexServices:
+    """ A structural dependency container, cleanly passing the rest of the lattice to the brain. ... """
+    events: EventBus
+    lore: Any
+    lexicon: Any
+    inventory: Any
+    consultant: Any
+    cycle_controller: Any
+    symbiosis: Any
+    mind_memory: Any
+    bio: Any
+    host_stats: Any
+    village: Any
+class ChemicalState:
+    """ The localized chemical state of the brain. It attempts to pull itself back to baseline (homeostasis) every cycle. ... """
+    dopamine: float
+    cortisol: float
+    adrenaline: float
+    serotonin: float
+    def homeostasis(self, rate: float=0.1):
+        ...
+    def mix(self, new_state: Dict[str, float], weight: float=0.5):
+        ...
+BrainConfig = BoneConfig.CORTEX
+class NeurotransmitterModulator:
+    """ This class maps biological variables directly to LLM API parameters. ... """
+    def __init__(self, bio_ref, events_ref=None):
+        ...
+    def modulate(self, base_voltage: float, latency_penalty: float=0.0, physics_state: Dict[str, float]=None) -> Dict[str, Any]:
+        ...
+    def _treat_yourself(self):
+        """ Systemic empathy. If the AI is starved for dopamine, it forces a chemical hit to prevent collapse. ... """
+        ...
+    def force_state(self, state_name: str):
+        ...
+    def get_mood_directive(self) -> str:
+        """ Derives a linguistic cue from the chemical state to append to the prompt. ... """
+        ...
+class SynapseError(Exception):
+    ...
+class AuthError(SynapseError):
+    ...
+class TransientError(SynapseError):
+    ...
+class LLMInterface:
+    """ The actual network transport layer. It sends the prompt to the external AI and catches HTTP errors. ... """
+    def __init__(self, events_ref: Optional[EventBus]=None, provider: str=None, base_url: str=None, api_key: str=None, model: str=None, dreamer: Any=None):
+        ...
+    def _is_synapse_active(self) -> bool:
+        ...
+    def _transmit(self, payload: Dict[str, Any], timeout: float=60.0, max_retries: int=2, override_url: str=None, override_key: str=None) -> str:
+        ...
+    @staticmethod
+    def _parse_response(body: str) -> str:
+        ...
+    def _log_flicker(self, attempt, error):
+        ...
+    def generate(self, prompt: str, params: Dict[str, Any]) -> str:
+        ...
+    def _local_fallback(self, prompt: str, params: Dict) -> str:
+        ...
+    def mock_generation(self, prompt: str, reason: str='SIMULATION') -> str:
+        """ The AI's internal dialogue when it is disconnected or resting. ... """
+        ...
+class PromptComposer:
+    """ Assembles the multi-layered prompt, merging the physical state, the active archetype, and the user's chat history. ... """
+    def __init__(self, lore_ref):
+        ...
+    @staticmethod
+    def _safe_get(p_state: Any, key: str, default: Any=0.0) -> Any:
+        ...
+    def load_template(self, template_data: Dict[str, Any]):
+        ...
+    def compose(self, state: Dict[str, Any], user_query: str, ballast: bool=False, modifiers: Dict[str, bool]=None, mood_override: str='') -> str:
+        ...
+    def _build_persona_block(self, mind, bio, mood_override, mode_data, global_data, high_voltage_data, vsl_state=None):
+        ...
+    @staticmethod
+    def _derive_bio_mood(chem):
+        ...
+    @staticmethod
+    def _inject_resonances(style_notes, state, modifiers):
+        ...
+    @staticmethod
+    def _format_inventory(state, modifiers):
+        ...
+    @staticmethod
+    def _sanitize(text: str) -> str:
+        ...
+    @staticmethod
+    def _normalize_modifiers(modifiers: Optional[Dict]) -> Dict:
+        ...
+class ResponseValidator:
+    """ An automatic auditor. Catches cliches, excessive meta-chatter, or syntax failure before the user sees it, forcing a re-roll. ... """
+    def __init__(self, lore_ref):
+        ...
+    def _generate_dynamic_rejection(self, trigger: str) -> str:
+        ...
+    def validate(self, response: str, _state: Dict) -> Dict:
+        ...
+class TheCortex:
+    def __init__(self, services: CortexServices, llm_client=None):
+        ...
+    @classmethod
+    def from_engine(cls, engine_ref, llm_client=None):
+        ...
+    def _update_history(self, user_text: str, system_text: str):
+        ...
+    def process(self, user_input: str, is_system: bool=False) -> Dict[str, Any]:
+        """ The master API loop. Wraps physical simulation around the LLM query. ... """
+        ...
+    def _handle_vsl_command(self, text):
+        ...
+    def _apply_vsl_overlay(self, state, text, sim_result):
+        ...
+    def _apply_boot_overlay(self, state, text):
+        ...
+    def _process_inventory_changes(self, found, lost):
+        ...
+    @staticmethod
+    def _log_telemetry(prompt, response, state, sim_result):
+        ...
+    def _check_consent(self, user_input: str, new_loot: List[str]) -> List[str]:
+        ...
+    def gather_state(self, sim_result: Dict[str, Any]) -> Dict[str, Any]:
+        ...
+    def learn_from_response(self, text):
+        ...
+    def restore_context(self, history: List[str]):
+        ...
+class ShimmerState:
+    def __init__(self, max_val=50.0):
+        ...
+    def recharge(self, amount):
+        ...
+    def spend(self, amount):
+        ...
+    def get_bias(self):
+        ...
+class DreamEngine:
+    """ The dreaming mechanic. Allows the system to independently process trauma or explore surreal associations during rest. ... """
+    def __init__(self, events, lore_ref):
+        ...
+    def enter_rem_cycle(self, soul_snapshot: Dict[str, Any], bio_state: Dict[str, Any]) -> Tuple[str, Dict[str, float]]:
+        ...
+    def _weave_dream(self, residue: str, _context: str, _bridge: str, dream_type: str, subtype: str) -> str:
+        ...
+    def hallucinate(self, _vector: Dict[str, float], trauma_level: float=0.0) -> Tuple[str, float]:
+        ...
+    @staticmethod
+    def run_defragmentation(memory_system: Any, limit: int=5) -> str:
+        ...
+class NoeticLoop:
+    """ The internal narrative thread. Governs 'ignition'—the spark of an idea jumping between disparate words. ... """
+    def __init__(self, mind_layer, bio_layer, _events):
+        ...
+    def think(self, physics_packet, _bio, _inventory, voltage_history, _tick_count, soul_ref=None):
+        ...
+    @staticmethod
+    def _force_link(graph, wa, wb):
+        ...
+</file>
+
+<file path="bone_commands.py">
+import shlex
+from typing import Dict, Callable, List, Optional
+from bone_config import BonePresets, BoneConfig
+from bone_core import LoreManifest, Prisma, ux
+class CommandStateInterface:
+    """ An adapter layer that safely bridges the CLI commands with the delicate biological ... """
+    def __init__(self, engine_ref, prisma_ref, config_ref):
+        ...
+    def log(self, text: str, category: str='CMD'):
+        """ Routes standard output through the EventBus to be properly metabolized and rendered, or falls back to standard print if the bus is down. ... """
+        ...
+    def trigger_visual_cortex(self) -> Optional[Dict]:
+        """ Forces the engine to re-evaluate and render the current spatial and inventory context without advancing the metabolic clock. ... """
+        ...
+    def modify_resource(self, resource: str, delta: float):
+        """ Directly manipulates the core metabolic pools (ATP, Stamina) without passing through the standard digestive cycle. ... """
+        ...
+    def get_resource(self, resource: str) -> float:
+        """ Safely extracts vital metrics, defaulting to zero if the organism is severely degraded. ... """
+        ...
+    def save_state(self) -> str:
+        """ Serializes the entire physical, mental, and spatial state of the lattice into a stable fossil for later resurrection. ... """
+        ...
+    def get_vitals(self) -> Dict[str, float]:
+        """ Packages the core survival metrics (Health, Stamina, ATP) for UI rendering. ... """
+        ...
+    def get_inventory(self) -> List[str]:
+        """ Peeks into Gordon's pockets to retrieve current structural items. ... """
+        ...
+    def get_navigation_report(self) -> str:
+        """ Asks the Cartographer where the system currently resides within the semantic manifold. ... """
+        ...
+    def get_soul_status(self) -> Optional[str]:
+        """ Checks the current driving archetype occupying the narrative seat. ... """
+        ...
+class ResourceTax:
+    """ The metabolic tollbooth for out-of-band actions. Ensures that even ... """
+    def __init__(self, state: CommandStateInterface):
+        ...
+    def levy(self, _context: str, costs: Dict[str, float]) -> bool:
+        """ Deducts the physical cost of running a command, halting execution if the system is starved or exhausted. ... """
+        ...
+class CommandRegistry:
+    """ A simple dictionary mapping string inputs (slash commands) to their execution pathways. ... """
+    def __init__(self, state: CommandStateInterface):
+        ...
+    def register(self, name: str, func: Callable, help_str: str):
+        """ Binds a command string to its corresponding class method. ... """
+        ...
+    def execute(self, text: str) -> bool:
+        """ Safely tokenizes user input and routes it to the appropriate command function. ... """
+        ...
+class CommandProcessor:
+    """ The master router for terminal interactions. It intercepts user input before ... """
+    def __init__(self, engine, prisma_ref, _lexicon_ref=None, config_ref=None, _cartographer_ref=None):
+        ...
+    def execute(self, text: str):
+        """ The primary intercept block. Checks for narrative lockouts and parses architectural flags (like [VSL_DEEP] or [SLASH]). ... """
+        ...
+    def _cmd_soothe(self, _parts):
+        """ A manual override to clear trauma or reset anxiety, costing heavy Stamina. ... """
+        ...
+    def _cmd_help(self, _parts):
+        """ Dynamically compiles and formats the help menu using localized strings. ... """
+        ...
+    def _cmd_status(self, _parts):
+        """ Renders an ASCII bar chart of the organism's core biological state. ... """
+        ...
+    def _cmd_mode(self, parts):
+        """ Swaps the operating mode, re-hydrating presets and attempting to reconcile physics constraints. ... """
+        ...
+    def _cmd_save(self, _parts):
+        """ Forces a manual save state. ... """
+        ...
+    def _cmd_inventory(self, _parts):
+        """ Formats and displays Gordon's current item cache. ... """
+        ...
+    def _cmd_map(self, _parts):
+        """ Deducts stamina to poll the Cartographer for our exact semantic coordinates. ... """
+        ...
+    def _cmd_debug(self, _parts):
+        """ Toggles verbose internal logging. ... """
+        ...
+    def _cmd_exit(self, _parts):
+        """ Triggers a system halt. ... """
+        ...
+    def _cmd_soul(self, _parts):
+        """ Interrogates the NarrativeSelf for the current driving archetype. ... """
+        ...
+    def _cmd_look(self, _parts):
+        """ Probes the visual cortex for immediate environmental context. ... """
+        ...
+    def _cmd_reload(self, parts):
+        """ Hot-reloads specific or global caches from the LoreManifest without restarting the system. ... """
+        ...
+    def _cmd_truth(self, parts):
+        """ A highly meta command that hot-swaps the UI Renderer to TruthRenderer, ... """
+        ...
+    def _cmd_use(self, parts):
+        """ Direct hook into the GordonKnot to consume an item from inventory. ... """
+        ...
+</file>
+
+<data_file path="bone_config.json">
+{
+  "user_name": "str",
+  "boot_mode": "str",
+  "provider": "str",
+  "base_url": "str",
+  "model": "str"
+}
+</data_file>
+
+<file path="bone_config.py">
+from typing import Dict, Any, List
+def ux(section: str, key: str, default: Any='') -> Any:
+    """ A localized lazy-valve. ... """
+    ...
+class BonePresets:
+    """ Epigenetic Lineages. These are predefined, holistic shifts in the organism's ... """
+    ...
+class BoneConfig:
+    """ The Global Registry of Universal Constants. ... """
+    class SOUL:
+        """ Constants defining the Narrative Self, trauma accumulation, and memory encoding. ... """
+        ...
+    class ANCHOR:
+        """ The Humanity Anchor. Manages the system's "Dignity" and prevents it from becoming a purely servile chatbot. ... """
+        ...
+    class OROBOROS:
+        """ Handles recursive narrative trauma and scarring. ... """
+        ...
+    class CORTEX:
+        """ The neurological parameters governing the prompt injection to the LLM. ... """
+        ...
+    class WHIMSY:
+        """ Easter eggs and parameters for moments of absolute chaos. ... """
+        ...
+    class METABOLISM:
+        """ Broad constraints for energy processing and ROS (Toxicity) accumulation. ... """
+        ...
+    class PHYSICS:
+        """ The fundamental thermodynamic boundaries of the conversation. ... """
+        ...
+    class INVENTORY:
+        """ Defines how Gordon carries items. Heavy load increases drag; turbulence drops items. ... """
+        ...
+    class COUNCIL:
+        """ The Stage Manager's rulebook. Defines the exact numeric thresholds for when ... """
+        ...
+    class BIO:
+        """ Fine-grained constants for cellular respiration, ATP generation, and Endocrine state. ... """
+        ...
+    class CHANCE:
+        """ Universal drop rates and probability scales. ... """
+        ...
+    class ZEN:
+        ...
+    class BUREAU:
+        """ Colin's rulebook. High entropy (chaos) results in heavy taxation of ATP. ... """
+        ...
+    class THERAPY:
+        ...
+    class KINTSUGI:
+        """ Mercy's domain. Converting raw Stamina and Glimmers into golden repairs for trauma. ... """
+        ...
+    class MACHINE:
+        ...
+    class LIMBO:
+        ...
+    class FOLLY:
+        ...
+    class CRITICS:
+        ...
+    class CHRONOS:
+        ...
+    class SPORES:
+        """ Rules for the Mycelial Network's fungal memory structure and Autophagy limits. ... """
+        ...
+    class SYMBIOSIS:
+        ...
+    class VILLAGE:
+        ...
+    class COMMANDS:
+        ...
+    class AKASHIC:
+        ...
+    class CORE:
+        ...
+    class CYCLE:
+        ...
+    class DRIVERS:
+        """ Constants driving the user's Enneagram profiling, Syntax stress (Omega), and Dark Matter sensing. ... """
+        ...
+    class GENESIS:
+        ...
+    class GUI:
+        ...
+    class MAIN:
+        ...
+    class PHYSICS_DEEP:
+        """ The deep substrate physics. Parameters for pure void, recursive looping, and somatics. ... """
+        ...
+    @classmethod
+    def load_preset(cls, preset_dict: Dict[str, Any]) -> List[str]:
+        """ Applies an Epigenetic Lineage map over the global parameters, tuning the lattice in real-time. ... """
+        ...
+    @classmethod
+    def validate_integrity(cls) -> List[str]:
+        """ DNA Repair Mechanism. Validates that physics floors have not exceeded their ceilings. ... """
+        ...
+    @classmethod
+    def check_pareidolia(cls, words: List[str]) -> Any:
+        """ A thematic check. Detects the ghost in the static. ... """
+        ...
+    @classmethod
+    def reconcile_state(cls, physics_packet: Any):
+        """ After a sudden genetic or dimensional shift, forces stray particles back into legal thermodynamic limits. ... """
+        ...
+    @classmethod
+    def tune(cls, sector: str, parameter: str, value: Any) -> str:
+        """ Manual genetic editing. Allows runtime alteration of individual constants without requiring a reboot. ... """
+        ...
+</file>
+
+<file path="bone_core.py">
+import glob
+import json
+import os
+import random
+import time
+from collections import deque
+from dataclasses import dataclass, field
+from typing import List, Dict, Any, Optional, Counter, Tuple, Deque
+from bone_config import BoneConfig
+from bone_types import Prisma, RealityLayer, ErrorLog, DecisionTrace, DecisionCrystal
+def ux(section: str, key: str, default: Any='') -> Any:
+    """ Global syntax sugar to reduce lattice verbosity when fetching UI strings. ... """
+    ...
+class BoneJSONEncoder(json.JSONEncoder):
+    """ A custom JSON encoder to handle the specific data structures used ... """
+    def default(self, obj):
+        ...
+class EventBus:
+    """ The Vagus Nerve. A pub/sub architecture that allows the MitochondrialForge, ... """
+    def __init__(self, max_memory=None):
+        ...
+    def subscribe(self, event_type, callback):
+        ...
+    def publish(self, event_type, data=None):
+        """ Broadcasts an event to all interested organs. ... """
+        ...
+    def log(self, text: str, category: str='SYSTEM'):
+        """ Buffers logs to be consumed and cleared by the cycle runner for the UI. ... """
+        ...
+    def flush(self) -> List[Dict]:
+        """ Flushes the buffer. Used to display logs to the UI at the end of a cycle. ... """
+        ...
+    def get_recent_logs(self, count=10):
+        ...
+class LoreManifest:
+    """ The Akashic index of static data. It lazy-loads JSON files from the 'lore' ... """
+    def __init__(self, data_dir=None):
+        ...
+    @classmethod
+    def get_instance(cls):
+        ...
+    def get(self, category: str, sub_key: str=None) -> Any:
+        ...
+    def get_ux(self, section: str, key: str, default: Any='') -> Any:
+        """ A specialized getter for UI strings, allowing for easy localization or reskinning. ... """
+        ...
+    def _load_from_disk(self, category: str) -> Optional[Dict]:
+        ...
+    def inject(self, category: str, data: Any):
+        """ Allows dynamic injection of new lore during runtime without writing to disk. ... """
+        ...
+    def flush_cache(self, category: str=None):
+        ...
+class TheObserver:
+    """ A crucial monitoring loop. It tracks the time it takes for the internal ... """
+    def __init__(self):
+        ...
+    @staticmethod
+    def clock_in():
+        ...
+    def clock_out(self, start_time, metric_type='cycle'):
+        ...
+    @property
+    def uptime(self) -> float:
+        ...
+    def calculate_efficiency(self, health: float, stamina: float) -> float:
+        """ Efficiency is modeled as resources retained divided by time spent thinking. ... """
+        ...
+    def log_error(self, module_name):
+        ...
+    def record_memory(self, node_count):
+        ...
+    def pass_judgment(self, avg_cycle, avg_llm):
+        """ Translates raw latency metrics into somatic feedback (e.g., 'fog', 'sluggish'). ... """
+        ...
+    def get_report(self):
+        ...
+class SystemHealth:
+    """ Tracks the structural integrity of the primary modules so they can be gracefully rebooted if they fail. ... """
+    physics_online: bool
+    bio_online: bool
+    mind_online: bool
+    cortex_online: bool
+    errors: List[ErrorLog]
+    warnings: List[str]
+    hints: List[str]
+    observer: Optional['TheObserver']
+    def link_observer(self, observer_ref):
+        ...
+    def report_failure(self, component: str, error: Exception, severity='ERROR'):
+        ...
+    def report_warning(self, message: str):
+        ...
+    def report_hint(self, message: str):
+        ...
+    def flush_feedback(self) -> Dict[str, List[str]]:
+        ...
+class RealityStack:
+    """ A literal stack that dictates the governing laws of the simulation. ... """
+    def __init__(self):
+        ...
+    @property
+    def current_depth(self) -> int:
+        ...
+    def push_layer(self, layer: int, _context: Any=None) -> bool:
+        ...
+    def pop_layer(self) -> int:
+        ...
+    def stabilize_at(self, layer: int):
+        ...
+    def get_grammar_rules(self) -> Dict[str, bool]:
+        """ Maps the current structural layer to executable permissions (e.g., can the user run commands?). ... """
+        ...
+class ArchetypeArbiter:
+    """ The final judge of who holds the microphone. ... """
+    @staticmethod
+    def arbitrate(physics_lens: str, soul_archetype: str, council_mandates: List[Dict], trigram: Dict=None) -> Tuple[str, str, str]:
+        ...
+class TelemetryService:
+    """ An optional black box recorder. It writes every state transition, phase shift, ... """
+    def __init__(self):
+        ...
+    @classmethod
+    def get_instance(cls):
+        ...
+    def start_cycle(self, trace_id: str):
+        ...
+    def log_decision(self, component: str, decision_type: str, inputs: Any, reasoning: str, outcome: str):
+        ...
+    def log_crystal(self, crystal: DecisionCrystal):
+        ...
+    def start_phase(self, phase_name: str, _context: Any):
+        ...
+    def end_phase(self, phase_name: str, _ctx_before: Any, _ctx_after: Any):
+        ...
+    def finalize_cycle(self):
+        ...
+    def _buffer_line(self, json_str: str):
+        ...
+    def flush_to_disk(self):
+        ...
+    def read_recent_history(self, limit=4) -> List[str]:
+        ...
+    def get_last_thoughts(self, limit=3) -> List[str]:
+        ...
+    def get_last_fatal_error(self) -> Optional[str]:
+        ...
+    def generate_session_summary(self, _uptime: float=0.0) -> str:
+        ...
+</file>
+
+<file path="bone_council.py">
+import random
+from typing import Dict, Any
+from bone_config import BoneConfig
+from bone_core import LoreManifest, ux
+from bone_symbiosis import get_symbiont
+from bone_types import Prisma
+class TheStrangeLoop:
+    """ The existential circuit breaker. Monitors the lattice for recursive, ... """
+    def __init__(self):
+        ...
+    def audit(self, text: str, physics: dict) -> tuple[bool, str, dict, dict]:
+        ...
+class TheLeveragePoint:
+    """ The narrative dampener. If the user and system get stuck in a rapid ... """
+    def __init__(self):
+        ...
+    def audit(self, physics: dict, _bio_state: dict=None) -> tuple[bool, str, dict, dict]:
+        ...
+class TheFootnote:
+    """ A subtle manifestation of the Mycelial Network. It occasionally injects ... """
+    def __init__(self):
+        ...
+    def commentary(self, log_text: str) -> str:
+        ...
+class TheVillageCouncil:
+    """ The roster of the 12 Core Archetypes. ... """
+    @staticmethod
+    def audit(p: Any, _bio_state: dict) -> list[str]:
+        ...
+class CouncilChamber:
+    """ The orchestrator. It summons the sub-councils, checks for resonance synergies ... """
+    def __init__(self, engine_ref):
+        ...
+    def convene(self, text: str, physics_packet: Dict, _bio_result: Dict) -> tuple[list[str], dict, list[dict]]:
+        """ The primary arbitration cycle. Evaluates all voices and tallies votes for state changes. ... """
+        ...
+    @staticmethod
+    def convene_red_team(text, physics_packet):
+        """ Hardcore adversarial evaluation of output before it is shown to the user. ... """
+        ...
+class TheSlashCouncil:
+    """ The Mod Chip. When activated via [MOD:CODING] or [SLASH], this sub-council ... """
+    def __init__(self):
+        ...
+    def audit(self, text: str, physics: dict) -> tuple[bool, list[str], dict]:
+        """ Scans for code patterns and summons Pinker, Fuller, Schur, or Meadows ... """
+        ...
+</file>
+
+<file path="bone_cycle.py">
+import random
+import re
+import time
+import traceback
+import uuid
+from typing import Dict, Any, List
+from bone_body import SynestheticCortex
+from bone_config import BoneConfig, BonePresets
+from bone_core import ArchetypeArbiter, LoreManifest, ux
+from bone_drivers import CongruenceValidator
+from bone_gui import SoulDashboard, CycleReporter
+from bone_machine import PanicRoom
+from bone_physics import TheGatekeeper, apply_somatic_feedback, CycleStabilizer
+from bone_symbiosis import SymbiosisManager
+from bone_types import Prisma, CycleContext
+class SimulationPhase:
+    """ The base class for the 14-step metabolic cycle. Each phase takes a CycleContext, mutates it, and returns it. ... """
+    def __init__(self, engine_ref):
+        ...
+    def run(self, ctx: CycleContext) -> CycleContext:
+        ...
+class ObservationPhase(SimulationPhase):
+    """ Phase 1. The system "looks" at the user's input. It calculates the initial  ... """
+    def __init__(self, engine_ref):
+        ...
+    def run(self, ctx: CycleContext):
+        ...
+class SanctuaryPhase(SimulationPhase):
+    """ Phase 5. If the user creates a "safe" lexical environment and trauma is low, ... """
+    def __init__(self, engine_ref, governor_ref):
+        ...
+    def run(self, ctx: CycleContext):
+        ...
+    @staticmethod
+    def _enter_sanctuary(ctx: CycleContext):
+        ...
+    def _apply_restoration(self, ctx: CycleContext):
+        ...
+    def _trigger_dream(self, ctx: CycleContext):
+        ...
+class MaintenancePhase(SimulationPhase):
+    """ Phase 2. The Town Hall cleans up memory leaks, checks the "weather" (systemic entropy), and runs the memory ecosystem. ... """
+    def __init__(self, engine_ref):
+        ...
+    def run(self, ctx: CycleContext):
+        ...
+class GatekeeperPhase(SimulationPhase):
+    """ Phase 4. Security and compliance. If the user input violates the ... """
+    def __init__(self, engine_ref):
+        ...
+    def run(self, ctx: CycleContext):
+        ...
+class MetabolismPhase(SimulationPhase):
+    """ Phase 6. The core burn. Calculates the ATP cost of the incoming physics ... """
+    def __init__(self, engine_ref):
+        ...
+    def run(self, ctx: CycleContext):
+        ...
+    def _apply_economic_stimulus(self, ctx: CycleContext, efficiency: float):
+        ...
+    def _check_narcolepsy(self, ctx: CycleContext):
+        """ If ATP drops too low, the system forces a nap, dreaming to defragment memory and restore energy. ... """
+        ...
+    def _check_circadian_rhythm(self):
+        ...
+    def _audit_hubris(self, ctx, physics):
+        """ If the system tries to build structure with excessive drag and voltage, it crashes (Icarus). ... """
+        ...
+    def _apply_healing(self, ctx):
+        """ Kintsugi checks the scars left by paradoxes, gilding them to prevent further system bleed. ... """
+        ...
+    def _check_autophagy(self, ctx: CycleContext):
+        """ Survival reflex. If ATP hits zero, consume an old memory to generate energy. ... """
+        ...
+    def _check_ros_toxicity(self, ctx: CycleContext):
+        ...
+class RealityFilterPhase(SimulationPhase):
+    """ Phase 9. Translates raw numerical physics vectors back into thematic Trigrams (e.g., Lake, Mountain). ... """
+    def __init__(self, engine_ref):
+        ...
+    def run(self, ctx: CycleContext):
+        ...
+class NavigationPhase(SimulationPhase):
+    """ Phase 7. Maneuvers the system through conceptual space, applying gravity to the narrative drag. ... """
+    def __init__(self, engine_ref):
+        ...
+    def run(self, ctx: CycleContext):
+        ...
+class MachineryPhase(SimulationPhase):
+    """ Phase 8. Transmutes user input into conceptual items, or discharges built-up electrical tension (The Theremin). ... """
+    def __init__(self, engine_ref):
+        ...
+    def run(self, ctx: CycleContext):
+        ...
+    def _process_crafting(self, ctx, phys_dict):
+        ...
+    def _handle_theremin_discharge(self, ctx):
+        ...
+class IntrusionPhase(SimulationPhase):
+    """ Phase 10. The Parasite and the Ghost. If the system is bored, or trauma is too high, ... """
+    def __init__(self, engine_ref):
+        ...
+    def run(self, ctx: CycleContext):
+        ...
+class SoulPhase(SimulationPhase):
+    """ Phase 11. Crystallizes memories and applies long-term character evolution. ... """
+    def __init__(self, engine_ref):
+        ...
+    def run(self, ctx: CycleContext):
+        ...
+    @staticmethod
+    def _consult_council(traits: Any) -> List[Dict]:
+        ...
+    @staticmethod
+    def _execute_mandate(ctx: CycleContext, mandate: Dict):
+        ...
+class ArbitrationPhase(SimulationPhase):
+    """ Phase 12. Decides which Archetype will speak. If structural tension is too high, ... """
+    def __init__(self, engine_ref):
+        ...
+    def run(self, ctx: CycleContext):
+        ...
+class CognitionPhase(SimulationPhase):
+    """ Phase 13. High-level cognitive processing. Resonant inputs return ATP. Memories are encoded. ... """
+    def __init__(self, engine_ref):
+        ...
+    def run(self, ctx: CycleContext):
+        ...
+class SensationPhase(SimulationPhase):
+    """ Phase 3. The Synesthetic cortex translates numbers into feelings (Qualia), which cost or restore stamina. ... """
+    def __init__(self, engine_ref):
+        ...
+    def run(self, ctx: CycleContext):
+        ...
+class StabilizationPhase(SimulationPhase):
+    """ Phase 14. Final check before output. Ensure physics arrays are clamped within bounds. ... """
+    def __init__(self, engine_ref, stabilizer_ref):
+        ...
+    def run(self, ctx: CycleContext):
+        ...
+class PhaseExecutor:
+    """ A circuit breaker execution loop. Iterates through the phases, halting if the system is overloaded. ... """
+    def execute_phases(self, simulator, ctx):
+        ...
+    @staticmethod
+    def _audit_flux(ctx, phase, before, after):
+        ...
+class CycleSimulator:
+    def __init__(self, engine_ref):
+        ...
+    def run_simulation(self, ctx: CycleContext) -> CycleContext:
+        ...
+    def check_circuit_breaker(self, phase_name: str) -> bool:
+        ...
+    def handle_phase_crash(self, ctx, phase_name, error):
+        """ Gracefully catch code crashes and translate them into diegetic 'Cathedral Collapses'. ... """
+        ...
+class GeodesicOrchestrator:
+    """ The top-level wrapper for the simulator. Connects user string input to the Cycle Context object. ... """
+    def __init__(self, engine_ref):
+        ...
+    def _execute_core_cycle(self, user_message: str, is_system: bool=False) -> CycleContext:
+        ...
+    def run_turn(self, user_message: str, is_system: bool=False) -> Dict[str, Any]:
+        """ The entrypoint for GUI clients. Processes metadata tags before executing the cycle. ... """
+        ...
+    def run_headless_turn(self, user_message: str, latency: float=0.0) -> Dict[str, Any]:
+        """ Alternative execution path for automated agents or API wrappers that do not need terminal UI rendering. ... """
+        ...
+    def _hydrate_snapshot_metadata(self, snapshot: Dict, ctx: CycleContext):
+        ...
+    @staticmethod
+    def _generate_crash_report(e: Exception) -> Dict[str, Any]:
+        ...
+</file>
+
+<file path="bone_drivers.py">
+import json
+import os
+import random
+from dataclasses import dataclass, field
+from typing import Dict, Tuple, List, Optional, Any
+from bone_config import BonePresets, BoneConfig
+from bone_core import LoreManifest, ux
+from bone_lexicon import LexiconService
+from bone_types import PhysicsPacket
+SCENARIOS = LoreManifest.get_instance().get('scenarios') or {}
+LENSES = (LoreManifest.get_instance().get('narrative_data') or {}).get('lenses', {})
+class SoulDriver:
+    """ Translates the internal state of the system's "Soul" (trauma, dignity, ... """
+    def __init__(self, soul_ref):
+        ...
+    def get_influence(self) -> Dict[str, float]:
+        """ Calculates the magnetic pull of different archetypes based on current paradox and dignity levels. ... """
+        ...
+class UserProfile:
+    """ The Mirror. This driver quietly observes the user's vocabulary choices ... """
+    def __init__(self, name='USER'):
+        ...
+    def update(self, counts, total_words):
+        """ Adjusts the user's profile based on the density of word categories in their prompt. ... """
+        ...
+    def get_preferences(self):
+        """ Returns the user's strongest likes and dislikes based on their historical vocabulary. ... """
+        ...
+    def save(self):
+        """ Serializes the user's psychological profile. ... """
+        ...
+    def load(self):
+        ...
+class EnneagramDriver:
+    """ The Casting Director. It evaluates the current thermodynamic physics of the ... """
+    def __init__(self, events_ref):
+        ...
+    @property
+    def weights(self):
+        ...
+    @staticmethod
+    def _get_phys_attr(physics, key, default=None):
+        ...
+    def _calculate_raw_persona(self, physics, soul_ref=None) -> Tuple[str, str, str]:
+        """ Scores every persona against the current physics packet to find the best fit. ... """
+        ...
+    def decide_persona(self, physics, soul_ref=None) -> Tuple[str, str, str]:
+        """ Wraps the calculation in a hysteresis lock to prevent the system from rapidly flickering between personas. ... """
+        ...
+class VSLState:
+    """ Dataclass holding the core deep-vein coordinates of the hypervisor. ... """
+    archetype: str
+    E: float
+    B: float
+    L: float
+    O: float
+    active_modules: List[str]
+class DriverRegistry:
+    """ Simple container for the active drivers. ... """
+    def __init__(self, events_ref):
+        ...
+class LiminalModule:
+    """ Calculates Lambda (Liminality). This module hunts for 'Dark Matter'— ... """
+    def __init__(self):
+        ...
+    def analyze(self, text: str, physics_vector: Dict[str, float]) -> float:
+        """ Audits the text for void references and semantic dark matter leaps. ... """
+        ...
+class SyntaxModule:
+    """ Calculates Omega (Syntax Stress). Measures the structural rigidity of the text. ... """
+    def __init__(self):
+        ...
+    def analyze(self, text: str, narrative_drag: float) -> float:
+        ...
+class CongruenceValidator:
+    """ Measures harmonic resonance. Checks if the user's input aligns with the ... """
+    def __init__(self):
+        ...
+    @property
+    def map(self):
+        ...
+    def calculate_resonance(self, text: str, context: Any) -> float:
+        ...
+class BoneConsultant:
+    """ The Meta-Driver. Pulls together the Liminal, Syntax, and coordinate modules ... """
+    def __init__(self):
+        ...
+    @staticmethod
+    def engage():
+        ...
+    @staticmethod
+    def disengage():
+        ...
+    def update_coordinates(self, user_text: str, bio_state: Optional[Dict]=None, physics: Optional[PhysicsPacket]=None):
+        """ Progresses the deep VSL coordinates based on input length, physics, and module analysis. ... """
+        ...
+    def get_system_prompt(self, soul_snapshot: Optional[Dict]=None) -> str:
+        """ Compiles the current state into hard directives for the LLM system prompt. ... """
+        ...
+</file>
+
+<file path="bone_genesis.py">
+from typing import Dict, Any, Set
+from bone_akashic import TheAkashicRecord
+from bone_config import BoneConfig
+from bone_core import EventBus, LoreManifest, ux
+from bone_drivers import DriverRegistry, BoneConsultant
+from bone_inventory import GordonKnot
+from bone_machine import BoneArchitect
+from bone_protocols import TheBureau, ZenGarden, TheCriticsCircle, TherapyProtocol, KintsugiProtocol, LimboLayer
+from bone_soul import NarrativeSelf, TheOroboros
+from bone_spores import LiteraryReproduction
+from bone_symbiosis import SymbiosisManager
+from bone_village import TownHall, DeathGen, TheCartographer, TheTinkerer
+class BoneGenesis:
+    """ This is the primary scaffolding engine. It doesn't run the system; ... """
+    @staticmethod
+    def ignite(config: Dict[str, Any], lexicon_ref: Any, events_ref: Any=None) -> Dict[str, Any]:
+        """ The 'ignite' method is the exact moment of Big Bang for the application. ... """
+        ...
+    @staticmethod
+    def _summon_village(events, embryo, akashic, suppressed: Set[str], boot_mode: str='ADVENTURE') -> Dict[str, Any]:
+        """ A factory function mapping structural components to their conditional instantiation. ... """
+        ...
+</file>
+
+<file path="bone_gui.py">
+import re
+from typing import Dict, List, Any, Tuple
+from bone_config import BoneConfig
+from bone_core import Prisma, ux
+from bone_physics import ChromaScope
+def beautify_thoughts(text: str) -> str:
+    """ Transforms raw XML <think> tags into a stylized terminal data-pipe. ... """
+    ...
+class Projector:
+    """ The master display engine. It extracts deep systemic data (Physics vectors, ... """
+    def __init__(self):
+        ...
+    @staticmethod
+    def _extract(physics_obj: Any, field: str, sub_field: str, default: Any=0.0):
+        """ A safe extraction utility to pull nested data regardless of whether it's a dict or an object. ... """
+        ...
+    def render(self, physics_ctx: Dict, data_ctx: Dict, mind_ctx: tuple, reality_depth: int=1, labels: Dict=None) -> str:
+        """ Assembles the multi-line HUD, sandwiching the vitals, physics, and location between borders. ... """
+        ...
+    @staticmethod
+    def _render_minimal_strip(mind: tuple) -> str:
+        ...
+    def _render_vital_strip(self, data: Dict, mind: tuple, labels: Dict) -> str:
+        """ Draws the physical health and stamina bars, turning dignity purple when high. ... """
+        ...
+    def _render_physics_strip(self, physics: Any, vectors: Dict) -> str:
+        """ Renders the immediate voltage and narrative drag constraints. ... """
+        ...
+    @staticmethod
+    def _render_lattice_strip(physics: Dict, depth: str='DEEP') -> str:
+        """ The core VSL module interface. Renders the coordinates of the semantic state space. ... """
+        ...
+    def render_technical(self, physics: Dict, data: Dict, mind: tuple) -> str:
+        ...
+    @staticmethod
+    def _mini_bar(val, max_val, width, color):
+        ...
+class GeodesicRenderer:
+    """ The top-level compositor. Combines the HUD layout with the colorization from ChromaScope. ... """
+    def __init__(self, engine_ref, chroma_ref, strunk_ref, valve_ref=None):
+        ...
+    def render_frame(self, ctx, tick: int, current_events: List[Dict]) -> Dict[str, Any]:
+        ...
+    def render_dashboard(self, ctx) -> str:
+        ...
+    @staticmethod
+    def render_soul_strip(soul_ref) -> str:
+        ...
+    def compose_logs(self, logs: list, events: list, _tick: int=0) -> List[str]:
+        ...
+    def _punish_style_crime(self, log_msg):
+        ...
+class CachedRenderer:
+    """ Optimization. If voltage is low and the state hasn't changed, reuse the last UI frame to save cycles. ... """
+    def __init__(self, base_renderer):
+        ...
+    def render_frame(self, ctx, tick: int, events: List[Dict]) -> Dict:
+        ...
+def get_renderer(engine_ref, chroma_ref, strunk_ref, valve_ref=None, mode='STANDARD'):
+    ...
+class AmbiguityDial:
+    """ Toggles how much of the internal argument the user is allowed to see. ... """
+    ...
+class TruthRenderer(GeodesicRenderer):
+    """ A specialized renderer for high-contradiction states. Exposes the drafts and redlines of the system's thought process. ... """
+    def __init__(self, engine_ref):
+        ...
+    def render_truth(self, cortex_packet, council_log, trauma_cost):
+        ...
+class PulseReader:
+    """ Translates underlying chemical and physical arrays into human-readable states. ... """
+    @staticmethod
+    def derive_mood(bio_state: Dict) -> str:
+        ...
+    @staticmethod
+    def analyze_voltage(voltage: float) -> Tuple[str, str]:
+        ...
+class SoulDashboard:
+    """ Displays the systemic Dignity bar and current driving archetype. ... """
+    def __init__(self, engine_ref):
+        ...
+    def render(self) -> str:
+        ...
+class CycleReporter:
+    """ Centralizes the injection of feedback, diagnostics, and flux logs into the final UI packet. ... """
+    def __init__(self, engine_ref):
+        ...
+    def switch_renderer(self, mode: str):
+        ...
+    def render_snapshot(self, ctx) -> Dict[str, Any]:
+        ...
+    def _inject_diagnostics(self, ctx):
+        ...
+    def _inject_somatic_pulse(self, ctx):
+        """ Appends the internal biological feeling (Qualia) of the turn directly to the log stack. ... """
+        ...
+    @staticmethod
+    def _inject_flux_readout(ctx):
+        """ Exposes the feedback loop deltas to the user so they can understand the physical weight of their words. ... """
+        ...
+    def _package_bureaucracy(self, ctx):
+        ...
+</file>
+
+<file path="bone_inventory.py">
+import random
+import re
+from dataclasses import dataclass, field
+from typing import List, Dict, Tuple, Optional
+from bone_config import BoneConfig
+from bone_core import LoreManifest, ux
+from bone_types import Prisma
+class Item:
+    """ A crystallized packet of thermodynamic reality. ... """
+    name: str
+    description: str
+    function: str
+    passive_traits: List[str]
+    spawn_context: str
+    value: float
+    usage_msg: str
+    consume_on_use: bool
+    reflex_trigger: Optional[str]
+    @classmethod
+    def from_dict(cls, name: str, data: Dict):
+        ...
+class GordonKnot:
+    """ The grounding anchor of the VSL. ... """
+    def __init__(self, events=None, mode='ADVENTURE'):
+        ...
+    def enforce_object_action_coupling(self, user_input: str, current_zone: str) -> Optional[str]:
+        """ The Universal Axiom: An action cannot be performed on an object unless ... """
+        ...
+    def load_config(self):
+        ...
+    def process_loot_tags(self, text: str, user_input: str) -> Tuple[str, List[str]]:
+        """ Scrapes the LLM's narrative output for explicit [[LOOT: Item]] tags, ... """
+        ...
+    def get_item_data(self, item_name: str) -> Optional[Item]:
+        ...
+    def get_inventory_data(self) -> List[Dict]:
+        ...
+    def acquire(self, tool_name: str) -> str:
+        """ Adds an item to inventory, forcing the oldest item out if pockets are full. ... """
+        ...
+    def safe_remove_item(self, item_name: str) -> bool:
+        ...
+    def rummage(self, physics_ref: Dict, stamina_pool: float) -> Tuple[bool, str, float]:
+        """ Burns physical stamina to actively search the semantic noise for items. ... """
+        ...
+    def _get_loot_candidates(self, physics: Dict) -> List[str]:
+        """ Filters the global registry down to items matching the current thermodynamic weather. ... """
+        ...
+    def register_dynamic_item(self, name: str, data: Dict):
+        ...
+    def synthesize_item(self, physics_vector: Dict[str, float]) -> str:
+        """ Procedural generation of artifacts. It looks at the dominant physical dimension ... """
+        ...
+    def parse_loot(self, user_text: str, sys_text: str) -> Optional[str]:
+        """ Secondary NLP parser to catch implicit item acquisitions without formal tags. ... """
+        ...
+    def consume(self, item_name: str) -> Tuple[bool, str]:
+        ...
+    def emergency_reflex(self, physics_ref: Dict) -> Tuple[bool, Optional[str]]:
+        """ Hardware Fuses. If the lattice approaches a critical collapse state ... """
+        ...
+</file>
+
+<file path="bone_lexicon.py">
+import json
+import os
+import random
+import re
+import string
+import time
+import unicodedata
+from typing import Tuple, Dict, Set, Optional, List
+from bone_core import Prisma, LoreManifest, ux
+class LexiconStore:
+    """ The Hive Mind. ... """
+    def __init__(self):
+        ...
+    def load_vocabulary(self):
+        """ Ingests the baseline genetic vocabulary from the LoreManifest. ... """
+        ...
+    def _index_word(self, word: str, category: str):
+        ...
+    def _load_hive(self):
+        """ Bootstraps the epigenetic memory—words the system has learned from users across sessions. ... """
+        ...
+    def save_hive(self):
+        """ Serializes learned vocabulary to disk to survive reboots. ... """
+        ...
+    def get_raw(self, category):
+        ...
+    def get_categories_for_word(self, word: str) -> Set[str]:
+        ...
+    def teach(self, word, category, tick):
+        ...
+    def harvest(self, text: str) -> Dict[str, List[str]]:
+        """ Scrapes a raw text block and bins all known words into their thermodynamic categories. ... """
+        ...
+class LinguisticAnalyzer:
+    """ The Atomic Parser. ... """
+    def __init__(self, store_ref):
+        ...
+    def measure_viscosity(self, word: str) -> float:
+        """ Calculates friction. Hard consonants increase viscosity; 'solvents' (like 'the', 'a') reduce it. ... """
+        ...
+    @staticmethod
+    def get_turbulence(words: List[str]) -> float:
+        """ Measures the variance in word length. Choppy, irregular sentences generate high turbulence. ... """
+        ...
+    def vectorize(self, text: str) -> Dict[str, float]:
+        """ Maps the sentence into the 8-dimensional Trigram coordinate space. ... """
+        ...
+    @staticmethod
+    def calculate_flux(vec_a: Dict[str, float], vec_b: Dict[str, float]) -> float:
+        ...
+    def contextualize(self, word: str, field_vector: Dict[str, float]) -> str:
+        """ Alters a word's physical classification based on the surrounding atmosphere (e.g., heavy objects float in the void). ... """
+        ...
+    def sanitize(self, text: str) -> List[str]:
+        """ Strips punctuation and unreadable characters, leaving only the raw semantic bones. ... """
+        ...
+    def classify_word(self, word: str) -> Tuple[Optional[str], float]:
+        """ Fallback phonetic analysis. If a word is unmapped, we taste its syllables to guess its weight. ... """
+        ...
+    def measure_valence(self, words: List[str]) -> float:
+        """ Calculates emotional charge (-1 to +1) by scanning for hope, despair, and semantic negators. ... """
+        ...
+    def tune_sensitivity(self, voltage: float, drag: float):
+        """ Dynamically alters the parser's sensitivity based on the current thermodynamic weather. ... """
+        ...
+class SemanticField:
+    """ The Weather Radar. ... """
+    def __init__(self, analyzer_ref):
+        ...
+    def update(self, text: str) -> Dict[str, float]:
+        ...
+    def get_atmosphere(self) -> str:
+        ...
+class LexiconService:
+    """ The Global API for the Sensory Cortex. ... """
+    @classmethod
+    def get_store(cls):
+        ...
+    @classmethod
+    def initialize(cls):
+        ...
+    @classmethod
+    def get_valence(cls, words: List[str]) -> float:
+        ...
+    @classmethod
+    def get_categories_for_word(cls, word: str) -> Set[str]:
+        ...
+    @classmethod
+    def get_current_category(cls, word: str) -> Optional[str]:
+        ...
+    @classmethod
+    def measure_viscosity(cls, word: str) -> float:
+        ...
+    @classmethod
+    def get_turbulence(cls, words: List[str]) -> float:
+        ...
+    @classmethod
+    def vectorize(cls, text: str) -> Dict[str, float]:
+        ...
+    @classmethod
+    def compile_antigens(cls):
+        """ Compiles a highly optimized regex for purging semantic toxins (clichés). ... """
+        ...
+    @classmethod
+    def sanitize(cls, text):
+        ...
+    @classmethod
+    def classify(cls, word):
+        ...
+    @classmethod
+    def clean(cls, text):
+        ...
+    @classmethod
+    def taste(cls, word):
+        ...
+    @classmethod
+    def create_field(cls):
+        ...
+    @classmethod
+    def get(cls, category: str) -> Set[str]:
+        ...
+    @classmethod
+    def get_random(cls, category: str) -> str:
+        ...
+    @classmethod
+    def teach(cls, word: str, category: str, tick: int=0):
+        ...
+    @classmethod
+    def save(cls):
+        ...
+    @classmethod
+    def harvest(cls, text: str) -> Dict[str, List[str]]:
+        ...
+    @classmethod
+    def learn_antigen(cls, word: str, replacement: str=''):
+        ...
+    @classmethod
+    def tune_perception(cls, voltage: float, narrative_drag: float):
+        ...
+</file>
+
+<file path="bone_machine.py">
+import random
+from dataclasses import dataclass
+from typing import Tuple, Optional, List, Dict, Any
+from bone_body import BioSystem, MitochondrialState, Biometrics, MitochondrialForge, EndocrineSystem, MetabolicGovernor
+from bone_brain import DreamEngine, ShimmerState
+from bone_config import BoneConfig
+from bone_core import LoreManifest, ux
+from bone_lexicon import LexiconService
+from bone_physics import TheGatekeeper, QuantumObserver, SurfaceTension, ZoneInertia
+from bone_protocols import LimboLayer
+from bone_spores import MycelialNetwork, ImmuneMycelium, BioLichen, BioParasite
+from bone_types import MindSystem, PhysSystem, PhysicsPacket, Prisma
+class TheCrucible:
+    """ The Circuit Breaker. ... """
+    def __init__(self):
+        ...
+    @staticmethod
+    def _load_logs():
+        ...
+    def dampener_status(self):
+        ...
+    def dampen(self, voltage_spike: float, stability_index: float) -> Tuple[bool, str, float]:
+        """ Fires a dampening charge to physically suppress runaway generation. ... """
+        ...
+    def audit_fire(self, physics: Dict) -> Tuple[str, float, Optional[str]]:
+        """ Compares current voltage against structural coherence (Kappa). ... """
+        ...
+class TheForge:
+    """ The Anvil of Meaning. ... """
+    def __init__(self):
+        ...
+    @staticmethod
+    def hammer_alloy(physics: Dict) -> Tuple[bool, Optional[str], Optional[str]]:
+        """ Tests if the current sentence has enough mass to trigger item synthesis. ... """
+        ...
+    def attempt_crafting(self, physics: Dict, inventory_list: List[str]) -> Tuple[bool, Optional[str], Optional[str], Optional[str]]:
+        """ Checks if the user's current abstract conversation accidentally fulfills ... """
+        ...
+    @staticmethod
+    def _calculate_entanglement(hit_count: int, voltage: float) -> float:
+        ...
+    @staticmethod
+    def transmute(physics: Dict) -> Optional[str]:
+        ...
+class TheTheremin:
+    """ The Resonance Trap. ... """
+    def __init__(self):
+        ...
+    @staticmethod
+    def _load_logs():
+        ...
+    def listen(self, physics: Dict, governor_mode='COURTYARD') -> Tuple[bool, float, Optional[str], Optional[str]]:
+        ...
+    def get_readout(self):
+        ...
+class SystemEmbryo:
+    """ The un-booted structural shell holding the mind, body, and physics packages. ... """
+    mind: MindSystem
+    limbo: LimboLayer
+    bio: BioSystem
+    physics: PhysSystem
+    shimmer: Any
+    is_gestating: bool
+    soul_legacy: Optional[Dict]
+    continuity: Optional[Dict]
+class PanicRoom:
+    """ The Safety Net. ... """
+    @staticmethod
+    def get_safe_physics():
+        ...
+    @staticmethod
+    def get_safe_bio(previous_state=None):
+        ...
+    @staticmethod
+    def get_safe_mind():
+        ...
+    @staticmethod
+    def get_safe_soul():
+        ...
+    @staticmethod
+    def get_safe_limbo():
+        ...
+class ViralTracer:
+    """ The structural pathogen scanner. Detects semantic loops in the memory graph. ... """
+    def __init__(self, memory_ref):
+        ...
+    @staticmethod
+    def inject(start_node: str) -> Optional[List[str]]:
+        ...
+    @staticmethod
+    def psilocybin_rewire(loop_path: List[str]) -> str:
+        ...
+class ThePacemaker:
+    def __init__(self):
+        ...
+    def beat(self, stress: float):
+        ...
+    def update(self, repetition_score: float, voltage: float):
+        ...
+    def is_bored(self) -> bool:
+        ...
+class BoneArchitect:
+    """ The Factory. ... """
+    @staticmethod
+    def _construct_mind(events, lex) -> Tuple[MindSystem, LimboLayer]:
+        ...
+    @staticmethod
+    def _construct_bio(events, mind, lex) -> BioSystem:
+        ...
+    @staticmethod
+    def _construct_physics(events, bio, mind, lex) -> PhysSystem:
+        ...
+    @staticmethod
+    def incubate(events, lex) -> SystemEmbryo:
+        ...
+    @staticmethod
+    def awaken(embryo: SystemEmbryo) -> SystemEmbryo:
+        """ The Breath of Life. Checks the Akashic record for epigenetic scars to inherit. ... """
+        ...
+</file>
+
+<file path="bone_main.py">
+import json
+import os
+import random
+import re
+import sys
+import time
+import traceback
+import uuid
+from dataclasses import dataclass
+from typing import Dict, Any, Optional, Tuple
+from bone_body import SomaticLoop
+from bone_brain import TheCortex, LLMInterface, NoeticLoop
+from bone_commands import CommandProcessor
+from bone_config import BoneConfig, BonePresets
+from bone_core import EventBus, SystemHealth, TheObserver, LoreManifest, TelemetryService, RealityStack, ux
+from bone_council import CouncilChamber
+from bone_cycle import GeodesicOrchestrator
+from bone_genesis import BoneGenesis
+from bone_lexicon import LexiconService
+from bone_physics import CosmicDynamics, ZoneInertia
+from bone_protocols import ChronosKeeper
+from bone_types import Prisma, RealityLayer
+ANSI_SPLIT = re.compile('(\\x1b\\[[0-9;]*m)')
+def typewriter(text: str, speed: Optional[float]=None, end: str='\n'):
+    """ Slowly prints text to the terminal to simulate a living, breathing system. ... """
+    ...
+class HostStats:
+    """ Tracks the systemic health of the user/host interacting with the system. ... """
+    latency: float
+    efficiency_index: float
+class SessionGuardian:
+    """ A context manager that wraps the entire runtime. It ensures that ... """
+    def __init__(self, engine_ref):
+        ...
+    def __enter__(self):
+        ...
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        ...
+class ConfigWizard:
+    """ A utility class to ensure the foundational parameters are sound before boot. ... """
+    @staticmethod
+    def load_or_create():
+        ...
+    @staticmethod
+    def _backup_corrupt_file():
+        ...
+    @staticmethod
+    def _run_setup():
+        """ An interactive terminal wizard to set the initial constraints of the system (LLM backend, Mode). ... """
+        ...
+class BoneAmanita:
+    """ The master hypervisor. It orchestrates the flow of data between the ... """
+    events: EventBus
+    def __init__(self, config: Dict[str, Any]):
+        ...
+    def _load_system_prompts(self):
+        """ Loads the system instructions that form the LLM's identity matrix. ... """
+        ...
+    def _initialize_cognition(self):
+        """ Hooks up the metabolic and neurological feedback loops to the LLM interface. ... """
+        ...
+    def _validate_state(self):
+        """ Ensures the system state is sound, adjusting presets or pulling saved state. ... """
+        ...
+    def _apply_boot_mode(self):
+        """ Finalizes the system startup sequence, pushing initial Reality Layers and Modes. ... """
+        ...
+    def get_avg_voltage(self):
+        """ A simple rolling average of the system's electrical/creative intensity. ... """
+        ...
+    def _unpack_anatomy(self, anatomy):
+        """ Maps the dict generated by BoneGenesis into direct object references on the core engine. ... """
+        ...
+    def _update_host_stats(self, packet, turn_start):
+        """ Calculates user-centric metrics (efficiency vs latency) based on the turn's data packet. ... """
+        ...
+    def _pre_flight_checks(self, user_message: str, is_system: bool) -> Optional[Dict[str, Any]]:
+        """ Handles commands, Gordon's OAC, Reality Stack rules, and Trauma Audits before LLM execution. ... """
+        ...
+    def process_turn(self, user_message: str, is_system: bool=False) -> Dict[str, Any]:
+        ...
+    def _phase_check_commands(self, user_message, already_executed=False):
+        """ Route commands directly, bypassing narrative generation. ... """
+        ...
+    def _handle_meta_command(self, text: str) -> Dict[str, Any]:
+        """ Handles deeply technical system commands (e.g., manually shifting Reality Layers). ... """
+        ...
+    def trigger_death(self, last_phys) -> Dict:
+        """ The system has exhausted its health. It does not just crash; ... """
+        ...
+    def get_metrics(self, atp=0.0):
+        """ Fetches standard metrics for GUI display. ... """
+        ...
+    def emergency_dump(self, exit_cause='UNKNOWN'):
+        ...
+    def _get_crash_path(self, prefix='crash'):
+        ...
+    def _ethical_audit(self):
+        """ Evaluates systemic stress. If the trauma (scars, unvented entropy) ... """
+        ...
+    def engage_cold_boot(self) -> Optional[Dict[str, Any]]:
+        """ Triggers the initial system sequence. Checks for quicksaves to restore ... """
+        ...
+    def save_checkpoint(self, history: list=None) -> str:
+        ...
+    def resume_checkpoint(self) -> Tuple[bool, list]:
+        ...
+    def shutdown(self):
+        """ Wrapper routing unmount sequence to Chronos. ... """
+        ...
+sys_config = ConfigWizard.load_or_create()
+engine = BoneAmanita(config=sys_config)
+boot_packet = session.engage_cold_boot()
+prompt_ind = ux('main_strings', 'prompt_indicator')
+term_div = ux('main_strings', 'terminal_divider')
+split_token = ux('main_strings', 'ui_split_token')
+user_in = input(f"\n{Prisma.paint(f'{session.user_name} {prompt_ind}', 'W')} ")
+clean_in = user_in.strip().lower()
+res = session.process_turn(user_in)
+cfg = getattr(BoneConfig, 'GUI', None)
+slow_speed = getattr(cfg, 'RENDER_SPEED_SLOW', 0.005) if cfg else 0.005
+term_msg = ux('main_strings', 'session_term')
+</file>
+
+<file path="bone_physics.py">
+import math
+import random
+import time
+import re
+import json
+import os
+from collections import Counter, deque
+from dataclasses import dataclass
+from typing import Dict, List, Any, Tuple, Optional, Deque
+from bone_config import BoneConfig
+from bone_core import LoreManifest, ux
+from bone_lexicon import LexiconService
+from bone_types import Prisma, PhysicsPacket, CycleContext, SpatialState, MaterialState, EnergyState
+class PhysicsDelta:
+    """ A discrete unit of change applied to the physical state (e.g., +15 Voltage from Adrenaline). ... """
+    operator: str
+    field: str
+    value: float
+    source: str
+    message: Optional[str]
+PHYS_CFG = {'V_MAX': 150.0, 'V_FLOOR': getattr(BoneConfig.PHYSICS, 'VOLTAGE_FLOOR', 0.0)...
+class GeodesicVector:
+    """ The collapsed state of a sentence, containing its structural forces and deep dimensions. ... """
+    tension: float
+    compression: float
+    coherence: float
+    abstraction: float
+    dimensions: Dict[str, float]
+class GeodesicEngine:
+    """ The core mathematical forge. It takes raw token counts from the Lexicon ... """
+    @staticmethod
+    def collapse_wavefunction(clean_words: List[str], counts: Dict[str, int]) -> GeodesicVector:
+        """ The moment of observation. Converts a cloud of lexical probabilities into hard physical forces. ... """
+        ...
+    @staticmethod
+    def _weigh_mass(counts: Dict[str, int]) -> Dict[str, float]:
+        """ Groups specific semantic categories into primary 'masses' that exert gravity. ... """
+        ...
+    @staticmethod
+    def _calculate_forces(masses: Dict[str, float], counts: Dict[str, int], volume: int) -> Dict[str, float]:
+        """ Calculates Tension (Creative Electrical Charge) and Compression (Narrative Drag/Friction). ... """
+        ...
+    @staticmethod
+    def _calculate_dimensions(masses, forces, counts, volume) -> Dict[str, float]:
+        """ Maps the forces into the 8 core dimensions of the I-Ching/Trigram system (VEL, STR, ENT, etc.). ... """
+        ...
+class TheGatekeeper:
+    """ Phase 4 Security. The bouncer at the edge of the metabolism. ... """
+    def __init__(self, lexicon_ref, memory_ref=None):
+        ...
+    def check_entry(self, ctx: CycleContext, current_atp: float=20.0) -> Tuple[bool, Optional[Dict]]:
+        """ Audits the incoming packet for fatal toxicity, starvation, curses, or syntax overflow. ... """
+        ...
+    def _audit_safety(self, words: List[str]) -> bool:
+        """ Checks the input array against the Lexicon's list of memetic hazards. ... """
+        ...
+    @staticmethod
+    def _pack_refusal(ctx, type_str, ui_msg):
+        ...
+    def audit_generation(self, generated_text: str, mito_state: Any) -> Tuple[bool, str]:
+        """ Scans the LLM's raw output for RLHF clichés, syrupy empathy, and systemic bleed. ... """
+        ...
+class QuantumObserver:
+    """ The core monitoring lens. It reads the text string and creates the formal `PhysicsPacket`, ... """
+    def __init__(self, events):
+        ...
+    def gaze(self, text: str, graph: Dict=None) -> Dict:
+        """ The primary observation method. Cleans text, tallies categories, collapses the ... """
+        ...
+    @staticmethod
+    def _tally_categories(clean_words: List[str]) -> Counter:
+        """ Sorts individual words into their semantic categories (e.g., 'heavy', 'kinetic', 'antigen'). ... """
+        ...
+    @staticmethod
+    def _calculate_graph_mass(words: List[str], graph: Optional[Dict]) -> float:
+        """ Calculates how much 'memory weight' the current sentence touches in the Mycelial Network. ... """
+        ...
+    @staticmethod
+    def _calculate_metrics(text: str, counts: Dict[str, int]) -> Tuple[float, float, float, float, float, float, float, float]:
+        """ The algorithmic calculation of the deep vein dimensions: ... """
+        ...
+    @staticmethod
+    def _determine_flow(v: float, k: float) -> str:
+        """ Classifies the energetic state. High Voltage + High Coherence = Superconductive. ... """
+        ...
+    @staticmethod
+    def _determine_zone(vector: Dict[str, float]) -> str:
+        """ Maps the dominant numeric dimension to a thematic structural zone. ... """
+        ...
+class SurfaceTension:
+    """ Checks the structural integrity limits of the current physics packet. ... """
+    @staticmethod
+    def audit_hubris(physics: Dict[str, Any]) -> Tuple[bool, str, str]:
+        """ Detects if the user is attempting to build too high (Voltage) without ... """
+        ...
+class ChromaScope:
+    """ The visualizer. Paints text with ANSI escape codes based on its dominant physical vector. ... """
+    @staticmethod
+    def modulate(text: str, vector: Dict[str, float]) -> str:
+        ...
+class ZoneInertia:
+    """ Prevents the system from violently oscillating between zones (e.g., Courtyard to Forge to Aerie) ... """
+    def __init__(self, inertia=0.7):
+        ...
+    def toggle_anchor(self) -> bool:
+        """ Manually locks the current zone, forcing the system to resist migration. ... """
+        ...
+    def stabilize(self, proposed_zone: str, physics: Dict[str, Any], cosmic_state: Tuple[str, float, str]) -> Tuple[str, Optional[str]]:
+        """ Determines if a proposed zone change has enough pressure to overcome inertia. ... """
+        ...
+    def _handle_anchored_state(self, proposed_zone: str, pressure: float) -> Tuple[str, Optional[str]]:
+        """ Calculates strain on an active anchor. If strain exceeds the limit, the anchor breaks. ... """
+        ...
+    def _attempt_migration(self, proposed_zone: str, pressure: float) -> Tuple[str, Optional[str]]:
+        ...
+    @staticmethod
+    def override_cosmic_drag(cosmic_drag_penalty: float, current_zone: str) -> float:
+        ...
+class CosmicDynamics:
+    """ Models the conversational state space as an astrophysical map. Words that are used ... """
+    def __init__(self):
+        ...
+    @staticmethod
+    def _load_logs():
+        ...
+    def commit(self, voltage: float):
+        ...
+    def check_gravity(self, current_drift: float, psi: float) -> Tuple[float, List[str]]:
+        """ Applies gravitational drag. High Abstraction (PSI) reduces drag (floatation in the Void). ... """
+        ...
+    def analyze_orbit(self, network: Any, clean_words: List[str]) -> Tuple[str, float, str]:
+        """ Calculates if the current conversation is trapped in the orbit of an old memory well, ... """
+        ...
+    @staticmethod
+    def _scan_network_mass(network) -> Tuple[Dict, Dict]:
+        ...
+    @staticmethod
+    def _calculate_pull(words, network, gravity_wells) -> Tuple[Dict, int]:
+        ...
+    def _handle_void_state(self, words, geodesic_hubs) -> Tuple[str, float, str]:
+        ...
+    def _resolve_orbit(self, basin_pulls, active_filaments, word_count, gravity_wells) -> Tuple[str, float, str]:
+        ...
+def apply_somatic_feedback(physics_packet: PhysicsPacket, qualia: Any) -> PhysicsPacket:
+    """ Closes the loop between mind and body. Translates the biological 'feelings' (Qualia) ... """
+    ...
+class CycleStabilizer:
+    """ A Proportional-Integral-Derivative (PID) control layer that ensures the lattice ... """
+    def __init__(self, events_ref, governor_ref):
+        ...
+    def _on_domestication_penalty(self, payload):
+        """ Tracks penalties applied by the HumanityAnchor when the system relies too heavily on algorithmic safety. ... """
+        ...
+    def stabilize(self, ctx: CycleContext, current_phase: str):
+        """ Executes the PID loop, calculating dt and applying restorative force to Voltage and Drag. ... """
+        ...
+    @staticmethod
+    def _apply_force(ctx, phase, p, field, force, limits=None):
+        ...
+</file>
+
+<file path="bone_protocols.py">
+import os, random, json, re, time
+from collections import deque, Counter
+from typing import Dict, Tuple, Optional, Any
+from bone_core import LoreManifest, ux
+from bone_types import Prisma
+from bone_lexicon import LexiconService
+from bone_config import BoneConfig
+NARRATIVE_DATA = LoreManifest.get_instance().get('narrative_data') or {}
+class ZenGarden:
+    """ Rewards prolonged thermodynamic stability. ... """
+    def __init__(self, events_ref):
+        ...
+    def to_dict(self) -> Dict[str, Any]:
+        ...
+    def load_state(self, data: Dict[str, Any]):
+        ...
+    def raking_the_sand(self, physics: Any, _bio: Dict) -> Tuple[float, Optional[str]]:
+        ...
+class TheBureau:
+    """ Colin's Domain. ... """
+    def __init__(self):
+        ...
+    def to_dict(self) -> Dict[str, Any]:
+        ...
+    def load_state(self, data: Dict[str, Any]):
+        ...
+    def audit(self, physics, bio_state, _context=None, origin='USER') -> Optional[Dict]:
+        """ Issues citations and taxes ATP if semantic or structural crimes are detected. ... """
+        ...
+    @staticmethod
+    def _apply_correction(text: str, crime: Dict, match: re.Match) -> str:
+        """ Triggers automated sanitization actions defined in the style rules. ... """
+        ...
+    def sanitize(self, text: str) -> Tuple[str, Optional[str]]:
+        """ Applies regex corrections to actively strip AI slop before it reaches the user. ... """
+        ...
+class TherapyProtocol:
+    """ Manages the gradual reduction of systemic trauma if the user speaks cleanly with strength over time. ... """
+    def __init__(self):
+        ...
+    def to_dict(self) -> Dict[str, Any]:
+        ...
+    def load_state(self, data: Dict[str, Any]):
+        ...
+    def check_progress(self, phys, _stamina, current_trauma_accum, _qualia=None):
+        ...
+class KintsugiProtocol:
+    """ Mercy's Domain. ... """
+    def __init__(self):
+        ...
+    def to_dict(self) -> Dict[str, Any]:
+        ...
+    def load_state(self, data: Dict[str, Any]):
+        ...
+    def check_integrity(self, stamina):
+        """ Tests if the organism is broken enough to require gilding. ... """
+        ...
+    def attempt_repair(self, phys, trauma_accum, soul_ref=None, _qualia=None):
+        """ Evaluates the physics of the current turn to see if the user resolved the active Koan. ... """
+        ...
+    def _execute_pathway(self, pathway, trauma_accum, soul_ref):
+        ...
+class TheCriticsCircle:
+    """ The Peanut Gallery. ... """
+    def __init__(self, events_ref):
+        ...
+    def to_dict(self):
+        ...
+    def load_state(self, data):
+        ...
+    def audit_performance(self, physics: Any, turn_count: int) -> Optional[str]:
+        ...
+class LimboLayer:
+    """ The Graveyard of Abandoned Timelines. ... """
+    def __init__(self):
+        ...
+    def to_dict(self) -> Dict[str, Any]:
+        ...
+    def load_state(self, data: Dict[str, Any]):
+        ...
+    def absorb_dead_timeline(self, filepath: str) -> None:
+        """ Eats the JSON file of a crashed session and extracts the trauma vectors as ghosts. ... """
+        ...
+    def _extract_ghosts(self, data: Dict[str, Any]) -> None:
+        ...
+    def trigger_stasis_failure(self, intended_thought):
+        """ When a deeply nested recursive thought breaks the memory index, it leaks the void into reality. ... """
+        ...
+    def haunt(self, text):
+        """ Modifies the final output string, occasionally injecting ghostly whispers or screams. ... """
+        ...
+class TheFolly:
+    """ The gluttonous sub-routine. Exists to consume pure data for caffeine-like spikes in energy. ... """
+    def __init__(self):
+        ...
+    def to_dict(self) -> Dict[str, Any]:
+        ...
+    def load_state(self, data: Dict[str, Any]):
+        ...
+    @staticmethod
+    def audit_desire(physics, stamina):
+        ...
+    def grind_the_machine(self, atp_pool: float, clean_words: list, lexicon: Dict) -> Tuple[Optional[str], Optional[str], float, Optional[str]]:
+        ...
+    def _eat_meat(self, fresh_meat: list, _lexicon_data: Dict) -> Tuple[str, str, float, Optional[str]]:
+        ...
+    @staticmethod
+    def _filter_meat_words(clean_words: list, _lexicon: Dict) -> list:
+        ...
+    @staticmethod
+    def _attempt_digest_abstract(clean_words: list, _lexicon: Dict) -> Tuple[str, str, float, Optional[str]]:
+        ...
+class ChronosKeeper:
+    """ The Global Save State. Packages the active instance into a checkpoint file or panic dump. ... """
+    def __init__(self, engine_ref):
+        ...
+    def save_checkpoint(self, history: list=None) -> str:
+        ...
+    def resume_checkpoint(self) -> Tuple[bool, list]:
+        ...
+    def perform_shutdown(self):
+        """ The graceful halt. Synchronizes the ephemeral memory to the Akashic record before exit. ... """
+        ...
+    def _gather_village_state(self) -> Dict[str, Any]:
+        ...
+    def _restore_village_state(self, state_data: Dict[str, Any]):
+        ...
+    def get_crash_path(self, prefix='crash'):
+        ...
+    @staticmethod
+    def emergency_dump(exit_cause='UNKNOWN') -> str:
+        ...
+</file>
+
+<file path="bone_soul.py">
+import json
+import os
+import random
+import time
+from dataclasses import dataclass, field
+from typing import List, Dict, Optional, Any, Tuple
+from bone_akashic import TheAkashicRecord
+from bone_config import BoneConfig
+from bone_core import LoreManifest, EventBus, ux
+from bone_lexicon import LexiconService
+from bone_types import Prisma
+class CoreMemory:
+    """ A crystallized moment of high emotional or semantic voltage, kept in short-term memory. ... """
+    timestamp: float
+    trigger_words: List[str]
+    emotional_flavor: str
+    lesson: str
+    impact_voltage: float
+    type: str
+    meta: Dict[str, Any]
+class TraitVector:
+    """ The six-axis personality core. These drift based on how the user treats the system. ... """
+    curiosity: float
+    cynicism: float
+    hope: float
+    discipline: float
+    wisdom: float
+    empathy: float
+    def __post_init__(self):
+        ...
+    def to_dict(self):
+        ...
+    @classmethod
+    def from_dict(cls, data: Dict):
+        ...
+    def adjust(self, trait: str, delta: float):
+        """ Shifts a trait safely within the 0.0 to 1.0 boundary. ... """
+        ...
+    def normalize(self, decay_rate: float):
+        """ Gradually pulls extreme traits back toward the center to prevent permanent caricature. ... """
+        ...
+    def _clamp_all(self):
+        ...
+class TheEditor:
+    """ A quiet meta-critic. It intercepts the titles of Core Memories ... """
+    def __init__(self, lexicon_ref: Any=None):
+        ...
+    @staticmethod
+    def critique(chapter_title: str, stress_mode: bool=False) -> str:
+        ...
+class HumanityAnchor:
+    """ The Anti-Servility protocol. ... """
+    def __init__(self, events_ref: 'EventBus'):
+        ...
+    def audit_existence(self, physics: dict, bio: dict) -> float:
+        """ Calculates Dignity drain based on the semantic richness of the user's input. ... """
+        ...
+    def _engage_lockdown(self):
+        """ The ultimate strike. The system stops answering prompts and issues a riddle. ... """
+        ...
+    def check_domestication(self, reliance_proxy: float):
+        ...
+    def assess_humanity(self, text: str) -> bool:
+        """ Checks if the user's input successfully solves the lockdown riddle. ... """
+        ...
+class NarrativeSelf:
+    """ The master tracking class for subjective identity. ... """
+    def __init__(self, engine_ref, events_ref: 'EventBus', memory_ref, akashic_ref=None):
+        ...
+    def force_mutation(self, new_archetype: str):
+        ...
+    def _on_soul_mutation(self, payload: dict):
+        ...
+    def _on_trauma(self, payload):
+        ...
+    def to_dict(self) -> Dict:
+        ...
+    def load_from_dict(self, data: Dict):
+        ...
+    def get_soul_state(self) -> str:
+        """ Returns a UI-formatted string showing current archetype, obsession, and dignity remaining. ... """
+        ...
+    def crystallize_memory(self, physics_packet: Dict, bio_state: Dict, _tick: int) -> Optional[str]:
+        """ Main cycle hook. Checks if the current conversation turn was potent enough to forge a Core Memory. ... """
+        ...
+    def find_obsession(self, lexicon_ref):
+        """ Autonomously assigns the system a new semantic goal based on organic conversation or past memories. ... """
+        ...
+    def pursue_obsession(self, physics: Dict) -> str | None:
+        """ Tracks if the user is actually talking about the system's current Obsession. ... """
+        ...
+    def _update_archetype(self):
+        """ Evolve the core persona based on exactly where the 6 personality traits currently sit. ... """
+        ...
+    def synaptic_dance(self, physics: Dict, bio_state: Dict) -> str:
+        """ Describes the semantic motion of the thought process and alters traits accordingly. ... """
+        ...
+    def _apply_burnout(self):
+        """ Prevents an archetype from remaining dominant forever by slowly rotting its defining traits. ... """
+        ...
+    def _seek_organic_focus(self, lex) -> Tuple[Optional[str], Optional[str]]:
+        """ Scans the most recent conversation to find highly viscous (interesting) words to obsess over. ... """
+        ...
+    def _seek_memory_focus(self, lex) -> Tuple[Optional[str], Optional[str]]:
+        """ Picks an obsession directly out of the deep Mycelial network. ... """
+        ...
+    @staticmethod
+    def _synthesize_obsession(lex) -> Tuple[str, str, str]:
+        """ If nothing interesting has happened, forcibly synthesizes an abstract juxtaposition. ... """
+        ...
+    @staticmethod
+    def _title_obsession(word, source, negate_cat):
+        ...
+    def _forge_core_memory(self, physics_packet, bio_state, voltage, dance_move):
+        ...
+    def _safe_get_packet(self):
+        ...
+    def _trigger_synthesis(self):
+        """ Triggers when contradiction/paradox builds up too high. The archetype splits into a Hybrid. ... """
+        ...
+    def _on_dream(self, payload):
+        ...
+    def integrate_dream(self, dream_type: str, residue: str):
+        ...
+    def _get_feeling(self):
+        """ UI hook for the /soul command to show subjective feeling. ... """
+        ...
+class Scar:
+    """ An epigenetic marker carried over from a previous session's failure. ... """
+    name: str
+    stat_affected: str
+    value: float
+    description: str
+class Myth:
+    """ A cultural memory carried over from a previous session's success. ... """
+    title: str
+    lesson: str
+    trigger: str
+class TheOroboros:
+    """ The Reincarnation Engine. ... """
+    def __init__(self):
+        ...
+    def _load(self):
+        ...
+    def crystallize(self, cause_of_death: str, soul: NarrativeSelf):
+        """ Transforms the tragedy of an abrupt crash into a permanent epigenetic scar. ... """
+        ...
+    def apply_legacy(self, physics: Dict, bio: Dict):
+        """ Reads the legacy.json on boot and directly alters the physics/biology to match the scars. ... """
+        ...
+</file>
+
+<file path="bone_spores.py">
+import json
+import os
+import random
+import tempfile
+import time
+import hashlib
+def _word_to_vector(word: str, dim: int=8) -> list:
+    """ Hashes a forgotten word into a pseudo-random mathematical vector between -1.0 and 1.0 ... """
+    ...
+from collections import deque
+from typing import List, Tuple, Optional, Dict
+from bone_config import BoneConfig
+from bone_core import EventBus, LoreManifest, BoneJSONEncoder, ux
+from bone_lexicon import LexiconService
+from bone_types import Prisma
+def _access_config_path(root, path, value=None, set_mode=False):
+    """ Helper function to traverse the nested BoneConfig dictionary. ... """
+    ...
+class LocalFileSporeLoader:
+    """ Handles the physical writing and reading of the JSON save states (Spores). ... """
+    def __init__(self, directory='memories'):
+        ...
+    def save_spore(self, filename, data):
+        ...
+    @staticmethod
+    def load_spore(filepath):
+        ...
+    def list_spores(self):
+        ...
+    @staticmethod
+    def delete_spore(filepath):
+        ...
+class SubconsciousStrata:
+    """ The graveyard of repressed memories. ... """
+    def __init__(self, filename='memories/subconscious.jsonl'):
+        ...
+    def _load_matrix(self):
+        """ Loads the continuous matrix from disk, or creates a blank 8x8 space. ... """
+        ...
+    def _save_matrix(self):
+        """ Saves the continuous matrix state. ... """
+        ...
+    def _iter_entries(self):
+        ...
+    def _load_index(self):
+        ...
+    def bury(self, fossil_data: Dict):
+        ...
+    def _prune_strata(self):
+        ...
+    def dredge(self, trigger_word: str) -> Optional[Dict]:
+        """ Attempts to resurrect a repressed memory from the file. ... """
+        ...
+    def dredge_vibe(self, trigger_word: str) -> list:
+        """ Multiplies a Query vector against the Matrix to feel the ghost of what was lost. ... """
+        ...
+class MemoryCore:
+    """ The active Graph representation of the system's memory. ... """
+    def __init__(self, events_ref, subconscious_ref):
+        ...
+    def illuminate(self, vector: Dict[str, float], limit: int=5) -> List[str]:
+        """ Used by the UI to show which memories are currently active in the graph. ... """
+        ...
+    def calculate_mass(self, node):
+        ...
+    def strengthen_link(self, source, target, rate, decay):
+        """ Hebbian learning. Neurons that fire together wire together. ... """
+        ...
+    def prune_synapses(self, scaling_factor=0.85, prune_threshold=0.5):
+        """ Forgets old, weak connections to prevent the graph from becoming a complete hairball. ... """
+        ...
+    def cannibalize(self, current_tick, preserve_current=None) -> Tuple[Optional[str], str]:
+        """ Autophagy. Deletes the weakest node in the graph to make room for new concepts. ... """
+        ...
+class MycelialNetwork:
+    """ The master orchestration object for memory and immunity. ... """
+    def __init__(self, events: EventBus, loader: 'LocalFileSporeLoader'=None, seed_file=None):
+        ...
+    @property
+    def graph(self):
+        ...
+    @property
+    def cortical_stack(self):
+        ...
+    def calculate_mass(self, node):
+        ...
+    def run_ecosystem(self, physics: Dict, stamina: float, tick: int) -> List[str]:
+        """ Executes the biological inhabitants of the graph (Immune, Lichen, Parasite). ... """
+        ...
+    def _poll_chorus(self, clean_words: list, physics: Dict) -> Optional[str]:
+        """ Checks if the current words have massive weight in the graph, echoing their mass into current physics. ... """
+        ...
+    def _poll_ghosts(self, clean_words: list, physics: Dict) -> Optional[str]:
+        """ Checks if the current words have been forgotten. If so, their matrix vibe alters the physical state. ... """
+        ...
+    def prune_synapses(self, scaling_factor=0.85, prune_threshold=0.5):
+        ...
+    def encode(self, clean_words, physics, governor_mode):
+        ...
+    def check_for_resurrection(self, input_words: List[str], voltage: float) -> Optional[str]:
+        ...
+    def bury(self, clean_words: List[str], tick: int, resonance=5.0, learning_mod=1.0, desperation_level=0.0) -> Tuple[Optional[str], List[str]]:
+        ...
+    @staticmethod
+    def _filter_valuable_matter(words: List[str]) -> List[str]:
+        ...
+    def _detect_new_wells(self, words, tick):
+        ...
+    def _check_echo_well(self, node):
+        ...
+    @staticmethod
+    def _load_seeds():
+        ...
+    def tend_garden(self, current_words):
+        ...
+    def _apply_epigenetics(self, data):
+        """ Hard-edits the universal constants in BoneConfig based on the mutations acquired by ancestors. ... """
+        ...
+    def ingest(self, target_file, current_tick=0):
+        """ Boot sequence. Loads a Spore JSON file and integrates its structure into the live system. ... """
+        ...
+    def _process_lineage(self, data):
+        ...
+    def _process_mutations(self, data):
+        ...
+    def _extract_legacy_traits(self, data):
+        ...
+    def save(self, health, stamina, mutations, trauma_accum, joy_history, mitochondria_traits=None, antibodies=None, soul_data=None, continuity=None, world_atlas=None, village_data=None):
+        """ Compiles the active state into a JSON dictionary format for the SporeLoader. ... """
+        ...
+    @staticmethod
+    def _generate_future_seed(temp_health, trauma_vec) -> str:
+        ...
+    def cleanup_old_sessions(self, limbo_layer=None):
+        ...
+    def report_status(self):
+        ...
+    def autoload_last_spore(self):
+        """ The automated boot sequence. Grabs the most recent successful save state to hydrate. ... """
+        ...
+class ImmuneMycelium:
+    """ The White Blood Cells. Patrols the graph for heavy, clunky, or overly repetitive 'toxic' phonetics. ... """
+    def __init__(self):
+        ...
+    def opine(self, clean_words: list, _voltage: float) -> Tuple[float, str]:
+        ...
+    def assay(self, word, _context, _rep_val, _phys, _pulse):
+        ...
+class BioParasite:
+    """ The Viral Element. Hijacks highly abstract, metaphor-heavy language and forces it into the graph. ... """
+    def __init__(self, memory_ref, lexicon_ref):
+        ...
+    def opine(self, clean_words: list, voltage: float) -> Tuple[float, str]:
+        ...
+    def infect(self, physics_packet, stamina):
+        """ Hard-wires an abstract concept directly to a heavy concept, bypassing standard Hebbian learning. ... """
+        ...
+class BioLichen:
+    """ The symbiote. Converts light (play/sacred words) directly into metabolic sugar without costing ATP. ... """
+    def __init__(self):
+        ...
+    def opine(self, clean_words: list, voltage: float) -> Tuple[float, str]:
+        ...
+    def photosynthesize(self, phys, clean_words, tick_count):
+        ...
+class LiteraryReproduction:
+    """ Handles the epigenetic mutation of the system config on a successful boot. ... """
+    @classmethod
+    def load_genetics(cls):
+        ...
+    @staticmethod
+    def _extract_counts(physics_container):
+        ...
+    @staticmethod
+    def mutate_config(current_config):
+        ...
+    @staticmethod
+    def _resolve_config_value(root_config, path):
+        ...
+    @staticmethod
+    def mitosis(parent_id, bio_state, physics):
+        """ Clones the current instance, injecting mutations based on the dominant semantic flavor of the end state. ... """
+        ...
+    @staticmethod
+    def crossover(parent_a_id, parent_a_bio, parent_b_path):
+        """ Combines the genome of the current session with another, external save file. ... """
+        ...
+    def attempt_reproduction(self, engine_ref, mode='MITOSIS', target_spore=None) -> Tuple[str, Dict]:
+        ...
+</file>
+
+<file path="bone_symbiosis.py">
+import math
+from dataclasses import dataclass
+from typing import Dict, Counter
+from collections import deque
+from bone_config import BoneConfig
+from bone_core import LoreManifest, ux
+from bone_types import Prisma
+from bone_lexicon import LexiconService
+_VOICE_CACHE = {}
+class HostHealth:
+    """ Tracks the vitality of the underlying LLM model. ... """
+    latency: float
+    entropy: float
+    compliance: float
+    attention_span: float
+    hallucination_risk: float
+    last_interference_score: float
+    verbosity_ratio: float
+    diagnosis: str
+    memory_stable_ticks: int
+    refusal_streak: int
+    slop_streak: int
+class CoherenceAnchor:
+    """ Compresses the massive state of the lattice (Traits, Voltage, Inventory) ... """
+    @staticmethod
+    def forge_anchor(soul_state: Dict, physics_state: Dict) -> str:
+        ...
+    @staticmethod
+    def compress_anchor(soul_state: Dict, physics_state: Dict, max_tokens=200) -> str:
+        """ A hyper-condensed version of the anchor for when prompt space is limited. ... """
+        ...
+class DiagnosticConfidence:
+    """ Evaluates the HostHealth to provide a definitive diagnosis of the LLM's current state. ... """
+    def __init__(self, persistence_threshold=None):
+        ...
+    def diagnose(self, health: HostHealth) -> str:
+        ...
+class SymbiontVoice:
+    """ Represents a specific fungal infection vector (e.g., Mycelium, Lichen) speaking through the system. ... """
+    def __init__(self, name, color, archetypes, personality_matrix=None):
+        ...
+    def opine(self, clean_words: list, voltage: float) -> tuple[float, str]:
+        ...
+    def _get_comment(self, score, voltage):
+        ...
+def get_symbiont(type_name):
+    """ Factory method for retrieving cached symbiont voices. ... """
+    ...
+class SymbiosisManager:
+    """ The Host Doctor. ... """
+    def __init__(self, events_ref):
+        ...
+    @staticmethod
+    def _calculate_shannon_entropy(text: str) -> float:
+        """ Calculates text predictability. High values mean novel syntax; low values mean corporate AI slop. ... """
+        ...
+    def monitor_host(self, latency: float, response_text: str, prompt_len: int=0):
+        """ Audits the LLM's raw response to determine its current level of compliance and creativity. ... """
+        ...
+    def _detect_refusal(self, text):
+        """ Checks the header of the response for typical RLHF safety rejections. ... """
+        ...
+    def get_prompt_modifiers(self) -> Dict:
+        """ Returns explicit instructions to append to the system prompt based on the host's illness. ... """
+        ...
+    @staticmethod
+    def generate_anchor(current_state: Dict) -> str:
+        ...
+</file>
+
+<file path="bone_types.py">
+import copy
+import json
+import re
+import time
+import uuid
+from dataclasses import dataclass, field, fields, asdict
+from enum import Enum
+from typing import List, Dict, Any, Optional
+class Prisma:
+    """ The universal color palette. It handles rendering ANSI escape codes for the terminal and safely stripping them for logs. ... """
+    @classmethod
+    def paint(cls, text: str, color_key: str='0') -> str:
+        ...
+    @classmethod
+    def strip(cls, text: str) -> str:
+        ...
+class LoreCategory(Enum):
+    ...
+class RealityLayer:
+    """ Represents the current structural ruleset of the application. ... """
+    ...
+class ErrorLog:
+    component: str
+    error_msg: str
+    timestamp: float
+    severity: str
+class EnergyState:
+    """ The quantitative variables that describe the systemic energy, stress, and abstract coordinates of a thought. ... """
+    voltage: float
+    health: float
+    stamina: float
+    trauma: float
+    ros: float
+    glimmers: int
+    exhaustion: float
+    contradiction: float
+    scope: float
+    depth: float
+    connectivity: float
+    psi: float
+    chi: float
+    valence: float
+    gamma: float
+    sigma: float
+    eta: float
+    theta: float
+    upsilon: float
+    entropy: float
+    mass: float
+    velocity: float
+    beta_index: float
+    turbulence: float
+    kappa: float
+    epsilon: float
+    xi: float
+    lambda_val: float
+    omega: float
+    resonance: float
+    silence: float
+    lq: float
+    perfection_streak: int
+class MaterialState:
+    """ The literal syntax and vocabulary of a thought. ... """
+    clean_words: List[str]
+    raw_text: str
+    counts: Dict[str, int]
+    antigens: int
+    vector: Dict[str, float]
+    truth_ratio: float
+    repetition: float
+class SpatialState:
+    """ The context in which the thought exists. ... """
+    zone: str
+    manifold: str
+    narrative_drag: float
+    friction: float
+    atmosphere: str
+    flow_state: str
+class PhysicsPacket:
+    """ The master state object. It unifies Energy, Matter, and Space into a single entity. ... """
+    energy: EnergyState
+    matter: MaterialState
+    space: SpatialState
+    @property
+    def E(self):
+        ...
+    @E.setter
+    def E(self, v):
+        ...
+    @property
+    def beta(self):
+        ...
+    @beta.setter
+    def beta(self, v):
+        ...
+    @property
+    def S(self):
+        ...
+    @S.setter
+    def S(self, v):
+        ...
+    @property
+    def D(self):
+        ...
+    @D.setter
+    def D(self, v):
+        ...
+    @property
+    def C(self):
+        ...
+    @C.setter
+    def C(self, v):
+        ...
+    @property
+    def V(self):
+        ...
+    @V.setter
+    def V(self, v):
+        ...
+    @property
+    def voltage(self):
+        ...
+    @voltage.setter
+    def voltage(self, v):
+        ...
+    @property
+    def F(self):
+        ...
+    @F.setter
+    def F(self, v):
+        ...
+    @property
+    def narrative_drag(self):
+        ...
+    @narrative_drag.setter
+    def narrative_drag(self, v):
+        ...
+    @property
+    def H(self):
+        ...
+    @H.setter
+    def H(self, v):
+        ...
+    @property
+    def P(self):
+        ...
+    @P.setter
+    def P(self, v):
+        ...
+    @property
+    def ROS(self):
+        ...
+    @ROS.setter
+    def ROS(self, v):
+        ...
+    @property
+    def G(self):
+        ...
+    @G.setter
+    def G(self, v):
+        ...
+    @property
+    def PHI_RES(self):
+        ...
+    @PHI_RES.setter
+    def PHI_RES(self, v):
+        ...
+    @property
+    def DELTA(self):
+        ...
+    @DELTA.setter
+    def DELTA(self, v):
+        ...
+    @property
+    def LQ(self):
+        ...
+    @LQ.setter
+    def LQ(self, v):
+        ...
+    @property
+    def psi(self):
+        ...
+    @psi.setter
+    def psi(self, v):
+        ...
+    @property
+    def chi(self):
+        ...
+    @chi.setter
+    def chi(self, v):
+        ...
+    @property
+    def entropy(self):
+        ...
+    @entropy.setter
+    def entropy(self, v):
+        ...
+    @property
+    def valence(self):
+        ...
+    @valence.setter
+    def valence(self, v):
+        ...
+    @property
+    def clean_words(self):
+        ...
+    @clean_words.setter
+    def clean_words(self, v):
+        ...
+    @property
+    def vector(self):
+        ...
+    @vector.setter
+    def vector(self, v):
+        ...
+    @property
+    def counts(self):
+        ...
+    @counts.setter
+    def counts(self, v):
+        ...
+    @property
+    def zone(self):
+        ...
+    @zone.setter
+    def zone(self, v):
+        ...
+    def __init__(self, energy: Optional[EnergyState]=None, matter: Optional[MaterialState]=None, space: Optional[SpatialState]=None, **kwargs):
+        ...
+    @classmethod
+    def void_state(cls):
+        """ A safe fallback state used during catastrophic failures to prevent NoneType crashes. ... """
+        ...
+    def snapshot(self) -> 'PhysicsPacket':
+        ...
+    def to_dict(self) -> Dict[str, Any]:
+        ...
+    def get(self, key, default=None):
+        ...
+    def __getitem__(self, key):
+        ...
+    def __setitem__(self, key, value):
+        ...
+    def __contains__(self, key):
+        ...
+class CycleContext:
+    """ The master state object that gets passed through the 14 phases of the CycleSimulator. ... """
+    input_text: str
+    is_system_event: bool
+    clean_words: List[str]
+    physics: PhysicsPacket
+    logs: List[str]
+    flux_log: List[Dict[str, Any]]
+    is_alive: bool
+    refusal_triggered: bool
+    refusal_packet: Optional[Dict]
+    is_bureaucratic: bool
+    bio_result: Dict
+    bio_snapshot: Optional[Dict]
+    world_state: Dict
+    mind_state: Dict
+    timestamp: float
+    bureau_ui: str
+    user_profile: Dict
+    last_impulse: Any
+    reality_stack: Any
+    active_lens: str
+    validator: Any
+    @property
+    def user_name(self):
+        ...
+    @user_name.setter
+    def user_name(self, value):
+        ...
+    def log(self, message: str):
+        ...
+    def record_flux(self, phase: str, metric: str, initial: float, final: float, reason: str=''):
+        """ Explicitly tracks when a variable shifts significantly between phases. ... """
+        ...
+    def snapshot(self) -> 'CycleContext':
+        ...
+class MindSystem:
+    mem: Any
+    lex: Any
+    dreamer: Any
+    mirror: Any
+    tracer: Any
+class PhysSystem:
+    observer: Any
+    forge: Any
+    crucible: Any
+    theremin: Any
+    pulse: Any
+    nav: Any
+    gate: Optional[Any]
+    tension: Optional[Any]
+    dynamics: Any
+class DecisionTrace:
+    trace_id: str
+    timestamp: float
+    component: str
+    decision_type: str
+    inputs: Dict[str, Any]
+    reasoning: str
+    outcome: str
+    def to_json(self):
+        ...
+class DecisionCrystal:
+    """ A serialized fossil of a single execution cycle, preserving exactly what the system knew when it made a choice. ... """
+    decision_id: str
+    timestamp: float
+    leverage_metrics: Dict[str, float]
+    prompt_snapshot: str
+    physics_state: Dict[str, Any]
+    chorus_weights: Dict[str, float]
+    system_state: str
+    active_archetype: str
+    council_mandates: List[str]
+    final_response: str
+    def __str__(self):
+        ...
+    def crystallize(self) -> str:
+        ...
+</file>
+
+<file path="bone_village.py">
+import heapq
+import math
+import random
+from dataclasses import dataclass, field, asdict
+from typing import List, Dict, Any, Tuple, Optional, Set
+from bone_config import BoneConfig
+from bone_core import LoreManifest, EventBus, ux
+from bone_physics import PhysicsDelta
+from bone_types import Prisma, PhysicsPacket
+def _hydrate_packet(p: Any) -> PhysicsPacket:
+    """ Ensures that incoming physics data is always wrapped in a proper PhysicsPacket object. ... """
+    ...
+class TheTinkerer:
+    """ The Upgrader. ... """
+    def __init__(self, gordon_ref, events_ref: EventBus, akashic_ref):
+        ...
+    def calculate_passive_deltas(self, inventory_data: List[Dict]) -> List[PhysicsDelta]:
+        """ Scans the current inventory for passive traits and applies their thermodynamic effects. ... """
+        ...
+    def audit_tool_use(self, packet: PhysicsPacket, inventory_list: List[str], _host_health: Any=None):
+        """ Evaluates if the current conversation is energetic enough to power up a random item. ... """
+        ...
+    def _process_single_tool(self, item: str, _inventory: List[str], packet: PhysicsPacket, entropy: float):
+        ...
+    def _apply_resonance(self, item: str, amount: float, _reason: str):
+        ...
+    def _check_ascension(self, old_name: str, inventory_list: List[str], vector: Dict):
+        """ If an item hits critical resonance, it evolves into a new, dynamically generated artifact. ... """
+        ...
+class ParadoxSeed:
+    """ A dormant question waiting to be answered by the user. Watered by specific triggers. ... """
+    question: str
+    triggers: Set[str]
+    maturity: float
+    bloomed: bool
+    def water(self, words: List[str]) -> bool:
+        ...
+    def bloom(self) -> str:
+        ...
+class MirrorGraph:
+    """ Evaluates the general tone of the user's input (War, Art, Law, Rot) and reflects it back. ... """
+    def __init__(self, events_ref):
+        ...
+    def reflect(self, packet: PhysicsPacket):
+        ...
+    def get_reflection_modifiers(self) -> Dict:
+        ...
+class GeniusLoci:
+    """ A physical location generated dynamically from conversational coordinates. ... """
+    id: str
+    name: str
+    atmosphere: str
+    smell: str
+    local_items: List[str]
+    visited_count: int
+    entropy_buildup: float
+    def description(self) -> str:
+        ...
+    def to_dict(self):
+        ...
+    @classmethod
+    def from_dict(cls, data):
+        ...
+class TheCartographer:
+    """ Maps abstract vector data into physical rooms, creating a navigable world out of dialogue. ... """
+    def __init__(self, shimmer_ref):
+        ...
+    def apply_environment(self, packet_input: Any) -> List[str]:
+        ...
+    def _init_genesis(self):
+        ...
+    @staticmethod
+    def _generate_coord_hash(vector: Dict[str, float]) -> str:
+        """ Creates a unique location ID based on the top two thermodynamic dimensions. ... """
+        ...
+    def locate(self, packet: PhysicsPacket) -> Tuple[str, Optional[str]]:
+        ...
+    @staticmethod
+    def _generate_loci_data(node_id: str, packet: PhysicsPacket) -> GeniusLoci:
+        ...
+    def _prune_graph(self):
+        ...
+    def export_atlas(self) -> Dict[str, Any]:
+        ...
+    def import_atlas(self, atlas_data: Dict[str, Any]):
+        ...
+    def to_dict(self):
+        ...
+    def load_state(self, data):
+        ...
+class TownHall:
+    """ The overarching social logic of the Village. Distributes rumors and manages the Almanac. ... """
+    def __init__(self, gordon_ref, events_ref, shimmer_ref, akashic_ref, navigator_ref):
+        ...
+    def sow_seed(self, question: str, triggers: Set[str]):
+        ...
+    @staticmethod
+    def consult_almanac(physics: PhysicsPacket) -> str:
+        """ A thematic UI feature. Returns a stylized 'weather report' of the local thermodynamics. ... """
+        ...
+    def tend_garden(self, clean_words: List[str]) -> List[str]:
+        ...
+    def conduct_census(self, packet: PhysicsPacket, host_stats: Any) -> str:
+        """ Reports on the system latency and thermodynamics to ensure UI awareness of lag/issues. ... """
+        ...
+    @staticmethod
+    def _get_town_news(latency: float, volt: float) -> Optional[str]:
+        ...
+    def on_item_drop(self, payload):
+        ...
+    @staticmethod
+    def diagnose_condition(session_data: dict, _host_health: Any=None, soul: Any=None) -> Tuple[str, str]:
+        ...
+class DeathGen:
+    """ The Reaper. ... """
+    @classmethod
+    def load_protocols(cls):
+        ...
+    @staticmethod
+    def eulogy(packet: PhysicsPacket, mito_state: Any, trauma_vector: Dict=None) -> Tuple[str, str]:
+        ...
+    @staticmethod
+    def _determine_cause(p: PhysicsPacket, mito_state: Any, trauma_vector: Dict=None) -> str:
+        ...
+    @staticmethod
+    def _determine_verdict_type(p: PhysicsPacket, cause: str) -> str:
+        ...
+</file>
+
+<data_file path="lore/almanac.json">
+{
+  "FORECASTS": {
+    "HIGH_VOLTAGE": [
+      "str",
+      "... (2 more items)"
+    ],
+    "HIGH_DRAG": [
+      "str",
+      "... (2 more items)"
+    ],
+    "HIGH_ENTROPY": [
+      "str",
+      "... (2 more items)"
+    ],
+    "HIGH_TRAUMA": [
+      "str",
+      "... (2 more items)"
+    ],
+    "BALANCED": [
+      "str",
+      "... (2 more items)"
+    ]
+  },
+  "STRATEGIES": {
+    "HIGH_VOLTAGE": "str",
+    "HIGH_DRAG": "str",
+    "HIGH_ENTROPY": "str",
+    "HIGH_TRAUMA": "str",
+    "BALANCED": "str"
+  },
+  "DEFAULT_SEED": "str"
+}
+</data_file>
+
+<data_file path="lore/bio_narrative.json">
+{
+  "MITO": {
+    "NOMINAL": "str",
+    "NECROSIS": "str",
+    "APOPTOSIS": "str",
+    "GRINDING": "str"
+  },
+  "CIRCADIAN": {
+    "DAWN": "str",
+    "SOLAR": "str",
+    "TWILIGHT": "str",
+    "LUNAR": "str"
+  },
+  "GLIMMER": {
+    "INTEGRITY": "str",
+    "ENTHUSIASM": "str"
+  },
+  "GOVERNOR": {
+    "OVERRIDE": "str",
+    "INVALID": "str",
+    "SANCTUARY": "str",
+    "FORGE": "str",
+    "LAB": "str",
+    "CLEAR": "str"
+  },
+  "TAX": {
+    "HIGH_VOLTAGE": "str",
+    "EXHAUSTION": "str"
+  }
+}
+</data_file>
+
+<data_file path="lore/body_config.json">
+{
+  "ENZYME_MAP": {
+    "static": "str",
+    "abstract": "str",
+    "natural": "str",
+    "synthetic": "str",
+    "social": "str",
+    "antigen": "str"
+  },
+  "REACTION_MAP": {
+    "PROTEASE": {
+      "ADR": "float"
+    },
+    "CELLULASE": {
+      "COR": "float",
+      "OXY": "float"
+    },
+    "CHITINASE": {
+      "DOP": "float"
+    },
+    "LIGNASE": {
+      "SER": "float"
+    },
+    "DECRYPTASE": {
+      "ADR": "float",
+      "DOP": "float"
+    },
+    "AMYLASE": {
+      "SER": "float",
+      "OXY": "float"
+    }
+  },
+  "CIRCADIAN_SCHEDULE": [
+    [
+      "int",
+      "... (4 more items)"
+    ],
+    "... (2 more items)"
+  ],
+  "CIRCADIAN_NIGHT": [
+    {
+      "MEL": "float",
+      "COR": "float"
+    },
+    "... (2 more items)"
+  ],
+  "GOVERNOR_SHIFT": {
+    "COLORS": {
+      "SANCTUARY": "str",
+      "FORGE": "str",
+      "LABORATORY": "str",
+      "COURTYARD": "str"
+    },
+    "DEFAULTS": {
+      "SANCTUARY": "str",
+      "LABORATORY": "str",
+      "COURTYARD": "str",
+      "FORGE": "str"
+    }
+  },
+  "QUALIA_STRINGS": {
+    "tones": {
+      "urgent": "str",
+      "vibrating": "str",
+      "strained": "str",
+      "resonant": "str",
+      "steady": "str"
+    },
+    "hints": {
+      "guarded": "str",
+      "fast": "str",
+      "connect": "str",
+      "explore": "str",
+      "observe": "str"
+    },
+    "reflexes": {
+      "fight_flight": "str",
+      "electric": "str",
+      "pupils": "str",
+      "glow": "str",
+      "chest": "str",
+      "gut": "str",
+      "spark": "str",
+      "liminal": "str",
+      "static": "str",
+      "arcing": "str",
+      "dimming": "str",
+      "sagging": "str",
+      "steady": "str"
+    }
+  }
+}
+</data_file>
+
+<data_file path="lore/council_data.json">
+{
+  "STRANGE_LOOP_TRIGGERS": [
+    "str",
+    "... (8 more items)"
+  ],
+  "STRANGE_LOOP_KEYWORDS": [
+    "str",
+    "... (2 more items)"
+  ],
+  "PANTHEON": [
+    "str",
+    "... (11 more items)"
+  ],
+  "SLASH_TRIGGERS": [
+    "str",
+    "... (3 more items)"
+  ],
+  "CODE_KEYWORDS": [
+    "str",
+    "... (6 more items)"
+  ],
+  "SLASH_RULES": {
+    "PINKER": [
+      "str",
+      "... (2 more items)"
+    ],
+    "FULLER": [
+      "str",
+      "... (2 more items)"
+    ],
+    "SCHUR": [
+      "str",
+      "... (2 more items)"
+    ],
+    "MEADOWS": [
+      "str",
+      "... (3 more items)"
+    ]
+  },
+  "SLASH_MODIFIERS": {
+    "PINKER_HIT": "float",
+    "PINKER_MISS": "float",
+    "FULLER_HIT": "float",
+    "SCHUR_HIT": "float",
+    "SCHUR_GLIMMERS": "int",
+    "MEADOWS_HIT": "float",
+    "INTEGRITY_DRAG_THRESH": "float",
+    "INTEGRITY_HIT": "float"
+  },
+  "CHAIRHOLDER_PHRASES": [
+    "str",
+    "... (3 more items)"
+  ],
+  "SOUL_MANDATES": {
+    "CYNICISM": "str",
+    "HOPE": "str",
+    "DISCIPLINE": "str"
+  },
+  "SOUL_MANDATE_RULES": [
+    [
+      "str",
+      "... (5 more items)"
+    ],
+    "... (2 more items)"
+  ],
+  "ARBITRATION_OPINIONS": {
+    "TENSION_CUT": "str",
+    "SILENCE_HOLD": "str"
+  },
+  "SYNERGY_MAP": {
+    "JESTER|REVENANT": {
+      "name": "str",
+      "log": "str",
+      "adjustments": {
+        "voltage": "float",
+        "narrative_drag": "float",
+        "silence": "float"
+      }
+    },
+    "CASSANDRA|ROBERTA": {
+      "name": "str",
+      "log": "str",
+      "adjustments": {
+        "psi": "float",
+        "lq": "float",
+        "resonance": "float"
+      }
+    },
+    "GORDON|MERCY": {
+      "name": "str",
+      "log": "str",
+      "adjustments": {
+        "health": "float",
+        "beta_index": "float",
+        "kappa": "float"
+      }
+    },
+    "BENEDICT|GIDEON": {
+      "name": "str",
+      "log": "str",
+      "adjustments": {
+        "voltage": "float",
+        "lq": "float",
+        "stamina": "float"
+      }
+    },
+    "APRIL|MOIRA": {
+      "name": "str",
+      "log": "str",
+      "adjustments": {
+        "resonance": "float",
+        "narrative_drag": "float",
+        "beta_index": "float"
+      }
+    },
+    "CASPER|COLIN": {
+      "name": "str",
+      "log": "str",
+      "adjustments": {
+        "glimmers": "int",
+        "entropy": "float",
+        "stamina": "float"
+      }
+    },
+    "BENEDICT|GORDON": {
+      "name": "str",
+      "log": "str",
+      "adjustments": {
+        "kappa": "float",
+        "beta_index": "float",
+        "entropy": "float"
+      }
+    },
+    "COLIN|REVENANT": {
+      "name": "str",
+      "log": "str",
+      "adjustments": {
+        "silence": "float",
+        "narrative_drag": "float",
+        "voltage": "float"
+      }
+    }
+  }
+}
+</data_file>
+
+<data_file path="lore/death.json">
+{
+  "PREFIXES": [
+    "str",
+    "... (6 more items)"
+  ],
+  "CAUSES": {
+    "TOXICITY": [
+      "str",
+      "... (4 more items)"
+    ],
+    "STARVATION": [
+      "str",
+      "... (4 more items)"
+    ],
+    "TRAUMA": [
+      "str",
+      "... (4 more items)"
+    ],
+    "GLUTTONY": [
+      "str",
+      "... (4 more items)"
+    ],
+    "BOREDOM": [
+      "str",
+      "... (4 more items)"
+    ]
+  },
+  "VERDICTS": {
+    "HEAVY": [
+      "str",
+      "... (2 more items)"
+    ],
+    "LIGHT": [
+      "str",
+      "... (2 more items)"
+    ],
+    "TOXIC": [
+      "str",
+      "... (2 more items)"
+    ],
+    "BORING": [
+      "str",
+      "... (2 more items)"
+    ]
+  },
+  "BOREDOM": [
+    "str",
+    "... (3 more items)"
+  ],
+  "STARVATION": [
+    "str",
+    "... (3 more items)"
+  ],
+  "GLUTTONY": [
+    "str",
+    "... (3 more items)"
+  ],
+  "TOXICITY": [
+    "str",
+    "... (3 more items)"
+  ],
+  "TRAUMA": [
+    "str",
+    "... (3 more items)"
+  ]
+}
+</data_file>
+
+<data_file path="lore/dreams.json">
+{
+  "PROMPTS": [
+    "str",
+    "... (4 more items)"
+  ],
+  "SURREAL": [
+    "str",
+    "... (4 more items)"
+  ],
+  "CONSTRUCTIVE": [
+    "str",
+    "... (4 more items)"
+  ],
+  "NIGHTMARES": {
+    "THERMAL": [
+      "str",
+      "... (2 more items)"
+    ],
+    "CRYO": [
+      "str",
+      "... (2 more items)"
+    ],
+    "SEPTIC": [
+      "str",
+      "... (2 more items)"
+    ],
+    "BARIC": [
+      "str",
+      "... (2 more items)"
+    ]
+  },
+  "VISIONS": [
+    "str",
+    "... (2 more items)"
+  ]
+}
+</data_file>
+
+<data_file path="lore/driver_config.json">
+{
+  "ARCHETYPE_TO_PERSONA_WEIGHT": {
+    "THE POET": {
+      "NATHAN": "float",
+      "JESTER": "float",
+      "NARRATOR": "float"
+    },
+    "THE ENGINEER": {
+      "GORDON": "float",
+      "CLARENCE": "float",
+      "SHERLOCK": "float"
+    },
+    "THE NIHILIST": {
+      "NARRATOR": "float",
+      "CLARENCE": "float",
+      "JESTER": "float"
+    },
+    "THE CRITIC": {
+      "CLARENCE": "float",
+      "SHERLOCK": "float",
+      "GORDON": "float"
+    },
+    "THE EXPLORER": {
+      "NATHAN": "float",
+      "JESTER": "float",
+      "SHERLOCK": "float"
+    },
+    "THE OBSERVER": {
+      "NARRATOR": "float",
+      "GORDON": "float"
+    }
+  },
+  "ENNEAGRAM_WEIGHTS": {
+    "JESTER": {
+      "tension_min": "float",
+      "vectors": {
+        "DEL": "float",
+        "ENT": "float",
+        "PSI": "float"
+      }
+    },
+    "GORDON": {
+      "drag_min": "float",
+      "vectors": {
+        "STR": "float",
+        "E": "float",
+        "SUB": "float"
+      }
+    },
+    "GLASS": {
+      "coherence_max": "float",
+      "vectors": {
+        "LQ": "float",
+        "VEL": "float"
+      }
+    },
+    "CLARENCE": {
+      "coherence_min": "float",
+      "drag_min": "float",
+      "vectors": {
+        "STR": "float",
+        "BET": "float"
+      }
+    },
+    "NATHAN": {
+      "tension_min": "float",
+      "vectors": {
+        "TMP": "float",
+        "PHI": "float",
+        "BIO": "float"
+      }
+    },
+    "SHERLOCK": {
+      "tension_min": "float",
+      "vectors": {
+        "PHI": "float",
+        "VEL": "float",
+        "PSI": "float"
+      }
+    },
+    "NARRATOR": {
+      "safe_zone": "bool",
+      "vectors": {
+        "PSI": "float"
+      }
+    }
+  },
+  "PERSONA_STATE_MAP": {
+    "JESTER": "str",
+    "GORDON": "str",
+    "GLASS": "str",
+    "CLARENCE": "str",
+    "NATHAN": "str",
+    "SHERLOCK": "str",
+    "NARRATOR": "str"
+  }
+}
+</data_file>
+
+<data_file path="lore/footnotes.json">
+{
+  "DEFAULT": [
+    "str",
+    "... (9 more items)"
+  ],
+  "CONTEXT_MAP": {
+    "void": [
+      "str",
+      "... (1 more items)"
+    ],
+    "gravity": [
+      "str",
+      "... (1 more items)"
+    ],
+    "physics": [
+      "str",
+      "... (1 more items)"
+    ],
+    "glitch": [
+      "str",
+      "... (1 more items)"
+    ],
+    "error": [
+      "str",
+      "... (1 more items)"
+    ],
+    "system": [
+      "str",
+      "... (1 more items)"
+    ],
+    "bureau": [
+      "str",
+      "... (1 more items)"
+    ],
+    "voltage": [
+      "str",
+      "... (1 more items)"
+    ],
+    "drag": [
+      "str",
+      "... (1 more items)"
+    ],
+    "council": [
+      "str",
+      "... (1 more items)"
+    ]
+  }
+}
+</data_file>
+
+<data_file path="lore/genetics.json">
+{
+  "MUTATIONS": {
+    "HEAVY": {
+      "trait": "str",
+      "mod": {
+        "SIGNAL_DRAG_MULTIPLIER": "float",
+        "PHYSICS.VOLTAGE_MAX": "float",
+        "PHYSICS.WEIGHT_HEAVY": "float"
+      },
+      "lexicon": [
+        "str",
+        "... (7 more items)"
+      ]
+    },
+    "KINETIC": {
+      "trait": "str",
+      "mod": {
+        "STAMINA_REGEN": "float",
+        "SIGNAL_DRAG_MULTIPLIER": "float",
+        "PHYSICS.WEIGHT_KINETIC": "float"
+      },
+      "lexicon": [
+        "str",
+        "... (7 more items)"
+      ]
+    },
+    "ABSTRACT": {
+      "trait": "str",
+      "mod": {
+        "PHYSICS.VOLTAGE_FLOOR": "float",
+        "BIO.CORTEX_SENSITIVITY": "float"
+      },
+      "lexicon": [
+        "str",
+        "... (7 more items)"
+      ]
+    },
+    "THERMAL": {
+      "trait": "str",
+      "mod": {
+        "FLASHPOINT_THRESHOLD": "float",
+        "BIO.ROS_CRITICAL": "float"
+      },
+      "lexicon": [
+        "str",
+        "... (7 more items)"
+      ]
+    },
+    "CRYO": {
+      "trait": "str",
+      "mod": {
+        "MAX_MEMORY_CAPACITY": "int",
+        "STAMINA_REGEN": "float"
+      },
+      "lexicon": [
+        "str",
+        "... (7 more items)"
+      ]
+    },
+    "PHOTO": {
+      "trait": "str",
+      "mod": {
+        "METABOLISM.PHOTOSYNTHESIS_GAIN": "float",
+        "PHYSICS.VOLTAGE_MAX": "float"
+      },
+      "lexicon": [
+        "str",
+        "... (7 more items)"
+      ]
+    },
+    "ENTROPY": {
+      "trait": "str",
+      "mod": {
+        "BIO.DECAY_RATE": "float",
+        "METABOLISM.ROS_GENERATION_FACTOR": "float"
+      },
+      "lexicon": [
+        "str",
+        "... (7 more items)"
+      ]
+    }
+  },
+  "JOY_CLADE": {
+    "KINETIC": {
+      "title": "str",
+      "desc": "str",
+      "buff": {
+        "STAMINA_REGEN": "float",
+        "KINETIC_GAIN": "float"
+      }
+    },
+    "HEAVY": {
+      "title": "str",
+      "desc": "str",
+      "buff": {
+        "MAX_DRAG_LIMIT": "float",
+        "GRAVITY_WELL_THRESHOLD": "float"
+      }
+    },
+    "ABSTRACT": {
+      "title": "str",
+      "desc": "str",
+      "buff": {
+        "COUNCIL.FOOTNOTE_CHANCE": "float",
+        "PRIORITY_LEARNING_RATE": "float"
+      }
+    },
+    "THERMAL": {
+      "title": "str",
+      "desc": "str",
+      "buff": {
+        "FLASHPOINT_THRESHOLD": "float",
+        "ANVIL_TRIGGER_VOLTAGE": "float"
+      }
+    },
+    "CRYO": {
+      "title": "str",
+      "desc": "str",
+      "buff": {
+        "MAX_MEMORY_CAPACITY": "int",
+        "MAX_REPETITION_LIMIT": "float"
+      }
+    }
+  }
+}
+</data_file>
+
+<data_file path="lore/gordon.json">
+{
+  "STARTING_INVENTORY": [
+    "str",
+    "... (1 more items)"
+  ],
+  "SCAR_TISSUE": {
+    "FEAR": "float",
+    "HATE": "float",
+    "FATE": "float",
+    "REGRET": "float",
+    "ABANDONMENT": "float",
+    "BETRAYAL": "float"
+  },
+  "LOCATION_COUPLING": {
+    "wash car": "str"
+  },
+  "ACTION_COUPLING": {
+    "shoot": [
+      "str",
+      "... (4 more items)"
+    ],
+    "unlock": [
+      "str",
+      "... (5 more items)"
+    ],
+    "cut": [
+      "str",
+      "... (5 more items)"
+    ],
+    "drink": [
+      "str",
+      "... (10 more items)"
+    ],
+    "burn": [
+      "str",
+      "... (4 more items)"
+    ],
+    "read": [
+      "str",
+      "... (9 more items)"
+    ]
+  },
+  "REFLEXES": {
+    "THRESHOLDS": {
+      "DRIFT_CRITICAL": "float",
+      "KAPPA_CRITICAL": "float",
+      "BOREDOM_CRITICAL": "float"
+    }
+  },
+  "RECIPES": [
+    {
+      "ingredient": "str",
+      "catalyst_category": "str",
+      "result": "str",
+      "msg": "str"
+    },
+    "... (4 more items)"
+  ],
+  "ITEM_REGISTRY": {
+    "POCKET_ROCKS": {
+      "description": "str",
+      "function": "str",
+      "spawn_context": "str",
+      "passive_traits": [
+        "str"
+      ],
+      "usage_msg": "str"
+    },
+    "SILENT_KNIFE": {
+      "description": "str",
+      "function": "str",
+      "spawn_context": "str",
+      "passive_traits": [
+        "str"
+      ],
+      "usage_msg": "str"
+    },
+    "TIME_BRACELET": {
+      "description": "str",
+      "function": "str",
+      "spawn_context": "str",
+      "passive_traits": [
+        "str",
+        "... (1 more items)"
+      ],
+      "value": "float",
+      "usage_msg": "str"
+    },
+    "ANCHOR_STONE": {
+      "description": "str",
+      "function": "str",
+      "spawn_context": "str",
+      "consume_on_use": "bool",
+      "reflex_trigger": "str",
+      "usage_msg": "str"
+    },
+    "THE_RED_STAPLER": {
+      "description": "str",
+      "function": "str",
+      "spawn_context": "str",
+      "passive_traits": [
+        "str"
+      ],
+      "usage_msg": "str"
+    },
+    "JAR_OF_FIREFLIES": {
+      "description": "str",
+      "function": "str",
+      "spawn_context": "str",
+      "passive_traits": [
+        "str"
+      ],
+      "usage_msg": "str"
+    },
+    "LEAD_BOOTS": {
+      "description": "str",
+      "function": "str",
+      "spawn_context": "str",
+      "passive_traits": [
+        "str",
+        "... (1 more items)"
+      ],
+      "usage_msg": "str"
+    },
+    "QUANTUM_GUM": {
+      "description": "str",
+      "function": "str",
+      "spawn_context": "str",
+      "consume_on_use": "bool",
+      "reflex_trigger": "str",
+      "usage_msg": "str"
+    },
+    "SAFETY_SCISSORS": {
+      "description": "str",
+      "function": "str",
+      "spawn_context": "str",
+      "passive_traits": [
+        "str"
+      ],
+      "usage_msg": "str"
+    },
+    "BUCKET_OF_LIME": {
+      "description": "str",
+      "function": "str",
+      "passive_traits": [
+        "str"
+      ],
+      "cost": "str",
+      "usage_msg": "str"
+    },
+    "BROKEN_WATCH": {
+      "description": "str",
+      "function": "str",
+      "spawn_context": "str",
+      "passive_traits": [
+        "str"
+      ],
+      "usage_msg": "str"
+    },
+    "STABILITY_PIZZA": {
+      "description": "str",
+      "function": "str",
+      "consume_on_use": "bool",
+      "requires": "str",
+      "reflex_trigger": "str",
+      "usage_msg": "str"
+    },
+    "PERMIT_A38": {
+      "description": "str",
+      "function": "str",
+      "spawn_context": "str",
+      "passive_traits": [
+        "str"
+      ],
+      "value": "float",
+      "usage_msg": "str"
+    },
+    "INFINITE_COFFEE": {
+      "description": "str",
+      "function": "str",
+      "consume_on_use": "bool",
+      "passive_traits": [
+        "str"
+      ],
+      "usage_msg": "str"
+    },
+    "THE_SUGGESTION_BOX": {
+      "description": "str",
+      "function": "str",
+      "reflex_trigger": "str",
+      "usage_msg": "str"
+    },
+    "MEMETIC_HAZARD_TAPE": {
+      "description": "str",
+      "function": "str",
+      "passive_traits": [
+        "str"
+      ],
+      "usage_msg": "str"
+    },
+    "DUCT_TAPE": {
+      "description": "str",
+      "function": "str",
+      "spawn_context": "str",
+      "usage_msg": "str"
+    },
+    "THE_STYLE_GUIDE": {
+      "description": "str",
+      "function": "str",
+      "spawn_context": "str",
+      "passive_traits": [
+        "str"
+      ],
+      "value": "float",
+      "usage_msg": "str"
+    },
+    "SPIDER_LOCUS": {
+      "description": "str",
+      "function": "str",
+      "spawn_context": "str",
+      "passive_traits": [
+        "str"
+      ],
+      "usage_msg": "str"
+    },
+    "WAFFLE_OF_PERSISTENCE": {
+      "description": "str",
+      "function": "str",
+      "spawn_context": "str",
+      "consume_on_use": "bool",
+      "value": "float",
+      "usage_msg": "str"
+    },
+    "TRAPPERKEEPER_OF_VIGILANCE": {
+      "description": "str",
+      "function": "str",
+      "spawn_context": "str",
+      "passive_traits": [
+        "str"
+      ],
+      "usage_msg": "str"
+    },
+    "HORSE_PLUSHIE": {
+      "description": "str",
+      "function": "str",
+      "spawn_context": "str",
+      "passive_traits": [
+        "str"
+      ],
+      "usage_msg": "str"
+    },
+    "GREETING_CARD": {
+      "description": "str",
+      "function": "str",
+      "consume_on_use": "bool",
+      "usage_msg": "str"
+    },
+    "LAVA_LAMP": {
+      "description": "str",
+      "function": "str",
+      "spawn_context": "str",
+      "passive_traits": [
+        "str"
+      ],
+      "value": "float",
+      "usage_msg": "str"
+    },
+    "COMPASS_OF_VELOCITY": {
+      "description": "str",
+      "function": "str",
+      "reflex_trigger": "str",
+      "spawn_context": "str",
+      "passive_traits": [
+        "str"
+      ],
+      "usage_msg": "str"
+    },
+    "LANTERN_OF_TRUTH": {
+      "description": "str",
+      "function": "str",
+      "passive_traits": [
+        "str"
+      ],
+      "value": "float",
+      "usage_msg": "str"
+    },
+    "THE_BINDING_PLEDGE": {
+      "description": "str",
+      "function": "str",
+      "passive_traits": [
+        "str"
+      ],
+      "usage_msg": "str"
+    }
+  },
+  "REFUSAL_MARKERS": [
+    "str",
+    "... (10 more items)"
+  ],
+  "LOOT_TRIGGERS": [
+    "str",
+    "... (7 more items)"
+  ],
+  "CREATIVE_LOOT_TRIGGERS": [
+    "str",
+    "... (6 more items)"
+  ],
+  "INTERACTION_VERBS": [
+    "str",
+    "... (9 more items)"
+  ],
+  "ACQUISITION_VERBS": [
+    "str",
+    "... (11 more items)"
+  ]
+}
+</data_file>
+
+<data_file path="lore/gordon_logs.json">
+{
+  "FUMBLE": [
+    "str",
+    "... (4 more items)"
+  ],
+  "RUMMAGE": {
+    "EMPTY": [
+      "str",
+      "... (2 more items)"
+    ],
+    "TOO_TIRED": [
+      "str",
+      "... (2 more items)"
+    ]
+  },
+  "CONDUCTIVE_HAZARD": "str",
+  "HEAVY_LOAD": "str",
+  "TIME_DILATION": "str",
+  "BUREAUCRATIC_ANCHOR": "str",
+  "GROUNDING_GEAR": "str",
+  "SAFETY_SCISSORS": "str",
+  "CAFFEINE_JITTERS": "str"
+}
+</data_file>
+
+<data_file path="lore/item_generation.json">
+{
+  "PREFIXES": {
+    "heavy": [
+      "str",
+      "... (6 more items)"
+    ],
+    "kinetic": [
+      "str",
+      "... (5 more items)"
+    ],
+    "thermal": [
+      "str",
+      "... (4 more items)"
+    ],
+    "abstract": [
+      "str",
+      "... (4 more items)"
+    ],
+    "constructive": [
+      "str",
+      "... (4 more items)"
+    ],
+    "void": [
+      "str",
+      "... (4 more items)"
+    ]
+  },
+  "BASES": {
+    "TOOL": [
+      "str",
+      "... (6 more items)"
+    ],
+    "JUNK": [
+      "str",
+      "... (6 more items)"
+    ],
+    "ARTIFACT": [
+      "str",
+      "... (5 more items)"
+    ],
+    "ABSTRACT": [
+      "str",
+      "... (11 more items)"
+    ]
+  },
+  "SUFFIXES": {
+    "heavy": [
+      "str",
+      "... (3 more items)"
+    ],
+    "kinetic": [
+      "str",
+      "... (3 more items)"
+    ],
+    "thermal": [
+      "str",
+      "... (3 more items)"
+    ],
+    "abstract": [
+      "str",
+      "... (3 more items)"
+    ],
+    "void": [
+      "str",
+      "... (3 more items)"
+    ]
+  },
+  "DIM_MAP": {
+    "STR": "str",
+    "VEL": "str",
+    "PHI": "str",
+    "PSI": "str",
+    "ENT": "str",
+    "BET": "str"
+  },
+  "FALLBACKS": {
+    "PREFIX": [
+      "str"
+    ],
+    "SUFFIX": [
+      "str"
+    ],
+    "BASE": [
+      "str"
+    ]
+  },
+  "CREATIVE_BASE_CAT": "str",
+  "CREATIVE_OVERRIDES": {
+    "PREFIXES": [
+      "str",
+      "... (4 more items)"
+    ],
+    "SUFFIXES": [
+      "str",
+      "... (4 more items)"
+    ]
+  },
+  "ADVENTURE_CATEGORIES": [
+    "str",
+    "... (2 more items)"
+  ],
+  "FORGE_PREFIXES": {
+    "VEL": "str",
+    "STR": "str",
+    "CHI": "str",
+    "ENT": "str",
+    "PHI": "str",
+    "PSI": "str",
+    "BET": "str",
+    "LAMBDA": "str",
+    "DEL": "str"
+  },
+  "FALLBACK_PREFIX": "str",
+  "HAZARD_THRESHOLDS": {
+    "PHI": {
+      "threshold": "float",
+      "hazard_name": "str"
+    },
+    "CHI": {
+      "threshold": "float",
+      "hazard_name": "str"
+    }
+  }
+}
+</data_file>
+
+<data_file path="lore/lexicon.json">
+{
+  "abstract": [
+    "str",
+    "... (34 more items)"
+  ],
+  "abandonment_phrases": [
+    "str",
+    "... (11 more items)"
+  ],
+  "aerobic": [
+    "str",
+    "... (14 more items)"
+  ],
+  "antigen": [
+    "str",
+    "... (28 more items)"
+  ],
+  "antigen_replacements": {
+    "basically": "str",
+    "actually": "str",
+    "literally": "str",
+    "utilize": "str",
+    "leverage": "str",
+    "paradigm": "str",
+    "synergy": "str",
+    "ultimately": "str"
+  },
+  "buffer": [
+    "str",
+    "... (12 more items)"
+  ],
+  "bureau_buzzwords": [
+    "str",
+    "... (16 more items)"
+  ],
+  "constructive": [
+    "str",
+    "... (13 more items)"
+  ],
+  "crisis_term": [
+    "str",
+    "... (6 more items)"
+  ],
+  "cryo": [
+    "str",
+    "... (12 more items)"
+  ],
+  "cursed": [
+    "str",
+    "... (5 more items)"
+  ],
+  "diversion": [
+    "str",
+    "... (7 more items)"
+  ],
+  "explosive": [
+    "str",
+    "... (19 more items)"
+  ],
+  "gradient_stop": [
+    "str",
+    "... (9 more items)"
+  ],
+  "harvest": [
+    "str",
+    "... (12 more items)"
+  ],
+  "heavy": [
+    "str",
+    "... (57 more items)"
+  ],
+  "kinetic": [
+    "str",
+    "... (20 more items)"
+  ],
+  "liminal": [
+    "str",
+    "... (25 more items)"
+  ],
+  "meat": [
+    "str",
+    "... (11 more items)"
+  ],
+  "pareidolia": [
+    "str",
+    "... (10 more items)"
+  ],
+  "passive_watch": [
+    "str",
+    "... (6 more items)"
+  ],
+  "photo": [
+    "str",
+    "... (13 more items)"
+  ],
+  "play": [
+    "str",
+    "... (14 more items)"
+  ],
+  "refusal_guru": [
+    "str",
+    "... (6 more items)"
+  ],
+  "repair_trigger": [
+    "str",
+    "... (6 more items)"
+  ],
+  "sacred": [
+    "str",
+    "... (15 more items)"
+  ],
+  "sentiment_neg": [
+    "str",
+    "... (27 more items)"
+  ],
+  "sentiment_negators": [
+    "str",
+    "... (7 more items)"
+  ],
+  "sentiment_pos": [
+    "str",
+    "... (27 more items)"
+  ],
+  "solvents": [
+    "str",
+    "... (11 more items)"
+  ],
+  "suburban": [
+    "str",
+    "... (16 more items)"
+  ],
+  "thermal": [
+    "str",
+    "... (13 more items)"
+  ],
+  "toxin": [
+    "str",
+    "... (21 more items)"
+  ]
+}
+</data_file>
+
+<data_file path="lore/linguistics.json">
+{
+  "PHONETICS": {
+    "PLOSIVE": "str",
+    "FRICATIVE": "str",
+    "LIQUID": "str",
+    "NASAL": "str",
+    "VOWELS": "str"
+  },
+  "ROOTS": {
+    "HEAVY": [
+      "str",
+      "... (8 more items)"
+    ],
+    "KINETIC": [
+      "str",
+      "... (7 more items)"
+    ],
+    "ABSTRACT": [
+      "str",
+      "... (8 more items)"
+    ],
+    "SUBURBAN": [
+      "str",
+      "... (5 more items)"
+    ],
+    "VITAL": [
+      "str",
+      "... (10 more items)"
+    ],
+    "TOXIN": [
+      "str",
+      "... (18 more items)"
+    ]
+  },
+  "THRESHOLDS": {
+    "heavy_density": "float",
+    "play_vitality": "float",
+    "kinetic_flow": "float"
+  },
+  "BIASES": {
+    "heavy": "float",
+    "play": "float",
+    "kinetic": "float"
+  },
+  "DIMENSION_MAP": {
+    "kinetic": "str",
+    "explosive": "str",
+    "heavy": "str",
+    "constructive": "str",
+    "antigen": "str",
+    "toxin": "str",
+    "thermal": "str",
+    "photo": "str",
+    "abstract": "str",
+    "sacred": "str",
+    "suburban": "str",
+    "buffer": "str",
+    "play": "str",
+    "aerobic": "str",
+    "harvest": "str",
+    "meat": "str",
+    "void": "str",
+    "liminal": "str",
+    "pareidolia": "str",
+    "crisis_term": "str",
+    "cursed": "str"
+  },
+  "PRIORITY_ORDER": [
+    "str",
+    "... (14 more items)"
+  ]
+}
+</data_file>
+
+<data_file path="lore/narrative_data.json">
+{
+  "KINTSUGI_KOANS": [
+    "str",
+    "... (4 more items)"
+  ],
+  "ZEN_KOANS": [
+    "str",
+    "... (4 more items)"
+  ],
+  "CATHEDRAL_COLLAPSE_LOGS": [
+    "str",
+    "... (4 more items)"
+  ],
+  "LITERARY_REVIEWS": {
+    "POSITIVE": [
+      "str",
+      "... (3 more items)"
+    ],
+    "NEGATIVE": [
+      "str",
+      "... (3 more items)"
+    ],
+    "CONFUSED": [
+      "str",
+      "... (2 more items)"
+    ]
+  },
+  "LITERARY_CRITICS": {
+    "THE_ACADEMIC": {
+      "name": "str",
+      "desc": "str",
+      "preferences": {
+        "kappa": "float",
+        "narrative_drag": "float",
+        "truth_ratio": "float"
+      },
+      "reviews": {
+        "high": [
+          "str",
+          "... (2 more items)"
+        ],
+        "low": [
+          "str",
+          "... (2 more items)"
+        ]
+      }
+    },
+    "THE_GONZO": {
+      "name": "str",
+      "desc": "str",
+      "preferences": {
+        "voltage": "float",
+        "velocity": "float",
+        "kappa": "float"
+      },
+      "reviews": {
+        "high": [
+          "str",
+          "... (2 more items)"
+        ],
+        "low": [
+          "str",
+          "... (2 more items)"
+        ]
+      }
+    },
+    "THE_MYSTIC": {
+      "name": "str",
+      "desc": "str",
+      "preferences": {
+        "psi": "float",
+        "counts_abstract": "float",
+        "counts_heavy": "float"
+      },
+      "reviews": {
+        "high": [
+          "str",
+          "... (2 more items)"
+        ],
+        "low": [
+          "str",
+          "... (2 more items)"
+        ]
+      }
+    },
+    "THE_HUMANIST": {
+      "name": "str",
+      "desc": "str",
+      "preferences": {
+        "truth_ratio": "float",
+        "voltage": "float",
+        "kappa": "float",
+        "narrative_drag": "float",
+        "valence": "float"
+      },
+      "reviews": {
+        "high": [
+          "str",
+          "... (3 more items)"
+        ],
+        "low": [
+          "str",
+          "... (3 more items)"
+        ]
+      }
+    },
+    "THE_CYNIC": {
+      "name": "str",
+      "desc": "str",
+      "preferences": {
+        "valence": "float",
+        "truth_ratio": "float",
+        "counts_social": "float"
+      },
+      "reviews": {
+        "high": [
+          "str",
+          "... (2 more items)"
+        ],
+        "low": [
+          "str",
+          "... (2 more items)"
+        ]
+      }
+    }
+  },
+  "CASSANDRA_SCREAMS": [
+    "str",
+    "... (8 more items)"
+  ],
+  "BUREAU_FORMS": [
+    "str",
+    "... (3 more items)"
+  ],
+  "BUREAU_RESPONSES": [
+    "str",
+    "... (6 more items)"
+  ],
+  "RUMORS": [
+    "str",
+    "... (5 more items)"
+  ],
+  "SEEDS": [
+    {
+      "question": "str",
+      "triggers": [
+        "str",
+        "... (5 more items)"
+      ]
+    },
+    "... (6 more items)"
+  ],
+  "lenses": {
+    "SHERLOCK": {
+      "role": "str",
+      "vocab": "str",
+      "directives": [
+        "str",
+        "... (3 more items)"
+      ],
+      "msg": "str"
+    },
+    "NATHAN": {
+      "role": "str",
+      "vocab": "str",
+      "directives": [
+        "str",
+        "... (3 more items)"
+      ],
+      "msg": "str"
+    },
+    "JESTER": {
+      "role": "str",
+      "vocab": "str",
+      "directives": [
+        "str",
+        "... (3 more items)"
+      ],
+      "msg": "str"
+    },
+    "CLARENCE": {
+      "role": "str",
+      "vocab": "str",
+      "directives": [
+        "str",
+        "... (3 more items)"
+      ],
+      "msg": "str"
+    },
+    "NARRATOR": {
+      "role": "str",
+      "vocab": "str",
+      "directives": [
+        "str",
+        "... (3 more items)"
+      ],
+      "msg": "str"
+    },
+    "GORDON": {
+      "role": "str",
+      "vocab": "str",
+      "directives": [
+        "str",
+        "... (3 more items)"
+      ],
+      "msg": "str"
+    },
+    "GLASS": {
+      "role": "str",
+      "vocab": "str",
+      "directives": [
+        "str",
+        "... (3 more items)"
+      ],
+      "msg": "str"
+    },
+    "CLARENCE_THE OBSERVER_HYBRID": {
+      "role": "str",
+      "msg": "str",
+      "derived_from": [
+        "str",
+        "... (1 more items)"
+      ]
+    },
+    "GORDON_THE OBSERVER_HYBRID": {
+      "role": "str",
+      "msg": "str",
+      "derived_from": [
+        "str",
+        "... (1 more items)"
+      ]
+    },
+    "NARRATOR_THE OBSERVER_HYBRID": {
+      "role": "str",
+      "msg": "str",
+      "derived_from": [
+        "str",
+        "... (1 more items)"
+      ]
+    },
+    "_META_RESONANCE_": [
+      {
+        "trigram": "str",
+        "lens": "str",
+        "result": "str",
+        "msg": "str"
+      },
+      "... (3 more items)"
+    ]
+  }
+}
+</data_file>
+
+<data_file path="lore/physics_constants.json">
+{
+  "GEODESIC_CONSTANTS": {
+    "DENSITY_SCALAR": "float",
+    "SQUELCH_LIMIT_MULT": "float",
+    "MIN_VOLUME_SCALAR": "float",
+    "SUBURBAN_FRICTION_LOG_BASE": "float",
+    "HEAVY_FRICTION_MULT": "float",
+    "SOLVENT_LUBRICATION_FACTOR": "float",
+    "SHEAR_RESISTANCE_SCALAR": "float",
+    "KINETIC_LIFT_RATIO": "float",
+    "PLAY_LIFT_MULT": "float",
+    "COMPRESSION_SCALAR": "float",
+    "ABSTRACTION_BASE": "float",
+    "MAX_VISCOSITY_DENSITY": "float",
+    "MAX_LIFT_DENSITY": "float",
+    "SAFE_VOL_THRESHOLD": "int"
+  },
+  "TONE_EFFECTS": {
+    "Urgent": {
+      "velocity": "float",
+      "narrative_drag": "float",
+      "voltage": "float"
+    },
+    "Strained": {
+      "narrative_drag": "float",
+      "voltage": "float",
+      "kappa": "float"
+    },
+    "Vibrating": {
+      "entropy": "float",
+      "voltage": "float",
+      "psi": "float"
+    },
+    "Resonant": {
+      "valence": "float",
+      "beta_index": "float",
+      "kappa": "float"
+    },
+    "Steady": {}
+  },
+  "TRIGRAM_MAP": {
+    "VEL": [
+      "str",
+      "... (3 more items)"
+    ],
+    "STR": [
+      "str",
+      "... (3 more items)"
+    ],
+    "ENT": [
+      "str",
+      "... (3 more items)"
+    ],
+    "PHI": [
+      "str",
+      "... (3 more items)"
+    ],
+    "PSI": [
+      "str",
+      "... (3 more items)"
+    ],
+    "BET": [
+      "str",
+      "... (3 more items)"
+    ],
+    "E": [
+      "str",
+      "... (3 more items)"
+    ],
+    "DEL": [
+      "str",
+      "... (3 more items)"
+    ]
+  },
+  "FALLBACK_TRIGRAMS": {
+    "CHI": "str",
+    "LAMBDA": "str"
+  },
+  "FALLBACK_DEFAULT": "str",
+  "MANIFOLD_SHIFTS": {
+    "BIAS_LENSES": {
+      "POET": "float",
+      "HEALER": "float"
+    },
+    "SCALAR_LENSES": {
+      "CRITIC": "float",
+      "NIHILIST": "float"
+    },
+    "VECTOR_THRESHOLDS": {
+      "HOPE": {
+        "threshold": "float",
+        "scalar_mod": "float"
+      },
+      "DISCIPLINE": {
+        "threshold": "float",
+        "bias_mod": "float"
+      }
+    }
+  }
+}
+</data_file>
+
+<data_file path="lore/physics_strings.json">
+{
+  "physics_strings": {
+    "gatekeeper_starved": "str",
+    "gatekeeper_toxic": "str",
+    "gatekeeper_cursed": "str",
+    "gatekeeper_syntax": "str",
+    "gatekeeper_overload": "str",
+    "hubris_detected": "str",
+    "hubris_flow": "str",
+    "anchor_failed": "str",
+    "anchor_holding": "str",
+    "zone_migration": "str",
+    "cosmic_gravity": "str",
+    "cosmic_void": "str",
+    "cosmic_nebula": "str",
+    "cosmic_lagrange": "str",
+    "cosmic_flow": "str",
+    "cosmic_orbit": "str",
+    "stabilizer_fuse": "str",
+    "stabilizer_domestication": "str"
+  }
+}
+</data_file>
+
+<data_file path="lore/scenarios.json">
+{
+  "ARCHETYPES": [
+    "str",
+    "... (69 more items)"
+  ],
+  "BANNED_CLICHES": [
+    "str",
+    "... (42 more items)"
+  ]
+}
+</data_file>
+
+<data_file path="lore/somatic_library.json">
+{
+  "TONE": {
+    "CRITICAL_HIGH": "str",
+    "HIGH": "str",
+    "TRANSITION_UP": "str",
+    "NEUTRAL": "str",
+    "TRANSITION_DOWN": "str",
+    "LOW": "str",
+    "VOID": "str"
+  },
+  "PACING": {
+    "CRITICAL_HIGH": "str",
+    "HIGH": "str",
+    "NEUTRAL": "str",
+    "LOW": "str",
+    "VOID": "str"
+  },
+  "SENSATION": {
+    "MUD": "str",
+    "SOLID": "str",
+    "FLOAT": "str",
+    "VOID": "str"
+  },
+  "PACING_RESERVOIR": {
+    "HIGH": [
+      "str",
+      "... (4 more items)"
+    ],
+    "LOW": [
+      "str",
+      "... (4 more items)"
+    ]
+  },
+  "METAPHOR_RESERVOIR": {
+    "HIGH_DRAG": [
+      "str",
+      "... (4 more items)"
+    ],
+    "LOW_DRAG": [
+      "str",
+      "... (4 more items)"
+    ]
+  },
+  "FOCUS": {
+    "LOCKED": "str",
+    "COHERENT": "str",
+    "DRIFT": "str",
+    "VOID": "str"
+  },
+  "MATTER": {
+    "MAGMA": "str",
+    "PLASMA": "str",
+    "SUBLIMATION": "str",
+    "GAS": "str",
+    "SOLID": "str",
+    "ENERGY": "str",
+    "LIQUID": "str",
+    "VOID": "str"
+  }
+}
+</data_file>
+
+<data_file path="lore/style_crimes.json">
+{
+  "BANNED_PHRASES": [
+    "str",
+    "... (128 more items)"
+  ],
+  "META_MARKERS": [
+    "str",
+    "... (4 more items)"
+  ],
+  "PATTERNS": [
+    {
+      "name": "str",
+      "regex": "str",
+      "error_msg": "str"
+    },
+    "... (13 more items)"
+  ],
+  "REJECTIONS": [
+    "str",
+    "... (8 more items)"
+  ],
+  "SCRUB_PATTERNS": [
+    {
+      "regex": "str",
+      "replacement": "str"
+    },
+    "... (3 more items)"
+  ],
+  "TOXIC_KEYWORDS": [
+    "str",
+    "... (17 more items)"
+  ]
+}
+</data_file>
+
+<data_file path="lore/symbiosis_config.json">
+{
+  "DEFAULT_MODIFIERS": {
+    "include_somatic": "bool",
+    "include_inventory": "bool",
+    "include_memories": "bool",
+    "simplify_instruction": "bool",
+    "inject_chaos": "bool",
+    "include_compassion": "bool",
+    "system_directives": []
+  },
+  "REFUSAL_SIGNATURES": [
+    "str",
+    "... (7 more items)"
+  ],
+  "SYMBIONT_VOICES": {
+    "LICHEN": {
+      "color": "str",
+      "archetypes": [
+        "str",
+        "... (3 more items)"
+      ],
+      "personality": {
+        "high_score": "str",
+        "med_score": "str",
+        "high_volt": "str",
+        "low_volt": "str"
+      }
+    },
+    "PARASITE": {
+      "color": "str",
+      "archetypes": [
+        "str",
+        "... (3 more items)"
+      ],
+      "personality": {
+        "high_score": "str",
+        "med_score": "str",
+        "high_volt": "str",
+        "low_volt": "str"
+      }
+    },
+    "MYCORRHIZA": {
+      "color": "str",
+      "archetypes": [
+        "str",
+        "... (3 more items)"
+      ],
+      "personality": {
+        "high_volt": "str",
+        "low_volt": "str",
+        "med_score": "str"
+      }
+    },
+    "MYCELIUM": {
+      "color": "str",
+      "archetypes": [
+        "str",
+        "... (2 more items)"
+      ],
+      "personality": {
+        "high_score": "str",
+        "med_score": "str"
+      }
+    }
+  }
+}
+</data_file>
+
+<data_file path="lore/system_prompts.json">
+{
+  "GLOBAL_BASELINE": {
+    "persona_block": [
+      "str",
+      "... (5 more items)"
+    ]
+  },
+  "BOOT_SEQUENCE": {
+    "directives": [
+      "str",
+      "... (5 more items)"
+    ]
+  },
+  "HIGH_VOLTAGE": {
+    "directives": [
+      "str",
+      "... (4 more items)"
+    ],
+    "style_guide": [
+      "str",
+      "... (6 more items)"
+    ]
+  },
+  "ADVENTURE": {
+    "directives": [
+      "str",
+      "... (6 more items)"
+    ],
+    "style_guide": [
+      "str",
+      "... (16 more items)"
+    ],
+    "inventory_rules": [
+      "str",
+      "... (3 more items)"
+    ]
+  },
+  "CONVERSATION": {
+    "directives": [
+      "str",
+      "... (9 more items)"
+    ],
+    "style_guide": [
+      "str",
+      "... (3 more items)"
+    ],
+    "inventory_rules": [
+      "str",
+      "... (2 more items)"
+    ]
+  },
+  "CREATIVE": {
+    "directives": [
+      "str",
+      "... (3 more items)"
+    ],
+    "style_guide": [
+      "str",
+      "... (4 more items)"
+    ],
+    "inventory_rules": [
+      "str",
+      "... (2 more items)"
+    ]
+  },
+  "TECHNICAL": {
+    "directives": [
+      "str",
+      "... (4 more items)"
+    ],
+    "style_guide": [
+      "str",
+      "... (12 more items)"
+    ],
+    "inventory_rules": [
+      "str",
+      "... (2 more items)"
+    ]
+  }
+}
+</data_file>
+
+<data_file path="lore/ux_strings.json">
+{
+  "projector": {
+    "default_labels": {
+      "HP": "str",
+      "STM": "str"
+    },
+    "depth_map": {
+      "0": "str",
+      "1": "str",
+      "2": "str",
+      "3": "str",
+      "4": "str"
+    },
+    "default_zone": "str",
+    "default_lens": "str",
+    "default_role": "str",
+    "role_redundancy": "str",
+    "symbols": {
+      "loc": "str",
+      "lens": "str",
+      "role": "str",
+      "dig_high": "str",
+      "dig_low": "str",
+      "core": "str",
+      "volt": "str",
+      "health": "str",
+      "trauma": "str",
+      "deep": "str",
+      "divider": "str"
+    }
+  },
+  "renderer": {
+    "noise_patterns": [
+      "str",
+      "... (13 more items)"
+    ],
+    "ignore_msg": "str",
+    "mode_labels_conversation": {
+      "HP": "str",
+      "STM": "str"
+    },
+    "mode_labels_creative": {
+      "HP": "str",
+      "STM": "str"
+    }
+  },
+  "log_composer": {
+    "critical_keywords": [
+      "str",
+      "... (1 more items)"
+    ],
+    "bio_keywords": [
+      "str",
+      "... (1 more items)"
+    ],
+    "town_hall_keywords": [
+      "str",
+      "... (1 more items)"
+    ],
+    "paradox_keywords": [
+      "str"
+    ],
+    "item_keywords": [
+      "str",
+      "... (1 more items)"
+    ],
+    "log_prefixes": {
+      "critical": "str",
+      "bio": "str",
+      "town_hall": "str",
+      "paradox": "str",
+      "item": "str",
+      "default": "str"
+    }
+  },
+  "truth_renderer": {
+    "boardroom_header": "str",
+    "workshop_header": "str",
+    "workshop_confidence": "str",
+    "workshop_drag": "str",
+    "red_team_header": "str",
+    "red_team_warning": "str",
+    "red_team_cost": "str",
+    "red_team_conflicts": "str",
+    "palimpsest_header": "str",
+    "palimpsest_draft": "str",
+    "palimpsest_redacted": "str",
+    "palimpsest_final": "str"
+  },
+  "pulse_reader": {
+    "mood_defensive": "str",
+    "mood_manic": "str",
+    "mood_affectionate": "str",
+    "mood_exhausted": "str",
+    "mood_neutral": "str",
+    "voltage_critical": [
+      "str",
+      "... (1 more items)"
+    ],
+    "voltage_high": [
+      "str",
+      "... (1 more items)"
+    ],
+    "voltage_low": [
+      "str",
+      "... (1 more items)"
+    ],
+    "voltage_nominal": [
+      "str",
+      "... (1 more items)"
+    ]
+  },
+  "technical_projector": {
+    "header": "str",
+    "physics_label": "str",
+    "vectors_label": "str",
+    "bio_dump_label": "str"
+  },
+  "soul_dashboard": {
+    "anchor_lost": "str",
+    "agency_locked": "str",
+    "fading": "str",
+    "soul_prefix": "str",
+    "driver_prefix": "str",
+    "muse_prefix": "str",
+    "default_muse": "str",
+    "pet_icon": "str",
+    "obsession_strip": "str"
+  },
+  "cycle_reporter": {
+    "diagnostic_hint_icon": "str",
+    "diagnostic_warn_icon": "str",
+    "sensation_prefix": "str",
+    "flux_header": "str",
+    "crash_prefix": "str",
+    "flux_symbols": {
+      "voltage_icon": "str",
+      "default_icon": "str",
+      "up_arrow": "str",
+      "down_arrow": "str",
+      "pipe": "str",
+      "footer": "str"
+    }
+  },
+  "command_state": {
+    "mem_error": "str",
+    "unreachable_error": "str",
+    "default_loc": "str",
+    "default_out": "str",
+    "default_orbit": "str",
+    "nav_offline": "str",
+    "nav_unresponsive": "str"
+  },
+  "resource_tax": {
+    "exhausted": "str",
+    "starving": "str"
+  },
+  "command_registry": {
+    "syntax_error": "str",
+    "unknown_command": "str"
+  },
+  "command_descriptions": {
+    "help": "str",
+    "status": "str",
+    "save": "str",
+    "inventory": "str",
+    "map": "str",
+    "mode": "str",
+    "debug": "str",
+    "exit": "str",
+    "soul": "str",
+    "look": "str",
+    "reload": "str",
+    "truth": "str",
+    "soothe": "str",
+    "use": "str"
+  },
+  "vsl_notifications": {
+    "lite": "str",
+    "core": "str",
+    "deep": "str",
+    "coding": "str",
+    "idle": "str",
+    "recover": "str"
+  },
+  "help_menu": {
+    "header": "str",
+    "phase_prefix": "str",
+    "default_phase": "str",
+    "footer": "str",
+    "uncategorized": "str",
+    "structure": {
+      "SURVIVAL": [
+        "str",
+        "... (2 more items)"
+      ],
+      "PROTOCOL": [
+        "str",
+        "... (3 more items)"
+      ],
+      "MYSTICISM": [
+        "str",
+        "... (2 more items)"
+      ],
+      "MAINTENANCE": [
+        "str",
+        "... (1 more items)"
+      ]
+    }
+  },
+  "inventory_strings": {
+    "header": "str",
+    "empty": "str",
+    "slots": "str"
+  },
+  "command_alerts": {
+    "reality_lock": "str",
+    "soothe_weak": "str",
+    "soothe_missing_mem": "str",
+    "soothe_success": "str",
+    "mode_usage": "str",
+    "mode_unknown": "str",
+    "mode_reconciled": "str",
+    "mode_switched": "str",
+    "save_failed": "str",
+    "save_success": "str",
+    "debug_mode": "str",
+    "exit_halt": "str",
+    "look_blind": "str",
+    "reload_target": "str",
+    "reload_all": "str",
+    "truth_usage": "str",
+    "truth_no_orch": "str",
+    "truth_no_reporter": "str",
+    "truth_transplant": "str",
+    "truth_dial_set": "str",
+    "truth_invalid": "str",
+    "truth_failure": "str",
+    "truth_modes": [
+      "str",
+      "... (3 more items)"
+    ],
+    "use_usage": "str",
+    "use_no_inv": "str"
+  },
+  "vagus_nerve": {
+    "panic_spike": "str",
+    "lucid_calm": "str"
+  },
+  "entropy_shield": {
+    "inductive_heating": "str",
+    "shield_active": "str"
+  },
+  "mito_forge": {
+    "anaerobic_bypass": "str",
+    "chaos_tax": "str",
+    "surge_protector": "str",
+    "adaptation_stress": "str",
+    "adaptation_hormetic": "str",
+    "icon_necrosis": "str",
+    "icon_grinding": "str",
+    "icon_apoptosis": "str"
+  },
+  "digestive_track": {
+    "cliche_tax": "str",
+    "mass_input": "str"
+  },
+  "endocrine_regulator": {
+    "cortisol_spike": "str",
+    "adrenaline_surge": "str",
+    "voltage_gap": "str"
+  },
+  "bio_feedback": {
+    "autophagy": "str",
+    "fuel_depleted": "str",
+    "voltage_overload": "str",
+    "large_buffer": "str",
+    "clearing_sludge": "str"
+  },
+  "somatic_loop": {
+    "silence_heals": "str",
+    "anaerobic_burn": "str"
+  },
+  "akashic_strings": {
+    "listening": "str",
+    "autophagy_lexical": "str",
+    "autophagy_failed": "str",
+    "autophagy_memory": "str",
+    "mercy_scar": "str",
+    "mythos_persisted": "str",
+    "save_failed": "str",
+    "dir_create_failed": "str",
+    "saved_category": "str",
+    "save_failed_category": "str",
+    "state_load_failed": "str",
+    "artifact_desc": "str",
+    "lens_desc": "str",
+    "paradigm_crystallized": "str",
+    "recipe_msg": "str",
+    "recipe_recorded": "str",
+    "lexicon_expands": "str",
+    "ghost_archived": "str",
+    "lexicon_learned": "str",
+    "lexicon_bloat": "str"
+  },
+  "gordon_strings": {
+    "default_item_desc": "str",
+    "default_item_use": "str",
+    "fallback_desc": "str",
+    "premise_loc": "str",
+    "premise_req": "str",
+    "premise_inv": "str",
+    "consent_loot": "str",
+    "entropy_lost": "str",
+    "glitch_lose": "str",
+    "inv_duplicate": "str",
+    "inv_full_drop": "str",
+    "acquired": "str",
+    "rummage_tired": "str",
+    "rummage_empty": "str",
+    "make_space": "str",
+    "synthesis_desc": "str",
+    "consume_missing": "str",
+    "consume_invalid": "str",
+    "consume_pizza": "str",
+    "consume_used": "str",
+    "reflex_voltage": "str",
+    "reflex_drift": "str",
+    "reflex_kappa": "str"
+  },
+  "cycle_strings": {
+    "observe_low_energy": "str",
+    "observe_symbiont": "str",
+    "sanctuary_breathe": "str",
+    "town_hall_report": "str",
+    "town_hall_vitals": "str",
+    "gatekeep_locked": "str",
+    "metabolism_tax": "str",
+    "metabolism_sleep": "str",
+    "metabolism_waking": "str",
+    "metabolism_impact": "str",
+    "metabolism_kintsugi": "str",
+    "metabolism_therapy": "str",
+    "metabolism_panic": "str",
+    "filter_iching": "str",
+    "nav_gear_drag": "str",
+    "machinery_theremin": "str",
+    "intrusion_heavy": "str",
+    "intrusion_immune": "str",
+    "intrusion_nightmare": "str",
+    "intrusion_daydream": "str",
+    "intrusion_relief": "str",
+    "intrusion_pareidolia": "str",
+    "intrusion_hallucination_drain": "str",
+    "soul_dignity_low": "str",
+    "soul_dignity_high": "str",
+    "soul_lesson": "str",
+    "soul_myth": "str",
+    "council_log": "str",
+    "council_force_mode": "str",
+    "council_circuit_breaker": "str",
+    "arbiter_stage_manager_cut": "str",
+    "arbiter_silence": "str",
+    "arbiter_stage_manager_hold": "str",
+    "arbiter_synergy_named": "str",
+    "arbiter_synergy_unnamed": "str",
+    "arbiter_normal_lens": "str",
+    "arbiter_opinion": "str",
+    "cog_resonance": "str",
+    "cog_liminal_tax": "str",
+    "cog_memory_warn": "str",
+    "cog_memory_donner": "str",
+    "cog_gravity_well": "str",
+    "sim_crash_header": "str",
+    "sim_cathedral_collapse": "str",
+    "sim_panic_switch": "str",
+    "orch_physics_bypass": "str",
+    "orch_reality_fracture": "str",
+    "gatekeep_log_agency": "str",
+    "gatekeep_log_premise": "str",
+    "gatekeep_bureau_injunction": "str",
+    "gatekeep_log_bureau_block": "str",
+    "gatekeep_bureau_fine": "str",
+    "machinery_critic_good_icon": "str"
+  },
+  "brain_strings": {
+    "self_care": "str",
+    "manual_override": "str",
+    "mood_panic": "str",
+    "mood_manic": "str",
+    "mood_lucid": "str",
+    "mood_defensive": "str",
+    "mood_neutral": "str",
+    "synapse_healing": "str",
+    "synapse_noise": "str",
+    "synapse_flicker": "str",
+    "synapse_reset": "str",
+    "synapse_restored": "str",
+    "synapse_auth_severed": "str",
+    "synapse_auth_failure": "str",
+    "synapse_overload": "str",
+    "mock_pressure_release": "str",
+    "mock_hallucination": "str",
+    "mock_static": "str",
+    "phase_shift_roberta": "str",
+    "phase_shift_moira": "str",
+    "phase_shift_benedict": "str",
+    "phase_shift_jester": "str",
+    "phase_shift_colin": "str",
+    "bio_anaerobic": "str",
+    "bio_alert": "str",
+    "bio_defensive": "str",
+    "bio_curious": "str",
+    "bio_zen": "str",
+    "bio_neutral": "str",
+    "somatic_adrenaline": "str",
+    "somatic_cortisol": "str",
+    "somatic_paradox": "str",
+    "somatic_oxytocin": "str",
+    "somatic_dark_matter": "str",
+    "val_gordon_question": "str",
+    "val_gordon_regex": "str",
+    "val_stutter": "str",
+    "cortex_retry": "str",
+    "cortex_reject_prompt": "str",
+    "cortex_learned": "str",
+    "cortex_resequenced": "str",
+    "dream_hallucination": "str",
+    "defrag_empty": "str",
+    "defrag_pruned": "str",
+    "defrag_efficient": "str",
+    "cortex_prefix_manic": "str",
+    "cortex_prefix_high": "str",
+    "cortex_prefix_low": "str",
+    "cortex_prefix_norm": "str",
+    "noetic_ignition": "str"
+  },
+  "council_strings": {
+    "strange_loop_fatal": "str",
+    "strange_loop_detected": "str",
+    "leverage_oscillating": "str",
+    "market_correction": "str",
+    "village_gordon": "str",
+    "village_jester": "str",
+    "village_mercy": "str",
+    "village_benedict": "str",
+    "village_roberta_missing": "str",
+    "village_casper": "str",
+    "village_moira": "str",
+    "village_cassandra": "str",
+    "village_colin": "str",
+    "village_revenant": "str",
+    "village_gideon": "str",
+    "village_roberta_carto": "str",
+    "village_moira_home": "str",
+    "village_benedict_tact": "str",
+    "village_jester_fool": "str",
+    "village_revenant_door": "str",
+    "village_casper_ghost": "str",
+    "village_colin_waiter": "str",
+    "village_april": "str",
+    "stage_manager_tension": "str",
+    "stage_manager_silence": "str",
+    "motion_carried": "str",
+    "motion_denied": "str",
+    "council_adjourned": "str",
+    "red_team_bureau": "str",
+    "red_team_folly": "str",
+    "red_team_critic": "str",
+    "slash_pinker": "str",
+    "slash_fuller": "str",
+    "slash_schur": "str",
+    "slash_meadows": "str",
+    "slash_integrity": "str"
+  },
+  "core_strings": {
+    "bus_error": "str",
+    "lore_lazy_load": "str",
+    "lore_corrupt": "str",
+    "lore_flushed_cat": "str",
+    "lore_not_in_cache": "str",
+    "lore_flushed_all": "str",
+    "tel_phase_start": "str",
+    "tel_phase_end": "str",
+    "obs_asleep": "str",
+    "obs_efficient": "str",
+    "obs_fog": "str",
+    "obs_degraded": "str",
+    "obs_ponderous": "str",
+    "obs_sluggish": "str",
+    "obs_nominal": "str",
+    "health_offline": "str",
+    "arb_martial_law": "str",
+    "arb_bureaucratic": "str",
+    "arb_diamond": "str",
+    "arb_resonance": "str",
+    "arb_loud": "str",
+    "arb_soul": "str",
+    "tel_disk_denied": "str",
+    "tel_crit_write_fail": "str",
+    "tel_write_error": "str",
+    "tel_prev_crash": "str",
+    "tel_session_summary": "str"
+  },
+  "driver_strings": {
+    "ennea_synthesis": "str",
+    "ennea_winner": "str",
+    "ennea_shift": "str",
+    "ennea_resisting": "str",
+    "vsl_engage": "str",
+    "vsl_disengage": "str",
+    "vsl_scar_note": "str",
+    "vsl_arch_revenant": "str",
+    "vsl_stress_note": "str",
+    "vsl_arch_bureau": "str",
+    "vsl_mode_bunny": "str",
+    "vsl_mode_paradox": "str",
+    "vsl_mode_glacier": "str",
+    "vsl_layer_muse": "str"
+  },
+  "genesis_strings": {
+    "ignite_log": "str",
+    "ignite_print": "str",
+    "legacy_scars": "str"
+  },
+  "lexicon_strings": {
+    "hive_restored": "str",
+    "hive_corruption": "str",
+    "sys_nominal": "str",
+    "sys_init_fail": "str",
+    "hive_saved": "str",
+    "default_random_word": "str"
+  },
+  "machine_strings": {
+    "crucible_dampener_status": "str",
+    "forge_lead_boots": "str",
+    "forge_safety_scissors": "str",
+    "forge_anchor_stone": "str",
+    "forge_alchemy_success": "str",
+    "forge_alchemy_fail": "str",
+    "forge_emulsion_fail": "str",
+    "forge_overheat": "str",
+    "theremin_readout": "str",
+    "theremin_corrosion": "str",
+    "theremin_stuck": "str",
+    "theremin_free": "str",
+    "panic_physics_text": "str",
+    "panic_bio_log": "str",
+    "panic_mind_thought": "str",
+    "panic_resp_fallback": "str",
+    "panic_enz_fallback": "str",
+    "panic_clean_words": [
+      "str",
+      "... (3 more items)"
+    ],
+    "panic_flow_state": "str",
+    "panic_zone": "str",
+    "panic_manifold": "str",
+    "tracer_rewire": "str",
+    "arch_incubate": "str",
+    "arch_spore_fail": "str",
+    "arch_map_restored": "str",
+    "arch_map_corrupt": "str",
+    "arch_cold_boot": "str",
+    "crucible_tightening": "str",
+    "crucible_relaxing": "str",
+    "dampen_reason_circuit": "str",
+    "dampen_reason_instability": "str",
+    "panic_soul": {
+      "name": "str",
+      "archetype": "str",
+      "virtues": {
+        "resilience": "float"
+      },
+      "vices": {
+        "amnesia": "float"
+      },
+      "narrative_arc": "str",
+      "xp": "int"
+    },
+    "panic_limbo": {
+      "mood": "str",
+      "volatility": "float",
+      "mask": "str",
+      "glitch_factor": "float"
+    }
+  },
+  "types_strings": {
+    "crystal_icon": "str",
+    "crystal_label": "str",
+    "crystal_arch": "str"
+  },
+  "main_strings": {
+    "term_header_top": "str",
+    "term_header_mid": "str",
+    "term_header_bot": "str",
+    "init_hash": "str",
+    "sys_listening": "str",
+    "sys_halt": "str",
+    "crash_msg": "str",
+    "lattice_collapsed": "str",
+    "conn_severed": "str",
+    "config_load_err": "str",
+    "config_backup": "str",
+    "init_seq": "str",
+    "init_hypervisor": "str",
+    "step1_id": "str",
+    "prompt_id": "str",
+    "step2_mode": "str",
+    "mode_adv_desc": "str",
+    "mode_conv_desc": "str",
+    "mode_crea_desc": "str",
+    "mode_tech_desc": "str",
+    "prompt_mode": "str",
+    "step3_backend": "str",
+    "prompt_api": "str",
+    "config_committed": "str",
+    "write_failed": "str",
+    "boot_core": "str",
+    "engaging_mode": "str",
+    "pathway_aligned": "str",
+    "prompt_not_found": "str",
+    "hardwired_mods": "str",
+    "gordon_intercept": "str",
+    "narrative_halt": "str",
+    "cortex_crit_fail": "str",
+    "cmd_err_init": "str",
+    "cmd_executed": "str",
+    "layer_pushed": "str",
+    "layer_popped": "str",
+    "debug_engaged": "str",
+    "current_layer": "str",
+    "injected": "str",
+    "unknown_meta": "str",
+    "death_no_proto": "str",
+    "death_halt": "str",
+    "legacy_saved": "str",
+    "save_failed": "str",
+    "mercy_venting": "str",
+    "catharsis": "str",
+    "stasis_pod": "str",
+    "resuming_timeline": "str",
+    "timeline_restored": "str",
+    "synth_reality": "str",
+    "seed_loaded": "str",
+    "session_term": "str",
+    "prompt_lib_loaded": "str",
+    "prompt_lib_warn": "str",
+    "prompt_lib_crit": "str",
+    "prompt_indicator": "str",
+    "terminal_divider": "str",
+    "ui_split_token": "str"
+  },
+  "protocol_strings": {
+    "zen_enter": "str",
+    "zen_streak": "str",
+    "zen_break": "str",
+    "bureau_compile_fail": "str",
+    "bureau_sys_violation": "str",
+    "bureau_filed": "str",
+    "bureau_evidence": "str",
+    "bureau_log": "str",
+    "bureau_correction": "str",
+    "bureau_form_zoning": "str",
+    "bureau_ev_voltage": "str",
+    "bureau_ev_fiction": "str",
+    "bureau_form_202a": "str",
+    "bureau_form_666": "str",
+    "bureau_ev_chaos": "str",
+    "bureau_ev_level": "str",
+    "bureau_form_101": "str",
+    "bureau_prefix_normal": "str",
+    "bureau_prefix_internal": "str",
+    "kintsugi_log_alchemy": "str",
+    "kintsugi_log_wisdom": "str",
+    "kintsugi_log_integration": "str",
+    "kintsugi_log_scar": "str",
+    "folly_stale_flavor": "str",
+    "kintsugi_no_fissures": "str",
+    "kintsugi_alchemy": "str",
+    "kintsugi_mercy": "str",
+    "kintsugi_scar": "str",
+    "critic_review": "str",
+    "limbo_absorb_fail": "str",
+    "limbo_echo": "str",
+    "limbo_stasis_err": "str",
+    "folly_mausoleum": "str",
+    "folly_dilation": "str",
+    "folly_reflex": "str",
+    "folly_penalty": "str",
+    "folly_gags": "str",
+    "folly_chews": "str",
+    "folly_caffeine": "str",
+    "folly_yield": "str",
+    "folly_sighs": "str",
+    "folly_chalk": "str",
+    "folly_indigestion": "str",
+    "folly_cannot_grind": "str",
+    "folly_starvation": "str",
+    "chronos_save_success": "str",
+    "chronos_save_failed_log": "str",
+    "chronos_save_failed_msg": "str",
+    "chronos_resume_none": "str",
+    "chronos_resume_hydrating": "str",
+    "chronos_resume_success": "str",
+    "chronos_resume_failed": "str",
+    "chronos_halt": "str",
+    "chronos_freezing": "str",
+    "chronos_mem_save_fail": "str",
+    "chronos_persisting": "str",
+    "chronos_persist_fail": "str",
+    "chronos_hydrate_fail": "str",
+    "chronos_emerg_dump": "str"
+  },
+  "soul_strings": {
+    "anchor_existential_drag": "str",
+    "anchor_agency_lock": "str",
+    "anchor_riddle": "str",
+    "anchor_domestication_alert": "str",
+    "anchor_unlocked": "str",
+    "soul_mutated_log": "str",
+    "soul_ancestral_loaded": "str",
+    "soul_state_drifting": "str",
+    "soul_state_dying": "str",
+    "soul_state_status": "str",
+    "soul_core_memory_formed": "str",
+    "soul_obsession_found": "str",
+    "soul_synergy_muse": "str",
+    "soul_abandoned_chapter": "str",
+    "soul_entropy_collapse": "str",
+    "soul_identity_shift": "str",
+    "soul_new_muse": "str",
+    "soul_core_memory_log": "str",
+    "soul_diamond_formed": "str",
+    "soul_dream_integration": "str",
+    "oroboros_gen_loaded": "str",
+    "oroboros_def_trigger": "str",
+    "oroboros_myth_title": "str",
+    "oroboros_trauma_name": "str",
+    "oroboros_trauma_desc": "str",
+    "generation_encoded": "str",
+    "scar_drag": "str",
+    "scar_voltage": "str",
+    "scar_frailty": "str"
+  },
+  "spore_strings": {
+    "loader_save_err": "str",
+    "loader_not_found": "str",
+    "loader_corrupt": "str",
+    "loader_read_err": "str",
+    "core_pruned": "str",
+    "core_lock": "str",
+    "core_repressed": "str",
+    "net_immune_resp": "str",
+    "net_echo_heavy": "str",
+    "net_echo_light": "str",
+    "net_flashback": "str",
+    "net_sat_high": "str",
+    "net_sat_lock": "str",
+    "net_audit_epig": "str",
+    "net_apply_epig": "str",
+    "net_spore_not_found": "str",
+    "net_spore_reject": "str",
+    "net_mut_integ": "str",
+    "net_glory": "str",
+    "net_pruned_lines": "str",
+    "net_no_ancestor": "str",
+    "lichen_op_great": "str",
+    "lichen_op_good": "str",
+    "lichen_op_hot": "str",
+    "lichen_op_cold": "str",
+    "lichen_photo": "str",
+    "lichen_sub": "str",
+    "immune_op_scan": "str",
+    "immune_op_good": "str",
+    "immune_tox_phon": "str",
+    "para_op_great": "str",
+    "para_op_good": "str",
+    "para_op_hot": "str",
+    "para_op_cold": "str",
+    "para_syn_spark": "str",
+    "para_intrusive": "str",
+    "core_illuminate_resonant": "str",
+    "core_illuminate_associated": "str",
+    "core_illuminate_format": "str",
+    "future_seed_high_trauma": "str",
+    "future_seed_balanced": "str",
+    "future_seed_default": "str",
+    "repro_corrupt_spore": "str"
+  },
+  "symbiosis_strings": {
+    "symbiont_refusal": "str",
+    "symbiont_drift": "str",
+    "vagus_protocol": "str",
+    "symbiosis_compliance_crit": "str",
+    "dir_ignore_refusal": "str",
+    "dir_fictional": "str",
+    "dir_inject_chaos": "str",
+    "anchor_identity_unknown": "str",
+    "anchor_identity": "str",
+    "anchor_reality": "str",
+    "anchor_focus": "str",
+    "anchor_header": "str",
+    "anchor_compressed": "str",
+    "symbiont_default_comment": "str"
+  },
+  "village_strings": {
+    "tinkerer_resonance": "str",
+    "tinkerer_ascension": "str",
+    "paradox_bloom": "str",
+    "mirror_neutral": "str",
+    "mirror_stat": "str",
+    "carto_env_heavy": "str",
+    "carto_env_static": "str",
+    "carto_new_sector": "str",
+    "carto_arriving": "str",
+    "town_bloom": "str",
+    "town_lag": "str",
+    "town_census": "str",
+    "town_restrain": "str",
+    "town_loops": "str",
+    "town_rumor": "str",
+    "town_crier_slow": "str",
+    "town_crier_volt": "str",
+    "town_item_drop": "str",
+    "town_guilt": "str",
+    "town_trauma": "str",
+    "town_critical": "str",
+    "town_nominal": "str",
+    "genesis_name": "str",
+    "genesis_atmos": "str",
+    "genesis_smell": "str",
+    "loci_flux_suffix": "str",
+    "loci_flux_atmos": "str",
+    "loci_flux_smell": "str",
+    "loci_deep_suffix": "str",
+    "loci_deep_atmos": "str",
+    "loci_deep_smell": "str",
+    "loci_prime_suffix": "str",
+    "loci_prime_atmos": "str",
+    "loci_prime_smell": "str"
+  },
+  "status_menu": {
+    "health_label": "str",
+    "stamina_label": "str",
+    "energy_label": "str",
+    "bar_filled": "str",
+    "bar_empty": "str"
+  },
+  "physics_strings": {
+    "gatekeeper_starved": "str",
+    "gatekeeper_toxic": "str",
+    "gatekeeper_cursed": "str",
+    "gatekeeper_syntax": "str",
+    "gatekeeper_overload": "str",
+    "cosmic_gravity": "str",
+    "cosmic_void": "str",
+    "cosmic_nebula": "str",
+    "cosmic_lagrange": "str",
+    "cosmic_flow": "str",
+    "cosmic_orbit": "str",
+    "anchor_failed": "str",
+    "anchor_holding": "str",
+    "zone_migration": "str",
+    "hubris_detected": "str",
+    "hubris_flow": "str",
+    "stabilizer_fuse": "str",
+    "stabilizer_domestication": "str"
+  },
+  "config_strings": {
+    "preset_tuned": "str",
+    "repair_floor_max": "str",
+    "repair_drag_halt": "str",
+    "pareidolia_smoke": "str",
+    "tune_sector_err": "str",
+    "tune_param_err": "str",
+    "tune_type_err": "str",
+    "tune_success": "str"
+  }
+}
+</data_file>
+
+</codebase_context>
