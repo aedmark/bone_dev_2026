@@ -145,8 +145,8 @@
     },
     {
       "name": "AGENCY_THEFT",
-      "regex": "(?i)\\b(you find yourself|you feel|you notice|you can't help but|you wonder|you think|inside you find|you step|you enter|you walk|your (?:feet|eyes|gaze|nose|face|body|hands|skin|ears|lungs|mind|bones)|you look|you stand|you arrive|you see|you hear|you smell|you sense|you touch|as you|beneath you|around you|past you|behind you|beside you|before you|front of you|to you|towards you|at you|upon you|on you|for you|with you)\\b",
-      "error_msg": "AGENCY THEFT. Do not tell the player what they feel, think, notice, or do. Just describe the physical room objectively."
+      "regex": "(?i)\\b(you feel|you notice|you can't help but|you wonder|you think|you realize|you decide|you ponder|you sense|you hesitate|you confidently|you cautiously|you assume)\\b",
+      "error_msg": "AGENCY THEFT. Do not tell the player what they feel, think, notice, or do. You only control the physical environment."
     },
     {
       "name": "SNEAKY_ENGAGEMENT",

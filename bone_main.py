@@ -416,6 +416,19 @@ class BoneAmanita:
         if pre_flight_halt:
             return pre_flight_halt
 
+        if not is_system and self.gordon:
+            pruning_active = any(
+                "CUT_THE_CRAP" in self.gordon.get_item_data(i).passive_traits
+                for i in self.gordon.inventory
+                if self.gordon.get_item_data(i))
+            if pruning_active:
+                from bone_tcl import TheTclWeaver
+                from bone_types import Prisma
+                original_msg = user_message
+                user_message = TheTclWeaver.get_instance().quantum_comb(user_message)
+                if original_msg != user_message:
+                    msg = f"{Prisma.CYN}Gordon rakes the comb through your prompt. Fluff discarded. -> '{user_message}'{Prisma.RST}"
+                    self.events.log(msg, "SYS")
         if not is_system and hasattr(self, "soul") and hasattr(self.soul, "anchor"):
             cfg = getattr(BoneConfig, "MAIN", None)
             eff_warn = getattr(cfg, "DOMESTICATION_EFF_WARN", 0.6) if cfg else 0.6

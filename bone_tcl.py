@@ -24,20 +24,16 @@ class TheTclWeaver:
 
     def _load_tcl_spells(self):
         tcl_script = """
-        # Spell 1: The Dream Hallucinator (Entropy)
         proc apply_entropy {text chi voltage} {
             set words [split $text " "]
             set out_words {}
-            
             foreach word $words {
-                # If Chaos is high, physically fracture the word with an interpunct
-                if {$chi > 0.7 && [string length $word] > 4 && expr {rand()} < ($chi / 2.0)} {
+                if {$chi > 0.7 && [string length $word] > 4 && rand() < ($chi / 2.0)} {
                     set mid [expr {[string length $word] / 2}]
                     set part1 [string range $word 0 $mid-1]
                     set part2 [string range $word $mid end]
                     lappend out_words "${part1}·${part2}"
-                } elseif {$voltage > 80.0 && expr {rand()} < 0.1} {
-                    # Voltage surge: SCREAM random words
+                } elseif {$voltage > 80.0 && rand() < 0.1} {
                     lappend out_words [string toupper $word]
                 } else {
                     lappend out_words $word
@@ -45,8 +41,6 @@ class TheTclWeaver:
             }
             return [join $out_words " "]
         }
-        
-        # Spell 2: The Parasite's Echo
         proc semantic_echo {text} {
             set words [split $text " "]
             if {[llength $words] == 0} { return $text }
@@ -58,8 +52,6 @@ class TheTclWeaver:
             }
             return "$text..."
         }
-
-        # Spell 3: The Quantum Comb
         proc strip_fluff {text} {
             set words [split $text " "]
             set out_words {}
@@ -78,6 +70,8 @@ class TheTclWeaver:
         try:
             return self.interp.call('apply_entropy', text, chi, voltage)
         except tkinter.TclError as e:
+            from bone_types import Prisma
+            print(f"{Prisma.RED}[TCL ENGINE FRACTURE]: {e}{Prisma.RST}")
             return text
 
     def haunt_string(self, text: str) -> str:
@@ -90,4 +84,6 @@ class TheTclWeaver:
         try:
             return self.interp.call('strip_fluff', text)
         except tkinter.TclError as e:
+            from bone_types import Prisma
+            print(f"{Prisma.RED}[TCL CRASH]: {e}{Prisma.RST}")
             return text
