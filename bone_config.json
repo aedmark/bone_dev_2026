@@ -3,5 +3,5 @@
     "boot_mode": "ADVENTURE",
     "provider": "ollama",
     "base_url": "http://127.0.0.1:11434/v1/chat/completions",
-    "model": "hermes3"
+    "model": "qwen3.5:latest"
 }

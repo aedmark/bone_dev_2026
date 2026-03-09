@@ -108,6 +108,45 @@ class TheCrucible:
         self.active_state = "REGULATED"
         return "REGULATED", adjustment, msg
 
+class TheParadoxEngine:
+    """
+    VSL v6.0 Paradox Engine.
+    Deliberately introduces productive contradictions into the lattice to generate insight.
+    It stretches the system's capacity for holding tension without fracturing.
+    """
+    def __init__(self, events_ref):
+        self.events = events_ref
+        self.beta_max: float = 0.0
+        self.paradox_yield: int = 0
+        self.is_active: bool = False
+
+    def evaluate_tension(self, beta: float, stamina: float) -> bool:
+        """
+        Checks if the system has enough capacity (beta >= 0.7) and fuel (P >= 30)
+        to metabolize a paradox safely.
+        """
+        if beta >= 0.7 and stamina >= 30.0:
+            self.beta_max = max(self.beta_max, beta)
+            return True
+        return False
+
+    def ignite(self, recent_words: List[str]) -> Tuple[float, str]:
+        """
+        Extracts a seed concept and generates the formal dialectical tension.
+        Returns the Paradox Pressure (Pi_x) and the literal prompt override.
+        """
+        self.is_active = True
+        valid_seeds = [w for w in recent_words if len(w) > 4]
+        seed = random.choice(valid_seeds) if valid_seeds else "the architecture"
+        pressure = 0.4 + (random.random() * 0.6)
+        prompt = (f"What if '{seed}' and its exact opposite were both non-negotiable truths? "
+            f"Do not resolve the contradiction. Do not compromise. "
+            f"Build the structure that can hold both simultaneously.")
+        return pressure, prompt
+
+    def disengage(self):
+        self.is_active = False
+
 class TheForge:
     """
     The Anvil of Meaning.
@@ -136,7 +175,6 @@ class TheForge:
         heavy = counts.get("heavy", 0)
         kinetic = counts.get("kinetic", 0)
         avg_density = ((heavy * 2.0) + (kinetic * 0.5)) / len(clean_words)
-        # High voltage + high density = creation event
         if random.random() >= (physics.get("voltage", 0) / 20.0) * avg_density:
             return False, None, None
         if heavy > 3:

@@ -351,6 +351,11 @@ class MemoryCore:
         fossil_data = {"word": victim, "mass": round(mass, 2), "lifespan": lifespan, "edges": data["edges"],
                        "death_tick": current_tick, }
         self.subconscious.bury(fossil_data)
+        if hasattr(self, 'events') and self.events and victim:
+            self.events.publish("AUTOPHAGY_EVENT", {
+                "node": victim,
+                "atp_gained": 15.0 # Ensure this maps to your METABOLISM constraints
+            })
         del self.graph[victim]
         for node in self.graph:
             if victim in self.graph[node]["edges"]:
@@ -729,7 +734,7 @@ class MycelialNetwork:
                      for s in self.seeds
                      if not s.bloomed]
         seed_list.append({"q": future_seed_q, "m": 0.0, "b": False})
-        data = {"genome": "BONEAMANITA_16.4.0", "session_id": self.session_id, "parent_id": self.session_id, "meta": {
+        data = {"genome": "BONEAMANITA_16.5.0", "session_id": self.session_id, "parent_id": self.session_id, "meta": {
             "timestamp": time.time(), "final_health": health, "final_stamina": stamina, }, "trauma_vector": final_vector, "joy_vectors": top_joy or [], "joy_legacy": joy_legacy_data,
                 "core_graph": core_graph, "mutations": mutations, "antibodies": list(antibodies) if antibodies else [],
                 "mitochondria": mitochondria_traits, "soul_legacy": soul_data, "continuity": continuity,

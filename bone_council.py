@@ -37,7 +37,6 @@ class TheStrangeLoop:
         abstract_hit = psi > 0.6 and any(w in text_lower for w in self.keywords)
         threshold = getattr(BoneConfig.COUNCIL, "STRANGE_LOOP_VOLTAGE", 8.0)
 
-        #
         if (phrase_hit or abstract_hit) and physics.get("voltage", 0) > threshold:
             self.recursion_depth += 1
             mandate = {}
@@ -178,7 +177,6 @@ class TheVillageCouncil:
         ros = get_val("ros", "ROS", 0.0)
         cfg = getattr(BoneConfig, "COUNCIL", None)
 
-        # --- DOING STATE ARCHETYPES ---
         if V < getattr(cfg, "TRIG_GORDON_V", 20.0) and F > getattr(cfg, "TRIG_GORDON_F", 5.0):
             msg = ux("council_strings", "village_gordon") 
             logs.append(f"{Prisma.SLATE}{msg}{Prisma.RST}")
@@ -213,7 +211,6 @@ class TheVillageCouncil:
             msg = ux("council_strings", "village_gideon") 
             logs.append(f"{Prisma.YEL}{msg}{Prisma.RST}")
 
-        # --- BEING STATE ARCHETYPES (PHASE SHIFTS) ---
         if psi > getattr(cfg, "PHASE_ROBERTA_PSI", 0.6) and phi > getattr(cfg, "PHASE_ROBERTA_PHI", 0.4) > beta:
             msg = ux("council_strings", "village_roberta_carto") 
             logs.append(f"{Prisma.CYN}{msg}{Prisma.RST}")
@@ -254,8 +251,9 @@ class CouncilChamber:
         self.village = TheVillageCouncil()
         self.footnote = TheFootnote()
         self.slash_council = TheSlashCouncil()
-
-        # Load any external fungal/parasitic voices riding the system
+        if not hasattr(self.eng, "paradox_engine"):
+            from bone_machine import TheParadoxEngine
+            self.eng.paradox_engine = TheParadoxEngine(getattr(self.eng, "events", None))
         symbiont_cfg = LoreManifest.get_instance().get("SYMBIOSIS_CONFIG", "SYMBIONT_VOICES") or {}
         symbiont_names = list(symbiont_cfg.keys()) if symbiont_cfg else ["LICHEN", "PARASITE", "MYCORRHIZA", "MYCELIUM"]
         for s_name in symbiont_names:
@@ -269,7 +267,33 @@ class CouncilChamber:
         adjustments = {}
         mandates = []
 
-        # 1. Existential & Dampening Checks
+        beta = physics_packet.beta if hasattr(physics_packet, 'beta') else physics_packet.get("beta", 0.0)
+        stamina = _bio_result.get("stamina", 100.0)
+
+        if self.eng.paradox_engine.evaluate_tension(beta, stamina):
+            clean_words = physics_packet.clean_words if hasattr(physics_packet, 'clean_words') else []
+            pressure, paradox_prompt = self.eng.paradox_engine.ignite(clean_words)
+
+            transcript.append(f"{Prisma.VIOLET}[PARADOX ENGINE ACTIVATED] Πx={pressure:.2f}{Prisma.RST}")
+            transcript.append(f"{Prisma.VIOLET}(Benedict & Jester): {paradox_prompt}{Prisma.RST}")
+
+            adjustments["stamina"] = - (10.0 * pressure)
+
+            mandates.append({
+                "type": "PARADOX_OVERRIDE",
+                "directive": paradox_prompt,
+                "pressure": pressure
+            })
+
+            if random.random() < (0.3 * pressure):
+                self.eng.paradox_engine.paradox_yield += 1
+                adjustments["glimmers"] = 1
+                transcript.append(f"{Prisma.YEL}[GLIMMER] A spark struck from the tension. (Yield: {self.eng.paradox_engine.paradox_yield}){Prisma.RST}")
+
+            return transcript, adjustments, mandates
+        else:
+            self.eng.paradox_engine.disengage()
+
         sl_hit, sl_log, sl_corr, sl_man = self.strange_loop.audit(text, physics_packet)
         if sl_hit:
             transcript.append(self.footnote.commentary(sl_log))
@@ -285,7 +309,6 @@ class CouncilChamber:
             if lp_man:
                 mandates.append(lp_man)
 
-        # 2. Mod Chip Evaluation (The Dev Team)
         slash_hit, slash_logs, slash_corr = self.slash_council.audit(text, physics_packet)
         if slash_hit:
             for slog in slash_logs:
@@ -294,7 +317,6 @@ class CouncilChamber:
             cfg = getattr(BoneConfig, "COUNCIL", None)
             adjustments["stamina_cost"] = getattr(cfg, "SLASH_STAMINA_COST", 10.0) if cfg else 10.0
 
-        # 3. Core Village Dynamics & Synergies
         village_logs = self.village.audit(physics_packet, _bio_result)
         import itertools
         c_data = LoreManifest.get_instance().get("COUNCIL_DATA") or {}
@@ -309,7 +331,6 @@ class CouncilChamber:
                 if actor in log and actor not in active_present:
                     active_present.append(actor)
 
-        # Check for Resonance Gestalts (Specific powerful archetype pairings)
         synergy_fired = False
         for pair in itertools.combinations(sorted(active_present), 2):
             chord_key = f"{pair[0]}|{pair[1]}"
@@ -327,8 +348,7 @@ class CouncilChamber:
                 transcript.append(
                     self.footnote.commentary(f"{Prisma.GRY}{Prisma.strip(vlog)}{Prisma.RST}"))
         elif len(village_logs) > 2:
-            # Stage Manager resolves multi-archetype tension by increasing drag
-            msg_t = ux("council_strings", "stage_manager_tension") 
+            msg_t = ux("council_strings", "stage_manager_tension")
             msg_s = ux("council_strings", "stage_manager_silence") 
             transcript.append(f"{Prisma.WHT}{msg_t}{Prisma.RST}")
             transcript.append(f"{Prisma.GRY}{msg_s}{Prisma.RST}")
@@ -341,7 +361,6 @@ class CouncilChamber:
             for vlog in village_logs:
                 transcript.append(self.footnote.commentary(vlog))
 
-        # 4. The Symbiont Vote (Mycelial Influence)
         votes = {"YEA": 0, "NAY": 0}
         active_voices = [v for v in self.voices if v is not None]
         if not active_voices:
@@ -366,7 +385,6 @@ class CouncilChamber:
                     votes["NAY"] += 1
                     transcript.append(f"{voice.color}[{voice.name}]: {comment}{Prisma.RST}")
 
-        # Tally and apply physical sanctions
         if votes["YEA"] > votes["NAY"]:
             msg = ux("council_strings", "motion_carried") 
             final_log = f"{Prisma.GRN}{msg.format(yea=votes['YEA'], nay=votes['NAY'])}{Prisma.RST}"
@@ -428,10 +446,10 @@ class TheSlashCouncil:
             return False, [], {}
         logs = []
         corrections = {}
-        r_pinker = self.rules.get("PINKER", ["var ", "x =", "data ="]) # Triggers on sloppy/unclear definitions
-        r_fuller = self.rules.get("FULLER", ["import ", "class ", "def "]) # Triggers on structural boundaries
-        r_schur = self.rules.get("SCHUR", ["Exception", "try:", "catch"]) # Triggers on empathy/error handling
-        r_meadows = self.rules.get("MEADOWS", ["while ", "for ", "queue", "recursion"]) # Triggers on feedback loops
+        r_pinker = self.rules.get("PINKER", ["var ", "x =", "data ="])
+        r_fuller = self.rules.get("FULLER", ["import ", "class ", "def "])
+        r_schur = self.rules.get("SCHUR", ["Exception", "try:", "catch"])
+        r_meadows = self.rules.get("MEADOWS", ["while ", "for ", "queue", "recursion"])
         c_data = LoreManifest.get_instance().get("COUNCIL_DATA") or {}
         mods = c_data.get("SLASH_MODIFIERS", {})
         if any(k in text for k in r_pinker):
