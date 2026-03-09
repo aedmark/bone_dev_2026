@@ -7,6 +7,7 @@ import re
 import sys
 import time
 import traceback
+import subprocess
 import uuid
 from dataclasses import dataclass
 from typing import Dict, Any, Optional, Tuple
@@ -66,7 +67,7 @@ class SessionGuardian:
         self.engine_instance = engine_ref
 
     def __enter__(self):
-        os.system("cls" if os.name == "nt" else "clear")
+        subprocess.run("cls" if os.name == "nt" else "clear", shell=True)
         top_bar = ux("main_strings", "term_header_top", "┌──────────────────────────────────────────┐")
         mid_bar = ux("main_strings", "term_header_mid", "│ BONEAMANITA TERMINAL // VERSION 16.5.0   │")
         bot_bar = ux("main_strings", "term_header_bot", "└──────────────────────────────────────────┘")
@@ -140,7 +141,7 @@ class ConfigWizard:
         """An interactive terminal wizard to set the initial constraints of the system (LLM backend, Mode)."""
         cfg = getattr(BoneConfig, "GUI", None)
         setup_speed = getattr(cfg, "RENDER_SPEED_SETUP", 0.02) if cfg else 0.02
-        os.system("cls" if os.name == "nt" else "clear")
+        subprocess.run("cls" if os.name == "nt" else "clear", shell=True)
         seq_msg = ux("main_strings", "init_seq")
         hyp_msg = ux("main_strings", "init_hypervisor")
         print(f"{Prisma.paint(seq_msg, 'C')}")
@@ -451,7 +452,6 @@ class BoneAmanita:
                 if self.gordon.get_item_data(i))
             if pruning_active:
                 from bone_tcl import TheTclWeaver
-                from bone_types import Prisma
                 original_msg = user_message
                 user_message = TheTclWeaver.get_instance().quantum_comb(user_message)
                 if original_msg != user_message:

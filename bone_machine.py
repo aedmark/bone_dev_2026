@@ -365,15 +365,15 @@ class PanicRoom:
         log_msg = ux("machine_strings", "panic_bio_log")
         resp_fallback = ux("machine_strings", "panic_resp_fallback") or "NECROSIS"
         enz_fallback = ux("machine_strings", "panic_enz_fallback") or "NONE"
-        base = {"is_alive": True, "atp": 10.0, "respiration": resp_fallback, "enzyme": enz_fallback,
-                "chem": {"DOP": 0.0, "COR": 0.0, "OXY": 0.0, "SER": 0.0, "ADR": 0.0, "MEL": 0.0, },
-                "logs": [f"{Prisma.RED}{log_msg}{Prisma.RST}"], }
+        chem_state: Dict[str, float] = {"DOP": 0.0, "COR": 0.0, "OXY": 0.0, "SER": 0.0, "ADR": 0.0, "MEL": 0.0, }
+        base: Dict[str, Any] = {"is_alive": True, "atp": 10.0, "respiration": resp_fallback, "enzyme": enz_fallback,
+                                "chem": chem_state, "logs": [f"{Prisma.RED}{log_msg}{Prisma.RST}"], }
         state = previous_state or {}
         if isinstance(state, dict):
             if old_chem := state.get("chemistry", {}):
-                base["chem"]["COR"] = 0.0
-                base["chem"]["ADR"] = 0.0
-                base["chem"]["SER"] = max(0.2, old_chem.get("SER", 0.0))
+                chem_state["COR"] = 0.0
+                chem_state["ADR"] = 0.0
+                chem_state["SER"] = max(0.2, float(old_chem.get("SER", 0.0)))
         return base
 
     @staticmethod

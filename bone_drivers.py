@@ -139,12 +139,20 @@ class EnneagramDriver:
 
     def _calculate_raw_persona(self, physics, soul_ref=None) -> Tuple[str, str, str]:
         """ Scores every persona against the current physics packet to find the best fit. """
-        p_vec = self._get_phys_attr(physics, "vector", {}) or {}
-        p_vol = self._get_phys_attr(physics, "voltage", 0.0)
-        p_drag = self._get_phys_attr(physics, "narrative_drag", 0.0)
-        p_coh = self._get_phys_attr(physics, "kappa", 0.0)
-        p_zone = self._get_phys_attr(physics, "zone", "")
+        raw_vec = self._get_phys_attr(physics, "vector", {})
+        p_vec = raw_vec if isinstance(raw_vec, dict) else {}
+        def safe_float(val, default=0.0):
+            try:
+                return float(val)
+            except (ValueError, TypeError):
+                return default
+        p_vol = safe_float(self._get_phys_attr(physics, "voltage", 0.0))
+        p_drag = safe_float(self._get_phys_attr(physics, "narrative_drag", 0.0))
+        p_coh = safe_float(self._get_phys_attr(physics, "kappa", 0.0))
+        p_zone = str(self._get_phys_attr(physics, "zone", ""))
         weights_cfg = self.weights
+        if not isinstance(weights_cfg, dict):
+            return "NARRATOR", "ACTIVE", "Config Error"
         scores = {k: 0.0 for k in weights_cfg.keys()}
         if "NARRATOR" in scores:
             scores["NARRATOR"] += 2.0
@@ -154,17 +162,22 @@ class EnneagramDriver:
             if "JESTER" in scores: scores["JESTER"] += 3.0
             if "GORDON" in scores: scores["GORDON"] -= 2.0
         for persona, criteria in weights_cfg.items():
-            if "tension_min" in criteria and p_vol > criteria["tension_min"]:
+            if not isinstance(criteria, dict):
+                continue
+            if "tension_min" in criteria and p_vol > safe_float(criteria.get("tension_min", 0.0)):
                 scores[persona] += 3.0
-            if "drag_min" in criteria and p_drag > criteria["drag_min"]:
+            if "drag_min" in criteria and p_drag > safe_float(criteria.get("drag_min", 0.0)):
                 scores[persona] += 5.0
-            if "coherence_min" in criteria and p_coh > criteria["coherence_min"]:
+            if "coherence_min" in criteria and p_coh > safe_float(criteria.get("coherence_min", 0.0)):
                 scores[persona] += 4.0
-            if "coherence_max" in criteria and p_coh < criteria["coherence_max"]:
+            if "coherence_max" in criteria and p_coh < safe_float(criteria.get("coherence_max", 0.0)):
                 scores[persona] += 4.0
-            for dim, weight in criteria.get("vectors", {}).items():
-                if (val := p_vec.get(dim, 0.0)) > 0.2:
-                    scores[persona] += val * weight
+            vectors = criteria.get("vectors", {})
+            if isinstance(vectors, dict):
+                for dim, weight in vectors.items():
+                    val = safe_float(p_vec.get(dim, 0.0))
+                    if val > 0.2:
+                        scores[persona] += val * safe_float(weight)
         if soul_ref:
             soul_driver = SoulDriver(soul_ref)
             influence = soul_driver.get_influence()
@@ -186,14 +199,16 @@ class EnneagramDriver:
             elif hybrid_key_b in LENSES:
                 final_hybrid = hybrid_key_b
             if final_hybrid:
-                msg = ux("driver_strings", "ennea_synthesis") 
+                msg = ux("driver_strings", "ennea_synthesis")
                 return (
                     final_hybrid,
                     "SYNTHESIS",
-                    msg.format(winner=winner, runner_up=runner_up),)
-        msg_winner = ux("driver_strings", "ennea_winner") 
+                    msg.format(winner=winner, runner_up=runner_up),
+                )
+        msg_winner = ux("driver_strings", "ennea_winner")
         reason = msg_winner.format(
-            winner=winner, score=scores[winner], v=p_vol, d=p_drag)
+            winner=winner, score=scores[winner], v=p_vol, d=p_drag
+        )
         state_map = LoreManifest.get_instance().get("DRIVER_CONFIG", "PERSONA_STATE_MAP") or {}
         return winner, state_map.get(winner, "ACTIVE"), reason
 

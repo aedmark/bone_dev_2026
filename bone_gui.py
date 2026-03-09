@@ -374,7 +374,9 @@ class CachedRenderer:
     """Optimization. If voltage is low and the state hasn't changed, reuse the last UI frame to save cycles."""
     def __init__(self, base_renderer):
         self._base = base_renderer
-        self._cache = {"dashboard": {"hash": 0, "content": ""}, "last_tick": -1}
+        # Flattened state variables to prevent mixed-type dictionary inference
+        self._cached_ui_content = ""
+        self._last_tick = -1
 
     def render_frame(self, ctx, tick: int, events: List[Dict]) -> Dict:
         voltage = (
@@ -383,12 +385,12 @@ class CachedRenderer:
             else ctx.physics.voltage)
         cfg = getattr(BoneConfig, "GUI", None)
         v_refresh = getattr(cfg, "HIGH_VOLTAGE_REFRESH", 15.0) if cfg else 15.0
-        if voltage > v_refresh or tick != self._cache["last_tick"]:
+        if voltage > v_refresh or tick != self._last_tick:
             frame = self._base.render_frame(ctx, tick, events)
-            self._cache["dashboard"]["content"] = frame["ui"]
-            self._cache["last_tick"] = tick
+            self._cached_ui_content = frame["ui"]
+            self._last_tick = tick
             return frame
-        return {"type": "GEODESIC_FRAME", "ui": self._cache["dashboard"]["content"],
+        return {"type": "GEODESIC_FRAME", "ui": self._cached_ui_content,
                 "logs": self._base.compose_logs(ctx.logs, events, tick),
                 "metrics": ctx.bio_result if hasattr(ctx, "bio_result") else {}, }
 

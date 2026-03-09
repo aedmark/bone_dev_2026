@@ -124,7 +124,7 @@ class BioSystem:
         """ Serializes the body state for the Akashic Record (saving). ... """
         ...
     def rest(self, factor: float=1.0) -> List[str]:
-        """ Sleep mechanic. Restores health/stamina while flushing cortisol and boosting serotonin. ... """
+        """ Sleep mechanic. Restores health/stamina while flushing cortisol. ... """
         ...
     def _on_neural_shift(self, payload):
         """ Translates sudden psychological shifts (Panic, Zen, Manic) into immediate hormonal cascades. ... """
@@ -190,7 +190,7 @@ class BioFeedback:
     def __init__(self, bio_system_ref: BioSystem):
         ...
     def check_vital_signs(self, phys: Any, stamina: float, logs: List[str]) -> str:
-        """ Triggers Autophagy (eating memory for energy) or clamps output if limits are exceeded. ... """
+        """ Triggers Autophagy or clamps output if limits are exceeded. ... """
         ...
     @staticmethod
     def perform_maintenance(text: str, phys: Any, logs: List[str], tick: int):
@@ -205,7 +205,7 @@ class SomaticLoop:
     """ The Master Conductor. ... """
     def __init__(self, bio_system_ref: BioSystem, memory_ref=None, lexicon_ref=None, events_ref=None):
         ...
-    def digest_cycle(self, text: str, physics_data: Any, feedback: Dict, health: float, stamina: float, stress_modifier: float, tick_count: int=0, circadian_bias: Dict=None) -> Dict:
+    def digest_cycle(self, text: str, physics_data: Any, fb_dict: Dict, health: float, stamina: float, stress_modifier: float, tick_count: int=0, circadian_bias: Dict=None) -> Dict:
         """ Executes the biological sequence for a single conversational turn. ... """
         ...
     def _package_result(self, resp_status, logs, chem_state=None, enzyme='NONE'):
@@ -606,6 +606,16 @@ class CommandProcessor:
         """ Direct hook into the GordonKnot to consume an item from inventory. ... """
         ...
 </file>
+
+<data_file path="bone_config.json">
+{
+  "user_name": "str",
+  "boot_mode": "str",
+  "provider": "str",
+  "base_url": "str",
+  "model": "str"
+}
+</data_file>
 
 <file path="bone_config.py">
 from typing import Dict, Any, List
@@ -1098,10 +1108,85 @@ class GeodesicOrchestrator:
         ...
 </file>
 
+<file path="bone_diag.py">
+import unittest
+from unittest.mock import patch
+from bone_core import LoreManifest
+from bone_main import BoneAmanita
+class TrueEngineTest(unittest.TestCase):
+    def setUp(self):
+        ...
+    def tearDown(self):
+        ...
+    def test_heavy_linguistic_metabolism(self):
+        ...
+    def test_gordon_rummage_stamina_tax(self):
+        ...
+    def test_panic_room_fallback_on_crash(self):
+        ...
+    def test_death_by_starvation(self):
+        ...
+    def test_death_by_gluttony(self):
+        ...
+    def test_slash_council_audit(self):
+        ...
+    def test_bureau_style_crimes(self):
+        ...
+    def test_object_action_coupling(self):
+        ...
+    def test_symbiosis_refusal_detection(self):
+        ...
+    def test_decoupled_json_configs(self):
+        ...
+    def test_config_stutter_threshold(self):
+        ...
+    def test_config_metabolic_recovery(self):
+        ...
+    def test_config_glimmer_yield(self):
+        ...
+    def test_ux_string_decoupling_inventory(self):
+        ...
+    def test_panic_room_config_injection(self):
+        ...
+    def test_symbiosis_anchor_graceful_degradation(self):
+        ...
+    def test_kintsugi_dynamic_logs(self):
+        ...
+    def test_telemetry_phase_hooks(self):
+        ...
+    def test_prompt_composer_anti_bleed_membranes(self):
+        ...
+    def test_phase_shift_persona_morphing(self):
+        ...
+    def test_paradox_rest_and_orthogonal_attention(self):
+        ...
+    def test_autophagy_memory_cannibalization(self):
+        ...
+    def test_autophagy_prompt_injection(self):
+        ...
+    def test_dream_defragmentation_pruning(self):
+        ...
+    def test_subconscious_matrix_absorption(self):
+        ...
+    def test_ghost_physics_haunting(self):
+        ...
+    def test_v6_smarter_drag_profile(self):
+        ...
+    def test_v6_grammar_of_silence(self):
+        ...
+    def test_v6_paradox_engine_ignition(self):
+        ...
+    def test_v6_foothills_veil_hush(self):
+        ...
+    def test_v6_grief_protocol_healing(self):
+        ...
+</file>
+
 <file path="bone_drivers.py">
 import json
 import os
 import random
+import time
 from dataclasses import dataclass, field
 from typing import Dict, Tuple, List, Optional, Any
 from bone_config import BonePresets, BoneConfig
@@ -1198,6 +1283,14 @@ class BoneConsultant:
     def get_system_prompt(self, soul_snapshot: Optional[Dict]=None) -> str:
         """ Compiles the current state into hard directives for the LLM system prompt. ... """
         ...
+from bone_types import Prisma, UserInferredState, SharedDynamics
+class SharedLatticeDriver:
+    """ The Coupling Engine. ... """
+    def __init__(self):
+        ...
+    def infer_and_couple(self, text: str, sys_phys: PhysicsPacket, input_phys: Any, atp_pool: float) -> tuple[List[str], float]:
+        """ Returns generated narrative logs and any ATP deduction for Carrier Mode. ... """
+        ...
 </file>
 
 <file path="bone_genesis.py">
@@ -1255,7 +1348,7 @@ class Projector:
         """ Renders the immediate voltage and narrative drag constraints. ... """
         ...
     @staticmethod
-    def _render_lattice_strip(physics: Dict, depth: str='DEEP') -> str:
+    def _render_lattice_strip(physics: Dict, data_ctx: Dict=None, depth: str='DEEP') -> str:
         """ The core VSL module interface. Renders the coordinates of the semantic state space. ... """
         ...
     def render_technical(self, physics: Dict, data: Dict, mind: tuple) -> str:
@@ -1564,6 +1657,18 @@ class TheCrucible:
     def audit_fire(self, physics: Dict) -> Tuple[str, float, Optional[str]]:
         """ Compares current voltage against structural coherence (Kappa). ... """
         ...
+class TheParadoxEngine:
+    """ VSL v6.0 Paradox Engine. ... """
+    def __init__(self, events_ref):
+        ...
+    def evaluate_tension(self, beta: float, stamina: float) -> bool:
+        """ Checks if the system has enough capacity (beta >= 0.7) and fuel (P >= 30) ... """
+        ...
+    def ignite(self, recent_words: List[str]) -> Tuple[float, str]:
+        """ Extracts a seed concept and generates the formal dialectical tension. ... """
+        ...
+    def disengage(self):
+        ...
 class TheForge:
     """ The Anvil of Meaning. ... """
     def __init__(self):
@@ -1666,6 +1771,7 @@ import re
 import sys
 import time
 import traceback
+import subprocess
 import uuid
 from dataclasses import dataclass
 from typing import Dict, Any, Optional, Tuple
@@ -2008,6 +2114,12 @@ class KintsugiProtocol:
         ...
     def _execute_pathway(self, pathway, trauma_accum, soul_ref):
         ...
+class GriefProtocol:
+    """ The Epigenetic Wake. ... """
+    def __init__(self, events_ref, subconscious_ref):
+        ...
+    def _hold_wake(self, payload: Dict):
+        ...
 class TheCriticsCircle:
     """ The Peanut Gallery. ... """
     def __init__(self, events_ref):
@@ -2244,7 +2356,7 @@ def _word_to_vector(word: str, dim: int=8) -> list:
     """ Hashes a forgotten word into a pseudo-random mathematical vector between -1.0 and 1.0 ... """
     ...
 from collections import deque
-from typing import List, Tuple, Optional, Dict
+from typing import List, Tuple, Optional, Dict, Any
 from bone_config import BoneConfig
 from bone_core import EventBus, LoreManifest, BoneJSONEncoder, ux
 from bone_lexicon import LexiconService
@@ -2261,7 +2373,7 @@ class LocalFileSporeLoader:
     @staticmethod
     def load_spore(filepath):
         ...
-    def list_spores(self):
+    def list_spores(self) -> List[Tuple[str, float, str]]:
         ...
     @staticmethod
     def delete_spore(filepath):
@@ -2361,7 +2473,7 @@ class MycelialNetwork:
         ...
     def _extract_legacy_traits(self, data):
         ...
-    def save(self, health, stamina, mutations, trauma_accum, joy_history, mitochondria_traits=None, antibodies=None, soul_data=None, continuity=None, world_atlas=None, village_data=None):
+    def save(self, health: float, stamina: float, mutations: dict, trauma_accum: dict, joy_history: List[Dict[str, Any]], mitochondria_traits=None, antibodies=None, soul_data=None, continuity=None, world_atlas=None, village_data=None):
         """ Compiles the active state into a JSON dictionary format for the SporeLoader. ... """
         ...
     @staticmethod
@@ -2498,8 +2610,6 @@ class SymbiosisManager:
 
 <file path="bone_tcl.py">
 import tkinter
-from typing import Dict
-from bone_types import Prisma
 class TheTclWeaver:
     """ An embedded Tcl interpreter acting as a homoiconic string mutator. ... """
     @classmethod
@@ -2544,6 +2654,14 @@ class ErrorLog:
     error_msg: str
     timestamp: float
     severity: str
+class DragProfile:
+    semantic: float
+    emotional: float
+    structural: float
+    metabolic: float
+    trauma: float
+    def total(self) -> float:
+        ...
 class EnergyState:
     """ The quantitative variables that describe the systemic energy, stress, and abstract coordinates of a thought. ... """
     voltage: float
@@ -2747,6 +2865,9 @@ class PhysicsPacket:
         ...
     def __init__(self, energy: Optional[EnergyState]=None, matter: Optional[MaterialState]=None, space: Optional[SpatialState]=None, **kwargs):
         ...
+    def sync_drag(self):
+        """ Safely collapses the profile into the legacy narrative_drag variable. ... """
+        ...
     @classmethod
     def void_state(cls):
         """ A safe fallback state used during catastrophic failures to prevent NoneType crashes. ... """
@@ -2763,6 +2884,35 @@ class PhysicsPacket:
         ...
     def __contains__(self, key):
         ...
+class UserInferredState:
+    """ The probabilistic model of the user's internal somatic and semantic state. ... """
+    E_u: float
+    beta_u: float
+    S_u: float
+    D_u: float
+    C_u: float
+    V_u: float
+    F_u: float
+    H_u: float
+    P_u: float
+    T_u: float
+    ROS_u: float
+    G_u: int
+    psi_u: float
+    chi_u: float
+    valence_u: float
+class SharedDynamics:
+    """ The coupled variables describing the relationship and emergent properties of the dyad. ... """
+    phi: float
+    delta: float
+    lq: float
+    null_coord: float
+    nabla: float
+    presence: float
+    g_pool: int
+    p_transfer: float
+    sigma_silence: int
+    lambda_silence: float
 class CycleContext:
     """ The master state object that gets passed through the 14 phases of the CycleSimulator. ... """
     input_text: str
@@ -2786,6 +2936,9 @@ class CycleContext:
     reality_stack: Any
     active_lens: str
     validator: Any
+    time_delta: float
+    user_state: UserInferredState
+    shared_dyn: SharedDynamics
     @property
     def user_name(self):
         ...
@@ -4854,7 +5007,7 @@ class DeathGen:
       "regex": "str",
       "replacement": "str"
     },
-    "... (3 more items)"
+    "... (1 more items)"
   ],
   "TOXIC_KEYWORDS": [
     "str",

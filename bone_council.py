@@ -153,10 +153,15 @@ class TheVillageCouncil:
         logs = []
         is_dict = isinstance(p, dict)
 
-        def get_val(key, attr, default):
-            if is_dict:
-                return p.get(key, p.get(attr, default))
-            return getattr(p, attr, getattr(p, key, default))
+        def get_val(key: str, attr: str, default: float) -> float:
+            try:
+                if is_dict:
+                    val = p.get(key, p.get(attr, default))
+                else:
+                    val = getattr(p, attr, getattr(p, key, default))
+                return float(val) if val is not None else default
+            except (ValueError, TypeError):
+                return default
 
         V = get_val("voltage", "V", 30.0)
         F = get_val("narrative_drag", "F", 0.6)
@@ -170,15 +175,16 @@ class TheVillageCouncil:
         chi = get_val("chi", "chi", 0.2)
         valence = get_val("valence", "valence", 0.0)
         vec = p.get("vector", {}) if is_dict else getattr(p, "vector", {})
-        lam = vec.get("LAMBDA", 0.0) if vec else 0.0
+        lam = float(vec.get("LAMBDA", 0.0)) if vec and isinstance(vec, dict) else 0.0
         phi = get_val("resonance", "PHI_RES", 0.0)
         delta = get_val("silence", "DELTA", 0.0)
         lq = get_val("lq", "LQ", 0.0)
         ros = get_val("ros", "ROS", 0.0)
         cfg = getattr(BoneConfig, "COUNCIL", None)
-
+        if not cfg:
+            return []
         if V < getattr(cfg, "TRIG_GORDON_V", 20.0) and F > getattr(cfg, "TRIG_GORDON_F", 5.0):
-            msg = ux("council_strings", "village_gordon") 
+            msg = ux("council_strings", "village_gordon")
             logs.append(f"{Prisma.SLATE}{msg}{Prisma.RST}")
         if V > getattr(cfg, "TRIG_JESTER_V", 60.0) and chi > getattr(cfg, "TRIG_JESTER_CHI", 0.6):
             msg = ux("council_strings", "village_jester") 
@@ -210,7 +216,6 @@ class TheVillageCouncil:
         if V > getattr(cfg, "TRIG_GIDEON_V", 70.0):
             msg = ux("council_strings", "village_gideon") 
             logs.append(f"{Prisma.YEL}{msg}{Prisma.RST}")
-
         if psi > getattr(cfg, "PHASE_ROBERTA_PSI", 0.6) and phi > getattr(cfg, "PHASE_ROBERTA_PHI", 0.4) > beta:
             msg = ux("council_strings", "village_roberta_carto") 
             logs.append(f"{Prisma.CYN}{msg}{Prisma.RST}")
@@ -233,7 +238,7 @@ class TheVillageCouncil:
             msg = ux("council_strings", "village_colin_waiter") 
             logs.append(f"{Prisma.RED}{msg}{Prisma.RST}")
         if ros > getattr(cfg, "TRIG_APRIL_ROS", 20.0) or abs(V - 30.0) > getattr(cfg, "TRIG_APRIL_V_DEV", 20.0):
-            msg = ux("council_strings", "village_april") 
+            msg = ux("council_strings", "village_april")
             logs.append(f"{Prisma.CYN}{msg}{Prisma.RST}")
         return logs
 

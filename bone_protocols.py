@@ -121,7 +121,7 @@ class TheBureau:
 
         vol = _get(physics, "voltage", 0.0)
         clean_words = _get(physics, "clean_words", [])
-        raw_text = _get(physics, "raw_text", "")
+        raw_text = str(_get(physics, "raw_text", ""))
         truth = _get(physics, "truth_ratio", 0.0)
         word_count = len(raw_text.split())
         if raw_text.startswith("/") or word_count < BoneConfig.BUREAU.MIN_WORD_COUNT:
@@ -379,21 +379,14 @@ class GriefProtocol:
 
     def _hold_wake(self, payload: Dict):
         node_name = payload.get("node", "An unlabeled memory")
-        atp_gained = payload.get("atp_gained", 15.0)
-
+        _atp_gained = payload.get("atp_gained", 15.0)
         if self.subconscious:
-            compost_data = {
-                "type": "COMPOST",
-                "node": node_name,
-                "reason": "Starvation/Autophagy",
-                "timestamp": time.time()
-            }
+            compost_data = {"type": "COMPOST", "node": node_name, "reason": "Starvation/Autophagy",
+                            "timestamp": time.time()}
             self.subconscious.bury(compost_data)
-
         wake_msg = f"{Prisma.MAG}[MERCY] We gild what we cannot save. The memory of '{node_name}' is compost now.{Prisma.RST}"
         if self.events:
             self.events.log(wake_msg, "KINTSUGI")
-
             glimmer_msg = f"{Prisma.YEL}[SYSTEM] If you have Glimmers (G ≥ 1), you may spend one now to plant a seed from this loss. Type [GRIEF] in your next prompt.{Prisma.RST}"
             self.events.log(glimmer_msg, "SYS")
 
