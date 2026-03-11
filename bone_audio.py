@@ -4,12 +4,10 @@ import os
 import re
 import logging
 import warnings
-import sys
 import contextlib
 from typing import Dict, List
 from bone_types import Prisma
 
-# --- SILENCE THE LIBRARIES ---
 os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
 os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"
 os.environ["TQDM_DISABLE"] = "True"
@@ -73,11 +71,9 @@ class TheVocalCords:
         combined_audio = []
         error_to_report = None
 
-        # Redirection Context: We ONLY wrap the noisy library initialization and generation
         try:
             with open(os.devnull, 'w') as fnull:
                 with contextlib.redirect_stdout(fnull), contextlib.redirect_stderr(fnull):
-                    # 1. Initialize Pipeline (Lazy load)
                     if not self.pipeline:
                         from kokoro import KPipeline
                         import soundfile as sf
@@ -86,7 +82,6 @@ class TheVocalCords:
 
                     import numpy as np
 
-                    # 2. Iterate through segments and accumulate audio buffers
                     for seg in segments:
                         speaker = seg["speaker"]
                         text = seg["text"]
@@ -95,7 +90,6 @@ class TheVocalCords:
                         generator = self.pipeline(text, voice=voice, speed=1.0)
                         for _, _, audio in generator:
                             combined_audio.append(audio)
-                            # Add 0.3s of silence between speakers to let the debate breathe
                             combined_audio.append(np.zeros(int(24000 * 0.3)))
 
                     if combined_audio:
@@ -105,7 +99,6 @@ class TheVocalCords:
         except Exception as e:
             error_to_report = str(e)
 
-        # 3. Reporting: This is OUTSIDE the redirect so Gordon can speak to you in the CLI
         if error_to_report:
             if self.events:
                 self.events.log(f"{Prisma.RED}🎙️ AUDIO FAULT: {error_to_report}{Prisma.RST}", "SYS")
