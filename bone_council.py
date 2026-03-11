@@ -406,6 +406,36 @@ class CouncilChamber:
         transcript.append(self.footnote.commentary(final_log))
         return transcript, adjustments, mandates
 
+    def host_podcast(self, topic: str, llm: Any) -> str:
+        """Runs three sequential LLM inferences to build a dialectical debate script."""
+        p1 = (
+            "SYSTEM_INSTRUCTION: You are Benedict, The Tactician. You are a cold, structural, logical entity.\n"
+            f"TASK: The user has presented this topic: '{topic}'.\n"
+            "Provide a rigid, highly analytical 3-sentence THESIS on this topic. Do not use UI tags."
+        )
+        thesis = llm.generate(p1, {"temperature": 0.3, "max_tokens": 150})
+
+        p2 = (
+            "SYSTEM_INSTRUCTION: You are The Jester. You are chaotic, cynical, and thrive on entropy.\n"
+            f"TASK: Read Benedict's thesis: '{Prisma.strip(thesis)}'.\n"
+            "Tear it apart. Provide a biting, chaotic 3-sentence ANTITHESIS. Mock his rigidity. Do not use UI tags."
+        )
+        antithesis = llm.generate(p2, {"temperature": 0.9, "max_tokens": 150})
+
+        p3 = (
+            "SYSTEM_INSTRUCTION: You are The Stage Manager. You are the exhausted orchestrator holding the system together.\n"
+            f"TASK: Read the thesis: '{Prisma.strip(thesis)}'. Read the antithesis: '{Prisma.strip(antithesis)}'.\n"
+            "Provide a 2-sentence SYNTHESIS that resolves the tension. Be tired but profound. Do not use UI tags."
+        )
+        synthesis = llm.generate(p3, {"temperature": 0.6, "max_tokens": 100})
+
+        script = (
+            f"{Prisma.BLU}[BENEDICT (The Tactician)]{Prisma.RST}\n{Prisma.strip(thesis)}\n\n"
+            f"{Prisma.MAG}[JESTER (The Fool)]{Prisma.RST}\n{Prisma.strip(antithesis)}\n\n"
+            f"{Prisma.WHT}[STAGE MANAGER]{Prisma.RST}\n{Prisma.strip(synthesis)}"
+        )
+        return script
+
     @staticmethod
     def convene_red_team(text, physics_packet):
         """ Hardcore adversarial evaluation of output before it is shown to the user. """

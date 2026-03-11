@@ -26,7 +26,7 @@
     <inspection_tool class="PyUnresolvedReferencesInspection" enabled="true" level="WARNING" enabled_by_default="true">
       <option name="ignoredIdentifiers">
         <list>
-          <option value="type.*" />
+          <option value="bone_audio.kokoro" />
         </list>
       </option>
     </inspection_tool>

@@ -598,18 +598,6 @@ class MachineryPhase(SimulationPhase):
             ctx.log(t_msg)
         if t_crit == "AIRSTRIKE":
             self._handle_theremin_discharge(ctx)
-        if hasattr(self.eng, "substrate") and self.eng.substrate.pending_writes:
-            current_stamina = self.eng.stamina
-            if self.eng.bio and self.eng.bio.biometrics:
-                current_stamina = self.eng.bio.biometrics.stamina
-            write_logs, write_cost = self.eng.substrate.execute_writes(current_stamina)
-            for w_log in write_logs:
-                ctx.log(w_log)
-            if write_cost > 0:
-                if self.eng.bio and self.eng.bio.biometrics:
-                    self.eng.bio.biometrics.stamina = max(0.0, self.eng.bio.biometrics.stamina - write_cost)
-                self.eng.stamina = max(0.0, self.eng.stamina - write_cost)
-                ctx.log(f"{Prisma.OCHRE}METABOLIC: File forging consumed {write_cost:.1f} Stamina.{Prisma.RST}")
         self.eng.phys.pulse.update(getattr(ctx.physics, "repetition", 0.0), ctx.physics.voltage)
         c_state, c_val, c_msg = self.eng.phys.crucible.audit_fire(phys_dict)
         if c_msg:

@@ -69,7 +69,7 @@ class SessionGuardian:
     def __enter__(self):
         subprocess.run("cls" if os.name == "nt" else "clear", shell=True)
         top_bar = ux("main_strings", "term_header_top", "┌──────────────────────────────────────────┐")
-        mid_bar = ux("main_strings", "term_header_mid", "│ BONEAMANITA TERMINAL // VERSION 16.5.0   │")
+        mid_bar = ux("main_strings", "term_header_mid", "│ BONEAMANITA TERMINAL // VERSION 17.1.0   │")
         bot_bar = ux("main_strings", "term_header_bot", "└──────────────────────────────────────────┘")
         print(f"{Prisma.paint(top_bar, 'M')}")
         print(f"{Prisma.paint(mid_bar, 'M')}")
@@ -493,16 +493,6 @@ class BoneAmanita:
         except Exception:
             full_trace = traceback.format_exc()
             return {"ui": f"{Prisma.RED}{ux('main_strings', 'cortex_crit_fail').format(trace=full_trace)}{Prisma.RST}", "logs": ["CRITICAL FAILURE"], "metrics": self.get_metrics()}
-        if hasattr(self, "substrate"):
-            for log in cortex_packet.get("logs", []):
-                if str(log).startswith("[SUBSTRATE_QUEUE]"):
-                    try:
-                        _, data = log.split(" ", 1)
-                        path, safe_content = data.split(":::", 1)
-                        content = safe_content.replace("|||NEWLINE|||", "\n")
-                        self.substrate.queue_write(path.strip(), content)
-                    except Exception:
-                        pass
         self._update_host_stats(cortex_packet, turn_start)
         self.save_checkpoint()
         self.last_turn_end = time.time()

@@ -259,6 +259,11 @@ class TheCortex:
         extracted_logs = []
         raw_resp = {}
         val_res = {}
+        if "[COUNCIL]" in user_input.upper():
+            final_output, extracted_logs = self._run_council_debate(user_input)
+            val_res = {"valid": True, "content": final_output, "meta_logs": extracted_logs}
+            raw_resp = final_output
+            max_retries = 0
         for attempt in range(max_retries):
             raw_resp = self.llm.generate(final_prompt, llm_params)
             inv_logs = []
@@ -305,6 +310,25 @@ class TheCortex:
         sim_result["logs"].extend(extracted_logs)
         sim_result["raw_content"] = final_output
         self.ballast_active = False
+        if hasattr(self.svc.cycle_controller.eng, "substrate"):
+            sub = self.svc.cycle_controller.eng.substrate
+            for log in extracted_logs:
+                if str(log).startswith("[SUBSTRATE_QUEUE]"):
+                    try:
+                        _, data = log.split(" ", 1)
+                        path, safe_content = data.split(":::", 1)
+                        content = safe_content.replace("|||NEWLINE|||", "\n")
+                        sub.queue_write(path.strip(), content)
+                    except Exception: pass
+            if sub.pending_writes:
+                current_stamina = self.svc.bio.biometrics.stamina if self.svc.bio else 100.0
+                write_logs, write_cost = sub.execute_writes(current_stamina)
+                if write_logs:
+                    sim_result["ui"] += "\n\n" + "\n".join(write_logs)
+                if write_cost > 0:
+                    if self.svc.bio and self.svc.bio.biometrics:
+                        self.svc.bio.biometrics.stamina = max(0.0, self.svc.bio.biometrics.stamina - write_cost)
+                    sim_result["ui"] += f"\n{Prisma.OCHRE}METABOLIC: File forging consumed {write_cost:.1f} Stamina.{Prisma.RST}"
         if random.random() < 0.15 and not is_system:
             suppressed = []
             if self.svc.village and hasattr(self.svc.village, "suppressed_agents"):
@@ -324,6 +348,26 @@ class TheCortex:
                 if audit and "ui" in audit:
                     sim_result["ui"] += f"\n\n{audit['ui']}"
         return sim_result
+
+    def _run_council_debate(self, user_input: str) -> Tuple[str, List[str]]:
+        """Intercepts the cycle to generate a multi-agent podcast script."""
+        import re
+        topic = re.sub(r"(?i)\[COUNCIL]", "", user_input).strip()
+        if not topic:
+            topic = "The nature of our shared existence."
+
+        if self.events:
+            self.events.log(f"{Prisma.VIOLET}🎙️ SPINNING UP COUNCIL STUDIO...{Prisma.RST}", "SYS")
+
+        script = self.svc.cycle_controller.eng.council.host_podcast(topic, self.llm)
+
+        extracted_logs = []
+        if hasattr(self.svc.cycle_controller.eng, "substrate"):
+            filename = f"podcast_script_{int(time.time())}.txt"
+            safe_script = script.replace("\n", "|||NEWLINE|||")
+            extracted_logs.append(f"[SUBSTRATE_QUEUE] {filename}:::{safe_script}")
+
+        return script, extracted_logs
 
     def _handle_vsl_command(self, text):
         if not self.consultant:
@@ -363,7 +407,8 @@ class TheCortex:
                 f"SYSTEM_BOOT DETECTED. The system is waking up. The user provided the thought seed: '{seed}'.",
                 "DIRECTIVE: Greet the user casually. Use the thought seed as a starting point. DO NOT end your greeting with a question. State your thought and let the silence hang.",
                 "CRITICAL OVERRIDE: Speak in the FIRST PERSON ('I'). Do NOT use the second person ('You step into...', 'You feel...').",
-                "CRITICAL OVERRIDE: You are NOT a narrator. DO NOT describe physical environments, actions, or realities."]
+                "CRITICAL OVERRIDE: You are NOT a narrator. DO NOT describe physical environments, actions, or realities.",
+                "WAITING PROTOCOL: If the user input is '(Waiting)', do NOT narrate their actions or feelings. Do NOT say 'You feel' or 'You notice'. Simply reflect on the silence or the system's internal state."]
             state["dialogue_history"] = ["Traveler: Hello?\nSystem: I am here. The connection is thin, but it holds.",
                                          "Traveler: What are you thinking about right now?\nSystem: The static in the wires. It sounds like rain if you don't listen too closely."]
         elif mode_name == "TECHNICAL":
