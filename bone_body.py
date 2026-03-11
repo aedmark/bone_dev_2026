@@ -13,7 +13,7 @@ import time
 from collections import deque, Counter
 from dataclasses import dataclass, field, asdict
 from typing import Optional, Dict, List, Any, Tuple
-from bone_config import BoneConfig
+from bone_presets import BoneConfig
 from bone_core import Prisma, LoreManifest, ux
 from bone_lexicon import LexiconService
 from bone_spores import ImmuneMycelium, BioLichen, BioParasite

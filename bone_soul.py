@@ -14,7 +14,7 @@ import time
 from dataclasses import dataclass, field
 from typing import List, Dict, Optional, Any, Tuple
 from bone_akashic import TheAkashicRecord
-from bone_config import BoneConfig
+from bone_presets import BoneConfig
 from bone_core import LoreManifest, EventBus, ux
 from bone_lexicon import LexiconService
 from bone_types import Prisma

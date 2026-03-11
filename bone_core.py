@@ -16,7 +16,7 @@ import time
 from collections import deque
 from dataclasses import dataclass, field
 from typing import List, Dict, Any, Optional, Counter, Tuple, Deque
-from bone_config import BoneConfig
+from bone_presets import BoneConfig
 from bone_types import Prisma, RealityLayer, ErrorLog, DecisionTrace, DecisionCrystal
 
 def ux(section: str, key: str, default: Any = "") -> Any:

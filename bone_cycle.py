@@ -8,7 +8,7 @@ import uuid
 from typing import Dict, Any, List
 
 from bone_body import SynestheticCortex
-from bone_config import BoneConfig, BonePresets
+from bone_presets import BoneConfig, BonePresets
 from bone_core import ArchetypeArbiter, LoreManifest, ux
 from bone_drivers import CongruenceValidator
 from bone_gui import SoulDashboard, CycleReporter
@@ -36,6 +36,10 @@ class ObservationPhase(SimulationPhase):
         self.name = "OBSERVE"
 
     def run(self, ctx: CycleContext):
+        if ctx.time_delta > 10.0 and not ctx.is_system_event and ctx.physics:
+            nabla_msg = self.eng.phys.observer.evaluate_silence(ctx.time_delta, ctx.physics)
+            if nabla_msg:
+                ctx.log(f"{Prisma.GRY}*... {nabla_msg} ...*{Prisma.RST}")
         if self.eng.gordon and "GORDON" not in self.eng.suppressed_agents:
             if "TCL9_QUANTUM_COMB" in self.eng.gordon.inventory:
                 from bone_tcl import TheTclWeaver
@@ -159,12 +163,20 @@ class SanctuaryPhase(SimulationPhase):
             ctx.last_dream = dream_packet
         elif isinstance(dream_packet, tuple):
             log_msg, effects = dream_packet
-            ctx.log(log_msg)
+            ctx.log(f"{Prisma.VIOLET}☁️ {log_msg}{Prisma.RST}")
             if effects:
                 if "adrenaline" in effects:
-                    self.eng.bio.endo.adrenaline += effects["adrenaline"]
+                    self.eng.bio.endo.adrenaline = max(0.0, self.eng.bio.endo.adrenaline + effects["adrenaline"])
+                if "cortisol" in effects:
+                    self.eng.bio.endo.cortisol = max(0.0, self.eng.bio.endo.cortisol + effects["cortisol"])
                 if "voltage" in effects:
-                    ctx.physics.voltage += effects["voltage"]
+                    ctx.physics.voltage = max(0.0, ctx.physics.voltage + effects["voltage"])
+                if "glimmers" in effects and effects["glimmers"] > 0:
+                    if hasattr(self.eng, "shared_lattice"):
+                        self.eng.shared_lattice.shared.g_pool += effects["glimmers"]
+                    elif hasattr(ctx.physics, "G"):
+                        ctx.physics.G += effects["glimmers"]
+                    ctx.log(f"{Prisma.MAG}✨ The dream yielded a Glimmer (+1 G_pool).{Prisma.RST}")
 
 class MaintenancePhase(SimulationPhase):
     """Phase 2. The Town Hall cleans up memory leaks, checks the "weather" (systemic entropy), and runs the memory ecosystem."""
@@ -318,7 +330,11 @@ class MetabolismPhase(SimulationPhase):
                                                     self.eng.bio.governor.get_stress_modifier(self.eng.tick_count),
                                                     self.eng.tick_count,
                                                     circadian_bias=self._check_circadian_rhythm(), )
+        if self.eng.bio.mito and hasattr(self.eng.bio.mito.state, "atp_pool"):
+            self.eng.bio.mito.state.atp_pool = max(0.0, float(self.eng.bio.mito.state.atp_pool))
         if self.eng.bio.biometrics:
+            self.eng.bio.biometrics.health = max(0.0, float(self.eng.bio.biometrics.health))
+            self.eng.bio.biometrics.stamina = max(0.0, float(self.eng.bio.biometrics.stamina))
             self.eng.health = self.eng.bio.biometrics.health
             self.eng.stamina = self.eng.bio.biometrics.stamina
         ctx.is_alive = ctx.bio_result["is_alive"]
@@ -582,6 +598,18 @@ class MachineryPhase(SimulationPhase):
             ctx.log(t_msg)
         if t_crit == "AIRSTRIKE":
             self._handle_theremin_discharge(ctx)
+        if hasattr(self.eng, "substrate") and self.eng.substrate.pending_writes:
+            current_stamina = self.eng.stamina
+            if self.eng.bio and self.eng.bio.biometrics:
+                current_stamina = self.eng.bio.biometrics.stamina
+            write_logs, write_cost = self.eng.substrate.execute_writes(current_stamina)
+            for w_log in write_logs:
+                ctx.log(w_log)
+            if write_cost > 0:
+                if self.eng.bio and self.eng.bio.biometrics:
+                    self.eng.bio.biometrics.stamina = max(0.0, self.eng.bio.biometrics.stamina - write_cost)
+                self.eng.stamina = max(0.0, self.eng.stamina - write_cost)
+                ctx.log(f"{Prisma.OCHRE}METABOLIC: File forging consumed {write_cost:.1f} Stamina.{Prisma.RST}")
         self.eng.phys.pulse.update(getattr(ctx.physics, "repetition", 0.0), ctx.physics.voltage)
         c_state, c_val, c_msg = self.eng.phys.crucible.audit_fire(phys_dict)
         if c_msg:
@@ -958,10 +986,13 @@ class SensationPhase(SimulationPhase):
         ctx.physics = apply_somatic_feedback(ctx.physics, qualia)
         self.synesthesia.apply_impulse(impulse)
         if impulse.stamina_impact != 0:
-            max_s = getattr(BoneConfig, "MAX_STAMINA", 100.0)
+            max_s = float(getattr(BoneConfig, "MAX_STAMINA", 100.0))
+            impact = float(impulse.stamina_impact)
             if self.eng.bio.biometrics:
-                self.eng.bio.biometrics.stamina = max(0.0, min(max_s, self.eng.bio.biometrics.stamina + impulse.stamina_impact),)
-            self.eng.stamina = max(0.0, min(max_s, self.eng.stamina + impulse.stamina_impact))
+                current_bio_s = float(self.eng.bio.biometrics.stamina)
+                self.eng.bio.biometrics.stamina = max(0.0, min(max_s, current_bio_s + impact))
+            current_sys_s = float(self.eng.stamina)
+            self.eng.stamina = max(0.0, min(max_s, current_sys_s + impact))
         return ctx
 
 class StabilizationPhase(SimulationPhase):
@@ -1085,6 +1116,7 @@ class GeodesicOrchestrator:
         try:
             ctx = CycleContext(input_text=user_message, is_system_event=is_system)
             ctx.trace_id = cycle_id
+            ctx.time_delta = getattr(self.eng, "current_time_delta", 0.0)
             ctx.user_state = self.eng.shared_lattice.u
             ctx.shared_dyn = self.eng.shared_lattice.shared
             if (self.eng.phys

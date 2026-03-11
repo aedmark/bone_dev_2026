@@ -12,7 +12,7 @@ import math
 import random
 from dataclasses import dataclass, field, asdict
 from typing import List, Dict, Any, Tuple, Optional, Set
-from bone_config import BoneConfig
+from bone_presets import BoneConfig
 from bone_core import LoreManifest, EventBus, ux
 from bone_physics import PhysicsDelta
 from bone_types import Prisma, PhysicsPacket

@@ -22,10 +22,34 @@ def _word_to_vector(word: str, dim: int = 8) -> list:
 
 from collections import deque
 from typing import List, Tuple, Optional, Dict, Any
-from bone_config import BoneConfig
+from bone_presets import BoneConfig
 from bone_core import EventBus, LoreManifest, BoneJSONEncoder, ux
 from bone_lexicon import LexiconService
 from bone_types import Prisma
+
+def _identity(n=8):
+    """ Generates an identity matrix. """
+    return [[1.0 if i == j else 0.0 for j in range(n)] for i in range(n)]
+
+def _mat_mul(A, B):
+    """ Standard matrix multiplication for the Q_n accumulation. """
+    return [[sum(A[i][k] * B[k][j] for k in range(len(B[0]))) for j in range(len(B[0]))] for i in range(len(A))]
+
+def _householder(v):
+    """
+    Generates a Householder reflection matrix (H) from a normal vector (v).
+    H = I - 2 * (v ⊗ v) / (v · v)
+    """
+    mag_sq = sum(x * x for x in v)
+    if mag_sq == 0: return _identity(len(v))
+    H = []
+    for i in range(len(v)):
+        row = []
+        for j in range(len(v)):
+            val = (1.0 if i == j else 0.0) - 2.0 * (v[i] * v[j]) / mag_sq
+            row.append(val)
+        H.append(row)
+    return H
 
 def _access_config_path(root, path, value=None, set_mode=False):
     """ Helper function to traverse the nested BoneConfig dictionary. """
@@ -123,9 +147,8 @@ class LocalFileSporeLoader:
 class SubconsciousStrata:
     """
     The graveyard of repressed memories.
-    When the MemoryCore hits its capacity limit and undergoes 'cannibalization'
-    (Autophagy), the consumed memories are pushed down here. They can occasionally
-    resurface as flashbacks.
+    Now enhanced with the Q_n matrix. When memories are consumed, their ghost
+    is converted into a Householder reflection, permanently angling the space.
     """
     def __init__(self, filename="memories/subconscious.jsonl"):
         self.filepath = filename
@@ -135,25 +158,30 @@ class SubconsciousStrata:
         self.index = set()
         self._load_index()
         self.matrix_filepath = os.path.join(self.directory, "m_t_matrix.json")
+        self.q_filepath = os.path.join(self.directory, "q_n_matrix.json")
         self.M_t = self._load_matrix()
+        self.Q_n = self._load_q_matrix()
 
     def _load_matrix(self):
-        """Loads the continuous matrix from disk, or creates a blank 8x8 space."""
         if os.path.exists(self.matrix_filepath):
             try:
-                with open(self.matrix_filepath, "r") as f:
-                    return json.load(f)
-            except Exception:
-                pass
+                with open(self.matrix_filepath, "r") as f: return json.load(f)
+            except Exception: pass
         return [[0.0 for _ in range(8)] for _ in range(8)]
 
-    def _save_matrix(self):
-        """Saves the continuous matrix state."""
+    def _load_q_matrix(self):
+        """ Loads the Orthogonal PaTH matrix. """
+        if os.path.exists(self.q_filepath):
+            try:
+                with open(self.q_filepath, "r") as f: return json.load(f)
+            except Exception: pass
+        return _identity(8)
+
+    def save_matrix(self):
         try:
-            with open(self.matrix_filepath, "w") as f:
-                json.dump(self.M_t, f)
-        except Exception:
-            pass
+            with open(self.matrix_filepath, "w") as f: json.dump(self.M_t, f)
+            with open(self.q_filepath, "w") as f: json.dump(self.Q_n, f)
+        except Exception: pass
 
     def _iter_entries(self):
         if not os.path.exists(self.filepath):
@@ -176,7 +204,6 @@ class SubconsciousStrata:
         try:
             cfg = getattr(BoneConfig, "SPORES", None)
             max_idx = getattr(cfg, "MAX_INDEX_SIZE", 1000) if cfg else 1000
-
             if len(self.index) > max_idx:
                 self._prune_strata()
             with open(self.filepath, "a", encoding="utf-8") as f:
@@ -191,7 +218,9 @@ class SubconsciousStrata:
             for i in range(8):
                 for j in range(8):
                     self.M_t[i][j] += (K[i] * V[j]) * scale
-            self._save_matrix()
+            H = _householder(K)
+            self.Q_n = _mat_mul(H, self.Q_n)
+            self.save_matrix()
             return True
         except IOError:
             return False
@@ -370,8 +399,7 @@ class MycelialNetwork:
     It holds the MemoryCore, the parasites, and the actual serialization logic to
     write the session graph to disk as a 'Spore'.
     """
-    def __init__(
-            self, events: EventBus, loader: "LocalFileSporeLoader" = None, seed_file=None):
+    def __init__(self, events: EventBus, loader: "LocalFileSporeLoader" = None, seed_file=None):
         self.events = events
         self.loader = loader if loader else LocalFileSporeLoader()
         self.session_id = f"session_{int(time.time())}"
@@ -390,6 +418,21 @@ class MycelialNetwork:
         self.session_trauma_vector = {}
         if seed_file:
             self.ingest(seed_file)
+        if hasattr(self.events, "publish"):
+            self.events.publish("Q_MATRIX_UPDATED", {"q_matrix": self.subconscious.Q_n})
+        if hasattr(self.events, "subscribe"):
+            self.events.subscribe("SCAR_RECORDED", self._on_scar_recorded)
+
+    def _on_scar_recorded(self, payload):
+        """ When a paradox scars the system, it acts as a permanent reflection plane. """
+        concept = payload.get("concept")
+        if concept:
+            v = _word_to_vector(concept)
+            H = _householder(v)
+            self.subconscious.Q_n = _mat_mul(H, self.subconscious.Q_n)
+            self.subconscious.save_matrix()
+            if hasattr(self.events, "publish"):
+                self.events.publish("Q_MATRIX_UPDATED", {"q_matrix": self.subconscious.Q_n})
 
     @property
     def graph(self):
@@ -516,7 +559,7 @@ class MycelialNetwork:
                         return f"{base_str} It carries a dark matter gravity of {vibe_str}."
         return None
 
-    def bury(self, clean_words: List[str], tick: int, resonance=5.0, learning_mod=1.0, desperation_level=0.0, ) -> Tuple[Optional[str], List[str]]:
+    def bury(self, clean_words: List[str], tick: int, resonance=5.0, learning_mod=1.0, desperation_level=0.0) -> Tuple[Optional[str], List[str]]:
         if not clean_words:
             return None, []
         valuable = self._filter_valuable_matter(clean_words)
@@ -531,6 +574,9 @@ class MycelialNetwork:
             if not victim:
                 msg_lock = ux("spore_strings", "net_sat_lock") or ""
                 return msg_lock, []
+            else:
+                if hasattr(self.events, "publish"):
+                    self.events.publish("Q_MATRIX_UPDATED", {"q_matrix": self.subconscious.Q_n})
         else:
             victim, log_msg = None, None
         base_rate = 0.5 * (resonance / 5.0)

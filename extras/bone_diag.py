@@ -103,7 +103,7 @@ class TrueEngineTest(unittest.TestCase):
         self.assertIsNotNone(body_cfg, "BODY_CONFIG failed to load Enzyme Map.")
 
     def test_config_stutter_threshold(self):
-        from bone_config import BoneConfig
+        from bone_presets import BoneConfig
         original_stutter = getattr(BoneConfig.CORTEX, "VALIDATOR_STUTTER_LENGTH", 5)
         BoneConfig.CORTEX.VALIDATOR_STUTTER_LENGTH = 100
         test_string = "This is a perfectly coherent response. It is just too short."
@@ -113,7 +113,7 @@ class TrueEngineTest(unittest.TestCase):
         BoneConfig.CORTEX.VALIDATOR_STUTTER_LENGTH = original_stutter
 
     def test_config_metabolic_recovery(self):
-        from bone_config import BoneConfig
+        from bone_presets import BoneConfig
         self.engine.bio.biometrics.health = 50.0
         self.engine.bio.biometrics.stamina = 50.0
         orig_h_rec = getattr(BoneConfig.BIO, "REST_HEALTH_RECOVERY", 0.5)
@@ -127,7 +127,7 @@ class TrueEngineTest(unittest.TestCase):
         BoneConfig.BIO.REST_STAMINA_RECOVERY = orig_s_rec
 
     def test_config_glimmer_yield(self):
-        from bone_config import BoneConfig
+        from bone_presets import BoneConfig
         orig_thresh = getattr(BoneConfig.BIO, "GLIMMER_INTEGRITY_THRESH", 0.85)
         BoneConfig.BIO.GLIMMER_INTEGRITY_THRESH = 1.5
         feedback = {"INTEGRITY": 0.95}
@@ -435,6 +435,45 @@ class TrueEngineTest(unittest.TestCase):
         self.assertEqual(self.engine.shared_lattice.u.T_u, 3.0, "Grief Protocol failed to heal user Trauma (T_u).")
         logs = self.engine.events.flush()
         self.assertTrue(any("compost" in str(log) for log in logs), "Mercy's eulogy was not logged to the event bus.")
+
+    def test_q_n_matrix_reflection(self):
+        from bone_spores import _word_to_vector, _householder, _mat_mul, _identity
+        from bone_physics import GeodesicEngine
+        empty_vector = [0.0] * 8
+        safe_h = _householder(empty_vector)
+        self.assertEqual(safe_h, _identity(8), "Householder math failed to handle a zero-vector safely.")
+        q_matrix = _identity(8)
+        scar_vector = _word_to_vector("FUTILITY")
+        h_plane = _householder(scar_vector)
+        bent_matrix = _mat_mul(h_plane, q_matrix)
+        raw_dimensions = {"VEL": 0.8, "STR": 0.9, "ENT": 0.1, "PHI": 0.1, "PSI": 0.1, "BET": 0.1, "DEL": 0.1, "E": 0.1}
+        reflected_dims = GeodesicEngine.apply_path_reflection(raw_dimensions, bent_matrix)
+        self.assertNotEqual(raw_dimensions["STR"], reflected_dims["STR"],
+                            "The Q_n matrix failed to deflect the Structure dimension.")
+        self.assertTrue(all(v >= 0 for v in reflected_dims.values()),
+                        "The absolute value fold failed; negative dimensions leaked into the physics engine.")
+
+    def test_hud_lattice_strain_rendering(self):
+        from bone_gui import Projector
+        from bone_types import Prisma
+        projector = Projector()
+        flat_ctx = {"lattice_strain": 0.0}
+        flat_ui = projector._render_lattice_strip({"voltage": 30.0}, flat_ctx, depth="CORE")
+        self.assertIn("Q_n Strain", flat_ui)
+        self.assertIn(Prisma.GRN, flat_ui, "Flat space did not render as Green.")
+        fractured_ctx = {"lattice_strain": 8.5}
+        fractured_ui = projector._render_lattice_strip({"voltage": 30.0}, fractured_ctx, depth="CORE")
+        self.assertIn(Prisma.RED, fractured_ui, "Fractured space did not render as Red.")
+
+    def test_real_world_clock_articulation(self):
+        from bone_types import PhysicsPacket
+        observer = self.engine.phys.observer
+        last_phys = PhysicsPacket(beta=0.8)
+        fast_msg = observer.evaluate_silence(time_delta=2.0, last_phys=last_phys)
+        self.assertIsNone(fast_msg, "System hallucinated a silence on a fast response.")
+        slow_msg = observer.evaluate_silence(time_delta=15.0, last_phys=last_phys)
+        self.assertIsNotNone(slow_msg, "System failed to register a real-world time gap.")
+        self.assertIn("wanted to be born", slow_msg, "System misdiagnosed the flavor of the silence.")
 
 if __name__ == "__main__":
     unittest.main()

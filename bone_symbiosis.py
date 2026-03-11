@@ -11,7 +11,7 @@ import math
 from dataclasses import dataclass
 from typing import Dict, Counter
 from collections import deque
-from bone_config import BoneConfig
+from bone_presets import BoneConfig
 from bone_core import LoreManifest, ux
 from bone_types import Prisma
 from bone_lexicon import LexiconService

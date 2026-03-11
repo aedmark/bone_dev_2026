@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from typing import Tuple, Optional, List, Dict, Any
 from bone_body import BioSystem, MitochondrialState, Biometrics, MitochondrialForge, EndocrineSystem, MetabolicGovernor
 from bone_brain import DreamEngine, ShimmerState
-from bone_config import BoneConfig
+from bone_presets import BoneConfig
 from bone_core import LoreManifest, ux
 from bone_lexicon import LexiconService
 from bone_physics import TheGatekeeper, QuantumObserver, SurfaceTension, ZoneInertia

@@ -11,7 +11,7 @@ between competing sub-routines to apply friction or voltage relief.
 import random
 from typing import Dict, Any
 
-from bone_config import BoneConfig
+from bone_presets import BoneConfig
 from bone_core import LoreManifest, ux
 from bone_symbiosis import get_symbiont
 from bone_types import Prisma
