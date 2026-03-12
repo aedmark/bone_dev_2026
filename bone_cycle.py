@@ -356,7 +356,9 @@ class MetabolismPhase(SimulationPhase):
             ctx.log(f"{Prisma.VIOLET}{msg_sleep}{Prisma.RST}")
             soul_snap = self.eng.soul.to_dict() if hasattr(self.eng, "soul") else {}
             self.eng.mind.dreamer.enter_rem_cycle(soul_snap, bio_state={"atp": atp})
-            self.eng.mind.dreamer.run_defragmentation(self.eng.mind.mem)
+            defrag_msg = self.eng.mind.dreamer.run_defragmentation(self.eng.mind.mem)
+            if defrag_msg:
+                ctx.log(f"{Prisma.CYN}🧹 {defrag_msg}{Prisma.RST}")
             reboot_val = getattr(BoneConfig, "MAX_ATP", 100.0) * 0.33
             self.eng.bio.mito.state.atp_pool = reboot_val
             ctx.bio_result["atp"] = reboot_val
@@ -390,8 +392,8 @@ class MetabolismPhase(SimulationPhase):
     def _apply_healing(self, ctx):
         """Kintsugi checks the scars left by paradoxes, gilding them to prevent further system bleed."""
         qualia = self.eng.somatic.get_current_qualia(getattr(ctx, "last_impulse", None))
-        current_stamina = self.eng.stamina
-        if self.eng.bio.biometrics:
+        current_stamina = getattr(self.eng, "stamina", 100.0)
+        if getattr(self.eng, "bio", None) and self.eng.bio.biometrics:
             current_stamina = self.eng.bio.biometrics.stamina
         cracked, koan = self.eng.kintsugi.check_integrity(current_stamina)
         if cracked:
@@ -654,6 +656,9 @@ class IntrusionPhase(SimulationPhase):
         if current_psi > 0.6 and random.random() < current_psi:
             msg_p = ux("cycle_strings", "intrusion_pareidolia")
             ctx.log(f"{Prisma.VIOLET}{msg_p.format(current_psi=current_psi)}{Prisma.RST}")
+            from bone_tcl import TheTclWeaver
+            weaver = TheTclWeaver.get_instance()
+            ctx.input_text = weaver.consume_by_void(ctx.input_text, current_psi)
             ctx.physics.psi = min(1.0, current_psi + 0.1)
             if self.eng.bio and self.eng.bio.biometrics:
                 self.eng.bio.biometrics.stamina = max(0.0, self.eng.bio.biometrics.stamina - 5.0)
@@ -865,9 +870,10 @@ class CognitionPhase(SimulationPhase):
             if flashback_msg:
                 ctx.log(f"{Prisma.MAG}{flashback_msg}{Prisma.RST}")
                 shock_cost = 5.0
-                if self.eng.bio.biometrics:
+                if getattr(self.eng, "bio", None) and self.eng.bio.biometrics:
                     self.eng.bio.biometrics.stamina = max(0.0, self.eng.bio.biometrics.stamina - shock_cost)
-                self.eng.stamina = max(0.0, self.eng.stamina - shock_cost)
+                if hasattr(self.eng, "stamina"):
+                    self.eng.stamina = max(0.0, self.eng.stamina - shock_cost)
         self.eng.mind.mem.encode(ctx.clean_words, ctx.physics.to_dict(), "GEODESIC")
         if ctx.is_alive and ctx.clean_words:
             max_h = getattr(BoneConfig, "MAX_HEALTH", 100.0)
@@ -914,7 +920,8 @@ class SensationPhase(SimulationPhase):
         current_latency = 0.0
         if hasattr(self.eng, "host_stats"):
             current_latency = self.eng.host_stats.latency
-        impulse = self.synesthesia.perceive(phys_data, traits=self.eng.soul.traits, latency=current_latency)
+        safe_traits = self.eng.soul.traits if getattr(self.eng, "soul", None) else None
+        impulse = self.synesthesia.perceive(phys_data, traits=safe_traits, latency=current_latency)
         ctx.last_impulse = impulse
         qualia = self.synesthesia.get_current_qualia(impulse)
         ctx.physics = apply_somatic_feedback(ctx.physics, qualia)

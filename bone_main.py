@@ -392,19 +392,19 @@ class BoneAmanita:
         if "[VSL_WARM]" in upper_msg:
             self.mode_settings["default_ui_depth"] = "WARM"
             self.events.log(f"{Prisma.GRY}[SYSTEM] The veil falls. HUD muted.{Prisma.RST}", "SYS")
-            user_message = user_message.replace("[VSL_WARM]", "").replace("[vsl_warm]", "").strip()
-        elif "[VSL_LITE]" in upper_msg:
+            user_message = re.sub(r"(?i)\[VSL_WARM]", "", user_message).strip()
+        if "[VSL_LITE]" in upper_msg:
             self.mode_settings["default_ui_depth"] = "LITE"
             self.events.log(f"{Prisma.CYN}[SYSTEM] LITE HUD engaged.{Prisma.RST}", "SYS")
-            user_message = user_message.replace("[VSL_LITE]", "").replace("[vsl_lite]", "").strip()
-        elif "[VSL_CORE]" in upper_msg:
+            user_message = re.sub(r"(?i)\[VSL_LITE]", "", user_message).strip()
+        if "[VSL_CORE]" in upper_msg:
             self.mode_settings["default_ui_depth"] = "CORE"
             self.events.log(f"{Prisma.CYN}[SYSTEM] CORE HUD engaged.{Prisma.RST}", "SYS")
-            user_message = user_message.replace("[VSL_CORE]", "").replace("[vsl_core]", "").strip()
-        elif "[VSL_DEEP]" in upper_msg:
+            user_message = re.sub(r"(?i)\[VSL_CORE]", "", user_message).strip()
+        if "[VSL_DEEP]" in upper_msg:
             self.mode_settings["default_ui_depth"] = "DEEP"
             self.events.log(f"{Prisma.VIOLET}[SYSTEM] DEEP HUD engaged. Full lattice visible.{Prisma.RST}", "SYS")
-            user_message = user_message.replace("[VSL_DEEP]", "").replace("[vsl_deep]", "").strip()
+            user_message = re.sub(r"(?i)\[VSL_DEEP]", "", user_message).strip()
         if "[VSL_RECOVER]" in upper_msg or "[VSL_IDLE]" in upper_msg:
             self.stamina = min(self.stamina + 15.0, BoneConfig.MAX_STAMINA)
             if hasattr(self, "bio") and hasattr(self.bio, "mito"):
@@ -467,10 +467,12 @@ class BoneAmanita:
         if pre_flight_halt:
             return pre_flight_halt
         if not is_system and self.gordon:
-            pruning_active = any(
-                "CUT_THE_CRAP" in self.gordon.get_item_data(i).passive_traits
-                for i in self.gordon.inventory
-                if self.gordon.get_item_data(i))
+            pruning_active = False
+            for i in self.gordon.inventory:
+                item_data = self.gordon.get_item_data(i)
+                if item_data and "CUT_THE_CRAP" in item_data.passive_traits:
+                    pruning_active = True
+                    break
             if pruning_active:
                 from bone_tcl import TheTclWeaver
                 original_msg = user_message

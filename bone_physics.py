@@ -9,17 +9,17 @@ Space (Narrative Drag, Zones). It enforces the laws of thermodynamics on the con
 
 import math
 import random
-import time
 import re
-import json
-import os
+import time
 from collections import Counter, deque
 from dataclasses import dataclass
 from typing import Dict, List, Any, Tuple, Optional, Deque
-from bone_presets import BoneConfig
+
 from bone_core import LoreManifest, ux
 from bone_lexicon import LexiconService
+from bone_presets import BoneConfig
 from bone_types import Prisma, PhysicsPacket, CycleContext, SpatialState, MaterialState, EnergyState
+
 
 @dataclass
 class PhysicsDelta:
@@ -192,14 +192,7 @@ class TheGatekeeper:
         """
         style_crimes = self.lex.get("style_crimes")
         if not style_crimes:
-            try:
-                q_path = os.path.join(os.path.dirname(__file__), "lore", "style_crimes.json")
-                with open(q_path, "r", encoding="utf-8") as f:
-                    style_crimes = json.load(f)
-            except Exception as e:
-                print(f"{Prisma.RED}[GATEKEEPER ERROR] Failed to load style_crimes.json: {e}{Prisma.RST}")
-                style_crimes = {}
-
+            style_crimes = LoreManifest.get_instance().get("STYLE_CRIMES") or {}
         scrub_patterns = style_crimes.get("SCRUB_PATTERNS", [])
         cleaned_text = generated_text
         for scrub in scrub_patterns:
@@ -207,45 +200,26 @@ class TheGatekeeper:
             repl = scrub.get("replacement", "")
             if regex:
                 cleaned_text = re.sub(regex, repl, cleaned_text, flags=re.IGNORECASE).strip()
-
         text_lower = cleaned_text.lower()
         banned_phrases = style_crimes.get("BANNED_PHRASES", [])
         toxic_keywords = style_crimes.get("TOXIC_KEYWORDS", [])
         patterns = style_crimes.get("PATTERNS", [])
-        rejections = style_crimes.get("REJECTIONS", [
-            "[CRITICAL: BANNED_SYNTAX '{trigger}' DETECTED. Purging output buffer...]"
-        ])
-
-        trigger = None
-
-        for phrase in banned_phrases:
-            if phrase.lower() in text_lower:
-                trigger = phrase
-                break
-
-        if not trigger:
-            for kw in toxic_keywords:
-                if kw.lower() in text_lower:
-                    trigger = kw
-                    break
-
+        rejections = style_crimes.get("REJECTIONS", ["[CRITICAL: BANNED_SYNTAX '{trigger}' DETECTED. Purging output buffer...]"])
+        trigger = next((phrase for phrase in banned_phrases + toxic_keywords if phrase.lower() in text_lower), None)
         if not trigger:
             for pat in patterns:
                 regex = pat.get("regex", "")
                 if regex and re.search(regex, cleaned_text, re.IGNORECASE):
                     trigger = pat.get("name", "BANNED_PATTERN")
                     break
-
         if trigger:
             if hasattr(mito_state, "atp_pool"):
                 mito_state.atp_pool = max(0.0, mito_state.atp_pool - 15.0)
             if hasattr(mito_state, "ros_buildup"):
                 mito_state.ros_buildup += 20.0
-
             rejection_template = random.choice(rejections)
             formatted_rejection = rejection_template.replace("{trigger}", trigger)
             return False, f"{Prisma.RED}{formatted_rejection}{Prisma.RST}"
-
         return True, cleaned_text
 
 
@@ -321,11 +295,13 @@ class QuantumObserver:
             return None
 
         def _ext(prop_name: str, default=0.0):
-            if hasattr(last_phys, prop_name):
-                val = getattr(last_phys, prop_name)
+            source = getattr(last_phys, 'energy', last_phys)
+            if hasattr(source, prop_name):
+                val = getattr(source, prop_name)
                 return val if val is not None else default
             if isinstance(last_phys, dict):
-                return last_phys.get(prop_name, default)
+                energy_dict = last_phys.get('energy', {})
+                return energy_dict.get(prop_name, last_phys.get(prop_name, default))
             return default
         psi = _ext('psi', 0.0)
         beta = _ext('beta', 0.0)
@@ -774,8 +750,10 @@ class CycleStabilizer:
             cfg_deep = getattr(BoneConfig, "PHYSICS_DEEP", None)
             rst_v = getattr(cfg_deep, "FUSE_RESET_V", 10.0) if cfg_deep else 10.0
             rst_d = getattr(cfg_deep, "FUSE_RESET_D", 5.0) if cfg_deep else 5.0
+            if hasattr(ctx, "record_flux"):
+                ctx.record_flux(current_phase, "voltage", p.voltage, rst_v, "FUSE_BLOWN")
+                ctx.record_flux(current_phase, "narrative_drag", p.narrative_drag, rst_d, "FUSE_BLOWN")
             p.voltage, p.narrative_drag = rst_v, rst_d
-            self._apply_force(ctx, current_phase, "voltage", self.HARD_FUSE_VOLTAGE, rst_v, "FUSE_BLOWN")
             return True
         if self.pending_drag > 0:
             ctx.physics.narrative_drag += self.pending_drag

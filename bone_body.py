@@ -1140,14 +1140,11 @@ class SynestheticCortex:
         elif impulse.adrenaline_delta > 0.2:
             color = Prisma.RED
         tone = tones.get("steady", "")
-        if impulse.adrenaline_delta > 0.2:
-            tone = tones.get("urgent", "")
-        elif impulse.dopamine_delta > 0.2:
-            tone = tones.get("vibrating", "")
-        elif impulse.cortisol_delta > 0.2:
-            tone = tones.get("strained", "")
-        elif impulse.oxytocin_delta > 0.2:
-            tone = tones.get("resonant", "")
+        deltas = {"urgent": impulse.adrenaline_delta, "vibrating": impulse.dopamine_delta,
+                  "strained": impulse.cortisol_delta, "resonant": impulse.oxytocin_delta}
+        dominant_key, max_delta = max(deltas.items(), key=lambda item: item[1])
+        if max_delta > 0.2:
+            tone = tones.get(dominant_key, "")
         hint = hints.get("observe", "")
         if impulse.cortisol_delta > 0.05:
             hint = hints.get("guarded", "")

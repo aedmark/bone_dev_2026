@@ -174,7 +174,7 @@ class Projector:
         V = _get_val("voltage", "voltage", 30.0)
         F = _get_val("friction", "narrative_drag", 0.6)
         H = _get_val("health", "health", 100.0)
-        P = _get_val("stamina", "stamina", 100.0)
+        P = max(0.0, _get_val("stamina", "stamina", 100.0))
         T = _get_val("trauma", "T", 0.0)
         psi = _get_val("psi", "psi", 0.0)
         chi = _get_val("chi", "chi", 0.0)
@@ -214,7 +214,9 @@ class Projector:
         elif depth == "CORE":
             return core + shared_str + strain_str
         elif depth == "LITE":
-            return f"{Prisma.CYN}[{i_volt} V:{V:.0f} | {i_hlth} H:{H:.0f} P:{P:.0f}]{Prisma.RST}" + shared_str
+            if data_ctx.get("show_vitals", True):
+                return f"{Prisma.CYN}[{i_volt} V:{V:.0f} | {i_hlth} H:{H:.0f} P:{P:.0f}]{Prisma.RST}" + shared_str
+            return f"{Prisma.CYN}[{i_volt} V:{V:.0f}]{Prisma.RST}" + shared_str
         return ""
 
     def render_technical(self, physics: Dict, data: Dict, mind: tuple) -> str:

@@ -30,6 +30,8 @@ class CoreMemory:
     type: str = "INCIDENT"
     meta: Dict[str, Any] = field(default_factory=dict)
 
+from typing import ClassVar
+
 @dataclass
 class TraitVector:
     """ The six-axis personality core. These drift based on how the user treats the system. """
@@ -39,7 +41,7 @@ class TraitVector:
     discipline: float = 0.5
     wisdom: float = 0.1
     empathy: float = 0.5
-    _TRAITS = {"curiosity", "cynicism", "hope", "discipline", "wisdom", "empathy"}
+    _TRAITS: ClassVar[set] = {"curiosity", "cynicism", "hope", "discipline", "wisdom", "empathy"}
 
     def __post_init__(self):
         self._clamp_all()
@@ -670,7 +672,7 @@ class TheOroboros:
         if len(myths_payload) > max_myths:
             myths_payload = myths_payload[-max_myths:]
         data = {"generation": self.generation_count + 1, "scars": scars_payload, "myths": myths_payload}
-        with open(self.LEGACY_FILE, "w") as f:
+        with open(self.LEGACY_FILE, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
         msg = ux("soul_strings", "generation_encoded")
         return msg.format(gen=self.generation_count + 1, scars=len(new_scars), myths=len(new_myths))
@@ -691,7 +693,8 @@ class TheOroboros:
                 log.append(msg.format(name=scar.name))
             elif scar.stat_affected == "trauma_baseline":
                 if "trauma_vector" in bio:
-                    bio["trauma_vector"]["EXISTENTIAL"] = scar.value
+                    current_trauma = bio["trauma_vector"].get("EXISTENTIAL", 0.0)
+                    bio["trauma_vector"]["EXISTENTIAL"] = current_trauma + scar.value
                 physics["T"] = physics.get("T", 0.0) + scar.value
                 msg = ux("soul_strings", "scar_frailty")
                 log.append(msg.format(name=scar.name))

@@ -18,6 +18,8 @@ class TheSubstrate:
     def execute_writes(self, stamina_pool: float) -> tuple[List[str], float]:
         logs = []
         cost = 0.0
+        if not self.pending_writes:
+            return logs, cost
         if not os.path.exists("output"):
             os.makedirs("output")
         for write in self.pending_writes:
@@ -38,9 +40,8 @@ class TheSubstrate:
                     self._trigger_tts(safe_path)
             except Exception as e:
                 logs.append(f"{Prisma.RED}SUBSTRATE FAULT: Write failed - {e}{Prisma.RST}")
-            self.pending_writes.clear()
-            return logs, cost
-        return None
+        self.pending_writes.clear()
+        return logs, cost
 
     def _trigger_tts(self, safe_path: str):
         import threading

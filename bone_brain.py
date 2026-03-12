@@ -283,13 +283,13 @@ class TheCortex:
                     if self.events:
                         msg = ux("brain_strings", "cortex_retry")
                         self.events.log(f"{Prisma.OCHRE}{msg.format(attempt=attempt + 1)}{Prisma.RST}","CORTEX",)
-                    retry_injection = (
-                        f"\n\n=== REJECTION OF ATTEMPT {attempt + 1} ===\n"
-                        f"FAILED OUTPUT:\n{raw_resp}\n\n"
-                        f"ERRORS TO FIX:\n{rejection_reason}\n\n"
-                        f"TASK: Rewrite the response. Completely remove the errors listed above. Maintain the strict formatting template."
-                    )
-                    final_prompt += retry_injection
+                        retry_injection = ("\n\n=== REJECTION OF PREVIOUS ATTEMPT ===\n"
+                            f"FAILED OUTPUT:\n{raw_resp}\n\n"
+                            f"ERRORS TO FIX:\n{rejection_reason}\n\n"
+                            f"TASK: Rewrite the response. Completely remove the errors listed above. Maintain the strict formatting template.")
+                        if "=== REJECTION OF PREVIOUS ATTEMPT ===" in final_prompt:
+                            final_prompt = final_prompt.split("=== REJECTION OF PREVIOUS ATTEMPT ===")[0]
+                        final_prompt += retry_injection
                 else:
                     final_output = val_res.get("replacement", "SYSTEM FAILURE.")
                     extracted_logs = val_res.get("meta_logs", [])
@@ -355,18 +355,15 @@ class TheCortex:
         topic = re.sub(r"(?i)\[COUNCIL]", "", user_input).strip()
         if not topic:
             topic = "The nature of our shared existence."
-
         if self.events:
             self.events.log(f"{Prisma.VIOLET}🎙️ SPINNING UP COUNCIL STUDIO...{Prisma.RST}", "SYS")
-
         script = self.svc.cycle_controller.eng.council.host_podcast(topic, self.llm)
-
         extracted_logs = []
         if hasattr(self.svc.cycle_controller.eng, "substrate"):
             filename = f"podcast_script_{int(time.time())}.txt"
             safe_script = script.replace("\n", "|||NEWLINE|||")
             extracted_logs.append(f"[SUBSTRATE_QUEUE] {filename}:::{safe_script}")
-
+        script += f"\n\n[SYSTEM] The studio light switches off. The Council has concluded its debate. Awaiting your next directive."
         return script, extracted_logs
 
     def _handle_vsl_command(self, text):
@@ -577,31 +574,6 @@ class ShimmerState:
             return "CONSERVE"
         return None
 
-def __init__(self, services: CortexServices, llm_client=None):
-    self.svc = services
-    self.events = services.events
-    self.dialogue_buffer = []
-    cfg = getattr(BoneConfig, "CORTEX", None)
-    self.MAX_HISTORY = getattr(cfg, "MAX_HISTORY_LENGTH", 15) if cfg else 15
-    self.modulator = NeurotransmitterModulator(bio_ref=self.svc.bio, events_ref=self.events)
-    self.boot_history = TelemetryService.get_instance().read_recent_history(limit=4)
-    self.last_physics = {}
-    self.consultant = services.consultant
-
-    self.llm = llm_client or LLMInterface(self.events, provider="mock")
-
-    self.dreamer = DreamEngine(self.events, self.svc.lore, llm_ref=self.llm, mem_ref=self.svc.mind_memory)
-    self.llm.dreamer = self.dreamer
-
-    self.symbiosis = services.symbiosis
-    self.composer = PromptComposer(self.svc.lore)
-    self.validator = ResponseValidator(self.svc.lore)
-    self.ballast_active = False
-    self.gordon_shock = None
-    self.active_mode = "ADVENTURE"
-    if hasattr(self.events, "subscribe"):
-        self.events.subscribe("AIRSTRIKE", lambda p: setattr(self, "ballast_active", True))
-
 class DreamEngine:
     """
     The dreaming mechanic. Now fully LLM-powered.
@@ -667,10 +639,13 @@ class DreamEngine:
         if trauma_level > 0.5:
             category = "NIGHTMARES"
         templates = self.dream_lore.get(category, [])
-        if category == "NIGHTMARES":
+        if isinstance(templates, dict):
             flat_list = []
             for k, v in templates.items():
-                flat_list.extend(v)
+                if isinstance(v, list):
+                    flat_list.extend(v)
+                else:
+                    flat_list.append(v)
             templates = flat_list
         if not templates:
             return "The walls breathe.", 0.1

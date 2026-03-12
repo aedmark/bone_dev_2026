@@ -35,6 +35,21 @@ def _mat_mul(A, B):
     """ Standard matrix multiplication for the Q_n accumulation. """
     return [[sum(A[i][k] * B[k][j] for k in range(len(B[0]))) for j in range(len(B[0]))] for i in range(len(A))]
 
+def _reorthogonalize(M):
+    """ Gram-Schmidt process to prevent floating-point drift from destroying the Q_n matrix over time. """
+    n = len(M)
+    out = [[0.0] * n for _ in range(n)]
+    for j in range(n):
+        v = [M[i][j] for i in range(n)]
+        for k in range(j):
+            u = [out[i][k] for i in range(n)]
+            proj = sum(v[idx] * u[idx] for idx in range(n))
+            v = [v[idx] - proj * u[idx] for idx in range(n)]
+        norm = max(1e-10, sum(x*x for x in v)**0.5)
+        for i in range(n):
+            out[i][j] = v[i] / norm
+    return out
+
 def _householder(v):
     """
     Generates a Householder reflection matrix (H) from a normal vector (v).
@@ -92,11 +107,15 @@ class LocalFileSporeLoader:
         os.makedirs(os.path.dirname(final_path), exist_ok=True)
         try:
             fd, temp_path = tempfile.mkstemp(dir=os.path.dirname(final_path), text=True)
-            with os.fdopen(fd, "w") as f:
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2, cls=BoneJSONEncoder)
                 f.flush()
                 os.fsync(f.fileno())
-            os.replace(temp_path, final_path)
+            try:
+                os.replace(temp_path, final_path)
+            except OSError:
+                os.remove(final_path)
+                os.replace(temp_path, final_path)
             return final_path
         except (IOError, OSError, TypeError) as e:
             msg = ux("spore_strings", "loader_save_err") or ""
@@ -220,6 +239,7 @@ class SubconsciousStrata:
                     self.M_t[i][j] += (K[i] * V[j]) * scale
             H = _householder(K)
             self.Q_n = _mat_mul(H, self.Q_n)
+            self.Q_n = _reorthogonalize(self.Q_n)
             self.save_matrix()
             return True
         except IOError:
@@ -945,11 +965,11 @@ class BioParasite:
         graph[parasite]["edges"][host] = weight
         self.spores_deployed += 1
         if is_metaphor:
-            msg = ux("spore_strings", "para_syn_spark")
-            return True, (f"{Prisma.CYN}{msg.format(host=host.upper(), para=parasite.upper())}{Prisma.RST}" if msg else None)
+            msg = ux("spore_strings", "para_syn_spark") or "A parasitic metaphor bloomed."
+            return True, f"{Prisma.CYN}{msg.format(host=host.upper(), para=parasite.upper())}{Prisma.RST}"
         else:
-            msg = ux("spore_strings", "para_intrusive")
-            return True, (f"{Prisma.VIOLET}{msg.format(host=host.upper(), para=parasite.upper())}{Prisma.RST}" if msg else None)
+            msg = ux("spore_strings", "para_intrusive") or "An intrusive thought took root."
+            return True, f"{Prisma.VIOLET}{msg.format(host=host.upper(), para=parasite.upper())}{Prisma.RST}"
 
 class BioLichen:
     """ The symbiote. Converts light (play/sacred words) directly into metabolic sugar without costing ATP. """

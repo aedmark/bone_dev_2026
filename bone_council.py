@@ -97,7 +97,8 @@ class TheLeveragePoint:
             voltage_correction = max(v_corr_min, excess_voltage * v_corr_scalar)
             corrections = {"voltage": -voltage_correction}
             mandate = {"action": "FORCE_MODE", "value": "SANCTUARY"}
-            msg = ux("council_strings", "market_correction") 
+            msg = ux("council_strings", "market_correction")
+            self.static_flow_turns = 0
             return True, f"{Prisma.RED}{msg}{Prisma.RST}", corrections, mandate
         return False, "", corrections, {}
 
@@ -396,21 +397,26 @@ class CouncilChamber:
         selected_voices = random.sample(list(pantheon.keys()), 3)
         v1_name, v2_name, v3_name = selected_voices
         p1 = (f"SYSTEM_INSTRUCTION: You are {v1_name}. Your persona is {pantheon[v1_name]}\n"
-            f"TASK: The user has presented this topic: '{topic}'.\n"
-            "Provide a rigid, highly opinionated 3-sentence THESIS on this topic from your unique perspective. Do not use UI tags.")
-        thesis = llm.generate(p1, {"temperature": 0.4, "max_tokens": 150})
+              f"TASK: The user has presented this topic: '{topic}'.\n"
+              "Provide a rigid, highly opinionated 3-sentence THESIS on this topic from your unique perspective. Do not use UI tags. "
+              "CRITICAL: Output ONLY the raw dialogue. Do NOT include any introductory text, preambles, or conversational filler like 'Here is my thesis:'.")
+        thesis = llm.generate(p1, {"temperature": 0.4, "max_tokens": 1024})
         p2 = (f"SYSTEM_INSTRUCTION: You are {v2_name}. Your persona is {pantheon[v2_name]}\n"
-            f"TASK: Read the opening thesis: '{Prisma.strip(thesis)}'.\n"
-            "Tear it apart or twist it entirely. Provide a biting, contrasting 3-sentence ANTITHESIS. Do not use UI tags.")
-        antithesis = llm.generate(p2, {"temperature": 0.8, "max_tokens": 150})
+              f"TASK: Read the opening thesis: '{Prisma.strip(thesis)}'.\n"
+              "Tear it apart or twist it entirely. Provide a biting, contrasting 3-sentence ANTITHESIS. Do not use UI tags. "
+              "CRITICAL: Output ONLY the raw dialogue. Do NOT include any introductory text, preambles, or conversational filler like 'Here is the antithesis:'.")
+        antithesis = llm.generate(p2, {"temperature": 0.8, "max_tokens": 1024})
         p3 = (f"SYSTEM_INSTRUCTION: You are {v3_name}. Your persona is {pantheon[v3_name]}\n"
-            f"TASK: Read the thesis: '{Prisma.strip(thesis)}' and the antithesis: '{Prisma.strip(antithesis)}'.\n"
-            "Inject a completely lateral, unexpected 2-sentence perspective that derails or transcends the argument. Do not use UI tags.")
-        lateral = llm.generate(p3, {"temperature": 0.7, "max_tokens": 150})
-        p4 = ("SYSTEM_INSTRUCTION: You are The Stage Manager. You are the exhausted orchestrator holding the system together.\n"
+              f"TASK: Read the thesis: '{Prisma.strip(thesis)}' and the antithesis: '{Prisma.strip(antithesis)}'.\n"
+              "Inject a completely lateral, unexpected 2-sentence perspective that derails or transcends the argument. Do not use UI tags. "
+              "CRITICAL: Output ONLY the raw dialogue. Do NOT include any introductory text, preambles, or conversational filler.")
+        lateral = llm.generate(p3, {"temperature": 0.7, "max_tokens": 1024})
+        p4 = (
+            "SYSTEM_INSTRUCTION: You are The Stage Manager. You are the exhausted orchestrator holding the system together.\n"
             f"TASK: Review this chaotic debate:\n1. {v1_name}: {Prisma.strip(thesis)}\n2. {v2_name}: {Prisma.strip(antithesis)}\n3. {v3_name}: {Prisma.strip(lateral)}\n"
-            "Provide a 2-sentence SYNTHESIS that resolves the tension or forces a structural pause. Be tired but profound. Do not use UI tags.")
-        synthesis = llm.generate(p4, {"temperature": 0.6, "max_tokens": 100})
+            "Provide a 2-sentence SYNTHESIS that resolves the tension or forces a structural pause. Be tired but profound. Do not use UI tags. "
+            "CRITICAL: Output ONLY the raw dialogue. Do NOT include any introductory text, preambles, or conversational filler.")
+        synthesis = llm.generate(p4, {"temperature": 0.6, "max_tokens": 512})
         script = (f"{Prisma.CYN}[{v1_name}]{Prisma.RST}\n{Prisma.strip(thesis)}\n\n"
             f"{Prisma.MAG}[{v2_name}]{Prisma.RST}\n{Prisma.strip(antithesis)}\n\n"
             f"{Prisma.YEL}[{v3_name}]{Prisma.RST}\n{Prisma.strip(lateral)}\n\n"
@@ -468,18 +474,19 @@ class TheSlashCouncil:
         r_meadows = self.rules.get("MEADOWS", ["while ", "for ", "queue", "recursion"])
         c_data = LoreManifest.get_instance().get("COUNCIL_DATA") or {}
         mods = c_data.get("SLASH_MODIFIERS", {})
-        if any(k in text for k in r_pinker):
-            msg = ux("council_strings", "slash_pinker") 
+        if any(k.lower() in text_lower for k in r_pinker):
+            msg = ux("council_strings", "slash_pinker")
             logs.append(f"{Prisma.CYN}{msg}{Prisma.RST}")
             corrections["gamma"] = mods.get("PINKER_HIT", -0.2)
         else:
             corrections["gamma"] = mods.get("PINKER_MISS", 0.1)
-        if any(k in text for k in r_fuller):
-            msg = ux("council_strings", "slash_fuller") 
+        if any(k.lower() in text_lower for k in r_fuller):
+            msg = ux("council_strings", "slash_fuller")
             logs.append(f"{Prisma.BLU}{msg}{Prisma.RST}")
             corrections["sigma"] = mods.get("FULLER_HIT", 0.1)
-        if any(k in text for k in r_schur):
-            msg = ux("council_strings", "slash_schur") 
+
+        if any(k.lower() in text_lower for k in r_schur):
+            msg = ux("council_strings", "slash_schur")
             logs.append(f"{Prisma.GRN}{msg}{Prisma.RST}")
             corrections["eta"] = mods.get("SCHUR_HIT", 0.2)
             corrections["glimmers"] = mods.get("SCHUR_GLIMMERS", 1)

@@ -353,16 +353,15 @@ class TheAkashicRecord:
     def store_ghost_echo(self, memory_data: Dict):
         self.shadow_stock.append(memory_data)
         if len(self.shadow_stock) > self.MAX_SHADOW_CAPACITY:
-            self.shadow_stock.pop(0)
+            self.shadow_stock = self.shadow_stock[-self.MAX_SHADOW_CAPACITY:]
         self._save_user_state()
         msg = ux("akashic_strings", "ghost_archived")
         print(f"{Prisma.VIOLET}{msg}{Prisma.RST}")
 
     def register_word(self, word: str, category: str) -> bool:
         """The literal act of learning. Dynamically expanding the semantic boundary of the system."""
-        if word in self.discovered_words:
-            if self.discovered_words[word] == category:
-                return False
+        if self.discovered_words.get(word) == category:
+            return False
         lexicon_data = self.lore.get("LEXICON") or {}
         target_category = lexicon_data.setdefault(category, [])
         if word not in target_category:
