@@ -287,22 +287,18 @@ class NarrativeSelf:
         if not self.current_obsession:
             msg = ux("soul_strings", "soul_state_drifting")
             return f"{Prisma.CYN}{msg}{Prisma.RST}"
-
         stamina, health = 100.0, 100.0
-        if (self.eng
-                and hasattr(self.eng, "bio")
-                and self.eng.bio
-                and self.eng.bio.biometrics):
-            stamina = self.eng.bio.biometrics.stamina
-            health = self.eng.bio.biometrics.health
+        if self.eng and hasattr(self.eng, "get_metrics"):
+            metrics = self.eng.get_metrics()
+            stamina = metrics.get("stamina", 100.0)
+            health = metrics.get("health", 100.0)
         if stamina < 20.0 and health < 40.0:
             msg_die = ux("soul_strings", "soul_state_dying")
             return f"{Prisma.VIOLET}{msg_die}{Prisma.RST}"
         dignity_bar = "█" * int(self.anchor.dignity_reserve / 10)
         feeling = self._get_feeling()
         status_msg = ux("soul_strings", "soul_state_status")
-        return status_msg.format(obs=self.current_obsession, bar=dignity_bar, pct=int(self.anchor.dignity_reserve),
-                                 feel=feeling, )
+        return status_msg.format(obs=self.current_obsession, bar=dignity_bar, pct=int(self.anchor.dignity_reserve), feel=feeling, )
 
     def crystallize_memory(
             self, physics_packet: Dict, bio_state: Dict, _tick: int) -> Optional[str]:

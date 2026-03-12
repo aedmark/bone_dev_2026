@@ -501,6 +501,16 @@ class MycelialNetwork:
                 return f"{Prisma.GRY}{msg_l}{Prisma.RST}" if msg_l else None
         return None
 
+    def trigger_autophagy(self) -> Tuple[float, str]:
+        """Wraps MemoryCore's cannibalize method to match the interface expected by the cycle."""
+        # Trigger cannibalization using the current timestamp as a fallback for the tick
+        victim, msg = self.memory_core.cannibalize(current_tick=int(time.time()))
+        if victim:
+            cfg = getattr(BoneConfig, "AKASHIC", None)
+            atp_gain = getattr(cfg, "AUTOPHAGY_YIELD", 15.0) if cfg else 15.0
+            return atp_gain, msg
+        return 0.0, msg
+
     def _poll_ghosts(self, clean_words: list, physics: Dict) -> Optional[str]:
         """Checks if the current words have been forgotten. If so, their matrix vibe alters the physical state."""
         total_v_shift = 0.0
