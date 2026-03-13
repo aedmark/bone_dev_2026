@@ -197,6 +197,7 @@ class BoneConfig:
         LATENCY_ADRENALINE_PENALTY = 0.05
         MOOD_THRESHOLDS = {"MANIC_DOP": 0.8, "PANIC_COR": 0.7, "ZEN_SER": 0.8}
         TEMP_VOLTAGE_OFFSET = 5.0
+        EPIGENETIC_PRUNE_THRESHOLD = 12
         TEMP_VOLTAGE_SCALAR = 0.1
         TEMP_CHEM_WEIGHTS = {"dop": 0.4, "adr": 0.3, "cor": 0.2}
         TEMP_ENTROPY_OFFSET = 0.5
