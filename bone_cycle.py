@@ -915,7 +915,7 @@ class PhaseExecutor:
                 continue
             snapshot_before = ctx.physics.snapshot()
             try:
-                phase.run(ctx)
+                ctx = phase.run(ctx)
             except Exception as e:
                 simulator.handle_phase_crash(ctx, phase.name, e)
                 self._audit_flux(ctx, phase.name, snapshot_before, ctx.physics)

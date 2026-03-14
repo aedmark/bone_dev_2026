@@ -123,7 +123,7 @@ class TheAkashicRecord:
             lenses_data = self.lore.get("LENSES") or {}
             resonances = lenses_data.get("_META_RESONANCE_", [])
             for resonance in resonances:
-                if resonance["trigram"] == trigram:
+                if resonance.get("trigram") == trigram:
                     target_lens = resonance.get("lens", resonance.get("soul"))
                     if target_lens == active_lens:
                         if self.events:
@@ -171,7 +171,8 @@ class TheAkashicRecord:
         gordon_data = self.lore.get("GORDON") or {}
         registry = gordon_data.get("ITEM_REGISTRY", {})
         registry[new_name] = new_data
-        self.lore.inject("GORDON", {"ITEM_REGISTRY": registry})
+        gordon_data["ITEM_REGISTRY"] = registry
+        self.lore.inject("GORDON", gordon_data)
         return new_name, new_data
 
     def save_all(self):
@@ -249,6 +250,14 @@ class TheAkashicRecord:
                 cat = r.get("catalyst_category")
                 if ing and cat:
                     self.known_recipes.add((ing, cat))
+        directory = getattr(self.lore, "DATA_DIR", "lore")
+        words_path = os.path.join(directory, "akashic_discovered_words.json")
+        if os.path.exists(words_path):
+            try:
+                with open(words_path, "r", encoding="utf-8") as f:
+                    self.discovered_words = json.load(f)
+            except Exception:
+                pass
 
     def record_interaction(
             self, lenses_active: list, ingredients_used: Optional[list] = None):
@@ -317,12 +326,14 @@ class TheAkashicRecord:
         msg_template = ux("akashic_strings", "recipe_msg")
         new_recipe = {"ingredient": ingredient, "catalyst_category": catalyst, "result": result_item,
                       "msg": msg_template.format(ingredient=ingredient, catalyst=catalyst, result_item=result_item), }
-        current_recipes = (self.lore.get("GORDON") or {}).get("RECIPES", [])
+        gordon_data = self.lore.get("GORDON") or {}
+        current_recipes = gordon_data.get("RECIPES", [])
         if not any(
-                r["ingredient"] == ingredient and r["catalyst_category"] == catalyst
+                r.get("ingredient") == ingredient and r.get("catalyst_category") == catalyst
                 for r in current_recipes):
             current_recipes.append(new_recipe)
-            self.lore.inject("GORDON", {"RECIPES": current_recipes})
+            gordon_data["RECIPES"] = current_recipes
+            self.lore.inject("GORDON", gordon_data)
             msg = ux("akashic_strings", "recipe_recorded")
             print(f"{Prisma.CYN}{msg}{Prisma.RST}")
 

@@ -1,11 +1,5 @@
 """
 bone_spores.py
-
-The Fungal Memory Network.
-This module governs the structural persistence of the lattice. It maintains the
-graph of connected words, manages the biological immune/parasitic systems that
-patrol that graph, and handles the serialization of 'Spores' (save states) to
-the Akashic record. It also manages epigenetic mutations.
 """
 
 import json
@@ -14,12 +8,6 @@ import random
 import tempfile
 import time
 import hashlib
-
-def _word_to_vector(word: str, dim: int = 8) -> list:
-    """Hashes a forgotten word into a pseudo-random mathematical vector between -1.0 and 1.0"""
-    h = hashlib.md5(word.encode('utf-8')).digest()
-    return [(b / 127.5) - 1.0 for b in h[:dim]]
-
 from collections import deque
 from typing import List, Tuple, Optional, Dict, Any
 from bone_presets import BoneConfig
@@ -27,16 +15,17 @@ from bone_core import EventBus, LoreManifest, BoneJSONEncoder, ux
 from bone_lexicon import LexiconService
 from bone_types import Prisma
 
+def _word_to_vector(word: str, dim: int = 8) -> list:
+    h = hashlib.md5(word.encode('utf-8')).digest()
+    return [(b / 127.5) - 1.0 for b in h[:dim]]
+
 def _identity(n=8):
-    """ Generates an identity matrix. """
     return [[1.0 if i == j else 0.0 for j in range(n)] for i in range(n)]
 
 def _mat_mul(A, B):
-    """ Standard matrix multiplication for the Q_n accumulation. """
     return [[sum(A[i][k] * B[k][j] for k in range(len(B[0]))) for j in range(len(B[0]))] for i in range(len(A))]
 
 def _reorthogonalize(M):
-    """ Gram-Schmidt process to prevent floating-point drift from destroying the Q_n matrix over time. """
     n = len(M)
     out = [[0.0] * n for _ in range(n)]
     for j in range(n):
@@ -51,10 +40,6 @@ def _reorthogonalize(M):
     return out
 
 def _householder(v):
-    """
-    Generates a Householder reflection matrix (H) from a normal vector (v).
-    H = I - 2 * (v ⊗ v) / (v · v)
-    """
     mag_sq = sum(x * x for x in v)
     if mag_sq == 0: return _identity(len(v))
     H = []
@@ -67,7 +52,6 @@ def _householder(v):
     return H
 
 def _access_config_path(root, path, value=None, set_mode=False):
-    """ Helper function to traverse the nested BoneConfig dictionary. """
     target = root
     parts = path.split(".")
     try:
@@ -91,7 +75,6 @@ def _access_config_path(root, path, value=None, set_mode=False):
         return None
 
 class LocalFileSporeLoader:
-    """ Handles the physical writing and reading of the JSON save states (Spores). """
     def __init__(self, directory="memories"):
         self.directory = directory
         if not os.path.exists(directory):
@@ -164,11 +147,6 @@ class LocalFileSporeLoader:
             return False
 
 class SubconsciousStrata:
-    """
-    The graveyard of repressed memories.
-    Now enhanced with the Q_n matrix. When memories are consumed, their ghost
-    is converted into a Householder reflection, permanently angling the space.
-    """
     def __init__(self, filename="memories/subconscious.jsonl"):
         self.filepath = filename
         self.directory = os.path.dirname(filename)
@@ -189,7 +167,6 @@ class SubconsciousStrata:
         return [[0.0 for _ in range(8)] for _ in range(8)]
 
     def _load_q_matrix(self):
-        """ Loads the Orthogonal PaTH matrix. """
         if os.path.exists(self.q_filepath):
             try:
                 with open(self.q_filepath, "r") as f: return json.load(f)
@@ -263,13 +240,11 @@ class SubconsciousStrata:
             pass
 
     def dredge(self, trigger_word: str) -> Optional[Dict]:
-        """ Attempts to resurrect a repressed memory from the file. """
         if trigger_word not in self.index:
             return None
         return next((e for e in self._iter_entries() if e.get("word") == trigger_word), None)
 
     def dredge_vibe(self, trigger_word: str) -> list:
-        """Multiplies a Query vector against the Matrix to feel the ghost of what was lost."""
         Q = _word_to_vector(trigger_word)
         out = [0.0] * 8
         for i in range(8):
@@ -278,11 +253,6 @@ class SubconsciousStrata:
         return [round(val, 3) for val in out]
 
 class MemoryCore:
-    """
-    The active Graph representation of the system's memory.
-    It tracks which words co-occur and strengthens the 'synapses' between them.
-    If it runs out of space, it cannibalizes its own weakest nodes for energy.
-    """
     def __init__(self, events_ref, subconscious_ref):
         self.events = events_ref
         self.subconscious = subconscious_ref
@@ -295,7 +265,6 @@ class MemoryCore:
                               "PSI": {"abstract", "sacred", "idea"}, "BET": {"social", "suburban", "play"}, }
 
     def illuminate(self, vector: Dict[str, float], limit: int = 5) -> List[str]:
-        """ Used by the UI to show which memories are currently active in the graph. """
         if not self.graph:
             return []
         active_dims = {k: v for k, v in vector.items() if v > 0.4}
@@ -333,7 +302,6 @@ class MemoryCore:
         return sum(self.graph[node]["edges"].values())
 
     def strengthen_link(self, source, target, rate, decay):
-        """ Hebbian learning. Neurons that fire together wire together. """
         if source not in self.graph:
             return
         edges = self.graph[source]["edges"]
@@ -344,7 +312,6 @@ class MemoryCore:
         edges[target] = min(10.0, current_weight + delta)
 
     def prune_synapses(self, scaling_factor=0.85, prune_threshold=0.5):
-        """ Forgets old, weak connections to prevent the graph from becoming a complete hairball. """
         pruned_count = 0
         total_decayed = 0
         nodes_to_remove = []
@@ -374,7 +341,6 @@ class MemoryCore:
 
     def cannibalize(
             self, current_tick, preserve_current=None) -> Tuple[Optional[str], str]:
-        """ Autophagy. Deletes the weakest node in the graph to make room for new concepts. """
         protected = set()
         if preserve_current:
             if isinstance(preserve_current, list):
@@ -401,10 +367,7 @@ class MemoryCore:
                        "death_tick": current_tick, }
         self.subconscious.bury(fossil_data)
         if hasattr(self, 'events') and self.events and victim:
-            self.events.publish("AUTOPHAGY_EVENT", {
-                "node": victim,
-                "atp_gained": 15.0 # Ensure this maps to your METABOLISM constraints
-            })
+            self.events.publish("AUTOPHAGY_EVENT", {"node": victim, "atp_gained": 15.0})
         del self.graph[victim]
         for node in self.graph:
             if victim in self.graph[node]["edges"]:
@@ -414,11 +377,6 @@ class MemoryCore:
 
 
 class MycelialNetwork:
-    """
-    The master orchestration object for memory and immunity.
-    It holds the MemoryCore, the parasites, and the actual serialization logic to
-    write the session graph to disk as a 'Spore'.
-    """
     def __init__(self, events: EventBus, loader: "LocalFileSporeLoader" = None, seed_file=None):
         self.events = events
         self.loader = loader if loader else LocalFileSporeLoader()
@@ -444,7 +402,6 @@ class MycelialNetwork:
             self.events.subscribe("SCAR_RECORDED", self._on_scar_recorded)
 
     def _on_scar_recorded(self, payload):
-        """ When a paradox scars the system, it acts as a permanent reflection plane. """
         concept = payload.get("concept")
         if concept:
             v = _word_to_vector(concept)
@@ -466,7 +423,6 @@ class MycelialNetwork:
         return self.memory_core.calculate_mass(node)
 
     def run_ecosystem(self, physics: Dict, stamina: float, tick: int) -> List[str]:
-        """ Executes the biological inhabitants of the graph (Immune, Lichen, Parasite). """
         logs = []
         clean_words = physics.get("clean_words", [])
         sugar, lichen_msg = self.lichen.photosynthesize(physics, clean_words, tick)
@@ -486,19 +442,12 @@ class MycelialNetwork:
             chorus_log = self._poll_chorus(clean_words, physics)
             if chorus_log:
                 logs.append(chorus_log)
-        cfg = getattr(BoneConfig, "SPORES", None)
-        chorus_c = getattr(cfg, "CHORUS_CHANCE", 0.10) if cfg else 0.10
-        if random.random() < chorus_c:
-            chorus_log = self._poll_chorus(clean_words, physics)
-            if chorus_log:
-                logs.append(chorus_log)
         ghost_log = self._poll_ghosts(clean_words, physics)
         if ghost_log:
             logs.append(ghost_log)
         return logs
 
     def _poll_chorus(self, clean_words: list, physics: Dict) -> Optional[str]:
-        """ Checks if the current words have massive weight in the graph, echoing their mass into current physics. """
         total_voltage_boost = 0.0
         total_drag_penalty = 0.0
         echo_count = 0
@@ -813,7 +762,7 @@ class MycelialNetwork:
                      for s in self.seeds
                      if not s.bloomed]
         seed_list.append({"q": future_seed_q, "m": 0.0, "b": False})
-        data = {"genome": "BONEAMANITA_17.1.0", "session_id": self.session_id, "parent_id": self.session_id, "meta": {
+        data = {"genome": "BONEAMANITA_17.3.1", "session_id": self.session_id, "parent_id": self.session_id, "meta": {
             "timestamp": time.time(), "final_health": health, "final_stamina": stamina, }, "trauma_vector": final_vector, "joy_vectors": top_joy or [], "joy_legacy": joy_legacy_data,
                 "core_graph": core_graph, "mutations": mutations, "antibodies": list(antibodies) if antibodies else [],
                 "mitochondria": mitochondria_traits, "soul_legacy": soul_data, "continuity": continuity,
@@ -1026,7 +975,7 @@ class LiteraryReproduction:
     @classmethod
     def load_genetics(cls):
         try:
-            genetics = LoreManifest.get_instance().get("GENETICS")
+            genetics = LoreManifest.get_instance().get("GENETICS") or {}
             cls.MUTATIONS = genetics.get("MUTATIONS", {})
             cls.JOY_CLADE = genetics.get("JOY_CLADE", {})
         except Exception:

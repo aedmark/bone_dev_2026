@@ -4,8 +4,8 @@ bone_symbiosis.py
 
 import math
 from dataclasses import dataclass
-from typing import Dict, Counter
-from collections import deque
+from typing import Dict, Tuple
+from collections import deque, Counter
 from bone_presets import BoneConfig
 from bone_core import LoreManifest, ux
 from bone_types import Prisma
@@ -51,7 +51,7 @@ class CoherenceAnchor:
     def compress_anchor(soul_state: Dict, physics_state: Dict, max_tokens=200) -> str:
         loc = physics_state.get("zone", "VOID")
         vits = f"V:{physics_state.get('voltage', 0):.1f}"
-        traits = soul_state.get("traits", {})
+        traits = soul_state.get("traits") or {}
         top_traits = sorted(traits.items(), key=lambda x: x[1], reverse=True)[:3]
         trait_str = ",".join(f"{k[:3]}:{v:.1f}" for k, v in top_traits)
         template = ux("symbiosis_strings", "anchor_compressed")
@@ -111,13 +111,13 @@ class SymbiontVoice:
             self.archetypes = archetypes
         self.personality = personality_matrix or {}
 
-    def opine(self, clean_words: list, voltage: float) -> tuple[float, str]:
+    def opine(self, clean_words: list, voltage: float) -> Tuple[float, str]:
         hits = sum(1 for w in clean_words if w in self.archetypes)
         score = (hits / max(1, len(clean_words))) * 10.0
         return score, self._get_comment(score, voltage)
 
     def _get_comment(self, score, voltage):
-        comment = ux("symbiosis_strings", "symbiont_default_comment")
+        comment = ux("symbiosis_strings", "symbiont_default_comment") or "..."
         if voltage > 18.0 and "high_volt" in self.personality: comment = self.personality["high_volt"]
         elif voltage < 5.0 and "low_volt" in self.personality: comment = self.personality["low_volt"]
         elif score > 3.0 and "high_score" in self.personality: comment = self.personality["high_score"]

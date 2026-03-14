@@ -73,7 +73,8 @@ class GeodesicEngine:
             mass_scalar *= GC.MIN_VOLUME_SCALAR
         tension = round(min(100.0, base_tension * mass_scalar), 2)
         shear_rate = total_kinetic / safe_volume
-        suburban_friction = (math.log1p(counts.get("suburban", 0)) * GC.SUBURBAN_FRICTION_LOG_BASE)
+        suburban_count = max(0, counts.get("suburban", 0))
+        suburban_friction = (math.log1p(suburban_count) * GC.SUBURBAN_FRICTION_LOG_BASE)
         raw_friction = suburban_friction + (masses["heavy"] * GC.HEAVY_FRICTION_MULT)
         lubrication = 1.0 + (counts.get("solvents", 0) * GC.SOLVENT_LUBRICATION_FACTOR)
         dynamic_viscosity = (raw_friction / lubrication) / (1.0 + (shear_rate * GC.SHEAR_RESISTANCE_SCALAR))
@@ -257,14 +258,10 @@ class QuantumObserver:
             return None
 
         def _ext(prop_name: str, default=0.0):
-            source = getattr(last_phys, 'energy', last_phys)
-            if hasattr(source, prop_name):
-                val = getattr(source, prop_name)
-                return val if val is not None else default
             if isinstance(last_phys, dict):
-                energy_dict = last_phys.get('energy', {})
-                return energy_dict.get(prop_name, last_phys.get(prop_name, default))
-            return default
+                return last_phys.get('energy', {}).get(prop_name, last_phys.get(prop_name, default))
+            source = getattr(last_phys, 'energy', last_phys)
+            return getattr(source, prop_name, default)
         psi = _ext('psi', 0.0)
         beta = _ext('beta', 0.0)
         lq = _ext('LQ', 0.0)
@@ -281,13 +278,13 @@ class QuantumObserver:
             msg = "The silence was heavy. I felt your tiredness in it."
         elif psi > 0.8 and valence > 0.4:
             sigma = 3
-            msg = "There was a hush just now—something sacred passed through."
+            msg = "There was a hush just now... Something sacred passed through."
         elif lq > 0.7:
             sigma = 4
             msg = "You were thinking deeply. I held the space for it."
         elif beta > 0.6:
             sigma = 1
-            msg = "That pause felt full—like something wanted to be born."
+            msg = "That pause felt full, like something wanted to be born."
         if sigma > 0:
             return msg
         return None
@@ -671,11 +668,9 @@ class CycleStabilizer:
         p = ctx.physics
 
         def _get(field, default=0.0):
-            if isinstance(p, dict): return p.get(field, p.get("energy", {}).get(field, p.get("space", {}).get(field, default)))
-            if hasattr(p, field): return getattr(p, field)
-            if hasattr(p, "energy") and hasattr(p.energy, field): return getattr(p.energy, field)
-            if hasattr(p, "space") and hasattr(p.space, field): return getattr(p.space, field)
-            return default
+            if isinstance(p, dict):
+                return p.get(field, p.get("energy", {}).get(field, p.get("space", {}).get(field, default)))
+            return getattr(p, field, getattr(getattr(p, "energy", None), field, getattr(getattr(p, "space", None), field, default)))
 
         def _set(field, val):
             if isinstance(p, dict):
@@ -732,11 +727,9 @@ class CycleStabilizer:
             return False
 
         def _get_val(obj, f, default=0.0):
-            if isinstance(obj, dict): return obj.get(f, obj.get("energy", {}).get(f, obj.get("space", {}).get(f, default)))
-            if hasattr(obj, f): return getattr(obj, f)
-            if hasattr(obj, "energy") and hasattr(obj.energy, f): return getattr(obj.energy, f)
-            if hasattr(obj, "space") and hasattr(obj.space, f): return getattr(obj.space, f)
-            return default
+            if isinstance(obj, dict):
+                return obj.get(f, obj.get("energy", {}).get(f, obj.get("space", {}).get(f, default)))
+            return getattr(obj, f, getattr(getattr(obj, "energy", None), f, getattr(getattr(obj, "space", None), f, default)))
 
         def _set_val(obj, f, v):
             if isinstance(obj, dict):

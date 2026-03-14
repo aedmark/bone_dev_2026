@@ -59,7 +59,7 @@ class SessionGuardian:
     def __enter__(self):
         subprocess.run("cls" if os.name == "nt" else "clear", shell=True)
         top_bar = ux("main_strings", "term_header_top", "┌──────────────────────────────────────────┐")
-        mid_bar = ux("main_strings", "term_header_mid", "│ BONEAMANITA TERMINAL // VERSION 17.3.0   │")
+        mid_bar = ux("main_strings", "term_header_mid", "│ BONEAMANITA TERMINAL // VERSION 17.3.1   │")
         bot_bar = ux("main_strings", "term_header_bot", "└──────────────────────────────────────────┘")
         print(f"{Prisma.paint(top_bar, 'M')}")
         print(f"{Prisma.paint(mid_bar, 'M')}")
@@ -231,7 +231,7 @@ class BoneAmanita:
 
     def _load_system_prompts(self):
         try:
-            paths = ["lore/system_prompts.json", "dev/lore/system_prompts.json"]
+            paths = ["lore/system_prompts.json"]
             loaded = False
             for p in paths:
                 if os.path.exists(p):
@@ -396,12 +396,8 @@ class BoneAmanita:
         if pre_flight_halt:
             return pre_flight_halt
         if not is_system and self.gordon:
-            pruning_active = False
-            for i in self.gordon.inventory:
-                item_data = self.gordon.get_item_data(i)
-                if item_data and "CUT_THE_CRAP" in item_data.passive_traits:
-                    pruning_active = True
-                    break
+            pruning_active = any("CUT_THE_CRAP" in (self.gordon.get_item_data(i).passive_traits if self.gordon.get_item_data(i) else [])
+                for i in self.gordon.inventory)
             if pruning_active:
                 from bone_tcl import TheTclWeaver
                 original_msg = user_message

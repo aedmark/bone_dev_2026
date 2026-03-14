@@ -402,7 +402,7 @@ class DigestiveTrack:
                     val = (self.COMPLEX_WORD_BONUS
                            if len(word) > comp_len
                            else self.BASE_WORD_VALUE)
-                    total_val = val * (1.0 + math.log(count))
+                    total_val = val * (1.0 + math.log1p(max(0, count - 1)))
                     atp_yield += total_val
         return atp_yield, enzymes, cliche_tax, hits
 
@@ -588,7 +588,7 @@ class SomaticLoop:
 
     def _package_result(self, resp_status, logs, chem_state=None, enzyme="NONE"):
         is_alive = resp_status == "RESPIRING" or resp_status == "ANAEROBIC"
-        current_atp = self.bio.mito.state.atp_pool
+        current_atp = self.bio.mito.state.atp_pool if self.bio and self.bio.mito and self.bio.mito.state else 60.0
         current_stamina = 100.0
         if self.bio.biometrics:
             current_stamina = self.bio.biometrics.stamina
@@ -758,8 +758,9 @@ class EndocrineSystem:
             self._apply_semantic_pressure(semantic_signal)
         self._maintain_homeostasis(social_context)
         glimmer_msg = self.check_for_glimmer(feedback, harvest_hits)
-        for chem in ["dopamine", "oxytocin", "cortisol", "serotonin", "adrenaline", "melatonin", ]:
-            setattr(self, chem, self._clamp(getattr(self, chem)))
+        for chem in ["dopamine", "oxytocin", "cortisol", "serotonin", "adrenaline", "melatonin"]:
+            current_val = getattr(self, chem, 0.0)
+            setattr(self, chem, self._clamp(current_val))
         state = self.get_state()
         if glimmer_msg:
             state["glimmer_msg"] = glimmer_msg
@@ -976,8 +977,7 @@ class SynestheticCortex:
         antigen_count = counts.get("antigen", 0)
         if antigen_count > 0:
             toxin_weight = getattr(BoneConfig, "TOXIN_WEIGHT", 1.0)
-            toxin_scalar = (
-                getattr(cortex_cfg, "TOXIN_SCALAR", 0.5) if cortex_cfg else 0.5)
+            toxin_scalar = getattr(cortex_cfg, "TOXIN_SCALAR", 0.5) if cortex_cfg else 0.5
             raw_tox = antigen_count * (toxin_weight * 0.2)
             impulse.cortisol_delta += min(toxin_scalar, raw_tox)
             impulse.somatic_reflex = "Shiver (Rejection)"

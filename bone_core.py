@@ -7,6 +7,8 @@ import json
 import os
 import random
 import time
+import threading
+import traceback
 from collections import deque
 from dataclasses import dataclass, field
 from typing import List, Dict, Any, Optional, Counter, Tuple, Deque
@@ -49,7 +51,6 @@ class EventBus:
             try:
                 callback(data)
             except Exception as e:
-                import traceback
                 cb_name = getattr(callback, "__name__", str(callback))
                 full_trace = traceback.format_exc()
                 raw_err = f"Error in '{cb_name}' for '{event_type}': {e}\n{full_trace}"
@@ -277,12 +278,12 @@ class ArchetypeArbiter:
     def arbitrate(physics_lens: str, soul_archetype: str, council_mandates: List[Dict], trigram: Dict = None, ) -> Tuple[str, str, str]:
         for mandate in council_mandates:
             if mandate.get("type") == "LOCKDOWN":
-                return "THE CENSOR", "COUNCIL", ux("core_strings", "arb_martial_law") ,
+                return "THE CENSOR", "COUNCIL", ux("core_strings", "arb_martial_law")
             if mandate.get("type") == "FORCE_MODE":
-                return "THE MACHINE", "COUNCIL", ux("core_strings", "arb_bureaucratic") ,
-        if "/" in soul_archetype:
-            msg = ux("core_strings", "arb_diamond")
-            return soul_archetype, "SOUL", msg.format(soul_archetype=soul_archetype) if msg else "",
+                return "THE MACHINE", "COUNCIL", ux("core_strings", "arb_bureaucratic")
+            if "/" in soul_archetype:
+                msg = ux("core_strings", "arb_diamond")
+                return soul_archetype, "SOUL", (msg.format(soul_archetype=soul_archetype) if msg else "")
         if trigram:
             trigram_name = trigram.get("name")
             mythos = LoreManifest.get_instance().get("MYTHOS") or {}
@@ -300,8 +301,8 @@ class ArchetypeArbiter:
         loud_lenses = getattr(cfg, "LOUD_LENSES", ["THE MANIC", "THE VOID"]) if cfg else ["THE MANIC", "THE VOID"]
         if physics_lens in loud_lenses:
             msg = ux("core_strings", "arb_loud")
-            return physics_lens, "PHYSICS", msg.format(physics_lens=physics_lens) if msg else "",
-        return soul_archetype, "SOUL",  ux("core_strings", "arb_soul")
+            return physics_lens, "PHYSICS", (msg.format(physics_lens=physics_lens) if msg else "")
+        return soul_archetype, "SOUL", ux("core_strings", "arb_soul")
 
 class TelemetryService:
     _tracer_instance = None
@@ -379,13 +380,13 @@ class TelemetryService:
             return
         lines_to_write = list(self.write_buffer)
         self.write_buffer.clear()
+
         def _bg_write(lines, filepath):
             try:
                 with open(filepath, "a", encoding="utf-8") as f:
                     f.write("\n".join(lines) + "\n")
-            except IOError as e:
+            except IOError:
                 pass
-        import threading
         t = threading.Thread(target=_bg_write, args=(lines_to_write, self.current_trace_file))
         t.daemon = True
         t.start()

@@ -154,7 +154,9 @@ class LLMInterface:
         fallback_payload = {"model": model, "messages": [{"role": "user", "content": prompt}], "stream": False,
                             "temperature": params.get("temperature", 0.4),
                             "frequency_penalty": params.get("frequency_penalty", 0.8),
-                            "presence_penalty": params.get("presence_penalty", 0.4), "stop": ["=== PARTNER INPUT ===", "\n\nTraveler:", "\nTraveler:", "Traveler:", ], }
+                            "presence_penalty": params.get("presence_penalty", 0.4),
+                            "max_tokens": params.get("max_tokens", 4096),
+                            "stop": ["=== PARTNER INPUT ===", "\n\nTraveler:", "\nTraveler:", "Traveler:", ], }
         try:
             cfg = getattr(BoneConfig, "CORTEX", None)
             fallback_timeout = getattr(cfg, "LLM_FALLBACK_TIMEOUT", 10.0) if cfg else 10.0
@@ -194,23 +196,15 @@ class PromptComposer:
     @staticmethod
     def _safe_get(p_state: Any, key: str, default: Any = 0.0) -> Any:
         if isinstance(p_state, dict):
-            if key in p_state:
-                return p_state[key]
-            for sub in ["energy", "space", "matter"]:
-                if (sub in p_state
-                        and isinstance(p_state[sub], dict)
-                        and key in p_state[sub]):
-                    return p_state[sub][key]
-            return default
-        if hasattr(p_state, key):
-            return getattr(p_state, key)
+            return p_state.get(key, p_state.get("energy", {}).get(key, p_state.get("space", {}).get(key, p_state.get(
+                "matter", {}).get(key, default))))
+        val = getattr(p_state, key, None)
+        if val is not None: return val
         for sub in ["energy", "space", "matter"]:
-            if hasattr(p_state, sub):
-                sub_obj = getattr(p_state, sub)
-                if hasattr(sub_obj, key):
-                    return getattr(sub_obj, key)
-                if isinstance(sub_obj, dict) and key in sub_obj:
-                    return sub_obj[key]
+            sub_obj = getattr(p_state, sub, None)
+            if sub_obj:
+                val = getattr(sub_obj, key, sub_obj.get(key) if isinstance(sub_obj, dict) else None)
+                if val is not None: return val
         return default
 
     def load_template(self, template_data: Dict[str, Any]):
@@ -620,30 +614,6 @@ class ResponseValidator:
         clean_text = file_pattern.sub("", clean_text)
         for pattern, replacement in self.scrub_patterns:
             clean_text = pattern.sub(replacement, clean_text)
-        start_marker = "<system_telemetry>"
-        end_marker = "</system_telemetry>"
-        while True:
-            start_idx = clean_text.find(start_marker)
-            if start_idx == -1:
-                break
-            end_idx = clean_text.find(end_marker, start_idx)
-            if end_idx != -1:
-                meta_content = clean_text[
-                    start_idx + len(start_marker) : end_idx
-                ].strip()
-                for line in meta_content.split("\n"):
-                    if line.strip():
-                        extracted_meta_logs.append(f"[THOUGHT]: {line.strip()}")
-                clean_text = (clean_text[:start_idx] + clean_text[end_idx + len(end_marker) :])
-            else:
-                meta_content = clean_text[start_idx + len(start_marker) :].strip()
-                for line in meta_content.split("\n"):
-                    if line.strip():
-                        extracted_meta_logs.append(f"[THOUGHT]: {line.strip()}")
-                clean_text = clean_text[:start_idx]
-                break
-        for pattern, replacement in self.scrub_patterns:
-            clean_text = pattern.sub(replacement, clean_text)
         clean_lines = []
         toxic_keywords = getattr(self, "toxic_keywords", [])
         for line in clean_text.splitlines():
@@ -651,7 +621,6 @@ class ResponseValidator:
             if not stripped_line:
                 clean_lines.append("")
                 continue
-
             is_meta = False
             for marker in self.meta_markers:
                 if marker.lower() in stripped_line.lower():

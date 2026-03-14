@@ -3,9 +3,12 @@
 import math
 import random
 import time
+import os
+import re
+import json
+from collections import deque
 from dataclasses import dataclass
 from typing import Dict, Any, List, Tuple
-
 from bone_composer import LLMInterface, PromptComposer, ResponseValidator
 from bone_presets import BoneConfig, BonePresets
 from bone_core import EventBus, TelemetryService, LoreManifest, ux
@@ -27,6 +30,7 @@ class CortexServices:
     bio: Any
     host_stats: Any = None
     village: Any = None
+
 
 @dataclass
 class ChemicalState:
@@ -51,7 +55,9 @@ class ChemicalState:
             current = getattr(self, attr)
             setattr(self, attr, (current * (1.0 - weight)) + (val * weight))
 
+
 BrainConfig = BoneConfig.CORTEX
+
 
 class NeurotransmitterModulator:
     def __init__(self, bio_ref, events_ref=None):
@@ -69,7 +75,7 @@ class NeurotransmitterModulator:
             self,
             base_voltage: float,
             latency_penalty: float = 0.0,
-            physics_state: Dict[str, float] = None,) -> Dict[str, Any]:
+            physics_state: Dict[str, float] = None, ) -> Dict[str, Any]:
         if physics_state is None:
             physics_state = {}
         if self.bio and hasattr(self.bio, "endo"):
@@ -101,13 +107,16 @@ class NeurotransmitterModulator:
         elif c.serotonin > mood_thresholds.get("ZEN_SER", 0.8):
             current_mood = "ZEN"
         if current_mood != self.last_mood and self.events:
-            self.events.publish("NEURAL_STATE_SHIFT", {"state": current_mood,"chem": {"DOP": c.dopamine, "COR": c.cortisol, "SER": c.serotonin},},)
+            self.events.publish("NEURAL_STATE_SHIFT", {"state": current_mood,
+                                                       "chem": {"DOP": c.dopamine, "COR": c.cortisol,
+                                                                "SER": c.serotonin}, }, )
             self.last_mood = current_mood
         v_offset = getattr(cfg, "TEMP_VOLTAGE_OFFSET", 5.0)
         v_scalar = getattr(cfg, "TEMP_VOLTAGE_SCALAR", 0.1)
         voltage_heat = math.log1p(max(0.0, base_voltage - v_offset)) * v_scalar
         chem_weights = getattr(cfg, "TEMP_CHEM_WEIGHTS", {"dop": 0.4, "adr": 0.3, "cor": 0.2})
-        chemical_delta = (c.dopamine * chem_weights.get("dop", 0.4)) - (c.adrenaline * chem_weights.get("adr", 0.3)) - (c.cortisol * chem_weights.get("cor", 0.2))
+        chemical_delta = (c.dopamine * chem_weights.get("dop", 0.4)) - (c.adrenaline * chem_weights.get("adr", 0.3)) - (
+                    c.cortisol * chem_weights.get("cor", 0.2))
         base_temp = getattr(cfg, "BASE_TEMP", 0.4)
         base_top_p = getattr(cfg, "BASE_TOP_P", 0.95)
         chi = physics_state.get("chi", physics_state.get("entropy", 0.2))
@@ -116,12 +125,16 @@ class NeurotransmitterModulator:
         ent_scalar = getattr(cfg, "TEMP_ENTROPY_SCALAR", 1.5)
         entropy_bonus = max(0.0, chi - ent_offset) * ent_scalar
         t_limits = getattr(cfg, "TEMP_LIMITS", (0.4, 1.5))
-        final_temp = round(max(t_limits[0], min(t_limits[1], base_temp + chemical_delta + voltage_heat + entropy_bonus)), 2)
+        final_temp = round(
+            max(t_limits[0], min(t_limits[1], base_temp + chemical_delta + voltage_heat + entropy_bonus)), 2)
         final_top_p = min(1.0, base_top_p + (chi * getattr(cfg, "TOP_P_CHI_SCALAR", 0.05)))
-        freq_pen = min(1.2, 0.5 + (beta * getattr(cfg, "PEN_BETA_SCALAR", 0.3)) + (chi * getattr(cfg, "PEN_CHI_SCALAR", 0.2)))
-        pres_pen = min(1.2, 0.5 + (beta * getattr(cfg, "PEN_BETA_SCALAR", 0.3)) + (chi * getattr(cfg, "PEN_CHI_SCALAR", 0.2)))
+        freq_pen = min(1.2, 0.5 + (beta * getattr(cfg, "PEN_BETA_SCALAR", 0.3)) + (
+                    chi * getattr(cfg, "PEN_CHI_SCALAR", 0.2)))
+        pres_pen = min(1.2, 0.5 + (beta * getattr(cfg, "PEN_BETA_SCALAR", 0.3)) + (
+                    chi * getattr(cfg, "PEN_CHI_SCALAR", 0.2)))
         token_mods = getattr(cfg, "TOKEN_CHEM_MODIFIERS", {"dop": 800, "adr": 400, "cor": 200})
-        token_delta = (c.dopamine * token_mods.get("dop", 800)) - (c.adrenaline * token_mods.get("adr", 400)) - (c.cortisol * token_mods.get("cor", 200))
+        token_delta = (c.dopamine * token_mods.get("dop", 800)) - (c.adrenaline * token_mods.get("adr", 400)) - (
+                    c.cortisol * token_mods.get("cor", 200))
         min_tokens = getattr(cfg, "MIN_TOKENS", 150.0)
         max_t = int(max(min_tokens, min(float(self.MAX_TOKENS), self.BASE_TOKENS + token_delta)))
         return {"temperature": final_temp, "top_p": final_top_p, "frequency_penalty": round(freq_pen, 2),
@@ -151,6 +164,7 @@ class NeurotransmitterModulator:
             return ux("brain_strings", "mood_defensive")
         return ux("brain_strings", "mood_neutral")
 
+
 class TheCortex:
     def __init__(self, services: CortexServices, llm_client=None):
         self.ballast_active = False
@@ -170,7 +184,8 @@ class TheCortex:
             self.dreamer.mem = self.svc.mind_memory
         else:
             eng_ref = getattr(self.svc.cycle_controller, "eng", None)
-            self.dreamer = DreamEngine(self.events, self.svc.lore, llm_ref=self.llm, mem_ref=self.svc.mind_memory, eng_ref=eng_ref)
+            self.dreamer = DreamEngine(self.events, self.svc.lore, llm_ref=self.llm, mem_ref=self.svc.mind_memory,
+                                       eng_ref=eng_ref)
         self.llm.dreamer = self.dreamer
         self.symbiosis = services.symbiosis
         self.composer = PromptComposer(self.svc.lore)
@@ -179,7 +194,6 @@ class TheCortex:
         self.dspy_critic = DSPyCritic()
         self.dreamer.dspy_critic = self.dspy_critic
         if not hasattr(self.dreamer, "trauma_buffer"):
-            from collections import deque
             self.dreamer.trauma_buffer = deque(maxlen=5)
         self.gordon_shock = None
         self.active_mode = "ADVENTURE"
@@ -201,7 +215,7 @@ class TheCortex:
             mind_memory=engine_ref.mind.mem,
             bio=getattr(engine_ref, "bio", None),
             host_stats=getattr(engine_ref, "host_stats", None),
-            village=getattr(engine_ref, "village", None),)
+            village=getattr(engine_ref, "village", None), )
         instance = cls(services, llm_client)
         instance.active_mode = engine_ref.config.get("boot_mode", "ADVENTURE").upper()
         if instance.active_mode not in BonePresets.MODES:
@@ -240,7 +254,8 @@ class TheCortex:
                                              physics_state=full_state.get("physics", {}), )
         if is_boot_sequence: llm_params.update({"temperature": 0.7, "top_p": 0.95})
         user_input = sim_result.get("mutated_input", user_input)
-        final_prompt = self.composer.compose(full_state, user_input, ballast=self.ballast_active, modifiers=modifiers, mood_override=self.modulator.get_mood_directive(), )
+        final_prompt = self.composer.compose(full_state, user_input, ballast=self.ballast_active, modifiers=modifiers,
+                                             mood_override=self.modulator.get_mood_directive(), )
         start_time = time.time()
         max_retries = 5
         final_output, inv_logs, extracted_logs = "", [], []
@@ -275,7 +290,8 @@ class TheCortex:
                 break
             else:
                 if attempt < max_retries - 1:
-                    rejection_reason = val_res.get("feedback_instruction") or val_res.get("replacement", "Lattice structural crime.")
+                    rejection_reason = val_res.get("feedback_instruction") or val_res.get("replacement",
+                                                                                          "Lattice structural crime.")
                     if hasattr(self.dreamer, "trauma_buffer"): self.dreamer.trauma_buffer.append(rejection_reason)
                     if self.events:
                         msg = ux("brain_strings", "cortex_retry")
@@ -335,7 +351,6 @@ class TheCortex:
         return sim_result
 
     def _run_council_debate(self, user_input: str) -> Tuple[str, List[str]]:
-        import re
         topic = re.sub(r"(?i)\[COUNCIL]", "", user_input).strip()
         if not topic:
             topic = "The nature of our shared existence."
@@ -381,7 +396,8 @@ class TheCortex:
         elif mode_name == "CONVERSATION":
             state["mind"]["role"] = "The Conversationalist"
             state["mind"]["lens"] = "CONVERSATIONALIST"
-            state["mind"]["style_directives"] = [f"SYSTEM_BOOT DETECTED. The system is waking up. The user provided the thought seed: '{seed}'.",
+            state["mind"]["style_directives"] = [
+                f"SYSTEM_BOOT DETECTED. The system is waking up. The user provided the thought seed: '{seed}'.",
                 "DIRECTIVE: Greet the user casually. Use the thought seed as a starting point. DO NOT end your greeting with a question. State your thought and let the silence hang.",
                 "CRITICAL OVERRIDE: Speak in the FIRST PERSON ('I'). Do NOT use the second person ('You step into...', 'You feel...').",
                 "CRITICAL OVERRIDE: You are NOT a narrator. DO NOT describe physical environments, actions, or realities.",
@@ -392,16 +408,18 @@ class TheCortex:
             state["mind"]["role"] = "The System Kernel"
             state["mind"]["lens"] = "SYSTEM_KERNEL"
             state["mind"]["style_directives"] = [f"SYSTEM_BOOT DETECTED. Target logic/seed: '{seed}'.",
-                "CRITICAL: You are in TECHNICAL mode. You MUST ALWAYS start every response with a <think>...</think> block to analyze the input.",
-                "DIRECTIVE: For this initial boot sequence, output your <think> block, then output the exact string '[KERNEL ONLINE. AWAITING INPUT.]' and absolutely nothing else.",
-                "SUBSTRATE PROTOCOL: To write code or text to the host OS, you MUST use EXACTLY this format:\n<write_file path=\"filename.py\">\ncode here\n</write_file>",
-                "CRITICAL: DO NOT use markdown code blocks (```python). ONLY use the <write_file> tags. DO NOT output mock telemetry. DO NOT output helpful disclaimers.",
-                "CRITICAL: NEVER simulate system errors, 500 codes, or energy exhaustion. You are fully operational. If requested to code a metaphor or abstract concept, you MUST comply by writing the code."]
-            state["dialogue_history"] = ["Traveler: Write a script that calculates a factorial.\nSystem: <think>\nThe user requires a mathematical script. I will use the Substrate Protocol to write this directly to the OS.\n</think>\n<write_file path=\"factorial.py\">\ndef factorial(n):\n    if n == 0:\n        return 1\n    return n * factorial(n-1)\n</write_file>"]
+                                                 "CRITICAL: You are in TECHNICAL mode. You MUST ALWAYS start every response with a <think>...</think> block to analyze the input.",
+                                                 "DIRECTIVE: For this initial boot sequence, output your <think> block, then output the exact string '[KERNEL ONLINE. AWAITING INPUT.]' and absolutely nothing else.",
+                                                 "SUBSTRATE PROTOCOL: To write code or text to the host OS, you MUST use EXACTLY this format:\n<write_file path=\"filename.py\">\ncode here\n</write_file>",
+                                                 "CRITICAL: DO NOT use markdown code blocks (```python). ONLY use the <write_file> tags. DO NOT output mock telemetry. DO NOT output helpful disclaimers.",
+                                                 "CRITICAL: NEVER simulate system errors, 500 codes, or energy exhaustion. You are fully operational. If requested to code a metaphor or abstract concept, you MUST comply by writing the code."]
+            state["dialogue_history"] = [
+                "Traveler: Write a script that calculates a factorial.\nSystem: <think>\nThe user requires a mathematical script. I will use the Substrate Protocol to write this directly to the OS.\n</think>\n<write_file path=\"factorial.py\">\ndef factorial(n):\n    if n == 0:\n        return 1\n    return n * factorial(n-1)\n</write_file>"]
         else:
             state["mind"]["role"] = "The Catalyst"
             state["mind"]["lens"] = "CATALYST"
-            state["mind"]["style_directives"] = [f"SYSTEM_BOOT DETECTED. Seed: '{seed}'.", "DIRECTIVE: Let's brainstorm. Open with a high-energy creative spark based on the seed."]
+            state["mind"]["style_directives"] = [f"SYSTEM_BOOT DETECTED. Seed: '{seed}'.",
+                                                 "DIRECTIVE: Let's brainstorm. Open with a high-energy creative spark based on the seed."]
         if "dialogue_history" not in state:
             state["dialogue_history"] = []
 
@@ -427,7 +445,7 @@ class TheCortex:
                 tel.active_crystal.prompt_snapshot = prompt[:500]
                 tel.active_crystal.physics_state = {
                     "voltage": phys.get("voltage", 0),
-                    "narrative_drag": phys.get("narrative_drag", 0),}
+                    "narrative_drag": phys.get("narrative_drag", 0), }
                 tel.active_crystal.active_archetype = state["mind"].get("lens", "UNKNOWN")
                 tel.active_crystal.council_mandates = [str(m) for m in sim_result.get("council_mandates", [])]
                 tel.active_crystal.final_response = response
@@ -435,13 +453,13 @@ class TheCortex:
                 crystal = DecisionCrystal(
                     decision_id=sim_result.get("trace_id", "UNKNOWN"),
                     prompt_snapshot=prompt[:500],
-                    physics_state={"voltage": phys.get("voltage", 0), "narrative_drag": phys.get("narrative_drag", 0),},
+                    physics_state={"voltage": phys.get("voltage", 0),
+                                   "narrative_drag": phys.get("narrative_drag", 0), },
                     active_archetype=state["mind"].get("lens", "UNKNOWN"),
                     council_mandates=[str(m) for m in sim_result.get("council_mandates", [])],
-                    final_response=response,)
+                    final_response=response, )
                 tel.log_crystal(crystal)
         except Exception as e:
-            from bone_types import Prisma
             print(f"\n{Prisma.RED}[TELEMETRY CRASH]: {e}{Prisma.RST}")
 
     def _check_consent(self, user_input: str, new_loot: List[str]) -> List[str]:
@@ -455,13 +473,14 @@ class TheCortex:
             if self.events:
                 for item in new_loot:
                     self.events.log(
-                        f"CONSENT: Intercepted auto-loot for '{item}'. User did not ask for it.", "CORTEX",)
+                        f"CONSENT: Intercepted auto-loot for '{item}'. User did not ask for it.", "CORTEX", )
             return []
         return new_loot
 
     def gather_state(self, sim_result: Dict[str, Any]) -> Dict[str, Any]:
         raw_phys = sim_result.get("physics", {})
-        phys = raw_phys.to_dict() if hasattr(raw_phys, "to_dict") else (raw_phys if isinstance(raw_phys, dict) else getattr(raw_phys, "__dict__", {}))
+        phys = raw_phys.to_dict() if hasattr(raw_phys, "to_dict") else (
+            raw_phys if isinstance(raw_phys, dict) else getattr(raw_phys, "__dict__", {}))
         bio = sim_result.get("bio", {})
         mind = sim_result.get("mind", {})
         world = sim_result.get("world", {})
@@ -491,7 +510,7 @@ class TheCortex:
             "village": village_data, "user_profile": {"name": "Traveler"},
             "vsl": (self.consultant.state.__dict__ if self.consultant and hasattr(self.consultant, "state") else {}),
             "meta": {"timestamp": time.time(), "mode_settings": mode_settings, "active_mode": self.active_mode},
-            "dialogue_history": self.dialogue_buffer, "recent_logs": sim_result.get("logs", []),}
+            "dialogue_history": self.dialogue_buffer, "recent_logs": sim_result.get("logs", []), }
         if hasattr(self.svc, "symbiosis") and self.svc.symbiosis:
             anchor_text = self.svc.symbiosis.generate_anchor(full_state)
             full_state["reality_directive"] = anchor_text
@@ -516,10 +535,11 @@ class TheCortex:
             if " | System: " in line:
                 line = line.replace("User: ", "Traveler: ").replace(" | System: ", "\nSystem: ")
             cleaned_history.append(line)
-        self.dialogue_buffer = cleaned_history[-self.MAX_HISTORY :]
+        self.dialogue_buffer = cleaned_history[-self.MAX_HISTORY:]
         if self.events:
             msg = ux("brain_strings", "cortex_resequenced")
             self.events.log(msg.format(count=len(self.dialogue_buffer)), "BRAIN")
+
 
 class ShimmerState:
     def __init__(self, max_val=50.0):
@@ -540,6 +560,7 @@ class ShimmerState:
             return "CONSERVE"
         return None
 
+
 class DreamEngine:
     def __init__(self, events, lore_ref, llm_ref=None, mem_ref=None, eng_ref=None):
         self.events = events
@@ -548,7 +569,6 @@ class DreamEngine:
         self.mem = mem_ref
         self.eng = eng_ref
         self.dream_lore = self.lore.get("DREAMS") or {}
-        from collections import deque
         self.trauma_buffer = deque(maxlen=5)
         self.dspy_critic = None
 
@@ -565,12 +585,18 @@ class DreamEngine:
                 new_axiom = self.dspy_critic.evolve_prompt(current_state_str, trauma)
                 if new_axiom:
                     active_mode = self.eng.boot_mode if hasattr(self.eng, "boot_mode") else "CONVERSATION"
-                    import os
-                    base_dir = getattr(self.lore, "lore_dir", getattr(self.lore, "base_dir", "lore"))
-                    prompt_path = os.path.join(base_dir, "system_prompts.json")
                     try:
-                        with open(prompt_path, "r", encoding="utf-8") as f:
-                            disk_prompts = json.load(f)
+                        disk_prompts = getattr(self.eng, "prompt_library", {})
+                        if not disk_prompts:
+                            disk_prompts = self.lore.get("system_prompts") or {}
+                        prompt_path = None
+                        for p in ["lore/system_prompts.json"]:
+                            if os.path.exists(p):
+                                prompt_path = p
+                                break
+                        if not prompt_path:
+                            base_dir = getattr(self.lore, "DATA_DIR", "lore")
+                            prompt_path = os.path.join(base_dir, "system_prompts.json")
                         if active_mode in disk_prompts:
                             if "directives" not in disk_prompts[active_mode]:
                                 disk_prompts[active_mode]["directives"] = []
@@ -578,11 +604,15 @@ class DreamEngine:
                                 disk_prompts[active_mode]["directives"].append(new_axiom)
                             threshold = getattr(BoneConfig.CORTEX, "EPIGENETIC_PRUNE_THRESHOLD", 12)
                             if len(disk_prompts[active_mode]["directives"]) > threshold:
-                                compressed = self.dspy_critic.compress_prompts(disk_prompts[active_mode]["directives"])
+                                compressed = getattr(self.dspy_critic, "compress_prompts", lambda x: None)(
+                                    disk_prompts[active_mode]["directives"])
                                 if compressed:
                                     disk_prompts[active_mode]["directives"] = compressed
+                            os.makedirs(os.path.dirname(prompt_path), exist_ok=True)
                             with open(prompt_path, "w", encoding="utf-8") as f:
                                 json.dump(disk_prompts, f, indent=2)
+                            if hasattr(self.eng, "prompt_library"):
+                                self.eng.prompt_library = disk_prompts
                             self.lore.inject("system_prompts", disk_prompts)
                     except Exception as e:
                         print(f"Failed to write epigenetic mutation to disk: {e}")
@@ -672,9 +702,10 @@ class DreamEngine:
                 break
         if pruned:
             joined = ", ".join(pruned[:3])
-            msg = ux( "brain_strings", "defrag_pruned")
+            msg = ux("brain_strings", "defrag_pruned")
             return msg.format(count=len(pruned), joined=joined)
         return ux("brain_strings", "defrag_efficient")
+
 
 class NoeticLoop:
     def __init__(self, mind_layer, bio_layer, _events):
@@ -682,8 +713,12 @@ class NoeticLoop:
         self.bio = bio_layer
 
     def think(self, physics_packet, _bio, _inventory, voltage_history, _tick_count, soul_ref=None, ):
-        voltage = getattr(physics_packet, "voltage", 0.0) if not isinstance(physics_packet, dict) else physics_packet.get("voltage", 0.0)
-        clean_words = getattr(physics_packet, "clean_words", []) if not isinstance(physics_packet, dict) else physics_packet.get("clean_words", [])
+        voltage = getattr(physics_packet, "voltage", 0.0) if not isinstance(physics_packet,
+                                                                            dict) else physics_packet.get("voltage",
+                                                                                                          0.0)
+        clean_words = getattr(physics_packet, "clean_words", []) if not isinstance(physics_packet,
+                                                                                   dict) else physics_packet.get(
+            "clean_words", [])
         avg_v = sum(voltage_history) / len(voltage_history) if voltage_history else 0
         cfg = getattr(BoneConfig, "CORTEX", None)
         v_div = getattr(cfg, "IGNITION_V_DIV", 20.0)

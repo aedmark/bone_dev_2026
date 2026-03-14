@@ -14,13 +14,15 @@ from bone_physics import TheGatekeeper, QuantumObserver, SurfaceTension, ZoneIne
 from bone_protocols import LimboLayer
 from bone_spores import MycelialNetwork, ImmuneMycelium, BioLichen, BioParasite
 from bone_types import MindSystem, PhysSystem, PhysicsPacket, Prisma
+from bone_village import MirrorGraph, TheCartographer
 
 class TheCrucible:
     def __init__(self):
-        self.max_voltage_cap = getattr(BoneConfig.MACHINE, "CRUCIBLE_VOLTAGE_CAP", 20.0)
+        cfg = getattr(BoneConfig, "MACHINE", None)
+        self.max_voltage_cap = getattr(cfg, "CRUCIBLE_VOLTAGE_CAP", 20.0) if cfg else 20.0
         self.active_state = "COLD"
-        self.dampener_charges = getattr(BoneConfig.MACHINE, "CRUCIBLE_DAMPENER_CHARGES", 3)
-        self.dampener_tolerance = getattr(BoneConfig.MACHINE, "DAMPENER_TOLERANCE", 15.0)
+        self.dampener_charges = getattr(cfg, "CRUCIBLE_DAMPENER_CHARGES", 3) if cfg else 3
+        self.dampener_tolerance = getattr(cfg, "DAMPENER_TOLERANCE", 15.0) if cfg else 15.0
         self.instability_index = 0.0
         self.logs = self._load_logs()
 
@@ -115,11 +117,9 @@ class TheParadoxEngine:
         valid_seeds = [w for w in recent_words if len(w) > 4]
         seed = random.choice(valid_seeds) if valid_seeds else "the architecture"
         pressure = 0.4 + (random.random() * 0.6)
-        templates = [
-            f"What if '{seed}' and its exact opposite were both non-negotiable truths? Do not resolve the contradiction. Do not compromise. Build the structure that can hold both simultaneously.",
+        templates = [f"What if '{seed}' and its exact opposite were both non-negotiable truths? Do not resolve the contradiction. Do not compromise. Build the structure that can hold both simultaneously.",
             f"[RECURSIVE PARADOX] Apply the concept of '{seed}' to the architecture of this very conversation. How does the act of thinking about '{seed}' alter the physical constraints of our dialogue? Both are non-negotiable truths.",
-            f"[NEGATIVE SPACE] Define '{seed}' entirely by what it is not. Construct the boundary of the concept without ever naming the center. Both the center and the void are non-negotiable truths."
-        ]
+            f"[NEGATIVE SPACE] Define '{seed}' entirely by what it is not. Construct the boundary of the concept without ever naming the center. Both the center and the void are non-negotiable truths."]
         return pressure, random.choice(templates)
 
     def disengage(self):
@@ -233,7 +233,8 @@ class TheTheremin:
             resin_flow = max(0.0, resin_flow - (voltage * 0.6))
         thermal_hits = counts.get("thermal", 0)
         theremin_msg = ""
-        melt_thresh = getattr(BoneConfig.MACHINE, "THEREMIN_MELT_THRESHOLD", 5.0)
+        cfg = getattr(BoneConfig, "MACHINE", None)
+        melt_thresh = getattr(cfg, "THEREMIN_MELT_THRESHOLD", 5.0) if cfg else 5.0
         critical_event = None
         if thermal_hits > 0 and self.decoherence_buildup > melt_thresh:
             dissolved = thermal_hits * 15.0
@@ -398,7 +399,6 @@ class ThePacemaker:
 class BoneArchitect:
     @staticmethod
     def _construct_mind(events, lex) -> Tuple[MindSystem, LimboLayer]:
-        from bone_village import MirrorGraph
         _mem = MycelialNetwork(events)
         limbo = LimboLayer()
         _mem.cleanup_old_sessions(limbo)
@@ -409,7 +409,8 @@ class BoneArchitect:
 
     @staticmethod
     def _construct_bio(events, mind, lex) -> BioSystem:
-        genesis_val = getattr(BoneConfig.METABOLISM, "GENESIS_VOLTAGE", 100.0)
+        cfg = getattr(BoneConfig, "METABOLISM", None)
+        genesis_val = getattr(cfg, "GENESIS_VOLTAGE", 100.0) if cfg else 100.0
         mito_state = MitochondrialState(atp_pool=genesis_val)
         start_health = getattr(BoneConfig, "MAX_HEALTH", 100.0)
         start_stamina = getattr(BoneConfig, "MAX_STAMINA", 100.0)
@@ -420,7 +421,6 @@ class BoneArchitect:
 
     @staticmethod
     def _construct_physics(events, bio, mind, lex) -> PhysSystem:
-        from bone_village import TheCartographer
         gate = TheGatekeeper(lex, mind.mem)
         return PhysSystem(observer=QuantumObserver(events), forge=TheForge(), crucible=TheCrucible(),
                           theremin=TheTheremin(), pulse=ThePacemaker(), nav=TheCartographer(bio.shimmer), gate=gate,
@@ -476,7 +476,8 @@ class BoneArchitect:
                     msg = ux("machine_strings", "arch_map_corrupt")
                     events.log(f"{Prisma.OCHRE}{msg.format(e=e)}{Prisma.RST}", "WARN", )
         if embryo.bio.mito.state.atp_pool <= 0.0:
-            genesis_val = getattr(BoneConfig.METABOLISM, "GENESIS_VOLTAGE", 100.0)
+            cfg = getattr(BoneConfig, "METABOLISM", None)
+            genesis_val = getattr(cfg, "GENESIS_VOLTAGE", 100.0) if cfg else 100.0
             msg = ux("machine_strings", "arch_cold_boot")
             events.log(msg.format(genesis_val=genesis_val), "SYS")
             embryo.bio.mito.adjust_atp(genesis_val, reason="GENESIS")
