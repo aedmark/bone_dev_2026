@@ -392,7 +392,9 @@ class MetabolismPhase(SimulationPhase):
                 self.eng.bio.biometrics.health = min(BoneConfig.MAX_HEALTH, self.eng.bio.biometrics.health + t_heal)
 
     def _check_autophagy(self, ctx: CycleContext):
-        if self.eng.bio.mito.state.atp_pool <= 0:
+        starvation_thresh = getattr(BoneConfig.BIO, "ATP_STARVATION", 5.0)
+        respiration = ctx.bio_result.get("respiration", "")
+        if self.eng.bio.mito.state.atp_pool <= starvation_thresh or respiration == "NECROSIS":
             if hasattr(self.eng.mind.mem, "trigger_autophagy"):
                 atp_gain, msg = self.eng.mind.mem.trigger_autophagy()
                 self.eng.bio.mito.state.atp_pool += atp_gain

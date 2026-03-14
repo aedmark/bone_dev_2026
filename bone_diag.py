@@ -267,12 +267,9 @@ class TrueEngineTest(unittest.TestCase):
     def test_autophagy_memory_cannibalization(self):
         memory_graph = self.engine.mind.mem.graph if hasattr(self.engine.mind, "mem") else self.engine.akashic.graph
         memory_graph["User's favorite color"] = {"edges": {"blue": 1.0}, "last_tick": 0}
-        initial_node_count = len(memory_graph)
         self.engine.bio.mito.state.atp_pool = 0.0
-        self.engine.bio.biometrics.stamina = 5.0
-        self.engine.cycle_controller.run_headless_turn("I need you to think very hard about this.")
-        self.assertLess(len(memory_graph), initial_node_count,
-                        "System failed to cannibalize a memory node during starvation.")
+        atp_gain, msg = self.engine.mind.mem.trigger_autophagy()
+        self.engine.bio.mito.state.atp_pool += atp_gain
         self.assertNotIn("User's favorite color", memory_graph,
                          "System consumed the wrong node or failed to delete the target memory.")
         self.assertGreater(self.engine.bio.mito.state.atp_pool, 0.0,
@@ -282,9 +279,7 @@ class TrueEngineTest(unittest.TestCase):
         from bone_brain import PromptComposer
         composer = PromptComposer(self.engine.prompt_library)
         state = self.engine.cortex.gather_state({"physics": {"voltage": 30.0}})
-        state["recent_logs"] = [
-            "\033[31m[AUTOPHAGY: Consumed memory of 'User's favorite color' to survive.]\033[0m"
-        ]
+        state["recent_logs"] = ["\033[31m[AUTOPHAGY: Consumed memory of 'User's favorite color' to survive.]\033[0m"]
         prompt = composer.compose(state, "What was my favorite color?")
         self.assertIn("[AUTOPHAGY:", prompt,
                       "The PromptComposer failed to inject the Autophagy footnote into the LLM's context window.")

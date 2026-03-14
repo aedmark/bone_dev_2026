@@ -349,23 +349,26 @@ class GriefProtocol:
 
     def attend_wake(self, shared_lattice, phys) -> str:
         g_pool = shared_lattice.shared.g_pool if shared_lattice else 0
-        is_dict = isinstance(phys, dict)
-        if is_dict:
+        if isinstance(phys, dict):
             sys_g = phys.get("G", phys.get("energy", {}).get("glimmers", 0))
         else:
-            sys_g = getattr(phys, "G", getattr(phys, "glimmers", getattr(getattr(phys, "energy", None), "glimmers", 0))) if phys else 0
+            sys_g = getattr(phys, "G", 0)
+            if sys_g == 0 and hasattr(phys, "energy"):
+                sys_g = getattr(phys.energy, "glimmers", 0)
         if g_pool >= 1 or sys_g >= 1:
             if g_pool >= 1 and shared_lattice:
                 shared_lattice.shared.g_pool -= 1
             elif phys:
-                if is_dict:
-                    if "energy" in phys:
-                        phys["energy"]["glimmers"] = max(0, phys["energy"].get("glimmers", 1) - 1)
-                    else:
-                        phys["G"] = max(0, phys.get("G", 1) - 1)
+                if isinstance(phys, dict):
+                    if "G" in phys:
+                        phys["G"] -= 1
+                    elif "energy" in phys and "glimmers" in phys["energy"]:
+                        phys["energy"]["glimmers"] -= 1
                 else:
                     if hasattr(phys, "G"):
                         phys.G -= 1
+                    elif hasattr(phys, "glimmers"):
+                        phys.glimmers -= 1
                     elif hasattr(phys, "energy") and hasattr(phys.energy, "glimmers"):
                         phys.energy.glimmers -= 1
             if shared_lattice:

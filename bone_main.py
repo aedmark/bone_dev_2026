@@ -59,7 +59,7 @@ class SessionGuardian:
     def __enter__(self):
         subprocess.run("cls" if os.name == "nt" else "clear", shell=True)
         top_bar = ux("main_strings", "term_header_top", "┌──────────────────────────────────────────┐")
-        mid_bar = ux("main_strings", "term_header_mid", "│ BONEAMANITA TERMINAL // VERSION 17.1.0   │")
+        mid_bar = ux("main_strings", "term_header_mid", "│ BONEAMANITA TERMINAL // VERSION 17.3.0   │")
         bot_bar = ux("main_strings", "term_header_bot", "└──────────────────────────────────────────┘")
         print(f"{Prisma.paint(top_bar, 'M')}")
         print(f"{Prisma.paint(mid_bar, 'M')}")
@@ -358,7 +358,11 @@ class BoneAmanita:
     def _pre_flight_checks(self, user_message: str, is_system: bool) -> Optional[Dict[str, Any]]:
         if self.cmd and self.cmd.execute(user_message):
             return self._phase_check_commands(user_message, already_executed=True)
-
+        if not is_system and "[GRIEF]" in user_message.upper():
+            if hasattr(self, "grief") and self.grief:
+                grief_msg = self.grief.attend_wake(getattr(self, "shared_lattice", None), self.phys)
+                self.events.log(grief_msg, "SYS")
+                return {"type": "COMMAND", "ui": f"\n{grief_msg}", "logs": [grief_msg], "metrics": self.get_metrics()}
         if not is_system and self.gordon:
             self.gordon.mode = "ADVENTURE"
             current_zone = (getattr(self, "cortex", None) and getattr(self.cortex, "last_physics", {}))

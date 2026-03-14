@@ -126,7 +126,7 @@ class TheGatekeeper:
             self, ctx: CycleContext, current_atp: float = 20.0) -> Tuple[bool, Optional[Dict]]:
         phys = ctx.physics
         starvation_threshold = getattr(BoneConfig.BIO, "ATP_STARVATION", 5.0)
-        if current_atp < 0.0:
+        if current_atp < (starvation_threshold * 0.5):
             msg = ux("physics_strings", "gatekeeper_starved")
             return False, self._pack_refusal(ctx, "DARK_SYSTEM", msg)
         counts = getattr(phys, "counts", {}) if not isinstance(phys, dict) else phys.get("counts", {})
