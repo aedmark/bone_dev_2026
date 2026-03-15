@@ -236,10 +236,20 @@ class QuantumObserver:
             smoothed_voltage = min(smoothed_voltage, v_pot_v)
         valence = self.lex.get_valence(clean_words)
         graph_mass = self._calculate_graph_mass(clean_words, graph)
+        gamma_val = max(0.0, 1.0 - e_metric)
+        sigma_val = min(1.0, (conn_val + phi_val) / 2.0)
+        eta_val = min(1.0, (counts.get("social", 0) * 0.1) + max(0.0, valence))
+        theta_val = geo.coherence
+        upsilon_val = 1.0 - min(1.0, counts.get("pareidolia", 0) * 0.2)
+        m_a_val = min(1.0, (smoothed_voltage / 150.0) * e_metric)
+        i_c_val = min(1.0, 0.5 + (phi_val * 0.5))
+        mu_val = 0.0
         energy = EnergyState(voltage=smoothed_voltage, entropy=e_metric, beta_index=beta_val, contradiction=beta_val,
                              scope=scope_val, depth=depth_val, connectivity=conn_val, resonance=phi_val,
                              silence=delta_val, lq=lq_val, mass=round(graph_mass, 1), psi=geo.abstraction,
-                             kappa=geo.coherence, valence=valence, velocity=0.0, turbulence=0.0, )
+                             kappa=geo.coherence, valence=valence, velocity=0.0, turbulence=0.0,
+                             gamma=gamma_val, sigma=sigma_val, eta=eta_val, theta=theta_val, upsilon=upsilon_val,
+                             mu=mu_val, m_a=m_a_val, i_c=i_c_val)
         matter = MaterialState(clean_words=clean_words, raw_text=text, counts=counts, antigens=counts.get("antigen", 0),
                                vector=geo.dimensions, truth_ratio=0.5, )
         space = SpatialState()

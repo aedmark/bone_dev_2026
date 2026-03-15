@@ -86,6 +86,9 @@ class EnergyState:
     eta: float = 0.0
     theta: float = 0.0
     upsilon: float = 0.0
+    mu: float = 0.0
+    m_a: float = 0.0
+    i_c: float = 1.0
     entropy: float = 0.2
     mass: float = 0.0
     velocity: float = 0.0
@@ -275,6 +278,30 @@ class PhysicsPacket:
         self.energy.chi = v
 
     @property
+    def mu(self):
+        return self.energy.mu
+
+    @mu.setter
+    def mu(self, v):
+        self.energy.mu = v
+
+    @property
+    def m_a(self):
+        return self.energy.m_a
+
+    @m_a.setter
+    def m_a(self, v):
+        self.energy.m_a = v
+
+    @property
+    def i_c(self):
+        return self.energy.i_c
+
+    @i_c.setter
+    def i_c(self, v):
+        self.energy.i_c = v
+
+    @property
     def entropy(self):
         return self.energy.entropy
 
@@ -373,7 +400,6 @@ class PhysicsPacket:
         raise KeyError(f"'{key}' not found in PhysicsPacket or its sub-states.")
 
     def __setitem__(self, key, value):
-        # Respect explicitly defined @property setters first
         if hasattr(self.__class__, key) and isinstance(getattr(self.__class__, key), property):
             setattr(self, key, value)
         elif hasattr(self.energy, key): setattr(self.energy, key, value)
