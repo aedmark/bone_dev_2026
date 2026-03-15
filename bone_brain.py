@@ -15,6 +15,7 @@ from bone_core import EventBus, TelemetryService, LoreManifest, ux
 from bone_gui import beautify_thoughts
 from bone_symbiosis import SymbiosisManager
 from bone_types import Prisma, DecisionCrystal
+from bone_random import RandomRetrievalNavigator, LibraryGraph
 
 @dataclass
 class CortexServices:
@@ -190,6 +191,11 @@ class TheCortex:
             self.dreamer.trauma_buffer = deque(maxlen=5)
         self.gordon_shock = None
         self.active_mode = "ADVENTURE"
+        if hasattr(self.svc.mind_memory, "nodes"):
+            graph = LibraryGraph(nodes=self.svc.mind_memory.nodes, root=self.svc.mind_memory.root)
+            self.navigator = RandomRetrievalNavigator(library_graph=graph)
+        else:
+            self.navigator = None
         if hasattr(self.events, "subscribe"):
             self.events.subscribe("AIRSTRIKE", lambda p: setattr(self, "ballast_active", True))
 
@@ -221,6 +227,15 @@ class TheCortex:
             self.dialogue_buffer.pop(0)
 
     def process(self, user_input: str, is_system: bool = False) -> Dict[str, Any]:
+        if self.navigator:
+            if self.active_mode == "CREATIVE":
+                dial_status = self.navigator.set_randomness(0.7)
+            elif self.active_mode == "ADVENTURE" or self.active_mode == "CONVERSATION":
+                dial_status = self.navigator.set_randomness(0.3)
+            else:
+                dial_status = self.navigator.set_randomness(0.0)
+            if self.events and dial_status["new_value"] > 0:
+                self.events.log(f"Serendipity Engine active: {dial_status['mode']}", "CORTEX")
         mode_settings = BonePresets.MODES.get(self.active_mode, BonePresets.MODES["ADVENTURE"])
         allow_loot = mode_settings.get("allow_loot", True)
         if self.consultant and "/vsl" in user_input.lower():

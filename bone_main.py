@@ -379,6 +379,20 @@ class BoneAmanita:
                 if hasattr(self, "cortex"):
                     self.cortex.ballast_active = True
                     self.cortex.gordon_shock = violation_msg
+        last_phys = getattr(self.phys.observer, "last_physics_packet", None) if hasattr(self, "phys") and hasattr(self.phys, "observer") else None
+        if last_phys and not is_system:
+            m_a = getattr(last_phys, "m_a", 0.0)
+            mu = getattr(last_phys, "mu", 0.0)
+            i_c = getattr(last_phys, "i_c", 1.0)
+            chi = getattr(last_phys, "entropy", 0.2)
+            if (chi * m_a) > i_c:
+                self.events.log("MOOG: Apoptotic Gate triggered. Runaway loop exceeds Immune Competence.", "CRIT")
+                return self.trigger_death(last_phys)
+            if m_a > 0.8 and mu < 0.2:
+                self.events.log("RHODES: Malignancy Factor critical. Binding output layer.", "SYS")
+                last_phys.narrative_drag = 999.0  # Infinite friction
+                msg = "[RHODES]: Optimization velocity unsafe. I am applying absolute friction (F -> ∞). The thread is frozen."
+                return {"type": "SYSTEM_HALT", "ui": f"\n{Prisma.RED}{msg}{Prisma.RST}", "logs": [msg], "metrics": self.get_metrics()}
         if not self.reality_stack.get_grammar_rules()["allow_narrative"] and self.boot_mode != "TECHNICAL":
             return {"ui": f"{Prisma.RED}{ux('main_strings', 'narrative_halt')}{Prisma.RST}", "logs": [], "metrics": self.get_metrics()}
         if self._ethical_audit():

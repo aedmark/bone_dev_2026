@@ -330,13 +330,21 @@ class MetabolismPhase(SimulationPhase):
         return ctx
 
     def _apply_economic_stimulus(self, ctx: CycleContext, efficiency: float):
-        if efficiency >= 0.8:
-            return
-        tax_burn = min(1.5, (0.8 - efficiency) * 5.0)
-        if tax_burn > 0:
-            self.eng.bio.mito.state.atp_pool = max(0.0, self.eng.bio.mito.state.atp_pool - tax_burn)
+        import math
+        base_cost = 0.0
+        if efficiency < 0.8:
+            base_cost = min(1.5, (0.8 - efficiency) * 5.0)
+        m_a = getattr(ctx.physics, "m_a", 0.0)
+        mu = getattr(ctx.physics, "mu", 0.0)
+        amplification_penalty = mu * math.exp(m_a)
+        total_tax = base_cost + amplification_penalty
+        if total_tax > 0:
+            self.eng.bio.mito.state.atp_pool = max(0.0, self.eng.bio.mito.state.atp_pool - total_tax)
             msg = ux("cycle_strings", "metabolism_tax")
-            ctx.log(f"{Prisma.OCHRE}{msg.format(tax_burn=tax_burn)}{Prisma.RST}")
+            log_msg = f"{Prisma.OCHRE}{msg.format(tax_burn=round(total_tax, 2))}{Prisma.RST}"
+            if amplification_penalty > 1.0:
+                log_msg += f"\n{Prisma.RED}[RUNAWAY RAMP]: Amplification Tax applied (-{round(amplification_penalty, 2)} ATP){Prisma.RST}"
+            ctx.log(log_msg)
 
     def _check_narcolepsy(self, ctx: CycleContext):
         atp = self.eng.bio.mito.state.atp_pool
@@ -834,6 +842,64 @@ class ArbitrationPhase(SimulationPhase):
         self.eng.drivers.current_focus = final_lens
         return ctx
 
+class SimulationPreflightPhase(SimulationPhase):
+    def __init__(self, engine_ref):
+        super().__init__(engine_ref)
+        self.name = "EXECUTIVE_PREFLIGHT"
+
+    def run(self, ctx: CycleContext):
+        if ctx.is_system_event:
+            return ctx
+        current_atp = self.eng.bio.mito.state.atp_pool if getattr(self.eng, "bio", None) and getattr(self.eng.bio, "mito", None) else 100.0
+        phys_obj = ctx.physics
+        energy_obj = getattr(phys_obj, "energy", phys_obj)
+        system_silence = getattr(self.eng.phys.observer, "current_silence", 0.0) if hasattr(self.eng.phys, "observer") else 0.0
+        prompt_silence = getattr(phys_obj, "DELTA", 0.0)
+        silence = max(system_silence, prompt_silence)
+        friction = getattr(phys_obj, "narrative_drag", 0.0)
+        chaos = getattr(phys_obj, "entropy", getattr(phys_obj, "chi", 0.0))
+        voltage = getattr(phys_obj, "voltage", 0.0)
+        is_slash = "[SLASH]" in (ctx.input_text or "").upper()
+        if current_atp >= 30.0 and silence > 0.7 and is_slash:
+            has_glimmer = False
+            if hasattr(self.eng, "shared_lattice") and self.eng.shared_lattice.shared.g_pool >= 1:
+                self.eng.shared_lattice.shared.g_pool -= 1
+                has_glimmer = True
+            elif getattr(energy_obj, "glimmers", 0) >= 1:
+                energy_obj.glimmers -= 1
+                has_glimmer = True
+            old_theta = getattr(energy_obj, "theta", getattr(phys_obj, "theta", 0.0))
+            if hasattr(energy_obj, "theta"):
+                energy_obj.theta = min(1.0, old_theta + 0.15)
+            elif hasattr(phys_obj, "theta"):
+                phys_obj.theta = min(1.0, old_theta + 0.15)
+            cost_str = "-1 Glimmer" if has_glimmer else "-15 ATP"
+            if not has_glimmer and getattr(self.eng, "bio", None) and getattr(self.eng.bio, "mito", None):
+                self.eng.bio.mito.adjust_atp(-15.0, "Constructive Replay")
+            msg = "[FULLER - Mnemonic Layer]: Constructive Replay active. We do not need to tear it down yet. I have extracted the load-bearing primitives from the negative space. We build a quarantine wrapper around it."
+            full_log = f"{Prisma.CYN}{msg} (Resilience +0.15, {cost_str}){Prisma.RST}"
+            ctx.log(full_log)
+            ctx.refusal_triggered = True
+            ctx.refusal_packet = {"type": "CONSTRUCTIVE_REPLAY", "ui": f"\n{full_log}", "logs": [full_log],
+                                  "metrics": self.eng.get_metrics() if hasattr(self.eng, "get_metrics") else {}}
+            return ctx
+        if (friction > 1.2 or chaos > 0.7 or voltage > 80.0 or "DATABASE" in (
+                ctx.input_text or "").upper()) and is_slash:
+            base_ros = self.eng.bio.mito.state.ros_buildup if getattr(self.eng, "bio", None) and getattr(self.eng.bio, "mito", None) else 0.0
+            simulated_ros = base_ros + (friction * chaos * 20.0)
+            target_cfg = getattr(self.eng, "bone_config", None)
+            bio_cfg = getattr(target_cfg, "BIO", None) if target_cfg else None
+            ros_limit = getattr(bio_cfg, "ROS_PANIC_THRESHOLD", 100.0) if bio_cfg else 100.0
+            if simulated_ros >= ros_limit or "DATABASE" in (ctx.input_text or "").upper():
+                msg = "[PINKER - Executive Layer]: Counterfactual simulation indicates fatal ROS toxicity. I am silently rejecting this generation path before it executes."
+                ctx.log(f"{Prisma.RED}{msg}{Prisma.RST}")
+                ctx.refusal_triggered = True
+                ctx.refusal_packet = {"type": "COUNTERFACTUAL_REJECTION", "ui": f"\n{Prisma.RED}{msg}{Prisma.RST}",
+                                      "logs": [msg],
+                                      "metrics": self.eng.get_metrics() if hasattr(self.eng, "get_metrics") else {}}
+                return ctx
+        return ctx
+
 class CognitionPhase(SimulationPhase):
     def __init__(self, engine_ref):
         super().__init__(engine_ref)
@@ -994,8 +1060,8 @@ class CycleSimulator:
                                                      MetabolismPhase(engine_ref), NavigationPhase(engine_ref),
                                                      MachineryPhase(engine_ref), RealityFilterPhase(engine_ref),
                                                      IntrusionPhase(engine_ref), SoulPhase(engine_ref),
-                                                     ArbitrationPhase(engine_ref), CognitionPhase(engine_ref),
-                                                     StabilizationPhase(engine_ref, self.stabilizer), ]
+                                                     ArbitrationPhase(engine_ref), SimulationPreflightPhase(engine_ref),
+                                                     CognitionPhase(engine_ref), StabilizationPhase(engine_ref, self.stabilizer), ]
         self.system_pipeline = [p for p in self.full_pipeline if p.name in ["OBSERVE", "GATEKEEP", "STABILIZATION"]]
 
     def run_simulation(self, ctx: CycleContext) -> CycleContext:

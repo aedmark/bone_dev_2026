@@ -8,10 +8,11 @@ import time
 from collections import deque, Counter
 from dataclasses import dataclass, field, asdict
 from typing import Optional, Dict, List, Any, Tuple
-from bone_presets import BoneConfig
+
 from bone_core import Prisma, LoreManifest, ux
-from bone_lexicon import LexiconService
+from bone_presets import BoneConfig
 from bone_spores import ImmuneMycelium, BioLichen, BioParasite
+
 
 @dataclass
 class Biometrics:
@@ -349,8 +350,9 @@ class MitochondrialForge:
             self.events.log("[MITO]: Ancestral High Metabolism activated.", "GENETICS")
 
 class DigestiveTrack:
-    def __init__(self, bio_system_ref: BioSystem, config_ref=None):
+    def __init__(self, bio_system_ref: BioSystem, lexicon_ref=None, config_ref=None):
         self.bio = bio_system_ref
+        self.lex = lexicon_ref
         self.cfg = config_ref or BoneConfig
         self.enzyme_map = LoreManifest.get_instance(config_ref=self.cfg).get("BODY_CONFIG", "ENZYME_MAP") or {}
         self.SAMPLING_THRESHOLD = getattr(self.cfg.BIO, "SAMPLING_THRESHOLD", 1000)
@@ -403,7 +405,7 @@ class DigestiveTrack:
             if len(word) < min_len:
                 continue
             hits += count
-            cat = LexiconService.get_current_category(word)
+            cat = self.lex.get_current_category(word) if self.lex else "void"
             if not cat or cat == "void":
                 atp_yield += self.BASE_WORD_VALUE * count
                 continue
@@ -534,7 +536,7 @@ class SomaticLoop:
         self.bio = bio_system_ref
         self.events = events_ref
         self.cfg = config_ref or BoneConfig
-        self.digestive = DigestiveTrack(self.bio, config_ref=self.cfg)
+        self.digestive = DigestiveTrack(self.bio, lexicon_ref=lexicon_ref, config_ref=self.cfg)
         self.regulator = EndocrineRegulator(self.bio)
         self.feedback = BioFeedback(self.bio, config_ref=self.cfg)
         self.semantic_doctor = SemanticEndocrinologist(memory_ref, lexicon_ref)
