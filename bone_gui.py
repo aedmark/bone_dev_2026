@@ -23,7 +23,8 @@ def beautify_thoughts(text: str) -> str:
 
 
 class Projector:
-    def __init__(self):
+    def __init__(self, config_ref=None):
+        self.cfg = config_ref or BoneConfig
         self.width = 80
 
     @staticmethod
@@ -92,9 +93,9 @@ class Projector:
         return f"  {Prisma.WHT}{i_role} {role}{Prisma.RST}"
 
     def _render_vital_strip(self, data: Dict, mind: tuple, labels: Dict) -> str:
-        max_h = float(getattr(BoneConfig, "MAX_HEALTH", 100.0) or 100.0)
-        max_s = float(getattr(BoneConfig, "MAX_STAMINA", 100.0) or 100.0)
-        cfg = getattr(BoneConfig, "GUI", None)
+        max_h = float(getattr(self.cfg, "MAX_HEALTH", 100.0) or 100.0)
+        max_s = float(getattr(self.cfg, "MAX_STAMINA", 100.0) or 100.0)
+        cfg = getattr(self.cfg, "GUI", None)
         d_med = getattr(cfg, "DIGNITY_MED", 50.0) if cfg else 50.0
         d_high = getattr(cfg, "DIGNITY_HIGH", 80.0) if cfg else 80.0
         r_len = getattr(cfg, "ROLE_TRUNC_LEN", 30) if cfg else 30
@@ -276,7 +277,8 @@ class Projector:
 class GeodesicRenderer:
     def __init__(self, engine_ref, chroma_ref, strunk_ref, valve_ref=None):
         self.eng = engine_ref
-        self.projector = Projector()
+        target_cfg = getattr(self.eng, "bone_config", BoneConfig)
+        self.projector = Projector(config_ref=target_cfg)
         self.vsl_chroma = chroma_ref
         self.strunk_white = strunk_ref
         self.valve = valve_ref
@@ -420,8 +422,9 @@ class GeodesicRenderer:
             self.eng.events.log(log_msg, "SYS")
 
 class CachedRenderer:
-    def __init__(self, base_renderer):
+    def __init__(self, base_renderer, config_ref=None):
         self._base = base_renderer
+        self.cfg = config_ref or BoneConfig
         self._cached_ui_content = ""
         self._last_tick = -1
 
@@ -430,7 +433,7 @@ class CachedRenderer:
             ctx.physics.get("voltage", 0)
             if isinstance(ctx.physics, dict)
             else ctx.physics.voltage)
-        cfg = getattr(BoneConfig, "GUI", None)
+        cfg = getattr(self.cfg, "GUI", None)
         v_refresh = getattr(cfg, "HIGH_VOLTAGE_REFRESH", 15.0) if cfg else 15.0
         if voltage > v_refresh or tick != self._last_tick:
             frame = self._base.render_frame(ctx, tick, events)
@@ -442,9 +445,10 @@ class CachedRenderer:
                 "metrics": ctx.bio_result if hasattr(ctx, "bio_result") else {}, }
 
 def get_renderer(engine_ref, chroma_ref, strunk_ref, valve_ref=None, mode="STANDARD"):
+    target_cfg = getattr(engine_ref, "bone_config", BoneConfig)
     base = GeodesicRenderer(engine_ref, chroma_ref, strunk_ref, valve_ref)
     if mode == "PERFORMANCE":
-        return CachedRenderer(base)
+        return CachedRenderer(base, config_ref=target_cfg)
     return base
 
 class AmbiguityDial:
@@ -500,8 +504,9 @@ class TruthRenderer(GeodesicRenderer):
 
 class PulseReader:
     @staticmethod
-    def derive_mood(bio_state: Dict) -> str:
-        cfg = getattr(BoneConfig, "GUI", None)
+    def derive_mood(bio_state: Dict, config_ref=None) -> str:
+        target_cfg = config_ref or BoneConfig
+        cfg = getattr(target_cfg, "GUI", None)
         c_warn = getattr(cfg, "CHEM_HIGH_WARN", 0.6) if cfg else 0.6
         a_warn = getattr(cfg, "ATP_EXHAUSTED_WARN", 20.0) if cfg else 20.0
         chem = bio_state.get("chem", {})
@@ -517,8 +522,9 @@ class PulseReader:
         return ux("pulse_reader", "mood_neutral")
 
     @staticmethod
-    def analyze_voltage(voltage: float) -> Tuple[str, str]:
-        cfg = getattr(BoneConfig, "GUI", None)
+    def analyze_voltage(voltage: float, config_ref=None) -> Tuple[str, str]:
+        target_cfg = config_ref or BoneConfig
+        cfg = getattr(target_cfg, "GUI", None)
         v_crit_t = getattr(cfg, "V_CRIT", 20.0) if cfg else 20.0
         v_high_t = getattr(cfg, "V_HIGH", 15.0) if cfg else 15.0
         v_low_t = getattr(cfg, "V_LOW", 5.0) if cfg else 5.0
@@ -537,6 +543,7 @@ class PulseReader:
 class SoulDashboard:
     def __init__(self, engine_ref):
         self.eng = engine_ref
+        self.cfg = getattr(self.eng, "bone_config", BoneConfig)
 
     def render(self) -> str:
         if not hasattr(self.eng, "soul") or not self.eng.soul:
@@ -546,7 +553,7 @@ class SoulDashboard:
         anchor = self.eng.soul.anchor
         soul = self.eng.soul
         dig = anchor.dignity_reserve
-        cfg = getattr(BoneConfig, "GUI", None)
+        cfg = getattr(self.cfg, "GUI", None)
         d_high = getattr(cfg, "DIGNITY_HIGH", 80.0) if cfg else 80.0
         d_med = getattr(cfg, "DIGNITY_MED", 50.0) if cfg else 50.0
         d_low = getattr(cfg, "DIGNITY_LOW", 30.0) if cfg else 30.0

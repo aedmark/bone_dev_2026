@@ -1,6 +1,6 @@
 {
     "user_name": "TRAVELER",
-    "boot_mode": "ADVENTURE",
+    "boot_mode": "CONVERSATION",
     "provider": "ollama",
     "base_url": "http://127.0.0.1:11434/v1/chat/completions",
     "model": "vsl-hermes"

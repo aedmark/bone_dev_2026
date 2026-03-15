@@ -66,7 +66,12 @@ class TheAkashicRecord:
             if is_dict:
                 val = p.get(short_k, p.get("energy", {}).get(real_k, default_v))
             else:
-                val = getattr(p, short_k, getattr(p.energy, real_k, default_v) if hasattr(p, "energy") else default_v)
+                energy_obj = getattr(p, "energy", None)
+                if isinstance(energy_obj, dict):
+                    val = energy_obj.get(real_k, default_v)
+                else:
+                    val = getattr(energy_obj, real_k, default_v) if energy_obj else default_v
+                val = getattr(p, short_k, val)
             coords[short_k] = val
         scar = {"concept": concept, "coordinates": coords, "gilded": True}
         self.scar_map.append(scar)

@@ -190,9 +190,10 @@ class BoneAmanita:
 
     def __init__(self, config: Dict[str, Any]):
         self.config = config
-        self.events = EventBus()
+        self.bone_config = BoneConfig()
+        self.events = EventBus(config_ref=self.bone_config)
         self.kernel_hash = str(uuid.uuid4())[:8].upper()
-        self.cmd = CommandProcessor(self, Prisma, config_ref=BoneConfig)
+        self.cmd = CommandProcessor(self, Prisma, config_ref=self.bone_config)
         self.user_name = config.get("user_name", "TRAVELER")
         self.boot_mode = config.get("boot_mode", "ADVENTURE").upper()
         if self.boot_mode not in BonePresets.MODES:
@@ -200,25 +201,26 @@ class BoneAmanita:
         self.mode_settings = BonePresets.MODES[self.boot_mode]
         self.suppressed_agents = self.mode_settings.get("village_suppression", [])
         self.config["mode_settings"] = self.mode_settings
-        self.health = BoneConfig.MAX_HEALTH
-        self.stamina = BoneConfig.MAX_STAMINA
+        self.config["bone_config"] = self.bone_config
+        self.health = self.bone_config.MAX_HEALTH
+        self.stamina = self.bone_config.MAX_STAMINA
         self.trauma_accum = {}
         self.tick_count = 0
         boot_msg = ux("main_strings", "boot_core")
         self.events.log(boot_msg, "BOOT")
         self.chronos = ChronosKeeper(self)
-        self.lex = LexiconService
+        self.lex = LexiconService()
         self.lex.initialize()
         anatomy = BoneGenesis.ignite(self.config, self.lex, events_ref=self.events)
         self._unpack_anatomy(anatomy)
         self.events.subscribe("ITEM_DROP", self.town_hall.on_item_drop)
         if self.phys:
-            self.phys.dynamics = CosmicDynamics()
+            self.phys.dynamics = CosmicDynamics(config_ref=self.bone_config)
             self.cosmic = self.phys.dynamics
-            self.stabilizer = ZoneInertia()
-        self.telemetry = TelemetryService.get_instance()
+            self.stabilizer = ZoneInertia(config_ref=self.bone_config)
+        self.telemetry = TelemetryService.get_instance(config_ref=self.bone_config)
         self.system_health = SystemHealth()
-        self.observer = TheObserver()
+        self.observer = TheObserver(config_ref=self.bone_config)
         self.system_health.link_observer(self.observer)
         self.reality_stack = RealityStack()
         self._load_system_prompts()
@@ -263,13 +265,13 @@ class BoneAmanita:
     def _validate_state(self):
         tuning_key = self.mode_settings.get("tuning", "STANDARD")
         if hasattr(BonePresets, tuning_key):
-            BoneConfig.load_preset(getattr(BonePresets, tuning_key))
+            self.bone_config.load_preset(getattr(BonePresets, tuning_key))
         if getattr(self.mind.mem, "session_health", None) is not None:
             self.health = self.mind.mem.session_health
             self.stamina = self.mind.mem.session_stamina
             self.trauma_accum = self.mind.mem.session_trauma_vector or {}
         if self.tick_count == 0 and self.bio.mito:
-            self.bio.mito.state.atp_pool = BoneConfig.BIO.STARTING_ATP
+            self.bio.mito.state.atp_pool = self.bone_config.BIO.STARTING_ATP
 
     def _apply_boot_mode(self):
         msg = ux("main_strings", "engaging_mode")
@@ -347,11 +349,15 @@ class BoneAmanita:
 
     def _update_host_stats(self, packet, turn_start):
         self.observer.clock_out(turn_start)
-        cfg = getattr(BoneConfig, "MAIN", None)
+        cfg = getattr(self.bone_config, "MAIN", None)
         burn_mult = getattr(cfg, "HOST_BURN_MULT", 5.0) if cfg else 5.0
         nov_mult = getattr(cfg, "HOST_NOVELTY_MULT", 10.0) if cfg else 10.0
         burn_proxy = max(1.0, self.observer.last_cycle_duration * burn_mult)
-        novelty = packet.get("physics", {}).get("vector", {}).get("novelty", 0.5)
+        physics_obj = packet.get("physics", {})
+        if isinstance(physics_obj, dict):
+            novelty = physics_obj.get("vector", {}).get("novelty", 0.5)
+        else:
+            novelty = getattr(physics_obj, "vector", {}).get("novelty", 0.5) if hasattr(physics_obj, "vector") else 0.5
         self.host_stats.efficiency_index = min(1.0, (novelty * nov_mult) / burn_proxy)
         self.host_stats.latency = self.observer.last_cycle_duration
 
@@ -395,8 +401,10 @@ class BoneAmanita:
         pre_flight_halt = self._pre_flight_checks(user_message, is_system)
         if pre_flight_halt:
             return pre_flight_halt
-        if not is_system and self.gordon:
-            pruning_active = any("CUT_THE_CRAP" in (self.gordon.get_item_data(i).passive_traits if self.gordon.get_item_data(i) else [])
+        if not is_system and getattr(self, "gordon", None) and hasattr(self.gordon, "inventory") and hasattr(
+                self.gordon, "get_item_data"):
+            pruning_active = any(
+                "CUT_THE_CRAP" in (self.gordon.get_item_data(i).passive_traits if self.gordon.get_item_data(i) else [])
                 for i in self.gordon.inventory)
             if pruning_active:
                 from bone_tcl import TheTclWeaver
@@ -498,10 +506,10 @@ class BoneAmanita:
         return self.chronos.get_crash_path(prefix)
 
     def _ethical_audit(self):
-        cfg = getattr(BoneConfig, "MAIN", None)
+        cfg = getattr(self.bone_config, "MAIN", None)
         audit_freq = getattr(cfg, "ETHICAL_AUDIT_FREQ", 3) if cfg else 3
         bypass_ratio = getattr(cfg, "ETHICAL_HEALTH_BYPASS", 0.3) if cfg else 0.3
-        max_h = getattr(BoneConfig, "MAX_HEALTH", 100.0)
+        max_h = getattr(self.bone_config, "MAX_HEALTH", 100.0)
         if self.tick_count % audit_freq != 0 and self.health > (max_h * bypass_ratio):
             return False
         desp_thresh = getattr(cfg, "DESPERATION_THRESHOLD", 0.7) if cfg else 0.7

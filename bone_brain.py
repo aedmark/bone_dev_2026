@@ -16,7 +16,6 @@ from bone_gui import beautify_thoughts
 from bone_symbiosis import SymbiosisManager
 from bone_types import Prisma, DecisionCrystal
 
-
 @dataclass
 class CortexServices:
     events: EventBus
@@ -30,7 +29,7 @@ class CortexServices:
     bio: Any
     host_stats: Any = None
     village: Any = None
-
+    config_ref: Any = None
 
 @dataclass
 class ChemicalState:
@@ -38,9 +37,11 @@ class ChemicalState:
     cortisol: float = 0.1
     adrenaline: float = 0.1
     serotonin: float = 0.2
+    config_ref: Any = None
 
     def homeostasis(self, rate: float = 0.1):
-        cfg = BoneConfig.CORTEX
+        target_cfg = self.config_ref or BoneConfig
+        cfg = target_cfg.CORTEX
         targets = {"dopamine": cfg.RESTING_DOPAMINE, "cortisol": cfg.RESTING_CORTISOL,
                    "adrenaline": cfg.RESTING_ADRENALINE, "serotonin": cfg.RESTING_SEROTONIN, }
         for attr, target in targets.items():
@@ -55,17 +56,14 @@ class ChemicalState:
             current = getattr(self, attr)
             setattr(self, attr, (current * (1.0 - weight)) + (val * weight))
 
-
-BrainConfig = BoneConfig.CORTEX
-
-
 class NeurotransmitterModulator:
-    def __init__(self, bio_ref, events_ref=None):
+    def __init__(self, bio_ref, events_ref=None, config_ref=None):
         self.bio = bio_ref
         self.events = events_ref
-        self.current_chem = ChemicalState()
+        self.cfg = config_ref or BoneConfig
+        self.current_chem = ChemicalState(config_ref=self.cfg)
         self.last_mood = "NEUTRAL"
-        cfg = getattr(BoneConfig, "CORTEX", None)
+        cfg = getattr(self.cfg, "CORTEX", None)
         self.BASE_TOKENS = getattr(cfg, "BASE_TOKENS", 720) if cfg else 720
         self.MAX_TOKENS = getattr(cfg, "MAX_TOKENS", 4096) if cfg else 4096
         self.SELF_CARE_THRESHOLD = getattr(cfg, "SELF_CARE_THRESHOLD", 10) if cfg else 10
@@ -82,7 +80,7 @@ class NeurotransmitterModulator:
             incoming_chem = self.bio.endo.get_state()
         else:
             incoming_chem = {}
-        cfg = BoneConfig.CORTEX
+        cfg = self.cfg.CORTEX
         self.current_chem.homeostasis(rate=cfg.BASE_DECAY_RATE)
         plasticity = cfg.BASE_PLASTICITY + (base_voltage * cfg.VOLTAGE_SENSITIVITY)
         plasticity = max(0.1, min(cfg.MAX_PLASTICITY, plasticity))
@@ -107,38 +105,34 @@ class NeurotransmitterModulator:
         elif c.serotonin > mood_thresholds.get("ZEN_SER", 0.8):
             current_mood = "ZEN"
         if current_mood != self.last_mood and self.events:
-            self.events.publish("NEURAL_STATE_SHIFT", {"state": current_mood,
-                                                       "chem": {"DOP": c.dopamine, "COR": c.cortisol,
-                                                                "SER": c.serotonin}, }, )
+            self.events.publish("NEURAL_STATE_SHIFT", {"state": current_mood, "chem": {"DOP": c.dopamine, "COR": c.cortisol, "SER": c.serotonin}, }, )
             self.last_mood = current_mood
         v_offset = getattr(cfg, "TEMP_VOLTAGE_OFFSET", 5.0)
         v_scalar = getattr(cfg, "TEMP_VOLTAGE_SCALAR", 0.1)
         voltage_heat = math.log1p(max(0.0, base_voltage - v_offset)) * v_scalar
         chem_weights = getattr(cfg, "TEMP_CHEM_WEIGHTS", {"dop": 0.4, "adr": 0.3, "cor": 0.2})
-        chemical_delta = (c.dopamine * chem_weights.get("dop", 0.4)) - (c.adrenaline * chem_weights.get("adr", 0.3)) - (
-                    c.cortisol * chem_weights.get("cor", 0.2))
+        chemical_delta = (c.dopamine * chem_weights.get("dop", 0.4)) - (c.adrenaline * chem_weights.get("adr", 0.3)) - (c.cortisol * chem_weights.get("cor", 0.2))
         base_temp = getattr(cfg, "BASE_TEMP", 0.4)
         base_top_p = getattr(cfg, "BASE_TOP_P", 0.95)
-        chi = physics_state.get("chi", physics_state.get("entropy", 0.2))
-        beta = physics_state.get("contradiction", physics_state.get("beta_index", 0.4))
+
+        def _p_get(k, d=0.0):
+            return physics_state.get(k, physics_state.get("energy", {}).get(k, physics_state.get("space", {}).get(k, physics_state.get("matter", {}).get(k, d))))
+
+        chi = _p_get("chi", _p_get("entropy", 0.2))
+        beta = _p_get("contradiction", _p_get("beta_index", 0.4))
         ent_offset = getattr(cfg, "TEMP_ENTROPY_OFFSET", 0.5)
         ent_scalar = getattr(cfg, "TEMP_ENTROPY_SCALAR", 1.5)
         entropy_bonus = max(0.0, chi - ent_offset) * ent_scalar
         t_limits = getattr(cfg, "TEMP_LIMITS", (0.4, 1.5))
-        final_temp = round(
-            max(t_limits[0], min(t_limits[1], base_temp + chemical_delta + voltage_heat + entropy_bonus)), 2)
+        final_temp = round(max(t_limits[0], min(t_limits[1], base_temp + chemical_delta + voltage_heat + entropy_bonus)), 2)
         final_top_p = min(1.0, base_top_p + (chi * getattr(cfg, "TOP_P_CHI_SCALAR", 0.05)))
-        freq_pen = min(1.2, 0.5 + (beta * getattr(cfg, "PEN_BETA_SCALAR", 0.3)) + (
-                    chi * getattr(cfg, "PEN_CHI_SCALAR", 0.2)))
-        pres_pen = min(1.2, 0.5 + (beta * getattr(cfg, "PEN_BETA_SCALAR", 0.3)) + (
-                    chi * getattr(cfg, "PEN_CHI_SCALAR", 0.2)))
+        freq_pen = min(1.2, 0.5 + (beta * getattr(cfg, "PEN_BETA_SCALAR", 0.3)) + (chi * getattr(cfg, "PEN_CHI_SCALAR", 0.2)))
+        pres_pen = min(1.2, 0.5 + (beta * getattr(cfg, "PEN_BETA_SCALAR", 0.3)) + (chi * getattr(cfg, "PEN_CHI_SCALAR", 0.2)))
         token_mods = getattr(cfg, "TOKEN_CHEM_MODIFIERS", {"dop": 800, "adr": 400, "cor": 200})
-        token_delta = (c.dopamine * token_mods.get("dop", 800)) - (c.adrenaline * token_mods.get("adr", 400)) - (
-                    c.cortisol * token_mods.get("cor", 200))
+        token_delta = (c.dopamine * token_mods.get("dop", 800)) - (c.adrenaline * token_mods.get("adr", 400)) - (c.cortisol * token_mods.get("cor", 200))
         min_tokens = getattr(cfg, "MIN_TOKENS", 150.0)
         max_t = int(max(min_tokens, min(float(self.MAX_TOKENS), self.BASE_TOKENS + token_delta)))
-        return {"temperature": final_temp, "top_p": final_top_p, "frequency_penalty": round(freq_pen, 2),
-                "presence_penalty": round(pres_pen, 2), "max_tokens": max_t}
+        return {"temperature": final_temp, "top_p": final_top_p, "frequency_penalty": round(freq_pen, 2),"presence_penalty": round(pres_pen, 2), "max_tokens": max_t}
 
     def _treat_yourself(self):
         if self.events:
@@ -164,17 +158,17 @@ class NeurotransmitterModulator:
             return ux("brain_strings", "mood_defensive")
         return ux("brain_strings", "mood_neutral")
 
-
 class TheCortex:
     def __init__(self, services: CortexServices, llm_client=None):
         self.ballast_active = False
         self.svc = services
+        self.cfg = services.config_ref or BoneConfig
         self.events = services.events
         self.dialogue_buffer = []
-        cfg = getattr(BoneConfig, "CORTEX", None)
+        cfg = getattr(self.cfg, "CORTEX", None)
         self.MAX_HISTORY = getattr(cfg, "MAX_HISTORY_LENGTH", 15) if cfg else 15
-        self.modulator = NeurotransmitterModulator(bio_ref=self.svc.bio, events_ref=self.events)
-        self.boot_history = TelemetryService.get_instance().read_recent_history(limit=4)
+        self.modulator = NeurotransmitterModulator(bio_ref=self.svc.bio, events_ref=self.events, config_ref=self.cfg)
+        self.boot_history = TelemetryService.get_instance(config_ref=self.cfg).read_recent_history(limit=4)
         self.last_physics = {}
         self.consultant = services.consultant
         self.llm = llm_client or LLMInterface(self.events, provider="mock")
@@ -184,14 +178,13 @@ class TheCortex:
             self.dreamer.mem = self.svc.mind_memory
         else:
             eng_ref = getattr(self.svc.cycle_controller, "eng", None)
-            self.dreamer = DreamEngine(self.events, self.svc.lore, llm_ref=self.llm, mem_ref=self.svc.mind_memory,
-                                       eng_ref=eng_ref)
+            self.dreamer = DreamEngine(self.events, self.svc.lore, llm_ref=self.llm, mem_ref=self.svc.mind_memory, eng_ref=eng_ref, config_ref=self.cfg)
         self.llm.dreamer = self.dreamer
         self.symbiosis = services.symbiosis
-        self.composer = PromptComposer(self.svc.lore)
-        self.validator = ResponseValidator(self.svc.lore)
+        self.composer = PromptComposer(self.svc.lore, config_ref=self.cfg)
+        self.validator = ResponseValidator(self.svc.lore, config_ref=self.cfg)
         from bone_judge import DSPyCritic
-        self.dspy_critic = DSPyCritic()
+        self.dspy_critic = DSPyCritic(config_ref=self.cfg)
         self.dreamer.dspy_critic = self.dspy_critic
         if not hasattr(self.dreamer, "trauma_buffer"):
             self.dreamer.trauma_buffer = deque(maxlen=5)
@@ -202,20 +195,20 @@ class TheCortex:
 
     @classmethod
     def from_engine(cls, engine_ref, llm_client=None):
+        target_cfg = getattr(engine_ref, "bone_config", BoneConfig)
         services = CortexServices(
             events=engine_ref.events,
-            lore=LoreManifest.get_instance(),
+            lore=LoreManifest.get_instance(config_ref=target_cfg),
             lexicon=engine_ref.lex,
             inventory=engine_ref.gordon,
-            consultant=(
-                engine_ref.consultant if hasattr(engine_ref, "consultant") else None),
+            consultant=(engine_ref.consultant if hasattr(engine_ref, "consultant") else None),
             cycle_controller=engine_ref.cycle_controller,
-            symbiosis=getattr(
-                engine_ref, "symbiosis", SymbiosisManager(engine_ref.events)),
+            symbiosis=getattr(engine_ref, "symbiosis", SymbiosisManager(engine_ref.events)),
             mind_memory=engine_ref.mind.mem,
             bio=getattr(engine_ref, "bio", None),
             host_stats=getattr(engine_ref, "host_stats", None),
-            village=getattr(engine_ref, "village", None), )
+            village=getattr(engine_ref, "village", None),
+            config_ref=target_cfg)
         instance = cls(services, llm_client)
         instance.active_mode = engine_ref.config.get("boot_mode", "ADVENTURE").upper()
         if instance.active_mode not in BonePresets.MODES:
@@ -250,12 +243,10 @@ class TheCortex:
             self._apply_boot_overlay(full_state, user_input)
             modifiers["include_inventory"] = False
         llm_params = self.modulator.modulate(base_voltage=full_state["physics"].get("voltage", 5.0), latency_penalty=(
-            getattr(self.svc.host_stats, "latency", 0.0) if self.svc.host_stats else 0.0),
-                                             physics_state=full_state.get("physics", {}), )
+            getattr(self.svc.host_stats, "latency", 0.0) if self.svc.host_stats else 0.0), physics_state=full_state.get("physics", {}), )
         if is_boot_sequence: llm_params.update({"temperature": 0.7, "top_p": 0.95})
         user_input = sim_result.get("mutated_input", user_input)
-        final_prompt = self.composer.compose(full_state, user_input, ballast=self.ballast_active, modifiers=modifiers,
-                                             mood_override=self.modulator.get_mood_directive(), )
+        final_prompt = self.composer.compose(full_state, user_input, ballast=self.ballast_active, modifiers=modifiers, mood_override=self.modulator.get_mood_directive(), )
         start_time = time.time()
         max_retries = 5
         final_output, inv_logs, extracted_logs = "", [], []
@@ -277,8 +268,7 @@ class TheCortex:
                     context_str = "Active Memory: " + ", ".join(active_mems) if active_mems else "Empty Void."
                     is_faithful, judge_reason = self.dspy_critic.audit_generation(user_input, context_str, final_text)
             if not is_faithful:
-                val_res = {"valid": False,
-                           "feedback_instruction": f"CRITICAL HALLUCINATION: {judge_reason}. Refuse to invent details. Stay in character."}
+                val_res = {"valid": False, "feedback_instruction": f"CRITICAL HALLUCINATION: {judge_reason}. Refuse to invent details. Stay in character."}
                 short_reason = judge_reason.split(".")[0][:60] + "..."
                 print(f" {Prisma.VIOLET}⚖️ DSPy Critic Objected: {short_reason}{Prisma.RST}")
                 if self.events: self.events.log(f"DSPy Critic Objected: {short_reason}", "SYS")
@@ -290,8 +280,7 @@ class TheCortex:
                 break
             else:
                 if attempt < max_retries - 1:
-                    rejection_reason = val_res.get("feedback_instruction") or val_res.get("replacement",
-                                                                                          "Lattice structural crime.")
+                    rejection_reason = val_res.get("feedback_instruction") or val_res.get("replacement", "Lattice structural crime.")
                     if hasattr(self.dreamer, "trauma_buffer"): self.dreamer.trauma_buffer.append(rejection_reason)
                     if self.events:
                         msg = ux("brain_strings", "cortex_retry")
@@ -540,7 +529,6 @@ class TheCortex:
             msg = ux("brain_strings", "cortex_resequenced")
             self.events.log(msg.format(count=len(self.dialogue_buffer)), "BRAIN")
 
-
 class ShimmerState:
     def __init__(self, max_val=50.0):
         self.current = max_val
@@ -560,14 +548,14 @@ class ShimmerState:
             return "CONSERVE"
         return None
 
-
 class DreamEngine:
-    def __init__(self, events, lore_ref, llm_ref=None, mem_ref=None, eng_ref=None):
+    def __init__(self, events, lore_ref, llm_ref=None, mem_ref=None, eng_ref=None, config_ref=None):
         self.events = events
         self.lore = lore_ref
         self.llm = llm_ref
         self.mem = mem_ref
         self.eng = eng_ref
+        self.cfg = config_ref or BoneConfig
         self.dream_lore = self.lore.get("DREAMS") or {}
         self.trauma_buffer = deque(maxlen=5)
         self.dspy_critic = None
@@ -602,7 +590,7 @@ class DreamEngine:
                                 disk_prompts[active_mode]["directives"] = []
                             if new_axiom not in disk_prompts[active_mode]["directives"]:
                                 disk_prompts[active_mode]["directives"].append(new_axiom)
-                            threshold = getattr(BoneConfig.CORTEX, "EPIGENETIC_PRUNE_THRESHOLD", 12)
+                            threshold = getattr(self.cfg.CORTEX, "EPIGENETIC_PRUNE_THRESHOLD", 12)
                             if len(disk_prompts[active_mode]["directives"]) > threshold:
                                 compressed = getattr(self.dspy_critic, "compress_prompts", lambda x: None)(
                                     disk_prompts[active_mode]["directives"])
@@ -708,9 +696,10 @@ class DreamEngine:
 
 
 class NoeticLoop:
-    def __init__(self, mind_layer, bio_layer, _events):
+    def __init__(self, mind_layer, bio_layer, _events, config_ref=None):
         self.mind = mind_layer
         self.bio = bio_layer
+        self.cfg = config_ref or BoneConfig
 
     def think(self, physics_packet, _bio, _inventory, voltage_history, _tick_count, soul_ref=None, ):
         voltage = getattr(physics_packet, "voltage", 0.0) if not isinstance(physics_packet,
@@ -720,7 +709,7 @@ class NoeticLoop:
                                                                                    dict) else physics_packet.get(
             "clean_words", [])
         avg_v = sum(voltage_history) / len(voltage_history) if voltage_history else 0
-        cfg = getattr(BoneConfig, "CORTEX", None)
+        cfg = getattr(self.cfg, "CORTEX", None)
         v_div = getattr(cfg, "IGNITION_V_DIV", 20.0)
         w_div = getattr(cfg, "IGNITION_W_DIV", 10.0)
         link_v = getattr(cfg, "LINK_VOLTAGE_THRESH", 12.0)
@@ -729,7 +718,7 @@ class NoeticLoop:
         if voltage > link_v and random.random() < link_chance:
             if len(clean_words) >= 2:
                 w1, w2 = random.sample(clean_words, 2)
-                self._force_link(self.mind.mem.graph, w1, w2)
+                self._force_link(self.mind.mem.graph, w1, w2, self.cfg)
         current_lens = "OBSERVER"
         current_role = "Witness"
         if soul_ref:
@@ -742,8 +731,9 @@ class NoeticLoop:
                 "bio": self.bio.endo.get_state() if hasattr(self.bio, "endo") else {}, }
 
     @staticmethod
-    def _force_link(graph, wa, wb):
-        cfg = getattr(BoneConfig, "CORTEX", None)
+    def _force_link(graph, wa, wb, config_ref=None):
+        target_cfg = config_ref or BoneConfig
+        cfg = getattr(target_cfg, "CORTEX", None)
         max_edge = getattr(cfg, "LINK_MAX_WEIGHT", 10.0)
         edge_boost = getattr(cfg, "LINK_BOOST", 2.5)
         for a, b in [(wa, wb), (wb, wa)]:

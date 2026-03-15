@@ -359,18 +359,31 @@ class PhysicsPacket:
         return asdict(self)
 
     def get(self, key, default=None):
-        if hasattr(self, key):
-            return getattr(self, key)
+        if hasattr(self, key): return getattr(self, key)
+        if hasattr(self.energy, key): return getattr(self.energy, key)
+        if hasattr(self.space, key): return getattr(self.space, key)
+        if hasattr(self.matter, key): return getattr(self.matter, key)
         return default
 
     def __getitem__(self, key):
-        return getattr(self, key)
+        if hasattr(self, key): return getattr(self, key)
+        if hasattr(self.energy, key): return getattr(self.energy, key)
+        if hasattr(self.space, key): return getattr(self.space, key)
+        if hasattr(self.matter, key): return getattr(self.matter, key)
+        raise KeyError(f"'{key}' not found in PhysicsPacket or its sub-states.")
 
     def __setitem__(self, key, value):
-        setattr(self, key, value)
+        # Respect explicitly defined @property setters first
+        if hasattr(self.__class__, key) and isinstance(getattr(self.__class__, key), property):
+            setattr(self, key, value)
+        elif hasattr(self.energy, key): setattr(self.energy, key, value)
+        elif hasattr(self.space, key): setattr(self.space, key, value)
+        elif hasattr(self.matter, key): setattr(self.matter, key, value)
+        else: setattr(self, key, value)
 
     def __contains__(self, key):
-        return hasattr(self, key)
+        return (hasattr(self, key) or hasattr(self.energy, key) or
+                hasattr(self.space, key) or hasattr(self.matter, key))
 
 @dataclass
 class UserInferredState:

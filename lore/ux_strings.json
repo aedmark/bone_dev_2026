@@ -184,7 +184,6 @@
     "look": "Observe environment",
     "reload": "Hot-reload Lore",
     "truth": "Adjust Reality Ambiguity [0-3]",
-    "soothe": "Burn ATP to quell memory guilt",
     "use": "Use/Consume an item",
     "hud": "Adjusts the VSL UI depth (warm, lite, core, deep)",
     "idle": "Enters REM cycle, regenerating ATP and Stamina",
@@ -224,8 +223,7 @@
         "/soul",
         "/map",
         "/truth",
-        "/grief",
-        "/soothe"
+        "/grief"
       ],
       "MAINTENANCE": [
         "/debug",
@@ -245,9 +243,6 @@
   },
   "command_alerts": {
     "reality_lock": "COMMAND REJECTED: Reality Depth {depth} prohibits administrative override.",
-    "soothe_weak": "Too weak to mourn. (Req: {cost} Stamina)",
-    "soothe_missing_mem": "The subconscious is not installed.",
-    "soothe_success": "\ud83c\udffa {msg} (-{cost} Stamina)",
     "mode_usage": "Usage: /mode [ZEN_GARDEN | THUNDERDOME | SANCTUARY]",
     "mode_unknown": "Unknown mode: {mode}.",
     "mode_reconciled": "State reconciled to {mode} parameters.",

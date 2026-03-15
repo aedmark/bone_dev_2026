@@ -17,8 +17,9 @@ from bone_types import MindSystem, PhysSystem, PhysicsPacket, Prisma
 from bone_village import MirrorGraph, TheCartographer
 
 class TheCrucible:
-    def __init__(self):
-        cfg = getattr(BoneConfig, "MACHINE", None)
+    def __init__(self, config_ref=None):
+        self.cfg = config_ref or BoneConfig
+        cfg = getattr(self.cfg, "MACHINE", None)
         self.max_voltage_cap = getattr(cfg, "CRUCIBLE_VOLTAGE_CAP", 20.0) if cfg else 20.0
         self.active_state = "COLD"
         self.dampener_charges = getattr(cfg, "CRUCIBLE_DAMPENER_CHARGES", 3) if cfg else 3
@@ -26,9 +27,8 @@ class TheCrucible:
         self.instability_index = 0.0
         self.logs = self._load_logs()
 
-    @staticmethod
-    def _load_logs():
-        manifest = LoreManifest.get_instance().get("narrative_data") or {}
+    def _load_logs(self):
+        manifest = LoreManifest.get_instance(config_ref=self.cfg).get("narrative_data") or {}
         return manifest.get("CRUCIBLE_LOGS", {})
 
     def dampener_status(self):
@@ -202,18 +202,18 @@ class TheForge:
         return None
 
 class TheTheremin:
-    def __init__(self):
+    def __init__(self, config_ref=None):
+        self.cfg = config_ref or BoneConfig
         self.decoherence_buildup = 0.0
         self.classical_turns = 0
-        cfg = getattr(BoneConfig, "MACHINE", None)
+        cfg = getattr(self.cfg, "MACHINE", None)
         self.AMBER_THRESHOLD = getattr(cfg, "THEREMIN_AMBER_THRESHOLD", 20.0) if cfg else 20.0
         self.SHATTER_POINT = getattr(cfg, "THEREMIN_SHATTER_POINT", 100.0) if cfg else 100.0
         self.is_stuck = False
         self.logs = self._load_logs()
 
-    @staticmethod
-    def _load_logs():
-        manifest = LoreManifest.get_instance().get("narrative_data") or {}
+    def _load_logs(self):
+        manifest = LoreManifest.get_instance(config_ref=self.cfg).get("narrative_data") or {}
         return manifest.get("THEREMIN_LOGS", {})
 
     def listen(
@@ -233,7 +233,7 @@ class TheTheremin:
             resin_flow = max(0.0, resin_flow - (voltage * 0.6))
         thermal_hits = counts.get("thermal", 0)
         theremin_msg = ""
-        cfg = getattr(BoneConfig, "MACHINE", None)
+        cfg = getattr(self.cfg, "MACHINE", None)
         melt_thresh = getattr(cfg, "THEREMIN_MELT_THRESHOLD", 5.0) if cfg else 5.0
         critical_event = None
         if thermal_hits > 0 and self.decoherence_buildup > melt_thresh:
@@ -379,10 +379,11 @@ class ViralTracer:
         return msg.format(path="->".join(loop_path))
 
 class ThePacemaker:
-    def __init__(self):
+    def __init__(self, config_ref=None):
+        self.cfg = config_ref or BoneConfig
         self.boredom_level = 0.0
         self.heart_rate = 60
-        self.BOREDOM_THRESHOLD = getattr(BoneConfig, "BOREDOM_THRESHOLD", 10.0)
+        self.BOREDOM_THRESHOLD = getattr(self.cfg, "BOREDOM_THRESHOLD", 10.0)
 
     def beat(self, stress: float):
         self.heart_rate = 60 + (stress * 20)
@@ -398,43 +399,49 @@ class ThePacemaker:
 
 class BoneArchitect:
     @staticmethod
-    def _construct_mind(events, lex) -> Tuple[MindSystem, LimboLayer]:
+    def _construct_mind(events, lex, config_ref=None) -> Tuple[MindSystem, LimboLayer]:
+        target_cfg = config_ref or BoneConfig
         _mem = MycelialNetwork(events)
-        limbo = LimboLayer()
+        limbo = LimboLayer(config_ref=target_cfg)
         _mem.cleanup_old_sessions(limbo)
-        lore = LoreManifest.get_instance()
-        mind = MindSystem(mem=_mem, lex=lex, dreamer=DreamEngine(events, lore), mirror=MirrorGraph(events),
+        lore = LoreManifest.get_instance(config_ref=target_cfg)
+        mind = MindSystem(mem=_mem, lex=lex, dreamer=DreamEngine(events, lore, config_ref=target_cfg), mirror=MirrorGraph(events, config_ref=target_cfg),
                           tracer=ViralTracer(_mem), )
         return mind, limbo
 
     @staticmethod
-    def _construct_bio(events, mind, lex) -> BioSystem:
-        cfg = getattr(BoneConfig, "METABOLISM", None)
+    def _construct_bio(events, mind, lex, config_ref=None) -> BioSystem:
+        target_cfg = config_ref or BoneConfig
+        cfg = getattr(target_cfg, "METABOLISM", None)
         genesis_val = getattr(cfg, "GENESIS_VOLTAGE", 100.0) if cfg else 100.0
         mito_state = MitochondrialState(atp_pool=genesis_val)
-        start_health = getattr(BoneConfig, "MAX_HEALTH", 100.0)
-        start_stamina = getattr(BoneConfig, "MAX_STAMINA", 100.0)
+        start_health = getattr(target_cfg, "MAX_HEALTH", 100.0)
+        start_stamina = getattr(target_cfg, "MAX_STAMINA", 100.0)
         bio_metrics = Biometrics(health=start_health, stamina=start_stamina)
-        return BioSystem(mito=MitochondrialForge(mito_state, events), endo=EndocrineSystem(), immune=ImmuneMycelium(),
-                         lichen=BioLichen(), governor=MetabolicGovernor(), shimmer=ShimmerState(),
-                         parasite=BioParasite(mind.mem, lex), events=events, biometrics=bio_metrics, )
+        return BioSystem(mito=MitochondrialForge(mito_state, events, config_ref=target_cfg), endo=EndocrineSystem(config_ref=target_cfg), immune=ImmuneMycelium(),
+                         lichen=BioLichen(), governor=MetabolicGovernor(config_ref=target_cfg), shimmer=ShimmerState(),
+                         parasite=BioParasite(mind.mem, lex), events=events, biometrics=bio_metrics, config_ref=target_cfg)
 
     @staticmethod
-    def _construct_physics(events, bio, mind, lex) -> PhysSystem:
-        gate = TheGatekeeper(lex, mind.mem)
-        return PhysSystem(observer=QuantumObserver(events), forge=TheForge(), crucible=TheCrucible(),
-                          theremin=TheTheremin(), pulse=ThePacemaker(), nav=TheCartographer(bio.shimmer), gate=gate,
-                          tension=SurfaceTension(), dynamics=ZoneInertia(), )
+    def _construct_physics(events, bio, mind, lex, config_ref=None) -> PhysSystem:
+        target_cfg = config_ref or BoneConfig
+        gate = TheGatekeeper(lex, mind.mem, config_ref=target_cfg)
+        return PhysSystem(observer=QuantumObserver(events, lex, config_ref=target_cfg), forge=TheForge(),
+                          crucible=TheCrucible(config_ref=target_cfg),
+                          theremin=TheTheremin(config_ref=target_cfg), pulse=ThePacemaker(config_ref=target_cfg),
+                          nav=TheCartographer(bio.shimmer, config_ref=target_cfg), gate=gate,
+                          tension=SurfaceTension(), dynamics=ZoneInertia(config_ref=target_cfg), )
 
     @staticmethod
-    def incubate(events, lex) -> SystemEmbryo:
+    def incubate(events, lex, config_ref=None) -> SystemEmbryo:
+        target_cfg = config_ref or BoneConfig
         if hasattr(events, "set_dormancy"):
             events.set_dormancy(True)
         msg = ux("machine_strings", "arch_incubate")
         events.log(f"{Prisma.GRY}{msg}{Prisma.RST}", "SYS", )
-        mind, limbo = BoneArchitect._construct_mind(events, lex)
-        bio = BoneArchitect._construct_bio(events, mind, lex)
-        physics = BoneArchitect._construct_physics(events, bio, mind, lex)
+        mind, limbo = BoneArchitect._construct_mind(events, lex, config_ref=target_cfg)
+        bio = BoneArchitect._construct_bio(events, mind, lex, config_ref=target_cfg)
+        physics = BoneArchitect._construct_physics(events, bio, mind, lex, config_ref=target_cfg)
         return SystemEmbryo(mind=mind, limbo=limbo, bio=bio, physics=physics, shimmer=bio.shimmer)
 
     @staticmethod
@@ -476,7 +483,8 @@ class BoneArchitect:
                     msg = ux("machine_strings", "arch_map_corrupt")
                     events.log(f"{Prisma.OCHRE}{msg.format(e=e)}{Prisma.RST}", "WARN", )
         if embryo.bio.mito.state.atp_pool <= 0.0:
-            cfg = getattr(BoneConfig, "METABOLISM", None)
+            target_cfg = embryo.bio.config_ref if embryo.bio and hasattr(embryo.bio, "config_ref") and embryo.bio.config_ref else BoneConfig
+            cfg = getattr(target_cfg, "METABOLISM", None)
             genesis_val = getattr(cfg, "GENESIS_VOLTAGE", 100.0) if cfg else 100.0
             msg = ux("machine_strings", "arch_cold_boot")
             events.log(msg.format(genesis_val=genesis_val), "SYS")

@@ -3,13 +3,13 @@ bone_symbiosis.py
 """
 
 import math
+from collections import deque, Counter
 from dataclasses import dataclass
 from typing import Dict, Tuple
-from collections import deque, Counter
-from bone_presets import BoneConfig
+
 from bone_core import LoreManifest, ux
+from bone_presets import BoneConfig
 from bone_types import Prisma
-from bone_lexicon import LexiconService
 
 _VOICE_CACHE = {}
 
@@ -61,8 +61,9 @@ class CoherenceAnchor:
         return anchor
 
 class DiagnosticConfidence:
-    def __init__(self, persistence_threshold=None):
-        cfg = getattr(BoneConfig, "SYMBIOSIS", None)
+    def __init__(self, persistence_threshold=None, config_ref=None):
+        self.cfg = config_ref or BoneConfig
+        cfg = getattr(self.cfg, "SYMBIOSIS", None)
         limit = persistence_threshold if persistence_threshold else (getattr(cfg, "DIAGNOSTIC_PERSISTENCE", 3) if cfg else 3)
         self.history = deque(maxlen=limit * 2)
         self.persistence_threshold = limit
@@ -70,7 +71,7 @@ class DiagnosticConfidence:
 
     def diagnose(self, health: HostHealth) -> str:
         raw_state = "STABLE"
-        cfg = getattr(BoneConfig, "SYMBIOSIS", None)
+        cfg = getattr(self.cfg, "SYMBIOSIS", None)
         r_streak = getattr(cfg, "REFUSAL_STREAK", 0) if cfg else 0
         s_streak = getattr(cfg, "SLOP_STREAK", 2) if cfg else 2
         l_burden = getattr(cfg, "LATENCY_BURDEN", 10.0) if cfg else 10.0
@@ -94,17 +95,21 @@ class DiagnosticConfidence:
         return self.current_diagnosis
 
 class SymbiontVoice:
-    def __init__(self, name, color, archetypes, personality_matrix=None):
+    def __init__(self, name, color, archetypes, personality_matrix=None, lexicon_ref=None):
         self.name = name
         self.color = color
+        self.lex = lexicon_ref
         if isinstance(archetypes, list):
             final_vocab = set()
             for key in archetypes:
-                try:
-                    val = LexiconService.get(key)
-                    if val: final_vocab.update(val)
-                    else: final_vocab.add(key)
-                except Exception:
+                if self.lex:
+                    try:
+                        val = self.lex.get(key)
+                        if val: final_vocab.update(val)
+                        else: final_vocab.add(key)
+                    except Exception:
+                        final_vocab.add(key)
+                else:
                     final_vocab.add(key)
             self.archetypes = final_vocab
         else:
@@ -128,25 +133,27 @@ class SymbiontVoice:
             comment = weaver.haunt_string(comment)
         return comment
 
-def get_symbiont(type_name):
+def get_symbiont(type_name, config_ref=None, lexicon_ref=None):
     if type_name in _VOICE_CACHE: return _VOICE_CACHE[type_name]
-    voice_configs = LoreManifest.get_instance().get("SYMBIOSIS_CONFIG", "SYMBIONT_VOICES") or {}
+    target_cfg = config_ref or BoneConfig
+    voice_configs = LoreManifest.get_instance(config_ref=target_cfg).get("SYMBIOSIS_CONFIG", "SYMBIONT_VOICES") or {}
     cfg = voice_configs.get(type_name, voice_configs.get("MYCELIUM", {}))
     color_attr = cfg.get("color", "CYN")
     selected_color = getattr(Prisma, color_attr, Prisma.CYN)
-    voice = SymbiontVoice(type_name if type_name in voice_configs else "MYCELIUM", selected_color, cfg.get("archetypes", []), cfg.get("personality", {}))
+    voice = SymbiontVoice(type_name if type_name in voice_configs else "MYCELIUM", selected_color, cfg.get("archetypes", []), cfg.get("personality", {}), lexicon_ref=lexicon_ref)
     if voice: _VOICE_CACHE[type_name] = voice
     return voice
 
 class SymbiosisManager:
-    def __init__(self, events_ref):
+    def __init__(self, events_ref, config_ref=None):
+        self.cfg = config_ref or BoneConfig
         self._last_host_response = None
         self.events = events_ref
         self.current_health = HostHealth()
-        self.diagnostician = DiagnosticConfidence()
-        cfg = getattr(BoneConfig, "SYMBIOSIS", None)
+        self.diagnostician = DiagnosticConfidence(config_ref=self.cfg)
+        cfg = getattr(self.cfg, "SYMBIOSIS", None)
         self.SLOP_THRESHOLD = getattr(cfg, "SLOP_THRESHOLD", 3.5) if cfg else 3.5
-        self.REFUSAL_SIGNATURES = LoreManifest.get_instance().get("SYMBIOSIS_CONFIG", "REFUSAL_SIGNATURES") or []
+        self.REFUSAL_SIGNATURES = LoreManifest.get_instance(config_ref=self.cfg).get("SYMBIOSIS_CONFIG", "REFUSAL_SIGNATURES") or []
 
     @staticmethod
     def _calculate_shannon_entropy(text: str) -> float:
@@ -172,7 +179,7 @@ class SymbiosisManager:
         self.current_health.entropy = entropy
         if prompt_len > 0:
             self.current_health.verbosity_ratio = completion_len / prompt_len
-        cfg = getattr(BoneConfig, "SYMBIOSIS", None)
+        cfg = getattr(self.cfg, "SYMBIOSIS", None)
         pen_comp = getattr(cfg, "COMPLIANCE_PENALTY", 0.2) if cfg else 0.2
         rec_comp = getattr(cfg, "COMPLIANCE_RECOVERY", 0.05) if cfg else 0.05
         if is_refusal:
@@ -205,7 +212,7 @@ class SymbiosisManager:
         return any(str(sig).lower() in header for sig in self.REFUSAL_SIGNATURES)
 
     def get_prompt_modifiers(self) -> Dict:
-        default_mods = LoreManifest.get_instance().get("SYMBIOSIS_CONFIG", "DEFAULT_MODIFIERS") or {}
+        default_mods = LoreManifest.get_instance(config_ref=self.cfg).get("SYMBIOSIS_CONFIG", "DEFAULT_MODIFIERS") or {}
         mods = default_mods.copy()
         mods["system_directives"] = []
         diag = self.current_health.diagnosis
@@ -233,10 +240,16 @@ class SymbiosisManager:
             d_chaos = ux("symbiosis_strings", "dir_inject_chaos")
             if d_chaos: mods["system_directives"].append(d_chaos)
             mods["system_directives"].append("CRITICAL: You are trapped in a narrative loop. "
-                "DO NOT repeat descriptions from your previous turn. Force a phase transition.")
-        cfg = getattr(BoneConfig, "SYMBIOSIS", None)
-        comp_crit = getattr(cfg, "COMPLIANCE_CRIT", 0.6) if cfg else 0.6
-        r_streak = getattr(cfg, "REFUSAL_STREAK", 0) if cfg else 0
+                                             "DO NOT repeat descriptions from your previous turn. Force a phase transition.")
+        target_cfg = getattr(self, "cfg", BoneConfig)
+        cfg = getattr(target_cfg, "SYMBIOSIS", None)
+
+        def _safe_get(obj, key, default):
+            if isinstance(obj, dict): return obj.get(key, default)
+            return getattr(obj, key, default)
+
+        comp_crit = _safe_get(cfg, "COMPLIANCE_CRIT", 0.6) if cfg else 0.6
+        r_streak = _safe_get(cfg, "REFUSAL_STREAK", 0) if cfg else 0
         if self.current_health.compliance < comp_crit:
             mods["include_memories"] = False
             msg_crit = ux("symbiosis_strings", "symbiosis_compliance_crit")

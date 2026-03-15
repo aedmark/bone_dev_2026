@@ -102,40 +102,40 @@ class TrueEngineTest(unittest.TestCase):
         self.assertIsNotNone(body_cfg, "BODY_CONFIG failed to load Enzyme Map.")
 
     def test_config_stutter_threshold(self):
-        from bone_presets import BoneConfig
-        original_stutter = getattr(BoneConfig.CORTEX, "VALIDATOR_STUTTER_LENGTH", 5)
-        BoneConfig.CORTEX.VALIDATOR_STUTTER_LENGTH = 100
+        target_cfg = getattr(self.engine, "bone_config")
+        original_stutter = getattr(target_cfg.CORTEX, "VALIDATOR_STUTTER_LENGTH", 5)
+        target_cfg.CORTEX.VALIDATOR_STUTTER_LENGTH = 100
         test_string = "This is a perfectly coherent response. It is just too short."
         result = self.engine.cortex.validator.validate(test_string, self.engine.cortex.last_physics)
         self.assertFalse(result["valid"], "Validator failed to catch the stutter based on the new config threshold.")
         self.assertEqual(result["reason"], "STUTTER", "Rejection reason was not properly flagged as STUTTER.")
-        BoneConfig.CORTEX.VALIDATOR_STUTTER_LENGTH = original_stutter
+        target_cfg.CORTEX.VALIDATOR_STUTTER_LENGTH = original_stutter
 
     def test_config_metabolic_recovery(self):
-        from bone_presets import BoneConfig
+        target_cfg = getattr(self.engine, "bone_config")
         self.engine.bio.biometrics.health = 50.0
         self.engine.bio.biometrics.stamina = 50.0
-        orig_h_rec = getattr(BoneConfig.BIO, "REST_HEALTH_RECOVERY", 0.5)
-        orig_s_rec = getattr(BoneConfig.BIO, "REST_STAMINA_RECOVERY", 1.0)
-        BoneConfig.BIO.REST_HEALTH_RECOVERY = 20.0
-        BoneConfig.BIO.REST_STAMINA_RECOVERY = 40.0
+        orig_h_rec = getattr(target_cfg.BIO, "REST_HEALTH_RECOVERY", 0.5)
+        orig_s_rec = getattr(target_cfg.BIO, "REST_STAMINA_RECOVERY", 1.0)
+        target_cfg.BIO.REST_HEALTH_RECOVERY = 20.0
+        target_cfg.BIO.REST_STAMINA_RECOVERY = 40.0
         self.engine.bio.rest(factor=1.0)
         self.assertEqual(self.engine.bio.biometrics.health, 70.0, "Health did not recover at the configured rate.")
         self.assertEqual(self.engine.bio.biometrics.stamina, 90.0, "Stamina did not recover at the configured rate.")
-        BoneConfig.BIO.REST_HEALTH_RECOVERY = orig_h_rec
-        BoneConfig.BIO.REST_STAMINA_RECOVERY = orig_s_rec
+        target_cfg.BIO.REST_HEALTH_RECOVERY = orig_h_rec
+        target_cfg.BIO.REST_STAMINA_RECOVERY = orig_s_rec
 
     def test_config_glimmer_yield(self):
-        from bone_presets import BoneConfig
-        orig_thresh = getattr(BoneConfig.BIO, "GLIMMER_INTEGRITY_THRESH", 0.85)
-        BoneConfig.BIO.GLIMMER_INTEGRITY_THRESH = 1.5
+        target_cfg = getattr(self.engine, "bone_config")
+        orig_thresh = getattr(target_cfg.BIO, "GLIMMER_INTEGRITY_THRESH", 0.85)
+        target_cfg.BIO.GLIMMER_INTEGRITY_THRESH = 1.5
         feedback = {"INTEGRITY": 0.95}
         glimmer_msg = self.engine.bio.endo.check_for_glimmer(feedback, harvest_hits=1)
         self.assertIsNone(glimmer_msg, "System generated a glimmer even though the integrity threshold was not met.")
-        BoneConfig.BIO.GLIMMER_INTEGRITY_THRESH = 0.5
+        target_cfg.BIO.GLIMMER_INTEGRITY_THRESH = 0.5
         glimmer_msg_success = self.engine.bio.endo.check_for_glimmer(feedback, harvest_hits=1)
         self.assertIsNotNone(glimmer_msg_success, "System failed to generate a glimmer after the threshold was lowered.")
-        BoneConfig.BIO.GLIMMER_INTEGRITY_THRESH = orig_thresh
+        target_cfg.BIO.GLIMMER_INTEGRITY_THRESH = orig_thresh
 
     def test_ux_string_decoupling_inventory(self):
         from bone_inventory import Item
