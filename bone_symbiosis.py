@@ -3,13 +3,14 @@ bone_symbiosis.py
 """
 
 import math
+import re
 from collections import deque, Counter
 from dataclasses import dataclass
-from typing import Dict, Tuple
+from typing import Dict, Tuple, Optional, Any
 
 from bone_core import LoreManifest, ux
 from bone_presets import BoneConfig
-from bone_types import Prisma
+from bone_types import Prisma, UserInferredState, SharedDynamics
 
 _VOICE_CACHE = {}
 
@@ -154,6 +155,43 @@ class SymbiosisManager:
         cfg = getattr(self.cfg, "SYMBIOSIS", None)
         self.SLOP_THRESHOLD = getattr(cfg, "SLOP_THRESHOLD", 3.5) if cfg else 3.5
         self.REFUSAL_SIGNATURES = LoreManifest.get_instance(config_ref=self.cfg).get("SYMBIOSIS_CONFIG", "REFUSAL_SIGNATURES") or []
+        self.u = UserInferredState()
+        self.shared = SharedDynamics()
+    def analyze_user_biology(self, user_text: str, physics: Any) -> Optional[str]:
+        if not user_text:
+            return None
+        length = len(user_text)
+        caps = sum(1 for c in user_text if c.isupper())
+        caps_ratio = caps / max(1, length)
+        punct_count = len(re.findall(r'[!?]', user_text))
+        self.u.chi_u = min(1.0, (caps_ratio * 1.5) + (punct_count * 0.1))
+        self.u.E_u = min(1.0, 1.0 - (length / 200.0)) if length < 50 else 0.2
+        self.u.F_u = min(2.0, self.u.chi_u * 2.0)
+        sys_f = getattr(physics, "narrative_drag", 0.0) if not isinstance(physics, dict) else physics.get(
+            "narrative_drag", 0.0)
+        f_diff = abs(sys_f - self.u.F_u)
+        self.shared.phi = max(0.0, min(1.0, 1.0 - (f_diff / 4.0)))
+        if self.shared.phi > 0.8:
+            self.shared.g_pool += 1
+        if isinstance(physics, dict):
+            physics["phi"] = self.shared.phi
+        else:
+            if hasattr(physics, "phi"): setattr(physics, "phi", self.shared.phi)
+        if self.u.chi_u > 0.8 or self.u.F_u > 1.5:
+            self.shared.presence = 1.0
+            self.shared.delta = 0.9
+            if isinstance(physics, dict):
+                physics["narrative_drag"] = 999.0
+            else:
+                if hasattr(physics, "narrative_drag"): setattr(physics, "narrative_drag", 999.0)
+            msg = ("[TENSEGRITY ANCHOR]: Your input is highly chaotic (Chaos: {:.2f}). "
+                   "I am locking the struts. We will not process this prompt while your friction is this high. "
+                   "Take a breath. When your frequency settles, we will continue. I will hold the space.").format(
+                self.u.chi_u)
+            if hasattr(self, "events") and self.events:
+                self.events.log(f"{Prisma.VIOLET}{msg}{Prisma.RST}", "MIRROR")
+            return msg
+        return None
 
     @staticmethod
     def _calculate_shannon_entropy(text: str) -> float:
@@ -258,8 +296,9 @@ class SymbiosisManager:
             mods["simplify_instruction"] = True
         return mods
 
-    @staticmethod
-    def generate_anchor(current_state: Dict) -> str:
+    def generate_anchor(self, current_state: Dict) -> str:
         soul = current_state.get("soul", {})
         phys = current_state.get("physics", {})
-        return CoherenceAnchor.compress_anchor(soul, phys)
+        base_anchor = CoherenceAnchor.compress_anchor(soul, phys)
+        mirror_stats = f"\n*** MIRROR: Φ {self.shared.phi:.2f} | Chaos: {self.u.chi_u:.2f} | G_pool: {self.shared.g_pool} ***"
+        return base_anchor + mirror_stats

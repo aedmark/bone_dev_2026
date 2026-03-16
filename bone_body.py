@@ -236,6 +236,13 @@ class MitochondrialForge:
             if self.events:
                 msg = ux("mito_forge", "chaos_tax")
                 if msg: self.events.log(f"{Prisma.RED}{msg.format(tax=chaos_tax)}{Prisma.RST}", "BIO_WARN")
+        mu = _p("mu", 0.0)
+        m_a = _p("m_a", 0.0)
+        if mu > 0:
+            amplification_tax = mu * math.exp(m_a)
+            cognitive_load_tax += amplification_tax
+            if amplification_tax > 1.0 and self.events:
+                self.events.log(f"{Prisma.MAG}[CHECKPOINT]: Amplification Tax applied (+{amplification_tax:.2f} ATP drag){Prisma.RST}", "BIO_WARN")
         safe_vector = getattr(physics_packet, "vector", None) or {}
         liminal_intensity = safe_vector.get("LAMBDA", 0.0)
         if liminal_intensity > 0:

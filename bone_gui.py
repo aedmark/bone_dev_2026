@@ -5,6 +5,10 @@ from typing import Dict, List, Any, Tuple
 from bone_presets import BoneConfig
 from bone_core import Prisma, ux
 from bone_physics import ChromaScope
+import markdown
+
+def render_markdown(text: str) -> str:
+    return markdown.markdown(text, extensions=['extra'])
 
 
 def beautify_thoughts(text: str) -> str:
@@ -13,14 +17,14 @@ def beautify_thoughts(text: str) -> str:
         if not content:
             return ""
         lines = content.split('\n')
-        formatted_lines = [f"{Prisma.CYN}  │ {Prisma.GRY}{line.strip()}{Prisma.RST}" for line in lines if line.strip()]
+        fmt = [f"{Prisma.CYN}  │ {Prisma.GRY}{line.strip()}{Prisma.RST}"
+               for line in lines if line.strip()]
         header = f"{Prisma.CYN}  ┌─ {Prisma.MAG}[ COGNITIVE SUBSTRATE ]{Prisma.RST}"
         footer = f"{Prisma.CYN}  └─{Prisma.RST}"
-        return f"{header}\n" + "\n".join(formatted_lines) + f"\n{footer}"
-
+        inner_content = "\n".join(fmt)
+        return f"<div class='substrate-block'>{header}\n{inner_content}\n{footer}</div>"
     pattern = re.compile(r"<(?:think|thought)>(.*?)(?:</(?:think|thought)>|$)", re.DOTALL | re.IGNORECASE)
     return pattern.sub(replacer, text)
-
 
 class Projector:
     def __init__(self, config_ref=None):
@@ -154,53 +158,50 @@ class Projector:
                 f"{Prisma.SLATE}DRAG:{Prisma.RST} {drag:04.1f}{drag_profile_str}   "
                 f"{Prisma.MAG}VEC:{Prisma.RST} {dom_vec} ({dom_val:.2f})")
 
-    @staticmethod
-    def _render_lattice_strip(physics: Any, data_ctx: Dict = None, depth: str = "DEEP") -> str:
+    def _get_lattice_val(self, physics: Any, keys: List[str], default: float) -> float:
+        val = None
+        for k in keys:
+            if isinstance(physics, dict):
+                val = physics.get(k)
+                if val is None:
+                    for sub in ["energy", "space", "matter"]:
+                        if sub in physics and k in physics[sub]:
+                            val = physics[sub][k]
+                            break
+            else:
+                val = getattr(physics, k, None)
+                if val is None:
+                    for sub in ["energy", "space", "matter"]:
+                        sub_obj = getattr(physics, sub, None)
+                        if sub_obj and hasattr(sub_obj, k):
+                            val = getattr(sub_obj, k)
+                            break
+            if val is not None: break
+        try:
+            return float(val) if val is not None else default
+        except (ValueError, TypeError):
+            return default
+
+    def _render_lattice_strip(self, physics: Any, data_ctx: Dict = None, depth: str = "DEEP") -> str:
         if depth == "IDLE" or not physics:
             return ""
         if data_ctx is None:
             data_ctx = {}
-
-        def _get_val(keys, default_val):
-            val = None
-            if isinstance(physics, dict):
-                for k in keys:
-                    if k in physics and physics[k] is not None:
-                        val = physics[k]
-                        break
-                    for sub in ["energy", "space", "matter"]:
-                        if sub in physics and k in physics[sub] and physics[sub][k] is not None:
-                            val = physics[sub][k]
-                            break
-                    if val is not None: break
-            else:
-                for k in keys:
-                    if hasattr(physics, k) and getattr(physics, k) is not None:
-                        val = getattr(physics, k)
-                        break
-                    for sub in ["energy", "space", "matter"]:
-                        if hasattr(physics, sub) and hasattr(getattr(physics, sub), k) and getattr(
-                                getattr(physics, sub), k) is not None:
-                            val = getattr(getattr(physics, sub), k)
-                            break
-                    if val is not None: break
-            if val is None:
-                return default_val
-            try:
-                return float(val)
-            except (ValueError, TypeError):
-                return default_val
-
-        E = _get_val(["exhaustion", "E"], 0.2)
-        beta = _get_val(["beta_index", "contradiction", "beta"], 0.4)
-        V = _get_val(["voltage", "V"], 30.0)
-        F = _get_val(["narrative_drag", "friction", "F"], 0.6)
-        H = _get_val(["health", "H"], 100.0)
-        P = max(0.0, _get_val(["stamina", "P"], 100.0))
-        T = _get_val(["trauma", "T"], 0.0)
-        psi = _get_val(["psi", "PSI"], 0.0)
-        chi = _get_val(["entropy", "chi", "CHI"], 0.0)
-        valence = _get_val(["valence", "VALENCE"], 0.0)
+        E = self._get_lattice_val(physics, ["exhaustion", "E"], 0.2)
+        beta = self._get_lattice_val(physics, ["beta_index", "contradiction", "beta"], 0.4)
+        V = self._get_lattice_val(physics, ["voltage", "V"], 30.0)
+        F = self._get_lattice_val(physics, ["narrative_drag", "friction", "F"], 0.6)
+        H = self._get_lattice_val(physics, ["health", "H"], 100.0)
+        P = max(0.0, self._get_lattice_val(physics, ["stamina", "P"], 100.0))
+        T = self._get_lattice_val(physics, ["trauma", "T"], 0.0)
+        psi = self._get_lattice_val(physics, ["psi", "PSI"], 0.0)
+        chi = self._get_lattice_val(physics, ["entropy", "chi", "CHI"], 0.0)
+        valence = self._get_lattice_val(physics, ["valence", "VALENCE"], 0.0)
+        gamma = self._get_lattice_val(physics, ["gamma"], 0.0)
+        sigma = self._get_lattice_val(physics, ["sigma"], 0.0)
+        eta = self._get_lattice_val(physics, ["eta"], 0.0)
+        theta = self._get_lattice_val(physics, ["theta"], 0.0)
+        upsilon = self._get_lattice_val(physics, ["upsilon"], 0.0)
         sym = ux("projector", "symbols", {})
         i_core = sym.get("core", "")
         i_volt = sym.get("volt", "")
@@ -238,10 +239,13 @@ class Projector:
         else:
             strain_color = Prisma.RED
         strain_str = f" {Prisma.GRY}[Q_n Strain:{strain_color}{strain:.2f}{Prisma.GRY}]{Prisma.RST}"
+        slash_str = ""
+        if gamma > 0 or sigma > 0 or eta > 0 or theta > 0 or upsilon > 0:
+            slash_str = f" {Prisma.BLU}[SLASH Γ:{gamma:.1f} Σ:{sigma:.1f} Η:{eta:.1f} Θ:{theta:.1f} Υ:{upsilon:.1f}]{Prisma.RST}"
         if depth == "DEEP":
-            return core + deep + shared_str + paradox_str + strain_str
+            return core + deep + shared_str + paradox_str + strain_str + slash_str
         elif depth == "CORE":
-            return core + shared_str + strain_str
+            return core + shared_str + strain_str + slash_str
         elif depth == "LITE":
             if data_ctx.get("show_vitals", True):
                 return f"{Prisma.CYN}[{i_volt} V:{V:.0f} | {i_hlth} H:{H:.0f} P:{P:.0f}]{Prisma.RST}" + shared_str

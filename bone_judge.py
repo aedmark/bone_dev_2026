@@ -2,8 +2,6 @@
 bone_judge.py
 """
 
-import json
-import os
 from bone_types import Prisma
 
 try:

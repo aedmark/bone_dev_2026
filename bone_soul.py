@@ -390,8 +390,27 @@ class NarrativeSelf:
             return
         prev = self.archetype
         t = self.traits
-        if t.empathy > 0.8 and t.hope > 0.6:
-            new_arch = "THE HEALER"
+        new_arch = None
+        physics = self._safe_get_packet()
+        if physics:
+            is_dict = isinstance(physics, dict)
+            psi = physics.get("psi", 0.0) if is_dict else getattr(physics, "psi", 0.0)
+            exhaustion = physics.get("exhaustion", physics.get("E", 0.0)) if is_dict else getattr(physics, "exhaustion", getattr(physics, "E", 0.0))
+            silence = physics.get("silence", physics.get("delta", 0.0)) if is_dict else getattr(physics, "silence", getattr(physics, "delta", 0.0))
+            resonance = physics.get("phi", 0.0) if is_dict else getattr(physics, "phi", 0.0)
+            trauma = physics.get("T", 0.0) if is_dict else getattr(physics, "T", 0.0)
+            lq = physics.get("lq", 0.0) if is_dict else getattr(physics, "lq", 0.0)
+            if silence > 0.7 and exhaustion > 0.7:
+                new_arch = "THE PURGER"
+            elif psi > 0.8:
+                new_arch = "THE CALM"
+            elif resonance > 0.7 and trauma > 0.5:
+                new_arch = "THE NURSE"
+            elif lq > 0.7 and silence > 0.7:
+                new_arch = "THE TAO"
+        if not new_arch:
+            if t.empathy > 0.8 and t.hope > 0.6:
+                new_arch = "THE HEALER"
         elif t.empathy > 0.7 and t.discipline > 0.6:
             new_arch = "THE GARDENER"
         elif t.hope > 0.7 and t.curiosity > 0.6:

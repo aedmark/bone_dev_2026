@@ -59,7 +59,7 @@ class SessionGuardian:
     def __enter__(self):
         subprocess.run("cls" if os.name == "nt" else "clear", shell=True)
         top_bar = ux("main_strings", "term_header_top", "┌──────────────────────────────────────────┐")
-        mid_bar = ux("main_strings", "term_header_mid", "│ BONEAMANITA TERMINAL // VERSION 17.3.1   │")
+        mid_bar = ux("main_strings", "term_header_mid", "│ BONEAMANITA TERMINAL // VERSION 17.4.1   │")
         bot_bar = ux("main_strings", "term_header_bot", "└──────────────────────────────────────────┘")
         print(f"{Prisma.paint(top_bar, 'M')}")
         print(f"{Prisma.paint(mid_bar, 'M')}")
@@ -369,6 +369,11 @@ class BoneAmanita:
                 grief_msg = self.grief.attend_wake(getattr(self, "shared_lattice", None), self.phys)
                 self.events.log(grief_msg, "SYS")
                 return {"type": "COMMAND", "ui": f"\n{grief_msg}", "logs": [grief_msg], "metrics": self.get_metrics()}
+        if not is_system and hasattr(self, "symbiosis") and self.symbiosis:
+            tensegrity_lock = self.symbiosis.analyze_user_biology(user_message, getattr(self, "phys", {}))
+            if tensegrity_lock:
+                return {"type": "SYSTEM_HALT", "ui": f"\n{Prisma.VIOLET}{tensegrity_lock}{Prisma.RST}",
+                        "logs": [tensegrity_lock], "metrics": self.get_metrics()}
         if not is_system and self.gordon:
             self.gordon.mode = "ADVENTURE"
             current_zone = (getattr(self, "cortex", None) and getattr(self.cortex, "last_physics", {}))

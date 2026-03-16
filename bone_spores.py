@@ -2,19 +2,20 @@
 bone_spores.py
 """
 
+import hashlib
 import json
 import os
 import random
 import tempfile
 import time
-import hashlib
 from collections import deque
 from typing import List, Tuple, Optional, Dict, Any
-from bone_presets import BoneConfig
+
 from bone_core import EventBus, LoreManifest, BoneJSONEncoder, ux
-from bone_lexicon import LexiconService
+from bone_presets import BoneConfig
 from bone_types import Prisma
 from bone_village import ParadoxSeed
+
 
 def _word_to_vector(word: str, dim: int = 8) -> list:
     h = hashlib.md5(word.encode('utf-8')).digest()
@@ -131,7 +132,7 @@ class LocalFileSporeLoader:
             return []
         files: List[Tuple[str, float, str]] = []
         for f in os.listdir(self.directory):
-            if f.endswith(".json"):
+            if f.endswith(".json") and f.startswith("session_"):
                 try:
                     p = os.path.join(self.directory, f)
                     files.append((p, os.path.getmtime(p), f))
@@ -790,7 +791,7 @@ class MycelialNetwork:
                      for s in self.seeds
                      if not s.bloomed]
         seed_list.append({"q": future_seed_q, "m": 0.0, "b": False})
-        data = {"genome": "BONEAMANITA_17.3.1", "session_id": self.session_id, "parent_id": self.session_id, "meta": {
+        data = {"genome": "BONEAMANITA_17.4.1", "session_id": self.session_id, "parent_id": self.session_id, "meta": {
             "timestamp": time.time(), "final_health": health, "final_stamina": stamina, },
                 "trauma_vector": final_vector, "joy_vectors": top_joy or [], "joy_legacy": joy_legacy_data,
                 "core_graph": core_graph, "mutations": mutations, "antibodies": list(antibodies) if antibodies else [],

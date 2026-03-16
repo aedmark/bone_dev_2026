@@ -250,6 +250,18 @@ class TheCortex:
             self._update_history(user_input, sim_result.get("ui", "SYSTEM REJECTED PROMPT."))
             return sim_result
         full_state = self.gather_state(sim_result)
+        phys_state = full_state.get("physics", {})
+        f_drag = phys_state.get("narrative_drag", 0.0)
+        chi_val = phys_state.get("chi", phys_state.get("entropy", 0.0))
+        m_a = phys_state.get("m_a", 0.0)
+        if f_drag > 1.2 or chi_val > 0.7 or m_a > 0.8:
+            simulated_ros = (f_drag * 5.0) + (chi_val * 20.0) + (m_a * 30.0)
+            if simulated_ros > 35.0:
+                reject_msg = "[PINKER]: Structural rot critical. Counterfactual Gating engaged. I am deleting this generation path to save the host."
+                if self.events: self.events.log(f"{Prisma.RED}{reject_msg}{Prisma.RST}", "SYS_LOCK")
+                sim_result["ui"] = (sim_result.get("ui", "") + f"\n\n{Prisma.RED}{reject_msg}{Prisma.RST}").strip()
+                sim_result["type"] = "COUNTERFACTUAL_REJECTION"
+                return sim_result
         modifiers = self.svc.symbiosis.get_prompt_modifiers()
         if not allow_loot: modifiers["include_inventory"] = False
         if hasattr(self, "gordon_shock") and self.gordon_shock:
