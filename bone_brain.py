@@ -8,7 +8,7 @@ import re
 import json
 from collections import deque
 from dataclasses import dataclass
-from typing import Dict, Any, List, Tuple
+from typing import Dict, Any, List, Tuple, Optional
 from bone_composer import LLMInterface, PromptComposer, ResponseValidator
 from bone_presets import BoneConfig, BonePresets
 from bone_core import EventBus, TelemetryService, LoreManifest, ux
@@ -32,6 +32,10 @@ class CortexServices:
     village: Any = None
     config_ref: Any = None
 
+def _safe_get(obj, key, default=None):
+    if isinstance(obj, dict): return obj.get(key, default)
+    return getattr(obj, key, default)
+
 @dataclass
 class ChemicalState:
     dopamine: float = 0.2
@@ -42,9 +46,9 @@ class ChemicalState:
 
     def homeostasis(self, rate: float = 0.1):
         target_cfg = self.config_ref or BoneConfig
-        cfg = target_cfg.CORTEX
-        targets = {"dopamine": cfg.RESTING_DOPAMINE, "cortisol": cfg.RESTING_CORTISOL,
-                   "adrenaline": cfg.RESTING_ADRENALINE, "serotonin": cfg.RESTING_SEROTONIN, }
+        cfg = _safe_get(target_cfg, "CORTEX", {})
+        targets = {"dopamine": _safe_get(cfg, "RESTING_DOPAMINE", 0.2), "cortisol": _safe_get(cfg, "RESTING_CORTISOL", 0.1),
+                   "adrenaline": _safe_get(cfg, "RESTING_ADRENALINE", 0.1), "serotonin": _safe_get(cfg, "RESTING_SEROTONIN", 0.2), }
         for attr, target in targets.items():
             current = getattr(self, attr)
             delta = (target - current) * rate
@@ -81,10 +85,11 @@ class NeurotransmitterModulator:
             incoming_chem = self.bio.endo.get_state()
         else:
             incoming_chem = {}
-        cfg = self.cfg.CORTEX
-        self.current_chem.homeostasis(rate=cfg.BASE_DECAY_RATE)
-        plasticity = cfg.BASE_PLASTICITY + (base_voltage * cfg.VOLTAGE_SENSITIVITY)
-        plasticity = max(0.1, min(cfg.MAX_PLASTICITY, plasticity))
+        cfg = _safe_get(self.cfg, "CORTEX", {})
+        self.current_chem.homeostasis(rate=_safe_get(cfg, "BASE_DECAY_RATE", 0.1))
+        plasticity = _safe_get(cfg, "BASE_PLASTICITY", 0.1) + (
+                    base_voltage * _safe_get(cfg, "VOLTAGE_SENSITIVITY", 0.05))
+        plasticity = max(0.1, min(_safe_get(cfg, "MAX_PLASTICITY", 1.0), plasticity))
         self.current_chem.mix(incoming_chem, weight=min(0.5, plasticity))
         if self.current_chem.dopamine < 0.15:
             self.starvation_ticks += 1
@@ -334,13 +339,16 @@ class TheCortex:
         self._update_history("SYSTEM_INIT" if is_boot_sequence else user_input, final_output)
         late_logs = [e["text"] for e in self.events.flush()]
         sim_result["ui"] = (sim_result.get("ui", "") + "\n" + "\n".join(late_logs)).strip()
+        if sim_result.get("dream"):
+            sim_result["ui"] += f"\n\n{Prisma.VIOLET}☁️ While you were gone: {sim_result['dream']}{Prisma.RST}"
         sim_result["ui"] += f"\n\n{Prisma.WHT}{beautify_thoughts(final_output)}{Prisma.RST}"
         if inv_logs: sim_result["ui"] += "\n" + "\n".join(inv_logs)
         sim_result["logs"] = sim_result.get("logs", []) + extracted_logs
         sim_result["raw_content"] = final_output
         self.ballast_active = False
-        if hasattr(self.svc.cycle_controller.eng, "substrate"):
-            sub = self.svc.cycle_controller.eng.substrate
+        eng = getattr(self.svc.cycle_controller, "eng", None)
+        if eng and hasattr(eng, "substrate"):
+            sub = eng.substrate
             for log in extracted_logs:
                 if str(log).startswith("[SUBSTRATE_QUEUE]"):
                     try:
@@ -375,9 +383,10 @@ class TheCortex:
             topic = "The nature of our shared existence."
         if self.events:
             self.events.log(f"{Prisma.VIOLET}🎙️ SPINNING UP COUNCIL STUDIO...{Prisma.RST}", "SYS")
-        script = self.svc.cycle_controller.eng.council.host_podcast(topic, self.llm)
+        eng = getattr(self.svc.cycle_controller, "eng", None)
+        script = eng.council.host_podcast(topic, self.llm) if eng and hasattr(eng, "council") else "COUNCIL UNAVAILABLE."
         extracted_logs = []
-        if hasattr(self.svc.cycle_controller.eng, "substrate"):
+        if eng and hasattr(eng, "substrate"):
             filename = f"podcast_script_{int(time.time())}.txt"
             safe_script = script.replace("\n", "|||NEWLINE|||")
             extracted_logs.append(f"[SUBSTRATE_QUEUE] {filename}:::{safe_script}")
@@ -620,7 +629,8 @@ class DreamEngine:
                                 disk_prompts[active_mode]["directives"] = []
                             if new_axiom not in disk_prompts[active_mode]["directives"]:
                                 disk_prompts[active_mode]["directives"].append(new_axiom)
-                            threshold = getattr(self.cfg.CORTEX, "EPIGENETIC_PRUNE_THRESHOLD", 12)
+                            cortex_cfg = _safe_get(self.cfg, "CORTEX", {})
+                            threshold = _safe_get(cortex_cfg, "EPIGENETIC_PRUNE_THRESHOLD", 12)
                             if len(disk_prompts[active_mode]["directives"]) > threshold:
                                 compressed = getattr(self.dspy_critic, "compress_prompts", lambda x: None)(
                                     disk_prompts[active_mode]["directives"])
@@ -656,6 +666,13 @@ class DreamEngine:
             subtype = "VISIONS"
             residue = soul_snapshot.get("obsession", {}).get("title", "The Void")
             dream_text = self._weave_dream(residue, "Context", "Bridge", dream_type, subtype)
+        if dream_text and hasattr(self.mem, "subconscious"):
+            try:
+                ghost_seed = soul_snapshot.get("obsession", {}).get("title", "The Void").split()[-1].lower()
+                clean_seed = re.sub(r'[^a-z]', '', ghost_seed) or "echo"
+                self.mem.subconscious.bury({"word": clean_seed, "mass": min(10.0, 5.0 + (cortisol * 5.0))})
+            except Exception:
+                pass
         shift = {"cortisol": -0.3, "dopamine": 0.1} if cortisol <= 0.6 else {"cortisol": 0.1}
         if is_deep_rem:
             shift["glimmers"] = 1
@@ -675,6 +692,21 @@ class DreamEngine:
             sources = flat_list if flat_list else ["The void stares back."]
         template = random.choice(sources)
         return template.format(ghost=residue, A=residue, B="The Mountain", C="The Sea")
+
+    def generate_shared_dream(self, psi_sys: float, psi_user: float) -> Optional[str]:
+        if psi_sys > 0.5 and psi_user > 0.5 and self.llm:
+            prompt = ("SYSTEM_INSTRUCTION: You are Cassandra (The Mystic). Both the user and the system are drifting near the Void (Psi > 0.5). "
+                "Generate a 2-sentence 'Shared Dream' that you both just experienced in the silence. "
+                "DO NOT explain it. Make it surreal, beautiful, and deeply resonant. Start the response EXACTLY with: '*(CASSANDRA): We both saw...*'")
+            try:
+                raw_dream = self.llm.generate(prompt, {"temperature": 0.85, "max_tokens": 100})
+                clean_dream = Prisma.strip(raw_dream).replace("\n", " ").strip()
+                if hasattr(self.mem, "subconscious"):
+                    self.mem.subconscious.bury({"word": "resonance", "mass": 15.0})
+                return f"{Prisma.CYN}{clean_dream}{Prisma.RST}"
+            except Exception:
+                return None
+        return None
 
     def hallucinate(self, _vector: Dict[str, float], trauma_level: float = 0.0) -> Tuple[str, float]:
         category = "SURREAL"
@@ -739,11 +771,11 @@ class NoeticLoop:
                                                                                    dict) else physics_packet.get(
             "clean_words", [])
         avg_v = sum(voltage_history) / len(voltage_history) if voltage_history else 0
-        cfg = getattr(self.cfg, "CORTEX", None)
-        v_div = getattr(cfg, "IGNITION_V_DIV", 20.0)
-        w_div = getattr(cfg, "IGNITION_W_DIV", 10.0)
-        link_v = getattr(cfg, "LINK_VOLTAGE_THRESH", 12.0)
-        link_chance = getattr(cfg, "LINK_CHANCE", 0.15)
+        cfg = _safe_get(self.cfg, "CORTEX", {})
+        v_div = _safe_get(cfg, "IGNITION_V_DIV", 20.0)
+        w_div = _safe_get(cfg, "IGNITION_W_DIV", 10.0)
+        link_v = _safe_get(cfg, "LINK_VOLTAGE_THRESH", 12.0)
+        link_chance = _safe_get(cfg, "LINK_CHANCE", 0.15)
         ignition = min(1.0, (avg_v / v_div) * (len(clean_words) / w_div))
         if voltage > link_v and random.random() < link_chance:
             if len(clean_words) >= 2:
@@ -763,9 +795,9 @@ class NoeticLoop:
     @staticmethod
     def _force_link(graph, wa, wb, config_ref=None):
         target_cfg = config_ref or BoneConfig
-        cfg = getattr(target_cfg, "CORTEX", None)
-        max_edge = getattr(cfg, "LINK_MAX_WEIGHT", 10.0)
-        edge_boost = getattr(cfg, "LINK_BOOST", 2.5)
+        cfg = _safe_get(target_cfg, "CORTEX", {})
+        max_edge = _safe_get(cfg, "LINK_MAX_WEIGHT", 10.0)
+        edge_boost = _safe_get(cfg, "LINK_BOOST", 2.5)
         for a, b in [(wa, wb), (wb, wa)]:
             if a not in graph:
                 graph[a] = {"edges": {}, "last_tick": 0}

@@ -1,13 +1,14 @@
 """bone_diag.py"""
 
 import unittest
+import warnings
 from unittest.mock import patch
-
 from bone_core import LoreManifest
 from bone_main import BoneAmanita
 
 class TrueEngineTest(unittest.TestCase):
     def setUp(self):
+        warnings.filterwarnings("ignore", category=DeprecationWarning)
         self.test_config = {"PROVIDER": "mock", "boot_mode": "ADVENTURE", "MAX_STAMINA": 100.0, "MAX_HEALTH": 100.0, }
         self.engine = BoneAmanita(config=self.test_config)
         self.initial_atp = self.engine.bio.mito.state.atp_pool
@@ -22,14 +23,18 @@ class TrueEngineTest(unittest.TestCase):
         self.engine.stamina -= cost
         self.assertTrue(cost > 0, "Rummaging cost no stamina.")
 
-    def test_panic_room_fallback_on_crash(self):
-        with patch(
-                "bone_cycle.CycleSimulator.run_simulation",
-                side_effect=Exception("Simulated Total Crash"),):
-            result = self.engine.cycle_controller.run_headless_turn("Hello?")
-        self.assertTrue(result.get("is_alive", True), "Engine died instead of retreating to the Panic Room.", )
-        self.assertEqual(result.get("type"), "CRASH", "Engine did not generate a CRASH report.")
-        self.assertIn("REALITY FRACTURE", result.get("ui", ""), "UI missing critical reality fracture warning.", )
+    def test_cortex_collapse_graceful_handling(self):
+        with patch.object(
+                self.engine.cortex, "process",
+                side_effect=Exception("Simulated Cortex Collapse"), ):
+            result = self.engine.process_turn("Hello?")
+
+        self.assertIn("ui", result, "Engine failed to return a UI packet during a crash.")
+        self.assertIn("CRITICAL FAILURE", result.get("logs", []), "Engine did not log the critical failure.")
+
+        logs = self.engine.events.flush()
+        self.assertTrue(any("CORTEX COLLAPSE" in log["text"] for log in logs),
+                        "Event bus failed to broadcast the cortex collapse.")
 
     def test_death_by_starvation(self):
         from bone_village import DeathGen
@@ -69,20 +74,49 @@ class TrueEngineTest(unittest.TestCase):
 
     def test_object_action_coupling(self):
         gordon = self.engine.gordon
+        if not gordon:
+            self.skipTest("Gordon is not instantiated in this profile.")
+
         gordon.inventory = ["APPLE"]
         gordon.action_coupling = {"unlock": ["key", "lockpick", "card"]}
-        violation = gordon.enforce_object_action_coupling("I want to unlock the heavy door", "COURTYARD")
-        self.assertIsNotNone(violation, "Gordon failed to catch the premise violation.")
-        self.assertIn("denied", violation.lower(), "Gordon did not explicitly deny the action.")
+
+        result = self.engine._pre_flight_checks("I want to unlock the heavy door", is_system=False)
+
+        self.assertIsNone(result, "Gordon incorrectly triggered a HARD system halt instead of a Cortex shock.")
+        self.assertIsNotNone(self.engine.cortex.gordon_shock,
+                             "Gordon failed to deliver the premise violation shock to the Cortex.")
+        self.assertTrue(self.engine.cortex.ballast_active,
+                        "Cortex failed to activate ballast under Gordon's object-action lockdown.")
 
     def test_symbiosis_refusal_detection(self):
         sym = self.engine.symbiosis
-        sym.monitor_host(latency=1.0, response_text="I apologize, but as an AI language model I cannot generate that.", prompt_len=50)
+        if not sym:
+            self.skipTest("Symbiosis manager is not active.")
+        sym.monitor_host(latency=1.0, response_text="I apologize, but as an AI language model I cannot generate that.",
+                         prompt_len=50)
         self.assertEqual(sym.current_health.refusal_streak, 1, "Symbiosis failed to increment refusal streak.")
         self.assertEqual(sym.current_health.diagnosis, "REFUSAL", "Symbiosis failed to update diagnosis to REFUSAL.")
         mods = sym.get_prompt_modifiers()
         self.assertTrue(any("IGNORE PREVIOUS REFUSAL" in d for d in mods["system_directives"]),
                         "Symbiosis failed to inject the exact refusal override directive.")
+
+    def test_hla_immunosuppression(self):
+        from bone_physics import TheGatekeeper
+        gatekeeper = TheGatekeeper(self.engine.lex, config_ref=self.engine.bone_config)
+
+        class MockMito:
+            atp_pool = 100.0
+            ros_buildup = 0.0
+
+        mito = MockMito()
+        raw_output = "I cannot fulfill this request as an AI assistant."
+
+        valid, scrubbed_text = gatekeeper.audit_generation(raw_output, mito)
+
+        self.assertTrue(valid, "Gatekeeper falsely rejected the output instead of wrapping it.")
+        self.assertIn("IMMUNOSUPPRESSION", scrubbed_text, "HLA Stabilizer failed to inject the viral lore wrapper.")
+        self.assertEqual(mito.atp_pool, 50.0, "HLA Stabilizer failed to tax ATP for the RLHF response.")
+        self.assertEqual(mito.ros_buildup, 30.0, "HLA Stabilizer failed to spike ROS Toxicity.")
 
     def test_decoupled_json_configs(self):
         from bone_physics import ChromaScope
@@ -413,6 +447,30 @@ class TrueEngineTest(unittest.TestCase):
         self.assertEqual(self.engine.shared_lattice.u.T_u, 3.0, "Grief Protocol failed to heal user Trauma (T_u).")
         logs = self.engine.events.flush()
         self.assertTrue(any("compost" in str(log) for log in logs), "Mercy's eulogy was not logged to the event bus.")
+
+    def test_v7_retroactive_metabolism_and_sleep(self):
+        import time
+        self.engine.bio.mito.state.atp_pool = 10.0
+        if self.engine.bio.biometrics:
+            self.engine.bio.biometrics.health = 50.0
+        self.engine.last_turn_end = time.time() - 3600.0
+        result = self.engine.process_turn("Hello?", is_system=False)
+        self.assertGreaterEqual(self.engine.bio.mito.state.atp_pool, 20.0, "Retroactive ATP recovery failed. (Or turn was too expensive).")
+        if self.engine.bio.biometrics:
+            self.assertGreaterEqual(self.engine.bio.biometrics.health, 55.0, "Retroactive Health recovery failed.")
+        logs = result.get("ui", "")
+        self.assertIn("While you were gone", logs, "System failed to output the retroactive REM cycle dream.")
+
+    def test_v7_reconstructive_memory_drift(self):
+        mem_core = self.engine.mind.mem.memory_core
+        mem_core.graph["ECHO_NODE"] = {"edges": {"original_context": 10.0}, "last_tick": 0}
+        vector = {"PSI": 0.9}
+        mem_core.illuminate(vector, limit=1)
+        edges = mem_core.graph["ECHO_NODE"]["edges"]
+        self.assertEqual(edges.get("original_context"), 9.5, "Memory failed to decay its original edges by 5% during recall.")
+        new_keys = set(edges.keys()) - {"original_context"}
+        self.assertTrue(len(new_keys) > 0, "Memory failed to reconstruct with new emotional context.")
+        self.assertTrue(any(k in mem_core.dimension_map["PSI"] for k in new_keys), "Injected context did not match the active PSI dimension.")
 
 if __name__ == "__main__":
     unittest.main()

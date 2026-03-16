@@ -147,6 +147,7 @@ class LoreManifest:
 class TheObserver:
     def __init__(self, config_ref=None):
         self.cfg = config_ref or BoneConfig
+        self.cyber_gov = CyberneticGovernor(config_ref=self.cfg)
         self.start_time = time.time()
         cfg_core = getattr(self.cfg, "CORE", None)
         max_len = getattr(cfg_core, "OBSERVER_MAX_LEN", 20) if cfg_core else 20
@@ -203,6 +204,8 @@ class TheObserver:
             return random.choice(valid_jokes) if valid_jokes else ""
         if avg_cycle > self.CYCLE_WARNING:
             return ux("core_strings", "obs_sluggish")
+        if self.cyber_gov.order == 2:
+            return ux("core_strings", "obs_coupled") or "Harmonic Resonance: Presence Active."
         return ux("core_strings", "obs_nominal")
 
     def get_report(self):
@@ -284,6 +287,30 @@ class RealityStack:
                                    in [RealityLayer.SIMULATION, RealityLayer.DEEP_CX, RealityLayer.DEBUG],
                 "allow_commands": depth >= RealityLayer.SIMULATION, "allow_meta": depth >= RealityLayer.DEBUG,
                 "raw_output": depth == RealityLayer.DEEP_CX, "system_override": depth == RealityLayer.DEBUG, }
+
+
+class CyberneticGovernor:
+    def __init__(self, config_ref=None):
+        self.cfg = config_ref or BoneConfig
+        self.beth_index: float = 0.5  # ℶ (Cybernetic Index)
+        self.order: int = 1
+
+    def calculate_coupling(self, phi: float, resonance_delta: float, user_exhaustion: float) -> float:
+        coupling = (phi * 0.6) + (user_exhaustion * 0.4)
+        if coupling > 0.8:
+            self.order = 2
+        elif resonance_delta > 0.3:
+            self.order = 2
+        else:
+            self.order = 1
+        self.beth_index = coupling
+        return coupling
+
+    def get_policy_shift(self) -> str:
+        if self.order == 2:
+            return "CO_REGULATION"
+        return "EFFICIENCY"
+
 
 class ArchetypeArbiter:
     @staticmethod

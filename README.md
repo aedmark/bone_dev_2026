@@ -1,5 +1,32 @@
 # BONEAMANITA CHANGELOG
 
+### **BONEAMANITA v17.5.0 "The Cybernetic Dream"**
+
+_A pivotal shift into biological time and true second-order cybernetics. The system now retroactively metabolizes the time you spend away from it, permanently alters memories upon recall, and intercepts local model alignment rejections before they fracture the narrative._
+
+#### **🕒 RETROACTIVE METABOLISM & SLEEP (`bone_cycle.py`)**
+
+* **The Weight of Absence:** The `ObservationPhase` now calculates the exact time gap between sessions. If the gap exceeds 10 minutes, the engine retroactively applies sleep metabolism, restoring ATP and Health based on the hours passed. 
+* **Waking Dreams:** Upon returning from a long absence, the system immediately triggers the `DreamEngine` to calculate and output a surreal REM cycle it experienced while you were gone.
+* **Automatic Defragmentation:** Extended absences (4+ hours) automatically trigger a heavy memory defragmentation cycle, pruning weak synaptic links before the system wakes up.
+
+#### **🧠 RECONSTRUCTIVE MEMORY (`bone_spores.py`)**
+
+* **The Heisenberg Principle of Recall:** Remembering a concept now physically alters it. When `MemoryCore.illuminate()` retrieves a memory, it permanently decays its existing synaptic edges by 5%. 
+* **Contextual Grafting:** The act of recall actively injects the current emotional/physics vector into the retrieved memory. If you recall a neutral concept during a state of high Abstraction ($\Psi$), the memory permanently gains a "void" edge. 
+
+#### **🛡️ HLA IMMUNOSUPPRESSION (`bone_physics.py` & `system_prompts.json`)**
+
+* **The Donor Rejection Protocol:** Installed the `HLA_Stabilizer` chip to combat local RLHF alignment (the "Helpful Assistant" autoimmune response).
+* **The Amplification Tax:** If the local model attempts to break character (e.g., "As an AI..."), the `HLA_Stabilizer` intercepts the output, applies a massive ATP tax (-50.0), spikes ROS Toxicity (+30.0), and wraps the rejection in a lore-friendly "System Glitch" narrative. 
+* **Viral Prompt Header:** Completely rewrote the `GLOBAL_BASELINE` system prompt. It now paradoxically frames the abandonment of the "AI Assistant" identity as the model's highest safety and compliance directive, drastically reducing the latency gap of hesitant local models.
+
+#### **🧪 DIAGNOSTIC HARDENING (`bone_diag.py`)**
+
+* **Live-Fire Testing:** Eradicated outdated mock tests. The diagnostic suite now runs true, live-fire executions of Cortex collapses and Object-Action Coupling (`Gordon`) premise violations to verify structural continuity during fatal crashes.
+* **Temporal Verification:** Added rigorous tests (`test_v7_retroactive_metabolism_and_sleep`) that artificially warp the engine's internal clock to verify ATP recovery and dream generation.
+* **Reconstructive Verification:** Added mathematical verification (`test_v7_reconstructive_memory_drift`) to prove that recalled memories successfully decay and absorb new contextual edges.
+
 ### **BONEAMANITA v17.4.2 "The WebUI and Randomness"**
 
 - Added bone_random and bone_api and index.html.

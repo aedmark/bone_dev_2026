@@ -201,7 +201,7 @@
     "recover": "Zen mode. Stamina regenerating."
   },
   "help_menu": {
-    "header": "/// BONEAMANITA 17.4.1 TERMINAL ///",
+    "header": "/// BONEAMANITA 17.5.0 TERMINAL ///",
     "phase_prefix": "Operating Phase: ",
     "default_phase": "EXTANT",
     "footer": ">> Use wisely. Entropy is watching.",
@@ -522,7 +522,12 @@
     "tel_crit_write_fail": "[TELEMETRY]: Critical write failure threshold reached. Telemetry disabled. {e}",
     "tel_write_error": "[TELEMETRY]: Write error ({errors}). Retrying later. {e}",
     "tel_prev_crash": "PREVIOUS SYSTEM CRASH: {reason}",
-    "tel_session_summary": "\\n[TELEMETRY] Session ended ({status}). {count} crystals crystallized.\\n            Trace: {trace_file}"
+    "tel_session_summary": "\\n[TELEMETRY] Session ended ({status}). {count} crystals crystallized.\\n            Trace: {trace_file}",
+    "obs_coupled": "💞 COUPLED (Second-Order Resonance Active)",
+    "obs_regulating": "🧘 CO-REGULATING (Presence > Efficiency)",
+    "obs_autonomous": "🤖 FIRST-ORDER (Pure Logic Mode)",
+    "tel_cyber_shift": "⚡ CYBERNETIC SHIFT: Order {order} Feedback Loop engaged.",
+    "tel_beth_alert": "ℶ  BETH INDEX: {beth:.2f} (Coupling: {status})"
   },
   "driver_strings": {
     "ennea_synthesis": "Dialectic Resonance: {winner} + {runner_up}",
@@ -607,7 +612,7 @@
   },
   "main_strings": {
     "term_header_top": "\u250c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510",
-    "term_header_mid": "\u2502 BONEAMANITA TERMINAL // VERSION 17.4.0   \u2502",
+    "term_header_mid": "\u2502 BONEAMANITA TERMINAL // VERSION 17.5.0   \u2502",
     "term_header_bot": "\u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518",
     "init_hash": "...Initializing KernelHash: {hash}...",
     "sys_listening": ">>> SYSTEM: LISTENING",

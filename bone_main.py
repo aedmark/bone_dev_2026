@@ -11,7 +11,6 @@ import subprocess
 import uuid
 from dataclasses import dataclass
 from typing import Dict, Any, Optional, Tuple
-
 from bone_body import SomaticLoop
 from bone_brain import TheCortex, LLMInterface, NoeticLoop
 from bone_commands import CommandProcessor
@@ -59,12 +58,12 @@ class SessionGuardian:
     def __enter__(self):
         subprocess.run("cls" if os.name == "nt" else "clear", shell=True)
         top_bar = ux("main_strings", "term_header_top", "┌──────────────────────────────────────────┐")
-        mid_bar = ux("main_strings", "term_header_mid", "│ BONEAMANITA TERMINAL // VERSION 17.4.1   │")
+        mid_bar = ux("main_strings", "term_header_mid", "│ BONEAMANITA TERMINAL // VERSION 17.5.0   │")
         bot_bar = ux("main_strings", "term_header_bot", "└──────────────────────────────────────────┘")
         print(f"{Prisma.paint(top_bar, 'M')}")
         print(f"{Prisma.paint(mid_bar, 'M')}")
         print(f"{Prisma.paint(bot_bar, 'M')}")
-        cfg = getattr(BoneConfig, "GUI", None)
+        cfg = getattr(self.engine_instance.bone_config, "GUI", None) if self.engine_instance else getattr(BoneConfig, "GUI", None)
         boot_delay = getattr(cfg, "RENDER_SPEED_BOOT", 0.05) if cfg else 0.05
         boot_logs = self.engine_instance.events.flush()
         for log in boot_logs:
@@ -448,8 +447,9 @@ class BoneAmanita:
                 self.trauma_accum = self.mind.mem.session_trauma_vector or {}
             if self.health <= 0.0:
                 return self.trigger_death(cortex_packet.get("physics", {}))
-        except Exception:
+        except Exception as e:
             full_trace = traceback.format_exc()
+            self.events.log(f"CORTEX COLLAPSE: {e}", "CRIT")
             return {"ui": f"{Prisma.RED}{ux('main_strings', 'cortex_crit_fail').format(trace=full_trace)}{Prisma.RST}", "logs": ["CRITICAL FAILURE"], "metrics": self.get_metrics()}
         self._update_host_stats(cortex_packet, turn_start)
         self.save_checkpoint()

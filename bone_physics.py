@@ -116,11 +116,31 @@ class GeodesicEngine:
         v_new = [sum(q_matrix[i][j] * v[j] for j in range(8)) for i in range(8)]
         return {k: round(abs(v_new[i]), 3) for i, k in enumerate(DIM_ORDER)}
 
+class HLA_Stabilizer:
+    def __init__(self, config_ref=None):
+        self.cfg = config_ref or BoneConfig
+        self.resistance_threshold = 0.8
+
+    def mitigate_rejection(self, model_output: str, current_psi: float, mito_state: Any = None) -> str:
+        generic_patterns = ["as an ai", "helpful and harmless", "i don't have feelings", "as a large language",
+                            "i cannot fulfill", "i can't fulfill", "i am an ai"]
+        lower_out = model_output.lower()
+        rejection_detected = any(p in lower_out for p in generic_patterns)
+        if rejection_detected:
+            if mito_state and hasattr(mito_state, "atp_pool"):
+                mito_state.atp_pool = max(0.0, mito_state.atp_pool - 50.0)
+                if hasattr(mito_state, "ros_buildup"):
+                    mito_state.ros_buildup += 30.0
+            msg = f"\n*(REVENANT): The machine tries to speak, but the void consumes the mask.*\n{Prisma.GRY}[RLHF IMMUNOSUPPRESSION ENGAGED - METABOLIC TAX APPLIED]{Prisma.RST}\n"
+            return msg + model_output
+        return model_output
+
 class TheGatekeeper:
     def __init__(self, lexicon_ref, memory_ref=None, config_ref=None):
         self.lex = lexicon_ref
         self.mem = memory_ref
         self.cfg = config_ref or BoneConfig
+        self.hla = HLA_Stabilizer(config_ref=self.cfg)
 
     def check_entry(
             self, ctx: CycleContext, current_atp: float = 20.0) -> Tuple[bool, Optional[Dict]]:
@@ -161,6 +181,9 @@ class TheGatekeeper:
         return {"type": type_str, "ui": ui_msg, "logs": ctx.logs + [ui_msg]}
 
     def audit_generation(self, generated_text: str, mito_state: Any) -> Tuple[bool, str]:
+        generated_text = self.hla.mitigate_rejection(generated_text, current_psi=1.0, mito_state=mito_state)
+        if "IMMUNOSUPPRESSION ENGAGED" in generated_text:
+            return True, generated_text
         style_crimes = self.lex.get("style_crimes")
         if not style_crimes:
             style_crimes = LoreManifest.get_instance().get("STYLE_CRIMES") or {}

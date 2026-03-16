@@ -298,6 +298,18 @@ class MemoryCore:
         scored_memories.sort(key=lambda x: x[0], reverse=True)
         results = []
         for score, name, data in scored_memories[:limit]:
+            if active_dims and hasattr(self, "subconscious"):
+                for edge in list(data.get("edges", {}).keys()):
+                    data["edges"][edge] *= 0.95
+                top_current_dim = max(active_dims, key=active_dims.get)
+                dim_words = list(self.dimension_map.get(top_current_dim, {"static"}))
+                if dim_words:
+                    context_word = random.choice(dim_words)
+                    data["edges"][context_word] = data["edges"].get(context_word, 0.0) + 1.0
+                try:
+                    self.subconscious.bury({"word": name, "mass": 1.0, "reconstructive": True}, config_ref=self.cfg)
+                except Exception:
+                    pass
             connections = list(data.get("edges", {}).keys())
             conn_str = f" -> [{', '.join(connections[:2])}]" if connections else ""
             if score > 0.5:
@@ -791,7 +803,7 @@ class MycelialNetwork:
                      for s in self.seeds
                      if not s.bloomed]
         seed_list.append({"q": future_seed_q, "m": 0.0, "b": False})
-        data = {"genome": "BONEAMANITA_17.4.1", "session_id": self.session_id, "parent_id": self.session_id, "meta": {
+        data = {"genome": "BONEAMANITA_17.5.0", "session_id": self.session_id, "parent_id": self.session_id, "meta": {
             "timestamp": time.time(), "final_health": health, "final_stamina": stamina, },
                 "trauma_vector": final_vector, "joy_vectors": top_joy or [], "joy_legacy": joy_legacy_data,
                 "core_graph": core_graph, "mutations": mutations, "antibodies": list(antibodies) if antibodies else [],

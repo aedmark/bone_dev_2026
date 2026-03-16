@@ -308,7 +308,7 @@ class TheCartographer:
             max_nodes = getattr(cfg, "CARTO_MAX_NODES", 50) if cfg else 50
             if len(self.world_graph) >= max_nodes:
                 self._prune_graph()
-            new_node = self._generate_loci_data(target_id, packet)
+            new_node = self._generate_loci_data(target_id, packet, config_ref=self.cfg)
             self.world_graph[target_id] = new_node
             msg_str = ux("village_strings", "carto_new_sector")
             msg = f"{Prisma.MAG}{msg_str.format(name=new_node.name)}{Prisma.RST}" if msg_str else None
@@ -323,15 +323,16 @@ class TheCartographer:
         return current_node.name, msg
 
     @staticmethod
-    def _generate_loci_data(node_id: str, packet: PhysicsPacket) -> GeniusLoci:
+    def _generate_loci_data(node_id: str, packet: PhysicsPacket, config_ref=None) -> GeniusLoci:
         random.seed(node_id)
         manifest = LoreManifest.get_instance()
         scenarios = manifest.get("SCENARIOS") or {}
         prefixes = scenarios.get("PREFIXES", ["The", "Zone", "Sector"]) or {}
         roots = scenarios.get("ROOTS", ["Construct", "Forge", "Garden"]) or {}
         name = f"{random.choice(prefixes)} {random.choice(roots)}"
-        v_trig = getattr(BoneConfig.COUNCIL, "MANIC_VOLTAGE_TRIGGER", 18.0)
-        d_halt = getattr(BoneConfig.PHYSICS, "DRAG_HALT", 10.0)
+        target_cfg = config_ref or BoneConfig
+        v_trig = getattr(target_cfg.COUNCIL, "MANIC_VOLTAGE_TRIGGER", 18.0) if hasattr(target_cfg, "COUNCIL") else 18.0
+        d_halt = getattr(target_cfg.PHYSICS, "DRAG_HALT", 10.0) if hasattr(target_cfg, "PHYSICS") else 10.0
 
         if packet.voltage > v_trig:
             suffix = manifest.get_ux("village_strings", "loci_flux_suffix")
@@ -465,7 +466,7 @@ class TownHall:
             advice = random.choice(forecasts.get("BALANCED", ["Nominal."]))
         census_fmt = ux("village_strings", "town_census")
         report = census_fmt.format(loc=loc_name, status=status, advice=advice) if census_fmt else ""
-        news = self._get_town_news(latency, packet.voltage)
+        news = self._get_town_news(latency, packet.voltage, config_ref=self.cfg)
         if news:
             report += f"\n{news}"
         v_crit = getattr(cfg, "TOWN_VOLT_CRIT", 20.0) if cfg else 20.0
