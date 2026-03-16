@@ -266,7 +266,7 @@ class QuantumObserver:
         upsilon_val = 1.0 - min(1.0, counts.get("pareidolia", 0) * 0.2)
         m_a_val = min(1.0, (smoothed_voltage / 150.0) * e_metric)
         i_c_val = min(1.0, 0.5 + (phi_val * 0.5))
-        mu_val = 0.0
+        mu_val = min(1.0, (beta_val * 0.5) + (e_metric * 0.5))
         energy = EnergyState(voltage=smoothed_voltage, entropy=e_metric, beta_index=beta_val, contradiction=beta_val,
                              scope=scope_val, depth=depth_val, connectivity=conn_val, resonance=phi_val,
                              silence=delta_val, lq=lq_val, mass=round(graph_mass, 1), psi=geo.abstraction,

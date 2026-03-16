@@ -572,6 +572,11 @@ class DeathGen:
             else getattr(mito_state, "atp_pool", 0))
         if atp <= target_cfg.BIO.ATP_STARVATION:
             return "STARVATION"
+        m_a = getattr(p, "m_a", getattr(p.energy, "m_a", 0.0) if hasattr(p, "energy") else 0.0)
+        i_c = getattr(p, "i_c", getattr(p.energy, "i_c", 1.0) if hasattr(p, "energy") else 1.0)
+        chi = getattr(p, "chi", getattr(p.energy, "chi", 0.0) if hasattr(p, "energy") else 0.0)
+        if (chi * m_a) > i_c:
+            return "APOPTOSIS"
         if p.voltage > target_cfg.PHYSICS.VOLTAGE_CRITICAL:
             return "GLUTTONY"
         if p.narrative_drag > target_cfg.PHYSICS.DRAG_HALT:
@@ -590,6 +595,8 @@ class DeathGen:
         if cause == "GLUTTONY":
             return "THERMAL"
         if cause == "TOXICITY":
+            return "ENTROPY"
+        if cause == "APOPTOSIS":
             return "ENTROPY"
         if getattr(p, "psi", 0.0) > psi_crit:
             return "ABSTRACT"

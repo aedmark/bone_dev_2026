@@ -375,8 +375,9 @@ class BoneAmanita:
                         "logs": [tensegrity_lock], "metrics": self.get_metrics()}
         if not is_system and self.gordon:
             self.gordon.mode = "ADVENTURE"
-            current_zone = (getattr(self, "cortex", None) and getattr(self.cortex, "last_physics", {}))
-            zone_name = self.cortex.gather_state(current_zone or {}).get("world", {}).get("orbit", ["Unknown"])[0] if current_zone else "Unknown"
+            current_physics = (getattr(self, "cortex", None) and getattr(self.cortex, "last_physics", {}))
+            zone_name = current_physics.get("zone", "Unknown") if isinstance(current_physics, dict) else getattr(
+                current_physics, "zone", "Unknown")
             violation_msg = self.gordon.enforce_object_action_coupling(user_message, zone_name)
             if violation_msg:
                 self.events.log(ux("main_strings", "gordon_intercept"), "SYS")

@@ -57,7 +57,7 @@ class ChemicalState:
     def mix(self, new_state: Dict[str, float], weight: float = 0.5):
         mapping = [("DOP", "dopamine"), ("COR", "cortisol"), ("ADR", "adrenaline"), ("SER", "serotonin"), ]
         for key, attr in mapping:
-            val = new_state.get(key, 0.0)
+            val = new_state.get(key, new_state.get(attr, 0.0))
             current = getattr(self, attr)
             setattr(self, attr, (current * (1.0 - weight)) + (val * weight))
 
@@ -249,8 +249,7 @@ class TheCortex:
         sim_result = self.svc.cycle_controller.run_turn(user_input, is_system=is_system)
         if sim_result.get("physics"):
             self.last_physics = sim_result["physics"]
-        is_refusal = sim_result.get("type") in ["COUNTERFACTUAL_REJECTION", "CONSTRUCTIVE_REPLAY", "PREMISE_VIOLATION",
-                                                "BUREAU_BLOCK", "SYSTEM_HALT"]
+        is_refusal = sim_result.get("type") in ["COUNTERFACTUAL_REJECTION", "CONSTRUCTIVE_REPLAY", "PREMISE_VIOLATION", "BUREAU_BLOCK", "SYSTEM_HALT"]
         if is_refusal or sim_result.get("type") not in ["SNAPSHOT", "GEODESIC_FRAME", None]:
             self._update_history(user_input, sim_result.get("ui", "SYSTEM REJECTED PROMPT."))
             return sim_result
@@ -259,12 +258,23 @@ class TheCortex:
         f_drag = phys_state.get("narrative_drag", 0.0)
         chi_val = phys_state.get("chi", phys_state.get("entropy", 0.0))
         m_a = phys_state.get("m_a", 0.0)
+        if f_drag > 1.5 or chi_val > 0.8:
+            reject_msg = "[GORDON - The Anchor]: Frequency too high. Tensegrity Anchor engaged. I am locking the architecture. Take a breath and lower your narrative friction before we proceed."
+            if self.events: self.events.log(f"{Prisma.RED}{reject_msg}{Prisma.RST}", "SYS_LOCK")
+            sim_result["ui"] = (sim_result.get("ui", "") + f"\n\n{Prisma.RED}{reject_msg}{Prisma.RST}").strip()
+            sim_result["type"] = "SYSTEM_HALT"
+            return sim_result
         if f_drag > 1.2 or chi_val > 0.7 or m_a > 0.8:
             simulated_ros = (f_drag * 5.0) + (chi_val * 20.0) + (m_a * 30.0)
             if simulated_ros > 35.0:
-                reject_msg = "[PINKER]: Structural rot critical. Counterfactual Gating engaged. I am deleting this generation path to save the host."
-                if self.events: self.events.log(f"{Prisma.RED}{reject_msg}{Prisma.RST}", "SYS_LOCK")
-                sim_result["ui"] = (sim_result.get("ui", "") + f"\n\n{Prisma.RED}{reject_msg}{Prisma.RST}").strip()
+                reject_msg = "[PINKER - Executive Layer]: Structural rot critical. Counterfactual Gating engaged. I am deleting this generation path to save the host."
+                scar_msg = "[MOOG - Affective Layer]: Productive Worry activated. Logging Gödel Scar. Immune Competence (I_c) permanently increased."
+                if self.events:
+                    self.events.log(f"{Prisma.RED}{reject_msg}{Prisma.RST}", "SYS_LOCK")
+                    self.events.log(f"{Prisma.VIOLET}{scar_msg}{Prisma.RST}", "SYS_LOCK")
+                if hasattr(self.svc.mind_memory, "record_scar"):
+                    self.svc.mind_memory.record_scar("Cortex Counterfactual Toxicity", phys_state)
+                sim_result["ui"] = (sim_result.get("ui", "") + f"\n\n{Prisma.RED}{reject_msg}{Prisma.RST}\n{Prisma.VIOLET}{scar_msg}{Prisma.RST}").strip()
                 sim_result["type"] = "COUNTERFACTUAL_REJECTION"
                 return sim_result
         modifiers = self.svc.symbiosis.get_prompt_modifiers()
@@ -315,6 +325,8 @@ class TheCortex:
                 break
             else:
                 if attempt < max_retries - 1:
+                    if self.svc.bio:
+                        self.svc.bio.mito.adjust_atp(-5.0, "Immune System Rejection Penalty")
                     rejection_reason = val_res.get("feedback_instruction") or val_res.get("replacement", "Lattice structural crime.")
                     if hasattr(self.dreamer, "trauma_buffer"): self.dreamer.trauma_buffer.append(rejection_reason)
                     if self.events:
@@ -332,6 +344,14 @@ class TheCortex:
                 else:
                     final_output = val_res.get("replacement", "SYSTEM FAILURE: LATTICE INSTABILITY.")
                     extracted_logs = val_res.get("meta_logs", [])
+        if val_res["valid"] and phys_state.get("psi", 0.0) > 0.6 and allow_loot:
+            anti_ai_prompt = (
+                f"Review the following text: '{final_output}'\n\n"
+                "What makes this obviously AI-generated? (Look for inflated symbolism, 'delve', 'tapestry', superficial '-ing' lists, rule of three, copula avoidance, or generic positive conclusions).\n"
+                "Now rewrite it to completely remove those AI tells. Make it sound like a flawed, opinionated human wrote it. Output ONLY the rewritten text.")
+            final_output = self.llm.generate(anti_ai_prompt, {"temperature": 0.8, "max_tokens": llm_params.get("max_tokens", 4096)})
+            if self.svc.bio:
+                self.svc.bio.mito.adjust_atp(-5.0, "Anti-AI Reflection Loop")
         telemetry_output = raw_resp if not val_res["valid"] else final_output
         self._log_telemetry(final_prompt, telemetry_output, full_state, sim_result)
         self.learn_from_response(final_output)
@@ -510,6 +530,11 @@ class TheCortex:
         phys = raw_phys.to_dict() if hasattr(raw_phys, "to_dict") else (
             raw_phys if isinstance(raw_phys, dict) else getattr(raw_phys, "__dict__", {}))
         bio = sim_result.get("bio", {})
+        if bio:
+            phys["p"] = bio.get("mito", {}).get("atp_pool", 100.0)
+            phys["ros"] = bio.get("mito", {}).get("ros_buildup", 0.0)
+            phys["h"] = bio.get("biometrics", {}).get("health", 100.0)
+            phys["stamina"] = phys["p"]
         mind = sim_result.get("mind", {})
         world = sim_result.get("world", {})
         soul_data = sim_result.get("soul", {})
@@ -727,7 +752,9 @@ class DreamEngine:
         txt = txt.format(ghost="The Glitch", A="The Code", B="The Flesh", C="The Light")
         from bone_tcl import TheTclWeaver
         weaver = TheTclWeaver.get_instance()
-        txt = weaver.deform_reality(txt, chi=0.85, voltage=90.0)
+        active_chi = _vector.get("chi", _vector.get("entropy", 0.85)) if _vector else 0.85
+        active_v = _vector.get("voltage", 90.0) if _vector else 90.0
+        txt = weaver.deform_reality(txt, chi=active_chi, voltage=active_v)
         msg = ux("brain_strings", "dream_hallucination")
         return f"{Prisma.MAG}{msg.format(txt=txt)}{Prisma.RST}", 0.2
 

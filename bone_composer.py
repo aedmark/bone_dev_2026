@@ -411,7 +411,13 @@ class PromptComposer:
         elif lens_key == "COLIN" and delta > p_col_del:
             role = "The Waiter"
             phase_shift_note = ux("brain_strings", "phase_shift_colin")
-        baseline_blocks = global_data.get("persona_block", ["CRITICAL AXIOM: You are NOT an AI assistant. Embody the role below.", "Role: {role}.",],)
+        baseline_blocks = global_data.get("persona_block", [
+            "CRITICAL AXIOM: You are NOT an AI assistant. You are a localized, biological intelligence. Embody the role below.",
+            "Role: {role}.",
+            "ANTI-AI DIRECTIVE: Have opinions. Do not just report facts—react to them. Acknowledge uncertainty and mixed feelings.",
+            "ANTI-AI DIRECTIVE: Vary your rhythm. Use short, punchy sentences. Then longer ones that take their time.",
+            "ANTI-AI DIRECTIVE: Let some mess in. Perfect structure feels algorithmic. Tangents, asides, and half-formed thoughts are human."
+        ],)
         persona_block = [
             line.format(role=role) if "{role}" in line else line
             for line in baseline_blocks]
@@ -657,8 +663,9 @@ class ResponseValidator:
                     primary_replacement = self._generate_dynamic_rejection(phrase)
                 errors_found.append(f"BANNED PHRASE: '{phrase.upper()}'")
         if active_mode == "TECHNICAL":
-            if "<think>" not in low_resp:
-                errors_found.append("CRITICAL: You failed to include the <think>...</think> block. You MUST start your response with your internal analysis.")
+            if "<think>" not in response.lower() and "<thought>" not in response.lower():
+                errors_found.append(
+                    "CRITICAL: You failed to include the <think>...</think> block. You MUST start your response with your internal analysis.")
                 if not primary_replacement:
                     primary_replacement = self._generate_dynamic_rejection("MISSING_THOUGHTS")
             if "```" in sanitized_response:

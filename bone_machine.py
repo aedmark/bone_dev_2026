@@ -494,9 +494,4 @@ class BoneArchitect:
             msg = ux("machine_strings", "arch_cold_boot")
             events.log(msg.format(genesis_val=genesis_val) if msg else f"Cold Boot: {genesis_val} ATP", "SYS")
             embryo.bio.mito.adjust_atp(genesis_val, reason="GENESIS")
-            cfg = getattr(target_cfg, "METABOLISM", None)
-            genesis_val = getattr(cfg, "GENESIS_VOLTAGE", 100.0) if cfg else 100.0
-            msg = ux("machine_strings", "arch_cold_boot")
-            events.log(msg.format(genesis_val=genesis_val), "SYS")
-            embryo.bio.mito.adjust_atp(genesis_val, reason="GENESIS")
         return embryo

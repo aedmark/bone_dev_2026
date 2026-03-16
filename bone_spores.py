@@ -1092,7 +1092,7 @@ class LiteraryReproduction:
         enzymes_b = set(parent_b_data.get("mitochondria", {}).get("enzymes", []))
         child_enzymes = list(enzymes_a | enzymes_b)
         config_mutations = LiteraryReproduction.mutate_config(self.cfg)
-        short_a = parent_a_id[-4:] if len(parent_a_id) > 4 else parent_a_idy
+        short_a = parent_a_id[-4:] if len(parent_a_id) > 4 else parent_a_id
         short_b = parent_b_id[-4:] if len(parent_b_id) > 4 else parent_b_id
         child_id = f"HYBRID_{short_a}x{short_b}"
         child_genome = {"source": "CROSSOVER", "parent_a": parent_a_id, "parent_b": parent_b_id,

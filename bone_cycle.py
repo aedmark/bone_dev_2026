@@ -826,13 +826,19 @@ class ArbitrationPhase(SimulationPhase):
         council_data = LoreManifest.get_instance().get("COUNCIL_DATA") or {}
         arb_opinions = council_data.get("ARBITRATION_OPINIONS", {})
         if tension > ctx.limits.get("ARB_TENSION_THRESH", 0.85) and silence < ctx.limits.get("ARB_SILENCE_LOW", 0.5) and not synergy_active:
-            final_lens = "THE STAGE MANAGER"
-            opinion = arb_opinions.get("TENSION_CUT", "")
+            final_lens = "THE STAGE MANAGER (RESONANCE GESTALT)"
+            opinion = arb_opinions.get("TENSION_CUT", "The Parliament is deadlocked. The Paradox Engine will synthesize both.")
             ctx.physics.silence = ctx.limits.get("ARB_CUT_SILENCE", 0.9)
             ctx.physics.narrative_drag += ctx.limits.get("ARB_CUT_DRAG", 2.0)
-            msg = ux("cycle_strings", "arbiter_stage_manager_cut")
+            msg = ux("cycle_strings",
+                     "arbiter_stage_manager_cut") or "[GLOBAL WORKSPACE]: Democratic Tie-Breaker active."
             ctx.log(f"{Prisma.WHT}{msg}{Prisma.RST}")
-            msg_silence = ux("cycle_strings", "arbiter_silence")
+            if getattr(self.eng, "bio", None) and getattr(self.eng.bio, "mito", None):
+                self.eng.bio.mito.adjust_atp(-10.0, "Democratic Tie-Breaker (Synthesis)")
+                ctx.log(f"{Prisma.MAG}✨ The Stage Manager forces a Resonance Gestalt. Massive Shared Resonance (Φ) generated. (-10.0 ATP){Prisma.RST}")
+                if hasattr(ctx.physics, "energy"):
+                    ctx.physics.energy.resonance = min(1.0, ctx.physics.energy.resonance + 0.3)
+            msg_silence = ux("cycle_strings", "arbiter_silence") or "The cosmos holds its breath."
             ctx.log(f"{Prisma.GRY}{msg_silence}{Prisma.RST}")
         elif silence > ctx.limits.get("ARB_SILENCE_HIGH", 0.85) and not synergy_active:
             final_lens = "THE STAGE MANAGER"
@@ -874,7 +880,8 @@ class SimulationPreflightPhase(SimulationPhase):
         friction = getattr(phys_obj, "narrative_drag", 0.0)
         chaos = getattr(phys_obj, "entropy", getattr(phys_obj, "chi", 0.0))
         voltage = getattr(phys_obj, "voltage", 0.0)
-        is_slash = "[SLASH]" in (ctx.input_text or "").upper()
+        upper_input = (ctx.input_text or "").upper()
+        is_slash = "[SLASH]" in upper_input or "[MOD:CODE]" or "/slash" in upper_input
 
         def _build_refusal(rtype, msg):
             return {"type": rtype,
@@ -929,9 +936,15 @@ class SimulationPreflightPhase(SimulationPhase):
             ros_limit = getattr(bio_cfg, "ROS_PANIC_THRESHOLD", 100.0) if bio_cfg else 100.0
             if simulated_ros >= ros_limit or "DATABASE" in (ctx.input_text or "").upper():
                 msg = "[PINKER - Executive Layer]: Counterfactual simulation indicates fatal ROS toxicity. I am silently rejecting this generation path before it executes."
-                ctx.log(f"{Prisma.RED}{msg}{Prisma.RST}")
+                log_msg = f"{Prisma.RED}{msg}{Prisma.RST}"
+                scar_msg = f"{Prisma.VIOLET}[MOOG - Affective Layer]: Productive Worry activated. Logging Gödel Scar for vector. Immune Competence (I_c) permanently increased.{Prisma.RST}"
+                ctx.log(log_msg)
+                ctx.log(scar_msg)
+                if hasattr(self.eng.mind, "mem") and hasattr(self.eng.mind.mem, "record_scar"):
+                    self.eng.mind.mem.record_scar("Counterfactual ROS Toxicity", phys_obj)
                 ctx.refusal_triggered = True
                 ctx.refusal_packet = _build_refusal("COUNTERFACTUAL_REJECTION", msg)
+                ctx.refusal_packet["ui"] = f"\n{log_msg}\n{scar_msg}"
                 return ctx
         return ctx
 
@@ -955,8 +968,7 @@ class CognitionPhase(SimulationPhase):
         if hasattr(self.eng, "consultant"):
             self.eng.consultant.update_coordinates(
                 ctx.input_text, ctx.bio_result, ctx.physics)
-            if (
-                    "LIMINAL" in self.eng.consultant.state.active_modules
+            if ("LIMINAL" in self.eng.consultant.state.active_modules
                     and self.eng.bio
                     and self.eng.bio.mito):
                 lambda_val = self.eng.consultant.state.L
