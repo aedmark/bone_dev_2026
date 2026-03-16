@@ -33,12 +33,12 @@ class BoneJSONEncoder(json.JSONEncoder):
         return super().default(obj)
 
 class EventBus:
-    def __init__(self, max_memory=None, config_ref=None):
+    def __init__(self, max_memory=None, config_ref=None, telemetry_ref=None):
         self.cfg = config_ref or BoneConfig
-        cfg = getattr(self.cfg, "CORE", None)
-        limit = max_memory if max_memory else (getattr(cfg, "EVENT_MAX_MEMORY", 1024) if cfg else 1024)
+        limit = max_memory if max_memory else (getattr(self.cfg.CORE, "EVENT_MAX_MEMORY", 1024))
         self.buffer = deque(maxlen=limit)
         self.subscribers = {}
+        self.telemetry = telemetry_ref
 
     def subscribe(self, event_type, callback):
         if event_type not in self.subscribers:
@@ -61,9 +61,16 @@ class EventBus:
                 if msg: print(f"{Prisma.RED}{msg.format(error_msg=raw_err)}{Prisma.RST}")
                 self.log(f"EVENT_FAILURE: {raw_err}", category="CRIT")
 
-    def log(self, text: str, category: str = "SYSTEM"):
-        entry = {"text": text, "category": category, "timestamp": time.time()}
-        self.buffer.append(entry)
+    def log(self, message: str, source: str = "SYSTEM", level: str = "INFO"):
+        event = {"timestamp": time.time(), "source": source, "level": level, "message": message, "text": message, "_type": "EVENT_LOG"}
+        self.buffer.append(event)
+        if source in self.subscribers:
+            for cb in self.subscribers[source]:
+                cb(event)
+        if self.telemetry:
+            self.telemetry.record_event(event)
+        else:
+            print(f"[{source}] {message}")
 
     def flush(self) -> List[Dict]:
         current_logs = list(self.buffer)
@@ -334,6 +341,14 @@ class TelemetryService:
             self.disabled = True
             self.current_trace_file = None
         self._executor = ThreadPoolExecutor(max_workers=1)
+
+    def record_event(self, event_dict: dict):
+        trace_file = os.path.join(self.log_dir, f"trace_{self.session_id}.jsonl")
+        try:
+            with open(trace_file, "a", encoding="utf-8") as f:
+                f.write(json.dumps(event_dict, cls=BoneJSONEncoder) + "\n")
+        except Exception:
+            pass
 
     @classmethod
     def get_instance(cls, config_ref=None):

@@ -244,7 +244,10 @@ class TheCortex:
         sim_result = self.svc.cycle_controller.run_turn(user_input, is_system=is_system)
         if sim_result.get("physics"):
             self.last_physics = sim_result["physics"]
-        if sim_result.get("type") not in ["SNAPSHOT", "GEODESIC_FRAME", None]:
+        is_refusal = sim_result.get("type") in ["COUNTERFACTUAL_REJECTION", "CONSTRUCTIVE_REPLAY", "PREMISE_VIOLATION",
+                                                "BUREAU_BLOCK", "SYSTEM_HALT"]
+        if is_refusal or sim_result.get("type") not in ["SNAPSHOT", "GEODESIC_FRAME", None]:
+            self._update_history(user_input, sim_result.get("ui", "SYSTEM REJECTED PROMPT."))
             return sim_result
         full_state = self.gather_state(sim_result)
         modifiers = self.svc.symbiosis.get_prompt_modifiers()

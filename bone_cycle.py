@@ -850,16 +850,38 @@ class SimulationPreflightPhase(SimulationPhase):
     def run(self, ctx: CycleContext):
         if ctx.is_system_event:
             return ctx
+
         current_atp = self.eng.bio.mito.state.atp_pool if getattr(self.eng, "bio", None) and getattr(self.eng.bio, "mito", None) else 100.0
         phys_obj = ctx.physics
         energy_obj = getattr(phys_obj, "energy", phys_obj)
-        system_silence = getattr(self.eng.phys.observer, "current_silence", 0.0) if hasattr(self.eng.phys, "observer") else 0.0
-        prompt_silence = getattr(phys_obj, "DELTA", 0.0)
-        silence = max(system_silence, prompt_silence)
+        silence = getattr(phys_obj, "DELTA", 0.0)
         friction = getattr(phys_obj, "narrative_drag", 0.0)
         chaos = getattr(phys_obj, "entropy", getattr(phys_obj, "chi", 0.0))
         voltage = getattr(phys_obj, "voltage", 0.0)
         is_slash = "[SLASH]" in (ctx.input_text or "").upper()
+
+        def _build_refusal(rtype, msg):
+            return {"type": rtype,
+                    "ui": f"\n{Prisma.RED if rtype == 'COUNTERFACTUAL_REJECTION' else Prisma.CYN}{msg}{Prisma.RST}",
+                    "logs": [msg], "metrics": self.eng.get_metrics() if hasattr(self.eng, "get_metrics") else {},
+                    "physics": phys_obj.to_dict() if hasattr(phys_obj, "to_dict") else {},
+                    "bio": getattr(ctx, "bio_result", {}),
+                    "mind": {"thought": "System rejected prompt.", "context_msg": msg},
+                    "world": getattr(ctx, "world_state", {}), "is_alive": True}
+        if is_slash:
+            user_input_lower = (ctx.input_text or "").lower()
+            has_code = "```" in user_input_lower or "def " in user_input_lower or "class " in user_input_lower or "{" in user_input_lower
+            analysis_phrases = ["refactor", "analyze", "look at", "explain", "review", "sit with it", "negative space", "primitives"]
+
+            if any(phrase in user_input_lower for phrase in analysis_phrases):
+                if not has_code:
+                    msg = ("(GORDON - The Anchor): The action 'analyze' requires the object 'code' to be present "
+                           "in the prompt context. I cannot map the negative space of a script that "
+                           "does not exist here. This is a premise violation. Provide the payload.")
+                    ctx.log(f"{Prisma.RED}{msg}{Prisma.RST}")
+                    ctx.refusal_triggered = True
+                    ctx.refusal_packet = _build_refusal("PREMISE_VIOLATION", msg)
+                    return ctx
         if current_atp >= 30.0 and silence > 0.7 and is_slash:
             has_glimmer = False
             if hasattr(self.eng, "shared_lattice") and self.eng.shared_lattice.shared.g_pool >= 1:
@@ -880,11 +902,10 @@ class SimulationPreflightPhase(SimulationPhase):
             full_log = f"{Prisma.CYN}{msg} (Resilience +0.15, {cost_str}){Prisma.RST}"
             ctx.log(full_log)
             ctx.refusal_triggered = True
-            ctx.refusal_packet = {"type": "CONSTRUCTIVE_REPLAY", "ui": f"\n{full_log}", "logs": [full_log],
-                                  "metrics": self.eng.get_metrics() if hasattr(self.eng, "get_metrics") else {}}
+            ctx.refusal_packet = _build_refusal("CONSTRUCTIVE_REPLAY", msg)
+            ctx.refusal_packet["ui"] = f"\n{full_log}"
             return ctx
-        if (friction > 1.2 or chaos > 0.7 or voltage > 80.0 or "DATABASE" in (
-                ctx.input_text or "").upper()) and is_slash:
+        if (friction > 1.2 or chaos > 0.7 or voltage > 80.0 or "DATABASE" in (ctx.input_text or "").upper()) and is_slash:
             base_ros = self.eng.bio.mito.state.ros_buildup if getattr(self.eng, "bio", None) and getattr(self.eng.bio, "mito", None) else 0.0
             simulated_ros = base_ros + (friction * chaos * 20.0)
             target_cfg = getattr(self.eng, "bone_config", None)
@@ -894,9 +915,7 @@ class SimulationPreflightPhase(SimulationPhase):
                 msg = "[PINKER - Executive Layer]: Counterfactual simulation indicates fatal ROS toxicity. I am silently rejecting this generation path before it executes."
                 ctx.log(f"{Prisma.RED}{msg}{Prisma.RST}")
                 ctx.refusal_triggered = True
-                ctx.refusal_packet = {"type": "COUNTERFACTUAL_REJECTION", "ui": f"\n{Prisma.RED}{msg}{Prisma.RST}",
-                                      "logs": [msg],
-                                      "metrics": self.eng.get_metrics() if hasattr(self.eng, "get_metrics") else {}}
+                ctx.refusal_packet = _build_refusal("COUNTERFACTUAL_REJECTION", msg)
                 return ctx
         return ctx
 
