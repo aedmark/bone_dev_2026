@@ -59,7 +59,7 @@ class EventBus:
                 raw_err = f"Error in '{cb_name}' for '{event_type}': {e}\n{full_trace}"
                 msg = ux("core_strings", "bus_error")
                 if msg: print(f"{Prisma.RED}{msg.format(error_msg=raw_err)}{Prisma.RST}")
-                self.log(f"EVENT_FAILURE: {raw_err}", category="CRIT")
+                self.log(f"EVENT_FAILURE: {raw_err}", level="CRIT")
 
     def log(self, message: str, source: str = "SYSTEM", level: str = "INFO"):
         event = {"timestamp": time.time(), "source": source, "level": level, "message": message, "text": message, "_type": "EVENT_LOG"}

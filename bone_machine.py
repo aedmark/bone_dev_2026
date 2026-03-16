@@ -126,7 +126,8 @@ class TheParadoxEngine:
         self.is_active = False
 
 class TheForge:
-    def __init__(self):
+    def __init__(self, lex_ref=None):
+        self.lex = lex_ref
         gordon_data = LoreManifest.get_instance().get("GORDON") or {}
         raw_recipes = gordon_data.get("RECIPES", [])
         self.recipe_map = {}
@@ -171,7 +172,8 @@ class TheForge:
         for item in inventory_list:
             if item in self.recipe_map:
                 for recipe in self.recipe_map[item]:
-                    cat_words = LexiconService.get(recipe["catalyst_category"])
+                    cat_words = self.lex.get(recipe["catalyst_category"]) if self.lex else LexiconService().get(
+                        recipe["catalyst_category"])
                     if not cat_words or clean_set.isdisjoint(cat_words):
                         continue
                     hits = len(clean_set.intersection(cat_words))
@@ -367,15 +369,17 @@ class ViralTracer:
         self.memory = memory_ref
         self.active_loops = []
 
-    @staticmethod
-    def inject(start_node: str) -> Optional[List[str]]:
+    def inject(self, start_node: str) -> Optional[List[str]]:
         if random.random() < 0.05:
-            return [start_node, "echo", "void", start_node]
+            loop = [start_node, "echo", "void", start_node]
+            self.active_loops.append(loop)
+            return loop
         return None
 
-    @staticmethod
-    def psilocybin_rewire(loop_path: List[str]) -> str:
+    def psilocybin_rewire(self, loop_path: List[str]) -> str:
         msg = ux("machine_strings", "tracer_rewire")
+        if loop_path in self.active_loops:
+            self.active_loops.remove(loop_path)
         return msg.format(path="->".join(loop_path))
 
 class ThePacemaker:
@@ -426,7 +430,8 @@ class BoneArchitect:
     def _construct_physics(events, bio, mind, lex, config_ref=None) -> PhysSystem:
         target_cfg = config_ref or BoneConfig
         gate = TheGatekeeper(lex, mind.mem, config_ref=target_cfg)
-        return PhysSystem(observer=QuantumObserver(events, lex, config_ref=target_cfg), forge=TheForge(),
+        return PhysSystem(observer=QuantumObserver(events, lex, config_ref=target_cfg),
+                          forge=TheForge(lex_ref=lex),
                           crucible=TheCrucible(config_ref=target_cfg),
                           theremin=TheTheremin(config_ref=target_cfg), pulse=ThePacemaker(config_ref=target_cfg),
                           nav=TheCartographer(bio.shimmer, config_ref=target_cfg), gate=gate,
@@ -482,8 +487,13 @@ class BoneArchitect:
                 except Exception as e:
                     msg = ux("machine_strings", "arch_map_corrupt")
                     events.log(f"{Prisma.OCHRE}{msg.format(e=e)}{Prisma.RST}", "WARN", )
-        if embryo.bio.mito.state.atp_pool <= 0.0:
-            target_cfg = embryo.bio.config_ref if embryo.bio and hasattr(embryo.bio, "config_ref") and embryo.bio.config_ref else BoneConfig
+        if embryo.bio and embryo.bio.mito and embryo.bio.mito.state.atp_pool <= 0.0:
+            target_cfg = getattr(embryo.bio, "config_ref", None) or BoneConfig
+            cfg = getattr(target_cfg, "METABOLISM", None)
+            genesis_val = getattr(cfg, "GENESIS_VOLTAGE", 100.0) if cfg else 100.0
+            msg = ux("machine_strings", "arch_cold_boot")
+            events.log(msg.format(genesis_val=genesis_val) if msg else f"Cold Boot: {genesis_val} ATP", "SYS")
+            embryo.bio.mito.adjust_atp(genesis_val, reason="GENESIS")
             cfg = getattr(target_cfg, "METABOLISM", None)
             genesis_val = getattr(cfg, "GENESIS_VOLTAGE", 100.0) if cfg else 100.0
             msg = ux("machine_strings", "arch_cold_boot")

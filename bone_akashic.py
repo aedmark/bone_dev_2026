@@ -56,10 +56,19 @@ class TheAkashicRecord:
         return yield_val, msg.format(target=target)
 
     def record_scar(self, concept: str, p: Any):
-        cfg = getattr(BoneConfig, "AKASHIC", None)
-        default_coords = {"E": ("exhaustion", 0.2), "beta": ("beta_index", 0.4), "S": ("scope", 0.3),
-                          "D": ("depth", 0.3), "C": ("connectivity", 0.2), "T": ("trauma", 0.0), "psi": ("psi", 0.0),
-                          "chi": ("entropy", 0.0), "valence": ("valence", 0.0), "ROS": ("ros", 0.0)}
+        cfg_defaults = getattr(getattr(BoneConfig, "AKASHIC", None), "DEFAULT_SCAR_COORDS", {})
+        default_coords = {
+            "E": ("exhaustion", cfg_defaults.get("E", 0.2)),
+            "beta": ("beta_index", cfg_defaults.get("beta", 0.4)),
+            "S": ("scope", cfg_defaults.get("S", 0.3)),
+            "D": ("depth", cfg_defaults.get("D", 0.3)),
+            "C": ("connectivity", cfg_defaults.get("C", 0.2)),
+            "T": ("trauma", cfg_defaults.get("T", 0.0)),
+            "psi": ("psi", cfg_defaults.get("psi", 0.0)),
+            "chi": ("entropy", cfg_defaults.get("chi", 0.0)),
+            "valence": ("valence", cfg_defaults.get("valence", 0.0)),
+            "ROS": ("ros", cfg_defaults.get("ROS", 0.0))
+        }
         coords = {}
         is_dict = isinstance(p, dict)
         for short_k, (real_k, default_v) in default_coords.items():

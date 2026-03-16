@@ -20,7 +20,7 @@ class CommandStateInterface:
 
     def trigger_visual_cortex(self) -> Optional[Dict]:
         if hasattr(self.eng, "process_turn"):
-            return self.eng.process_turn("LOOK")
+            return self.eng.process_turn("LOOK", is_system=True)
         return None
 
     def modify_resource(self, resource: str, delta: float):

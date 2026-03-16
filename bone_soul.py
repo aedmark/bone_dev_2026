@@ -563,11 +563,11 @@ class NarrativeSelf:
             lesson = "Connection is possible."
         elif "void" in clean_words:
             lesson = "The void stares back."
-            memory = CoreMemory(timestamp=time.time(), trigger_words=clean_words[:5],
-                                emotional_flavor="MANIC" if voltage > 18.0 else "LUCID", lesson=lesson,
-                                impact_voltage=voltage, )
-            self.core_memories.append(memory)
-            cfg = getattr(self.cfg, "SOUL", None)
+        memory = CoreMemory(timestamp=time.time(), trigger_words=clean_words[:5],
+                            emotional_flavor="MANIC" if voltage > 18.0 else "LUCID", lesson=lesson,
+                            impact_voltage=voltage)
+        self.core_memories.append(memory)
+        cfg = getattr(self.cfg, "SOUL", None)
         max_mems = getattr(cfg, "MAX_CORE_MEMORIES", 10) if cfg else 10
         if len(self.core_memories) > max_mems:
             self.core_memories.pop(0)

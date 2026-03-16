@@ -11,10 +11,22 @@ from fastapi.middleware.cors import CORSMiddleware
 from bone_main import BoneAmanita, ConfigWizard
 from bone_types import Prisma
 
+import re
+
+def parse_vsl_markdown(text: str) -> str:
+    text = re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', text, flags=re.DOTALL)
+    text = re.sub(r'__(.+?)__', r'<strong>\1</strong>', text, flags=re.DOTALL)
+    text = re.sub(r'(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)', r'<em>\1</em>', text, flags=re.DOTALL)
+    text = re.sub(r'(?<!_)_(?!_)(.+?)(?<!_)_(?!_)', r'<em>\1</em>', text, flags=re.DOTALL)
+    text = re.sub(r'(?m)^[ \t]*[-*][ \t]+(.*)$', r'<li>\1</li>', text)
+    text = re.sub(r'(?:<li>.*?</li>\n?)+', lambda m: f"<ul>\n{m.group(0)}</ul>\n", text)
+    return text
+
 class EngineState:
     engine: BoneAmanita = None
     active_connections: list[WebSocket] = []
 state = EngineState()
+
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
@@ -25,7 +37,9 @@ async def lifespan(_app: FastAPI):
         sys_config["mode_settings"] = {}
     sys_config["mode_settings"]["render_target"] = "WEB"
     state.engine = BoneAmanita(config=sys_config)
+    state.engine.events.flush()
     original_log = state.engine.events.log
+
     def websocket_log_hook(text: str, category: str = "SYS", persist: bool = True):
         original_log(text, category, persist)
         if state.active_connections:
@@ -47,8 +61,8 @@ def stringify_lattice_keys(obj: Any) -> Any:
     else:
         return obj
 
-app = FastAPI(lifespan=lifespan, title="BoneAmanita Hypervisor API")
 
+app = FastAPI(lifespan=lifespan, title="BoneAmanita Hypervisor API")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"],
                    allow_headers=["*"], )
 
@@ -56,10 +70,8 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, 
 async def health_check():
     if not state.engine:
         return {"status": "OFFLINE"}
-
     metrics = state.engine.get_metrics()
     metrics["SLASH_gamma"] = state.engine.phys.observer.last_physics_packet.gamma if hasattr(state.engine, "phys") and state.engine.phys.observer.last_physics_packet else 0.0
-
     return {"status": "ONLINE", "tick": state.engine.tick_count, "metrics": metrics}
 
 @app.websocket("/ws/lattice")
@@ -76,11 +88,18 @@ async def lattice_websocket(websocket: WebSocket):
             data = await websocket.receive_text()
             payload = json.loads(data)
             user_text = payload.get("text", "").strip()
-            if not user_text:
-                continue
             response_packet = state.engine.process_turn(user_text)
             if "ui" in response_packet:
-                response_packet["ui"] = render_markdown(response_packet["ui"])
+                raw_ui = response_packet["ui"]
+                if "────────────────" in raw_ui:
+                    parts = raw_ui.rsplit("────────────────", 1)
+                    dashboard = parts[0] + "────────────────"
+                    narrative = parts[1]
+                    clean_dash = f"<pre class='dashboard-terminal'>{dashboard.strip()}</pre>"
+                    clean_narrative = parse_vsl_markdown(narrative.strip())
+                    response_packet["ui"] = clean_dash + "\n\n" + clean_narrative
+                else:
+                    response_packet["ui"] = parse_vsl_markdown(raw_ui)
             await websocket.send_json(stringify_lattice_keys(response_packet))
             await websocket.send_json(stringify_lattice_keys({"type": "METRICS_UPDATE", "metrics": state.engine.get_metrics()}))
     except WebSocketDisconnect:

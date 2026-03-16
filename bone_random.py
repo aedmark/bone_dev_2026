@@ -84,6 +84,7 @@ class RandomRetrievalNavigator:
         return candidates[0] if candidates else self.library.root
 
     def _generate_traversal_path(self, start_node: LibraryNode, r_val: float) -> list[LibraryNode]:
+        import time
         path = [start_node]
         visited = {start_node.id}
         steps = math.floor(1 + r_val * 5)
@@ -93,14 +94,11 @@ class RandomRetrievalNavigator:
             available = [n for n in neighbors if n.id not in visited]
             if not available:
                 break
-            next_node = None
             if random.random() < r_val:
                 if r_val > 0.7 and random.random() < 0.3:
                     random_branch = self._get_random_branch(current_node)
-                    if random_branch and random_branch.id not in visited:
-                        next_node = random_branch
-                    else:
-                        next_node = random.choice(available)
+                    next_node = random_branch if (random_branch and random_branch.id not in visited) else random.choice(
+                        available)
                 else:
                     next_node = random.choice(available)
             else:
@@ -108,10 +106,10 @@ class RandomRetrievalNavigator:
             if next_node:
                 path.append(next_node)
                 visited.add(next_node.id)
-        import time
         self.traversal_history.append(
             {"timestamp": time.time(), "start_node": start_node.id, "path": [n.id for n in path],
-             "R": self.randomness_dial})
+             "R": self.randomness_dial}
+        )
         return path
 
     def _get_neighbors(self, node: LibraryNode) -> list[LibraryNode]:

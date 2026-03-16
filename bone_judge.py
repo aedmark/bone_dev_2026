@@ -8,6 +8,7 @@ try:
     import dspy
     DSPY_AVAILABLE = True
 except ImportError:
+    dspy = None
     print(f"{Prisma.OCHRE}[DSPY OFFLINE]: The 'dspy' library is not installed. Immune guardrails and epigenetic learning disabled.{Prisma.RST}")
     DSPY_AVAILABLE = False
 
