@@ -1,6 +1,4 @@
-"""
-bone_physics.py
-"""
+""" bone_physics.py """
 
 import math
 import random
@@ -13,7 +11,6 @@ from typing import Dict, List, Any, Tuple, Optional, Deque
 from bone_core import LoreManifest, ux
 from bone_presets import BoneConfig
 from bone_types import Prisma, PhysicsPacket, CycleContext, SpatialState, MaterialState, EnergyState
-
 
 @dataclass
 class PhysicsDelta:
@@ -40,8 +37,7 @@ class GeodesicEngine:
         masses = GeodesicEngine._weigh_mass(counts)
         forces = GeodesicEngine._calculate_forces(masses, counts, volume, target_cfg)
         dimensions = GeodesicEngine._calculate_dimensions(masses, forces, counts, volume)
-        return GeodesicVector(tension=forces["tension"], compression=forces["compression"],
-                              coherence=forces["coherence"], abstraction=forces["abstraction"], dimensions=dimensions, )
+        return GeodesicVector(tension=forces["tension"], compression=forces["compression"], coherence=forces["coherence"], abstraction=forces["abstraction"], dimensions=dimensions, )
 
     @staticmethod
     def _weigh_mass(counts: Dict[str, int]) -> Dict[str, float]:
@@ -223,7 +219,6 @@ class TheGatekeeper:
             formatted_rejection = rejection_template.replace("{trigger}", trigger)
             return False, f"{Prisma.RED}{formatted_rejection}{Prisma.RST}"
         return True, cleaned_text
-
 
 class QuantumObserver:
     def __init__(self, events, lexicon_ref, config_ref=None):

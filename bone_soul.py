@@ -70,7 +70,7 @@ class TheEditor:
     def critique(chapter_title: str, stress_mode: bool = False) -> str:
         narrative = {}
         if hasattr(LoreManifest, "get_instance"):
-            narrative = LoreManifest.get_instance().get("narrative_data") or {}
+            narrative = LoreManifest.get_instance().get("NARRATIVE_DATA") or {}
         reviews = narrative.get("LITERARY_REVIEWS", {})
         pos = reviews.get("POSITIVE", ["Valid."])
         neg = reviews.get("NEGATIVE", ["Invalid."])
@@ -141,7 +141,7 @@ class HumanityAnchor:
         seeds = []
         if hasattr(LoreManifest, "get_instance"):
             lore = LoreManifest.get_instance()
-            seeds = lore.get("SEEDS") or (lore.get("narrative_data") or {}).get("SEEDS", [])
+            seeds = lore.get("SEEDS") or (lore.get("NARRATIVE_DATA") or {}).get("SEEDS", [])
         riddles = seeds or [{"question": "Who are you?", "triggers": ["*"]}]
         selection = random.choice(riddles)
         riddle = selection.get("question", "Error?")

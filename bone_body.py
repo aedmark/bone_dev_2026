@@ -1,6 +1,4 @@
-"""
-bone_body.py
-"""
+""" bone_body.py """
 
 import math
 import random
@@ -8,11 +6,9 @@ import time
 from collections import deque, Counter
 from dataclasses import dataclass, field, asdict
 from typing import Optional, Dict, List, Any, Tuple
-
 from bone_core import Prisma, LoreManifest, ux
 from bone_presets import BoneConfig
 from bone_spores import ImmuneMycelium, BioLichen, BioParasite
-
 
 @dataclass
 class Biometrics:
@@ -55,6 +51,7 @@ class BioSystem:
     def setup_listeners(self):
         if self.events and hasattr(self.events, "subscribe"):
             self.events.subscribe("NEURAL_STATE_SHIFT", self._on_neural_shift)
+            self.events.subscribe("SUBSTRATE_FORGED", self.mito.on_substrate_forged)
             self.events.log("[BIO]: Vagus Nerve connected.", "SYS")
         narrative = LoreManifest.get_instance().get("BIO_NARRATIVE") or {}
         if self.mito:
@@ -187,6 +184,11 @@ class MitochondrialForge:
         self.state.atp_pool = max(atp_collapse, min(max_limit, old + delta))
         if reason and (abs(delta) > 5.0 or self.state.atp_pool > 90.0):
             self.events.log(f"[ATP]: {reason} ({delta:+.1f})", "BIO")
+
+    def on_substrate_forged(self, payload: Dict):
+        cost = payload.get("cost", 0.0)
+        filename = payload.get("file", "unknown")
+        self.adjust_atp(-cost, f"Substrate Forging [{filename}]")
 
     def _get_text(self, key, **kwargs):
         tmpl = self.narrative.get(key, "")
@@ -934,8 +936,6 @@ class MetabolicGovernor:
         return None
 
     def _evaluate_state(self, physics: Dict, v_history: List[float], tick: int) -> str:
-        if tick <= 5:
-            return "COURTYARD"
         volts = getattr(physics, "voltage", 0.0)
         drag = getattr(physics, "narrative_drag", 0.0)
         gov_high = getattr(self.cfg.BIO, "GOV_VOLTAGE_HIGH", 18.0)
@@ -984,7 +984,7 @@ class SynestheticCortex:
         self.bio = bio_ref
         self.cfg = config_ref or BoneConfig
         self.last_reflex = None
-        self.library = LoreManifest.get_instance(config_ref=self.cfg).get("BIO_NARRATIVE") or {}
+        self.library = LoreManifest.get_instance(config_ref=self.cfg).get("SOMATIC_LIBRARY") or {}
 
     @staticmethod
     def _normalize_physics(physics) -> Dict:

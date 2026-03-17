@@ -64,8 +64,7 @@ class BoneGenesis:
         drivers = DriverRegistry(events, config_ref=target_cfg)
         symbiosis = SymbiosisManager(events, config_ref=target_cfg)
         return {"events": events, "akashic": akashic, "embryo": embryo, "village": village_bundle, "soul": soul,
-                "oroboros": oroboros, "drivers": drivers, "consultant": village_bundle["consultant"],
-                "symbiosis": symbiosis, }
+                "oroboros": oroboros, "drivers": drivers, "consultant": village_bundle["consultant"], "symbiosis": symbiosis, }
 
     @staticmethod
     def _summon_village(

@@ -23,7 +23,6 @@ class Coordinates:
     D: float
     C: float
 
-
 @dataclass
 class LibraryNode:
     id: str
@@ -61,13 +60,11 @@ class RandomRetrievalNavigator:
         self.randomness_dial: float = float(config.get("randomnessDial", 0.0))
         self.traversal_history: list[dict[str, Any]] = []
         self.serendipity_cache: dict[str, Any] = {}
-        self.modes = {
-            "PURIST":   {"range": (0.0, 0.2), "desc": "Shortest path, structural fidelity"},
+        self.modes = {"PURIST":   {"range": (0.0, 0.2), "desc": "Shortest path, structural fidelity"},
             "TOURIST":  {"range": (0.2, 0.4), "desc": "Occasional scenic detours"},
             "EXPLORER": {"range": (0.4, 0.6), "desc": "Deliberate wrong turns, adjacent possible"},
             "FLANEUR":  {"range": (0.6, 0.8), "desc": "Let the library browse you"},
-            "CHAOS":    {"range": (0.8, 1.0), "desc": "Maximum entropy, minimum predictability"}
-        }
+            "CHAOS":    {"range": (0.8, 1.0), "desc": "Maximum entropy, minimum predictability"}}
 
     def retrieve(self, query_coordinates: Coordinates, query_vector: list[float]) -> dict[str, Any]:
         r_val = self.randomness_dial
@@ -113,10 +110,8 @@ class RandomRetrievalNavigator:
             if next_node:
                 path.append(next_node)
                 visited.add(next_node.id)
-        self.traversal_history.append(
-            {"timestamp": time.time(), "start_node": start_node.id, "path": [n.id for n in path],
-             "R": self.randomness_dial}
-        )
+        self.traversal_history.append({"timestamp": time.time(), "start_node": start_node.id, "path": [n.id for n in path],
+             "R": self.randomness_dial})
         return path
 
     def _get_neighbors(self, node: LibraryNode) -> list[LibraryNode]:
@@ -139,17 +134,14 @@ class RandomRetrievalNavigator:
         return max(neighbors, key=lambda current: self._structural_similarity(current, target_node))
 
     def _structural_similarity(self, a: LibraryNode, b: LibraryNode) -> float:
-        dist = math.sqrt(
-            (a.coords.S - b.coords.S) ** 2 +
+        dist = math.sqrt((a.coords.S - b.coords.S) ** 2 +
             (a.coords.D - b.coords.D) ** 2 +
-            (a.coords.C - b.coords.C) ** 2
-        )
+            (a.coords.C - b.coords.C) ** 2)
         return 1.0 / (1.0 + dist)
 
     def _get_random_branch(self, current_node: LibraryNode) -> Optional[LibraryNode]:
         lineage = self._get_lineage(current_node)
         candidates = [n for n in self.library.nodes if n.id not in lineage and n.id != current_node.id]
-
         if not candidates:
             return None
         return random.choice(candidates)
@@ -176,7 +168,6 @@ class RandomRetrievalNavigator:
                                              coords=node.coords, path_position=i, relevance_score=relevance,
                                              serendipity_bonus=serendipity_bonus, final_score=score,
                                              snippet=node.content[:150] + "..."))
-
         return sorted(collected, key=lambda x: x.final_score, reverse=True)
 
     def _vector_similarity(self, v1: list[float], v2: list[float]) -> float:
@@ -191,14 +182,11 @@ class RandomRetrievalNavigator:
 
     def _calculate_serendipity(self, results: list[RetrievalResult], query_coords: Coordinates) -> list[RetrievalResult]:
         for r in results:
-            expected_delta = math.sqrt(
-                (r.coords.S - query_coords.S) ** 2 +
+            expected_delta = math.sqrt((r.coords.S - query_coords.S) ** 2 +
                 (r.coords.D - query_coords.D) ** 2 +
-                (r.coords.C - query_coords.C) ** 2
-            )
+                (r.coords.C - query_coords.C) ** 2)
             r.serendipity = r.relevance_score * expected_delta
             r.is_surprising = r.serendipity > 0.5
-
         return results
 
     def _get_mode(self, r_val: float) -> dict[str, str]:
@@ -215,7 +203,6 @@ class RandomRetrievalNavigator:
                  "EXPLORER": "Went where the path was thin. Came back with something odd.",
                  "FLANEUR": "The library started talking. I just listened.",
                  "CHAOS": "At this point, the books are reading you."}
-
         base_note = notes.get(mode["name"], "Wandering...")
         if surprising_count > 0:
             noun = "gem" if surprising_count == 1 else "gems"
@@ -262,6 +249,8 @@ class TheSubstrate:
                     f.write(content)
                 cost += write_cost
                 logs.append(f"{Prisma.GRN}SUBSTRATE: Physically forged {safe_path} ({size} bytes).{Prisma.RST}")
+                if hasattr(self.events, "publish"):
+                    self.events.publish("SUBSTRATE_FORGED", {"cost": write_cost, "file": safe_name})
                 if "podcast_script" in safe_name:
                     self._trigger_tts(safe_path)
             except Exception as e:
@@ -427,7 +416,6 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=UserWarning)
 
 class TheVocalCords:
-
     def __init__(self, events_ref=None):
         self.events = events_ref
         self.voice_map = {"BENEDICT": "am_adam", "JESTER": "am_puck", "STAGE MANAGER": "af_sky", "GORDON": "am_michael",
@@ -459,8 +447,7 @@ class TheVocalCords:
             return
         if not AUDIO_AVAILABLE:
             if self.events:
-                self.events.log(
-                    f"{Prisma.OCHRE}[AUDIO OFFLINE]: TTS dependencies (kokoro, soundfile, numpy) not found. Skipping podcast synthesis.{Prisma.RST}", "SYS")
+                self.events.log(f"{Prisma.OCHRE}[AUDIO OFFLINE]: TTS dependencies (kokoro, soundfile, numpy) not found. Skipping podcast synthesis.{Prisma.RST}", "SYS")
             return
         combined_audio = []
         error_to_report = None
@@ -489,7 +476,8 @@ class TheVocalCords:
                             voice = self.voice_map.get(speaker, self.voice_map["DEFAULT"])
                             generator = self.pipeline(text, voice=voice, speed=1.0)
                             for _, _, audio in generator:
-                                combined_audio.append(audio)
+                                if audio is not None and len(audio) > 0:
+                                    combined_audio.append(np.array(audio).flatten())
                             combined_audio.append(silence_pad)
                         if combined_audio:
                             final_array = np.concatenate(combined_audio)
@@ -502,12 +490,12 @@ class TheVocalCords:
                     self.events.log(f"{Prisma.RED}🎙️ AUDIO FAULT: {error_to_report}{Prisma.RST}{handoff_msg}", "SYS")
             elif combined_audio:
                 if self.events:
-                    self.events.log(
-                        f"{Prisma.MAG}🎙️ MASTER PODCAST FORGED: {os.path.basename(master_file)}{Prisma.RST}{handoff_msg}", "SYS")
+                    self.events.log(f"{Prisma.MAG}🎙️ MASTER PODCAST FORGED: {os.path.basename(master_file)}{Prisma.RST}{handoff_msg}", "SYS")
 
 try:
     import dspy
     DSPY_AVAILABLE = True
+
 except ImportError:
     dspy = None
     print(f"{Prisma.OCHRE}[DSPY OFFLINE]: The 'dspy' library is not installed. Immune guardrails and epigenetic learning disabled.{Prisma.RST}")
@@ -529,7 +517,6 @@ if DSPY_AVAILABLE:
         current_directives = dspy.InputField(desc="A list of specific rules that has grown too long.")
         compressed_axioms = dspy.OutputField(
             desc="2 or 3 highly compressed, overarching rules. EACH rule MUST start with 'CRITICAL OVERRIDE: '")
-
 
 class DSPyCritic:
     def __init__(self, config_ref=None):

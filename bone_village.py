@@ -1,6 +1,4 @@
-"""
-bone_village.py
-"""
+""" bone_village.py """
 
 import heapq
 import math
@@ -334,7 +332,6 @@ class TheCartographer:
         target_cfg = config_ref or BoneConfig
         v_trig = getattr(target_cfg.COUNCIL, "MANIC_VOLTAGE_TRIGGER", 18.0) if hasattr(target_cfg, "COUNCIL") else 18.0
         d_halt = getattr(target_cfg.PHYSICS, "DRAG_HALT", 10.0) if hasattr(target_cfg, "PHYSICS") else 10.0
-
         if packet.voltage > v_trig:
             suffix = manifest.get_ux("village_strings", "loci_flux_suffix")
             atmosphere = manifest.get_ux("village_strings", "loci_flux_atmos")
@@ -351,8 +348,7 @@ class TheCartographer:
         return GeniusLoci(id=node_id, name=final_name, atmosphere=atmosphere, smell=smell)
 
     def _prune_graph(self):
-        candidates = [
-            k
+        candidates = [k
             for k in self.world_graph.keys()
             if k != "GENESIS_POINT" and k != self.current_node_id]
         if not candidates:
@@ -639,7 +635,6 @@ class TheTherapist:
             self.events.log(f"{Prisma.VIOLET}{msg}{Prisma.RST}", "THERAPY")
             return True, msg
         return False, ""
-
 
 class TheGraveDigger:
     def __init__(self, inventory_ref, events_ref, config_ref=None):

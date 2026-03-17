@@ -1,6 +1,4 @@
-"""
-bone_inventory.py
-"""
+""" bone_inventory.py """
 
 import random
 import re

@@ -1,4 +1,4 @@
-"""bone_brain.py"""
+""" bone_brain.py """
 
 import math
 import random
@@ -277,7 +277,7 @@ class TheCortex:
                 sim_result["ui"] = (sim_result.get("ui", "") + f"\n\n{Prisma.RED}{reject_msg}{Prisma.RST}\n{Prisma.VIOLET}{scar_msg}{Prisma.RST}").strip()
                 sim_result["type"] = "COUNTERFACTUAL_REJECTION"
                 return sim_result
-        modifiers = self.svc.symbiosis.get_prompt_modifiers()
+        modifiers = self.svc.symbiosis.get_prompt_modifiers(phys_state)
         if not allow_loot: modifiers["include_inventory"] = False
         if hasattr(self, "gordon_shock") and self.gordon_shock:
             full_state["gordon_shock"] = self.gordon_shock
@@ -437,7 +437,7 @@ class TheCortex:
             state["world"]["loci_description"] = f"Manifesting: {seed}"
             state["mind"]["role"] = "The Architect"
             state["mind"]["lens"] = "ARCHITECT"
-            system_prompts = self.svc.lore.get("system_prompts") or {}
+            system_prompts = self.svc.lore.get("SYSTEM_PROMPTS") or {}
             boot_rules = system_prompts.get("BOOT_SEQUENCE", {}).get("directives", [])
             formatted_rules = [rule.format(seed=seed) if "{seed}" in rule else rule for rule in boot_rules]
             state["mind"]["style_directives"] = formatted_rules
@@ -649,7 +649,7 @@ class DreamEngine:
                     try:
                         disk_prompts = getattr(self.eng, "prompt_library", {})
                         if not disk_prompts:
-                            disk_prompts = self.lore.get("system_prompts") or {}
+                            disk_prompts = self.lore.get("SYSTEM_PROMPTS") or {}
                         prompt_path = None
                         for p in ["lore/system_prompts.json"]:
                             if os.path.exists(p):
@@ -675,7 +675,7 @@ class DreamEngine:
                                 json.dump(disk_prompts, f, indent=2)
                             if hasattr(self.eng, "prompt_library"):
                                 self.eng.prompt_library = disk_prompts
-                            self.lore.inject("system_prompts", disk_prompts)
+                            self.lore.inject("SYSTEM_PROMPTS", disk_prompts)
                     except Exception as e:
                         print(f"Failed to write epigenetic mutation to disk: {e}")
                     dream_text = f"The system processes conversational trauma in its sleep. It permanently mutates its own source code, forming a scar-tissue axiom: '{new_axiom}'"

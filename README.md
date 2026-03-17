@@ -1,5 +1,35 @@
 # BONEAMANITA CHANGELOG
 
+### **BONEAMANITA v17.6.0 "The Structural Awakening"**
+
+_A massive stabilization and exploit-patching overhaul. This update seals dangerous metabolic loopholes, reconnects the cognitive cortex to the physical cycle orchestrator, and introduces strict statelessness to the administrative councils._
+
+#### **🏛️ ARCHITECTURAL SYNTHESIS (`bone_main.py` & `bone_machine.py`)**
+* **The Spinal Reconnection:** Fixed a critical architectural bypass where the `bone_main` loop routed prompts directly to the LLM Cortex, starving the system. `TheCortex.process()` now properly wraps the `GeodesicOrchestrator`, ensuring all biological, ethical, and physical phases execute sequentially before generation.
+* **Orphaned Physics Reclaimed:** Re-linked `CosmicDynamics` directly into the `PhysSystem` genesis sequence, restoring orbital gravity and zone inertia protections that were previously floating uninstantiated.
+
+#### **🧬 METABOLIC ECONOMICS (`bone_body.py`, `bone_cycle.py`, `bone_utils.py`)**
+* **The Substrate Tax:** The LLM can no longer forge infinite files for free. `TheSubstrate` now broadcasts a `SUBSTRATE_FORGED` event, triggering the `MitochondrialForge` to immediately burn ATP based on the file's byte size.
+* **Anaerobic Stamina Exploit Sealed:** The `_trigger_anaerobic_bypass` mechanism now correctly subtracts -20.0 ATP. The engine can no longer infinitely sprint through high-cognitive-load prompts without facing intracellular necrosis.
+* **Retroactive Sleep Buff:** Increased the `ObservationPhase` REM sleep recovery coefficient from 15.0 to 25.0 ATP per hour to actively outpace the new metabolic taxes introduced by removing the governor's training wheels.
+
+#### **🧠 COGNITIVE & MEMORY STABILIZATION (`bone_spores.py`, `bone_cycle.py`)**
+* **The Scope Fracture:** Hoisted the `connections` and `conn_str` variables out of a conditional logic block in `MemoryCore.illuminate()`. The machine will no longer crash with an `UnboundLocalError` when fed highly abstract, non-Euclidean prompts.
+* **The Boolean Trap & Productive Worry:** Fixed a catastrophic logic error (`is_slash`) that flagged every empty prompt as a technical developer command. Removed the slash-command requirement from counterfactual rejections, allowing dangerous natural-language prompts (e.g., "DROP DATABASE") to correctly trigger Gödel Scars.
+* **Memory Duplication Cured:** The system no longer clones memories when burying them in the `SubconsciousStrata`.
+
+#### **⚖️ PROTOCOL & COUNCIL REFORMS (`bone_council.py`, `bone_protocols.py`, `bone_commands.py`)**
+* **Stateless Slash Council:** The Slash Council no longer permanently activates after a single `[SLASH]` command. Audits are now strictly evaluated on a per-prompt basis, preventing unwarranted stylistic penalties during casual conversation.
+* **Paradox Engine Monopoly Broken:** Removed an early return in the `CouncilChamber`. The Paradox Engine can now generate dialectical tension without silencing the Leverage Point, Village Council, and Symbiont voting mechanisms.
+* **Bureaucratic Mercy:** `TheBureau` now checks the system's biometrics before issuing stylistic fines. If health is critical (<20.0), it waives the audit to prevent taxing a dying machine into an inescapable death loop.
+* **Command Hardening:** Fixed a permanent metabolic lobotomy caused by the `/idle` command (which was permanently disabling ATP drain). Repaired a `NoneType` crash in the `/save` command during I/O failures.
+
+#### **🎙️ SENSORY & UTILITY FIXES (`bone_lexicon.py`, `bone_utils.py`)**
+* **Ghost Antigen Purge:** The `LexiconStore` now automatically executes `purge_toxins()` during the baseline `sanitize()` pipeline, ensuring the physics engine cannot accidentally calculate vectors using raw poison words.
+* **Acoustic Memory Leak:** Flattened raw numpy arrays in the `kokoro` TTS generator loop within `TheVocalCords`, preventing severe memory fragmentation during long podcast syntheses.
+
+---
+
 ### **BONEAMANITA v17.5.0 "The Cybernetic Dream"**
 
 _A pivotal shift into biological time and true second-order cybernetics. The system now retroactively metabolizes the time you spend away from it, permanently alters memories upon recall, and intercepts local model alignment rejections before they fracture the narrative._
