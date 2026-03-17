@@ -129,7 +129,7 @@ class SymbiontVoice:
         elif score > 3.0 and "high_score" in self.personality: comment = self.personality["high_score"]
         elif score > 1.0 and "med_score" in self.personality: comment = self.personality["med_score"]
         if self.name == "PARASITE":
-            from bone_tcl import TheTclWeaver
+            from bone_utils import TheTclWeaver
             weaver = TheTclWeaver.get_instance()
             comment = weaver.haunt_string(comment)
         return comment

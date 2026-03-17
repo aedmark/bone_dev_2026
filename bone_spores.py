@@ -308,9 +308,11 @@ class MemoryCore:
                     data["edges"][context_word] = data["edges"].get(context_word, 0.0) + 1.0
                 try:
                     self.subconscious.bury({"word": name, "mass": 1.0, "reconstructive": True}, config_ref=self.cfg)
+                    if name in self.graph:
+                        del self.graph[name]
                 except Exception:
                     pass
-            connections = list(data.get("edges", {}).keys())
+                connections = list(data.get("edges", {}).keys())
             conn_str = f" -> [{', '.join(connections[:2])}]" if connections else ""
             if score > 0.5:
                 prefix = ux("spore_strings", "core_illuminate_resonant") or "Resonant"
@@ -524,6 +526,8 @@ class MycelialNetwork:
                 total_v_shift += v_shift
                 total_d_shift += d_shift
                 haunted_words.append(w)
+        total_v_shift = min(15.0, total_v_shift)
+        total_d_shift = min(5.0, total_d_shift)
         if haunted_words:
             if isinstance(physics, dict):
                 v_targ = physics["energy"] if "energy" in physics else physics

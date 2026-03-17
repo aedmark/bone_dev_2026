@@ -200,6 +200,7 @@ class MitochondrialForge:
     def _trigger_anaerobic_bypass(self, raw_cost: float) -> MetabolicReceipt:
         health_burn = 2.0
         self.state.ros_buildup += 2.0
+        self.adjust_atp(-20.0, "Anaerobic Burn")
         if self.events:
             msg = ux("mito_forge", "anaerobic_bypass")
             if msg: self.events.log(f"{Prisma.MAG}{msg.format(cost=raw_cost)}{Prisma.RST}", "BIO_WARN")
@@ -606,6 +607,8 @@ class SomaticLoop:
         fb_dict["PSI"] = getattr(phys, "psi", 0.0)
         fb_dict["CHI"] = getattr(phys, "chi", 0.0)
         fb_dict["VALENCE"] = getattr(phys, "valence", 0.0)
+        fb_dict["INTEGRITY"] = semantic_sig.coherence
+        fb_dict["NOVELTY"] = semantic_sig.novelty
         chem_state = self.bio.endo.metabolize(feedback=fb_dict, health=b.health, stamina=b.stamina,
                                               ros_level=self.bio.mito.state.ros_buildup, receipt=receipt,
                                               harvest_hits=harvest_hits, stress_mod=stress_modifier, enzyme_type=enzyme,

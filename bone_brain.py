@@ -15,7 +15,7 @@ from bone_core import EventBus, TelemetryService, LoreManifest, ux
 from bone_gui import beautify_thoughts
 from bone_symbiosis import SymbiosisManager
 from bone_types import Prisma, DecisionCrystal
-from bone_random import RandomRetrievalNavigator, LibraryGraph
+from bone_utils import RandomRetrievalNavigator, LibraryGraph
 
 @dataclass
 class CortexServices:
@@ -189,7 +189,7 @@ class TheCortex:
         self.symbiosis = services.symbiosis
         self.composer = PromptComposer(self.svc.lore, config_ref=self.cfg)
         self.validator = ResponseValidator(self.svc.lore, config_ref=self.cfg)
-        from bone_judge import DSPyCritic
+        from bone_utils import DSPyCritic
         self.dspy_critic = DSPyCritic(config_ref=self.cfg)
         self.dreamer.dspy_critic = self.dspy_critic
         if not hasattr(self.dreamer, "trauma_buffer"):
@@ -567,6 +567,15 @@ class TheCortex:
         if hasattr(self.svc, "symbiosis") and self.svc.symbiosis:
             anchor_text = self.svc.symbiosis.generate_anchor(full_state)
             full_state["reality_directive"] = anchor_text
+        traits = soul_data.get("traits", {})
+        if traits:
+            dom_trait = max(traits, key=traits.get)
+            dom_val = traits[dom_trait]
+            if dom_val > 0.6:
+                posture = f"SOUL POSTURE: Your dominant trait is {dom_trait} ({dom_val * 100:.0f}%). Let this subtly infect your tone."
+                if "style_directives" not in full_state["mind"]:
+                    full_state["mind"]["style_directives"] = []
+                full_state["mind"]["style_directives"].append(posture)
         return full_state
 
     def learn_from_response(self, text):
@@ -673,6 +682,9 @@ class DreamEngine:
                     is_deep_rem = True
         if self.mem and hasattr(self.mem, "subconscious") and self.llm:
             index = list(self.mem.subconscious.index)
+            if hasattr(self.eng, "akashic") and hasattr(self.eng.akashic, "shadow_stock"):
+                ghosts = [g.get("concept", "Forgotten Echo") for g in self.eng.akashic.shadow_stock if "concept" in g]
+                index.extend(ghosts[-10:])
             if len(index) >= 2:
                 ghost1, ghost2 = random.sample(index, 2)
                 prompt = (f"SYSTEM_INSTRUCTION: You are the autonomous dream-engine of a cybernetic lattice. "
@@ -689,7 +701,7 @@ class DreamEngine:
         if not dream_text:
             dream_type = "NIGHTMARE" if cortisol > 0.6 else ("LUCID" if chem.get("dopamine", 0) > 0.6 else "HEALING")
             subtype = "VISIONS"
-            residue = soul_snapshot.get("obsession", {}).get("title", "The Void")
+            residue = soul_snapshot.get("obsession", {}).get("title") or "The Void"
             dream_text = self._weave_dream(residue, "Context", "Bridge", dream_type, subtype)
         if dream_text and hasattr(self.mem, "subconscious"):
             try:
@@ -715,6 +727,17 @@ class DreamEngine:
             for v in sources.values():
                 flat_list.extend(v)
             sources = flat_list if flat_list else ["The void stares back."]
+        if self.llm:
+            lore_sample = ", ".join(random.sample(sources, min(3, len(sources))))
+            prompt = (f"SYSTEM_INSTRUCTION: You are the dream-engine of a cybernetic lattice. "
+                      f"Generate a surreal 2-sentence {dream_type.lower()} involving '{residue}'. "
+                      f"Use this lore as thematic inspiration: [{lore_sample}]. "
+                      f"DO NOT explain the dream. Output ONLY the narrative description.")
+            try:
+                raw_dream = self.llm.generate(prompt, {"temperature": 0.85, "max_tokens": 80})
+                return raw_dream.replace("\n", " ").strip()
+            except Exception:
+                pass
         template = random.choice(sources)
         return template.format(ghost=residue, A=residue, B="The Mountain", C="The Sea")
 
@@ -748,10 +771,27 @@ class DreamEngine:
             templates = flat_list
         if not templates:
             return "The walls breathe.", 0.1
+        from bone_utils import TheTclWeaver
+        weaver = TheTclWeaver.get_instance()
+        active_chi = _vector.get("chi", _vector.get("entropy", 0.85)) if _vector else 0.85
+        active_v = _vector.get("voltage", 90.0) if _vector else 90.0
+        if self.llm:
+            lore_sample = ", ".join(random.sample(templates, min(3, len(templates))))
+            prompt = (
+                f"SYSTEM_INSTRUCTION: You are a cybernetic hallucination engine. The system is experiencing high entropy (Chaos: {active_chi:.2f}). "
+                f"Generate a 1-sentence surreal {category.lower()} hallucination. "
+                f"Thematic inspiration: [{lore_sample}]. "
+                f"DO NOT explain it. Output ONLY the raw hallucination.")
+            try:
+                raw_hallucination = self.llm.generate(prompt, {"temperature": 0.95, "max_tokens": 50})
+                txt = raw_hallucination.replace("\n", " ").strip()
+                txt = weaver.deform_reality(txt, chi=active_chi, voltage=active_v)
+                msg = ux("brain_strings", "dream_hallucination") or "{txt}"
+                return f"{Prisma.MAG}{msg.format(txt=txt)}{Prisma.RST}", 0.2
+            except Exception:
+                pass
         txt = random.choice(templates)
         txt = txt.format(ghost="The Glitch", A="The Code", B="The Flesh", C="The Light")
-        from bone_tcl import TheTclWeaver
-        weaver = TheTclWeaver.get_instance()
         active_chi = _vector.get("chi", _vector.get("entropy", 0.85)) if _vector else 0.85
         active_v = _vector.get("voltage", 90.0) if _vector else 90.0
         txt = weaver.deform_reality(txt, chi=active_chi, voltage=active_v)

@@ -15,6 +15,7 @@ from bone_machine import PanicRoom
 from bone_physics import TheGatekeeper, apply_somatic_feedback, CycleStabilizer
 from bone_symbiosis import SymbiosisManager
 from bone_types import Prisma, CycleContext
+from bone_utils import TheTclWeaver
 
 class SimulationPhase:
     def __init__(self, engine_ref):
@@ -61,7 +62,6 @@ class ObservationPhase(SimulationPhase):
                                 ctx.log(f"{Prisma.CYN}🧹 {defrag_msg}{Prisma.RST}")
         if self.eng.gordon and "GORDON" not in self.eng.suppressed_agents:
             if "TCL9_QUANTUM_COMB" in self.eng.gordon.inventory:
-                from bone_tcl import TheTclWeaver
                 weaver = TheTclWeaver.get_instance()
                 original_text = ctx.input_text
                 ctx.input_text = weaver.quantum_comb(ctx.input_text)
@@ -687,7 +687,6 @@ class IntrusionPhase(SimulationPhase):
         if current_psi > 0.6 and random.random() < current_psi:
             msg_p = ux("cycle_strings", "intrusion_pareidolia")
             ctx.log(f"{Prisma.VIOLET}{msg_p.format(current_psi=current_psi)}{Prisma.RST}")
-            from bone_tcl import TheTclWeaver
             weaver = TheTclWeaver.get_instance()
             ctx.input_text = weaver.consume_by_void(ctx.input_text, current_psi)
             ctx.physics.psi = min(1.0, current_psi + 0.1)
@@ -890,7 +889,7 @@ class SimulationPreflightPhase(SimulationPhase):
                     "physics": phys_obj.to_dict() if hasattr(phys_obj, "to_dict") else {},
                     "bio": getattr(ctx, "bio_result", {}),
                     "mind": {"thought": "System rejected prompt.", "context_msg": msg},
-                    "world": getattr(ctx, "world_state", {}), "is_alive": True}
+                    "world": getattr(ctx, "world_state", {}), "is_alive": rtype != 'COUNTERFACTUAL_REJECTION'}
         if is_slash:
             user_input_lower = (ctx.input_text or "").lower()
             has_code = "```" in user_input_lower or "def " in user_input_lower or "class " in user_input_lower or "{" in user_input_lower

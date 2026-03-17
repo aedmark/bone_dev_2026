@@ -53,7 +53,9 @@ class TraitVector:
         for t in self._TRAITS:
             val = getattr(self, t)
             target = 0.1 if t == "wisdom" else 0.5
-            setattr(self, t, max(0.0, min(1.0, val + ((target - val) * decay_rate))))
+            resistance = 1.0 - (1.5 * abs(val - target))
+            actual_decay = decay_rate * max(0.1, min(1.0, resistance))
+            setattr(self, t, max(0.0, min(1.0, val + ((target - val) * actual_decay))))
 
     def _clamp_all(self):
         for t in self._TRAITS:
@@ -212,8 +214,8 @@ class NarrativeSelf:
         self.current_negate_cat: str = "none"
         if hasattr(self.events, "subscribe"):
             self.events.subscribe("DREAM_COMPLETE", self._on_dream)
-        if hasattr(self, "events") and self.events:
             self.events.subscribe("SOUL_MUTATION", self._on_soul_mutation)
+            self.events.subscribe("TRAUMA_EVENT", self._on_trauma)
 
     def force_mutation(self, new_archetype: str):
         self.archetype = new_archetype.upper()

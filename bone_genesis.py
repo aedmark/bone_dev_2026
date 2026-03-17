@@ -12,7 +12,7 @@ from bone_protocols import TheBureau, ZenGarden, TheCriticsCircle, TherapyProtoc
 from bone_soul import NarrativeSelf, TheOroboros
 from bone_spores import LiteraryReproduction
 from bone_symbiosis import SymbiosisManager
-from bone_village import TownHall, DeathGen, TheCartographer, TheTinkerer
+from bone_village import TownHall, DeathGen, TheCartographer, TheTinkerer, TheTherapist, TheGraveDigger
 
 class BoneGenesis:
     @staticmethod
@@ -94,6 +94,9 @@ class BoneGenesis:
         limbo = LimboLayer(config_ref=config_ref)
         kintsugi = KintsugiProtocol(config_ref=config_ref)
         consultant = BoneConsultant()
+        therapist = TheTherapist(events, config_ref=config_ref) if "THERAPIST" not in suppressed else None
+        gravedigger = TheGraveDigger(gordon, events, config_ref=config_ref) if "GRAVEDIGGER" not in suppressed else None
         return {"gordon": gordon, "navigator": navigator, "tinkerer": tinkerer, "death_gen": death_gen,
                 "bureau": bureau, "town_hall": town_hall, "repro": repro, "zen": zen, "critics": critics,
-                "therapy": therapy, "limbo": limbo, "kintsugi": kintsugi, "consultant": consultant, }
+                "therapy": therapy, "limbo": limbo, "kintsugi": kintsugi, "consultant": consultant,
+                "therapist": therapist, "gravedigger": gravedigger}

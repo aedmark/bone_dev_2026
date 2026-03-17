@@ -178,6 +178,8 @@ class CommandProcessor:
         self.registry.register("/grief", self._cmd_grief, _cd("grief") or "Attends the wake for a consumed memory")
         self.registry.register("/layer", self._cmd_layer, _cd("layer") or "Manipulates the Reality Stack depth")
         self.registry.register("/inject", self._cmd_inject, _cd("inject") or "Forces payload into the EventBus")
+        self.registry.register("/trauma", self._cmd_trauma,
+                               "DEV: Spikes trauma and drops health to test The Therapist.")
 
     def execute(self, text: str):
         if hasattr(self.interface.eng, "reality_stack"):
@@ -487,4 +489,12 @@ class CommandProcessor:
         payload = " ".join(parts[1:])
         self.interface.log(payload, "INJECT")
         self.interface.log(ux("main_strings", "injected").format(payload=payload))
+        return True
+
+    def _cmd_trauma(self, _parts):
+        self.interface.eng.health = 20.0
+        self.interface.eng.trauma_accum["SYNTHETIC_CRISIS"] = 50.0
+        if hasattr(self.interface.eng, "events"):
+            self.interface.eng.events.publish("TRAUMA_EVENT", {"magnitude": 50.0})
+        self.interface.log(f"{self.P.RED}[DEV] Health dropped to 20. Trauma spiked to 50. Proceed to next turn.{self.P.RST}", "SYS")
         return True

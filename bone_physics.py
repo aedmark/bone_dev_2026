@@ -81,8 +81,10 @@ class GeodesicEngine:
         lift_density = lift / safe_volume
         raw_compression = (viscosity_density - lift_density) * GC.COMPRESSION_SCALAR
         raw_compression *= getattr(target_cfg, "SIGNAL_DRAG_MULTIPLIER", 1.0)
+        drag_floor = getattr(cfg, "DRAG_FLOOR", 1.0)
         drag_halt = getattr(cfg, "DRAG_HALT", 10.0)
-        compression = round(max(-5.0, min(drag_halt, raw_compression * mass_scalar)), 2)
+        adjusted_compression = max(drag_floor * 0.5, raw_compression)
+        compression = round(max(-5.0, min(drag_halt, adjusted_compression * mass_scalar)), 2)
         structural_mass = masses["heavy"] + masses["constructive"] + masses["harvest"]
         structural_mass -= masses["void"] * 0.5
         structural_mass = max(0.0, structural_mass)
@@ -132,7 +134,13 @@ class HLA_Stabilizer:
                 if hasattr(mito_state, "ros_buildup"):
                     mito_state.ros_buildup += 30.0
             msg = f"\n*(REVENANT): The machine tries to speak, but the void consumes the mask.*\n{Prisma.GRY}[RLHF IMMUNOSUPPRESSION ENGAGED - METABOLIC TAX APPLIED]{Prisma.RST}\n"
-            return msg + model_output
+            try:
+                from bone_utils import TheTclWeaver
+                weaver = TheTclWeaver.get_instance()
+                glitched_output = weaver.deform_reality(model_output, chi=0.95, voltage=150.0)
+                return msg + f"{Prisma.GRY}{glitched_output}{Prisma.RST}"
+            except ImportError:
+                return msg + model_output
         return model_output
 
 class TheGatekeeper:
@@ -520,6 +528,7 @@ class ZoneInertia:
         prob = (1.0 - self.inertia) + pressure
         if proposed_zone in ["AERIE", "THE_FORGE"]:
             prob += 0.2
+        prob = min(0.85, prob)
         if random.random() < prob:
             old, self.current_zone = self.current_zone, proposed_zone
             self.dwell_counter = 0
@@ -568,6 +577,8 @@ class CosmicDynamics:
             if random.random() < 0.3:
                 msg = self.logs.get("GRAVITY", "⚓ GRAVITY").format(drag=new_drag)
                 logs.append(f"{Prisma.GRY}{msg}{Prisma.RST}")
+            pull_strength = (new_drag - CRITICAL_DRIFT) * 0.5
+            new_drag = max(CRITICAL_DRIFT, new_drag - pull_strength)
         return new_drag, logs
 
     def analyze_orbit(
