@@ -1,5 +1,34 @@
 # BONEAMANITA CHANGELOG
 
+### **BONEAMANITA v17.7.0 "The Semantic Realignment"**
+
+_A comprehensive audit of the biological, physical, and semantic layers. This update eliminates metabolic leaks, repairs broken JSON data routing, and significantly reduces the cognitive friction placed on the LLM through graceful degradation and prompt alignment._
+
+#### **🏛️ ARCHITECTURAL SYNTHESIS (`bone_brain.py` & `bone_composer.py`)**
+* **Telemetry Pipeline Purification:** The System Kernel no longer chokes on raw Python dictionaries. `council_mandates` are now cleanly parsed into natural language before entering the `DecisionCrystal`, eliminating semantic drag and preventing LLM hallucination.
+* **Prompt Composer Collapse:** Realigned the structural struts within `PromptComposer.compose()`. The `vsl_hijack` telemetry and `system_injection` overrides are now securely nested, preventing structural bloat. 
+* **The `NoneType` Indentation Fix:** Fixed a critical indentation bug in the Composer that caused the engine to drop the return string and crash outside of `ADVENTURE` mode. 
+
+#### **🧬 METABOLIC ECONOMICS (`bone_body.py` & `bone_cycle.py`)**
+* **Graceful Style Degradation:** The `ResponseValidator` now actively executes minor regex formatting actions (`KEEP_TAIL`, `STRIP_PREFIX`) on the fly instead of instantly rejecting the output. The LLM no longer burns 5.0 ATP to retry a prompt due to minor adverb bloat.
+* **Retroactive Health Restored:** The `ObservationPhase` now correctly applies regenerative healing (+10.0 Health per hour of absence) alongside ATP recovery, ensuring the biological host doesn't wake up from a long rest starving and wounded.
+* **The Vestigial Tick:** Amputated the unused `tick` parameter from `MetabolicGovernor._evaluate_state()`, streamlining hysteresis evaluations.
+
+#### **🧠 COGNITIVE & MEMORY STABILIZATION (`bone_inventory.py` & `system_prompts.json`)**
+* **Natural Language Inventory:** Gordon Knot no longer suffers from `snake_case` blindness. Item names are dynamically stripped of underscores during parsing, allowing the engine to correctly recognize items generated in organic prose (e.g., "silent knife" instead of "SILENT_KNIFE").
+* **The Infinite Consumable Glitch:** Patched `Item.from_dict` to respect the legacy `"cost": "CONSUMABLE"` data flag. Items like the Bucket of Lime will now appropriately exhaust themselves upon use.
+* **Prompt Contradictions Resolved:** Eliminated a mutually exclusive POV directive in `ADVENTURE` mode (forcing strict Third-Person Objective). Stripped redundant system metric echoing from `TECHNICAL` mode, saving massive amounts of output tokens and reducing LLM confusion.
+
+#### **⚖️ PROTOCOL & COUNCIL REFORMS (`bone_village.py` & `bone_machine.py`)**
+* **Data Plumbing Re-Routed:** Re-linked orphaned JSON keys across the system. The Town Hall now correctly harvests rumors and seeds from the `ALMANAC`, and the Crucible/Theremin machines properly pull their mechanical feedback logs from `PHYSICS_STRINGS`.
+* **Dream Engine Alignment:** Re-mapped requested dream states (`NIGHTMARES`, `SURREAL`, `CONSTRUCTIVE`) to perfectly mirror the topology of `dreams.json`, preventing the subconscious from constantly failing over to default static text.
+
+#### **🎙️ SENSORY & UTILITY FIXES (`bone_soul.py`, `bone_body.py`, `scenarios.json`)**
+* **Epigenetic Trauma Harvest:** Fixed a structural misalignment in `DeathGen` where the `Oroboros` failed to record scars because it was looking for a non-existent `"SCARS"` JSON key. The system will now properly remember how it died.
+* **Dead Metabolic Pathways Ignited:** Mapped missing `lexicon.json` categories (`heavy`, `constructive`, `aerobic`) to their correct enzymes (`CELLULASE`, `CHITINASE`, `LIGNASE`). The `DigestiveTrack` will no longer lazily default everything to `AMYLASE`, restoring endocrine variety.
+* **The Silent Glimmer:** Added a fallback string for novelty-triggered dopamine hits, ensuring the system actually logs a `[GLIMMER]` UI event when experiencing structural joy.
+* **Mundane Anchors Added:** Injected a block of ordinary, realistic environments (diners, cul-de-sacs, hardware stores) into `scenarios.json` to provide necessary contrast and grounding for the engine's surreal anomalies.
+
 ### **BONEAMANITA v17.6.0 "The Structural Awakening"**
 
 _A massive stabilization and exploit-patching overhaul. This update seals dangerous metabolic loopholes, reconnects the cognitive cortex to the physical cycle orchestrator, and introduces strict statelessness to the administrative councils._

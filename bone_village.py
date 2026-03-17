@@ -388,9 +388,9 @@ class TownHall:
         self.akashic = akashic_ref
         self.navigator = navigator_ref
         self.seeds: List[ParadoxSeed] = []
-        narrative = LoreManifest.get_instance().get("narrative_data") or {}
-        self.rumors = narrative.get("RUMORS", [])
-        seed_data = narrative.get("SEEDS", [])
+        almanac = LoreManifest.get_instance().get("ALMANAC") or {}
+        self.rumors = almanac.get("RUMORS", [])
+        seed_data = almanac.get("SEEDS", [])
         for s in seed_data:
             if "question" in s and "triggers" in s:
                 self.sow_seed(s["question"], set(s["triggers"]))

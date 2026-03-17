@@ -365,6 +365,9 @@ class DigestiveTrack:
         self.lex = lexicon_ref
         self.cfg = config_ref or BoneConfig
         self.enzyme_map = LoreManifest.get_instance(config_ref=self.cfg).get("BODY_CONFIG", "ENZYME_MAP") or {}
+        if "heavy" not in self.enzyme_map:
+            self.enzyme_map.update(
+                {"heavy": "CELLULASE", "constructive": "CHITINASE", "aerobic": "LIGNASE", "meat": "PROTEASE"})
         self.SAMPLING_THRESHOLD = getattr(self.cfg.BIO, "SAMPLING_THRESHOLD", 1000)
         self.BASE_WORD_VALUE = getattr(self.cfg.BIO, "BASE_WORD_VALUE", 0.5)
         self.COMPLEX_WORD_BONUS = getattr(self.cfg.BIO, "COMPLEX_WORD_BONUS", 2.0)
@@ -770,7 +773,7 @@ class EndocrineSystem:
         if feedback.get("NOVELTY", 0) > nov_thresh:
             self.glimmers += 1
             self.dopamine += 0.1
-            return glimmer_text.get("DISCOVERY", "")
+            return glimmer_text.get("DISCOVERY", "GLIMMER: A novel connection formed. Discovery.")
         if harvest_hits > harv_min and self.dopamine > dop_min:
             self.glimmers += 1
             self.oxytocin += 0.2
@@ -928,14 +931,14 @@ class MetabolicGovernor:
             return self._check_override_safety(physics, gov_text)
         if (current_tick - self.last_shift_tick) < self.hysteresis_duration:
             return None
-        proposed = self._evaluate_state(physics, _voltage_history, current_tick)
+        proposed = self._evaluate_state(physics, _voltage_history)
         if proposed != self.mode:
             self.mode = proposed
             self.last_shift_tick = current_tick
             return self._get_shift_message(proposed, gov_text, physics)
         return None
 
-    def _evaluate_state(self, physics: Dict, v_history: List[float], tick: int) -> str:
+    def _evaluate_state(self, physics: Dict, v_history: List[float]) -> str:
         volts = getattr(physics, "voltage", 0.0)
         drag = getattr(physics, "narrative_drag", 0.0)
         gov_high = getattr(self.cfg.BIO, "GOV_VOLTAGE_HIGH", 18.0)

@@ -489,22 +489,28 @@ class TheCortex:
         try:
             tel = TelemetryService.get_instance()
             phys = state.get("physics", {})
+            clean_mandates = []
+            for m in sim_result.get("council_mandates", []):
+                if isinstance(m, dict):
+                    raw_log = Prisma.strip(m.get("log", m.get("type", "UNKNOWN")))
+                    clean_mandates.append(raw_log)
+                else:
+                    clean_mandates.append(str(m))
             if tel.active_crystal:
                 tel.active_crystal.prompt_snapshot = prompt[:500]
                 tel.active_crystal.physics_state = {
                     "voltage": phys.get("voltage", 0),
                     "narrative_drag": phys.get("narrative_drag", 0), }
                 tel.active_crystal.active_archetype = state["mind"].get("lens", "UNKNOWN")
-                tel.active_crystal.council_mandates = [str(m) for m in sim_result.get("council_mandates", [])]
+                tel.active_crystal.council_mandates = clean_mandates
                 tel.active_crystal.final_response = response
             else:
                 crystal = DecisionCrystal(
                     decision_id=sim_result.get("trace_id", "UNKNOWN"),
                     prompt_snapshot=prompt[:500],
-                    physics_state={"voltage": phys.get("voltage", 0),
-                                   "narrative_drag": phys.get("narrative_drag", 0), },
+                    physics_state={"voltage": phys.get("voltage", 0), "narrative_drag": phys.get("narrative_drag", 0), },
                     active_archetype=state["mind"].get("lens", "UNKNOWN"),
-                    council_mandates=[str(m) for m in sim_result.get("council_mandates", [])],
+                    council_mandates=clean_mandates,
                     final_response=response, )
                 tel.log_crystal(crystal)
         except Exception as e:
@@ -699,8 +705,9 @@ class DreamEngine:
                 except Exception:
                     pass
         if not dream_text:
-            dream_type = "NIGHTMARE" if cortisol > 0.6 else ("LUCID" if chem.get("dopamine", 0) > 0.6 else "HEALING")
-            subtype = "VISIONS"
+            dream_type = "NIGHTMARES" if cortisol > 0.6 else (
+                "SURREAL" if chem.get("dopamine", 0) > 0.6 else "CONSTRUCTIVE")
+            subtype = "SURREAL"
             residue = soul_snapshot.get("obsession", {}).get("title") or "The Void"
             dream_text = self._weave_dream(residue, "Context", "Bridge", dream_type, subtype)
         if dream_text and hasattr(self.mem, "subconscious"):

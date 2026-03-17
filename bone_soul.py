@@ -678,8 +678,7 @@ class TheOroboros:
             return "HEAVY"
 
         new_scars = []
-        death_scars = death_data.get("SCARS", {})
-        if entry := death_scars.get(cause_of_death):
+        if entry := death_data.get(cause_of_death):
             name, stat, val, default_desc = entry
             desc = default_desc
             v_key = get_verdict_key(cause_of_death)

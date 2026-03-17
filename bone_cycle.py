@@ -44,10 +44,13 @@ class ObservationPhase(SimulationPhase):
             if nabla_msg:
                 ctx.log(f"{Prisma.GRY}*... {nabla_msg} ...*{Prisma.RST}")
             if ctx.time_delta > 600.0 and hasattr(self.eng, "bio") and hasattr(self.eng.bio, "mito"):
-                hours_passed = min(24.0, ctx.time_delta / 3600.0)
-                if self.eng.bio.biometrics:
-                    self.eng.bio.mito.state.atp_pool = min(100.0, self.eng.bio.mito.state.atp_pool + (hours_passed * 25.0))
-                    ctx.log(f"{Prisma.GRN}[BIO]: Retroactive metabolism applied for {hours_passed:.1f} hours of absence. ATP restored.{Prisma.RST}")
+                    hours_passed = min(24.0, ctx.time_delta / 3600.0)
+                    if self.eng.bio.biometrics:
+                        target_cfg = self.eng.bone_config if hasattr(self.eng, "bone_config") else BoneConfig
+                        max_h = getattr(target_cfg, "MAX_HEALTH", 100.0)
+                        self.eng.bio.biometrics.health = min(max_h, self.eng.bio.biometrics.health + (hours_passed * 10.0))
+                        self.eng.bio.mito.state.atp_pool = min(100.0, self.eng.bio.mito.state.atp_pool + (hours_passed * 25.0))
+                        ctx.log(f"{{Prisma.GRN}}[BIO]: Retroactive metabolism applied for {{hours_passed:.1f}} hours of absence. ATP and Health restored.{{Prisma.RST}}")
                     dream_engine = getattr(self.eng.mind, "dreamer", getattr(getattr(self.eng, "cortex", None), "dreamer", None))
                     if dream_engine:
                         soul_snap = self.eng.soul.to_dict() if hasattr(self.eng, "soul") else {}

@@ -26,15 +26,14 @@ class TheCrucible:
         self.logs = self._load_logs()
 
     def _load_logs(self):
-        manifest = LoreManifest.get_instance(config_ref=self.cfg).get("NARRATIVE_DATA") or {}
+        manifest = LoreManifest.get_instance(config_ref=self.cfg).get("PHYSICS_STRINGS") or {}
         return manifest.get("CRUCIBLE_LOGS", {})
 
     def dampener_status(self):
         msg = ux("machine_strings", "crucible_dampener_status")
         return msg.format(charges=self.dampener_charges)
 
-    def dampen(
-            self, voltage_spike: float, stability_index: float) -> Tuple[bool, str, float]:
+    def dampen(self, voltage_spike: float, stability_index: float) -> Tuple[bool, str, float]:
         if self.dampener_charges <= 0:
             return False, self.logs.get("DAMPER_EMPTY", ""), 0.0
         should_dampen = False
@@ -212,7 +211,7 @@ class TheTheremin:
         self.logs = self._load_logs()
 
     def _load_logs(self):
-        manifest = LoreManifest.get_instance(config_ref=self.cfg).get("NARRATIVE_DATA") or {}
+        manifest = LoreManifest.get_instance(config_ref=self.cfg).get("PHYSICS_STRINGS") or {}
         return manifest.get("THEREMIN_LOGS", {})
 
     def listen(self, physics: Any, governor_mode="COURTYARD") -> Tuple[bool, float, Optional[str], Optional[str]]:

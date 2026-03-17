@@ -358,11 +358,13 @@ class PromptComposer:
                 f"CURRENT LOCATION: {loc}\n"
                 f"ENVIRONMENT ANCHOR: {loci_desc}\n"
                 f"{inventory_block}\n")
-        return (f"=== SYSTEM KERNEL ===\n" + "\n".join(style_notes) + "\n\n" f"{vsl_hijack}\n"
+        return (f"=== SYSTEM KERNEL ===\n"
+                + "\n".join(style_notes) + "\n\n" 
+                f"{vsl_hijack}"
+                f"{system_injection}\n"
                 f"{shared_reality_block}"
                 f"{dialogue_block}"
                 f"{mode_trigger}\n"
-                f"{system_injection}\n"
                 f"{input_block}"
                 f"{entity_prefix}")
 
@@ -668,7 +670,20 @@ class ResponseValidator:
             if regex_str:
                 if active_mode == "TECHNICAL" and p.get("name") in ["META_AI_TALK", "CUSTOMER_SERVICE_GREETING", "LAZY_TRIPLET"]:
                     continue
-                if re.search(regex_str, sanitized_response, re.IGNORECASE):
+                match = re.search(regex_str, sanitized_response, re.IGNORECASE)
+                if match:
+                    action = p.get("action")
+                    if action == "KEEP_TAIL":
+                        sanitized_response = match.group(1).strip()
+                        sanitized_response = sanitized_response[0].upper() + sanitized_response[1:] if sanitized_response else ""
+                        continue
+                    elif action == "STRIP_PREFIX":
+                        if len(match.groups()) >= 3:
+                            before = match.group(1).strip()
+                            after = match.group(3).strip()
+                            combined = f"{before} {after}".strip()
+                            sanitized_response = combined[0].upper() + combined[1:] if combined else ""
+                        continue
                     if not primary_replacement:
                         trigger_name = p.get("name", "REGEX_VIOLATION")
                         error_msg = p.get("error_msg", "Cursed syntax detected.")
