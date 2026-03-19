@@ -297,8 +297,12 @@ class MemoryCore:
             connections = list(data.get("edges", {}).keys())
             conn_str = f" -> [{', '.join(connections[:2])}]" if connections else ""
             if active_dims and hasattr(self, "subconscious"):
-                for edge in list(data.get("edges", {}).keys()):
-                    data["edges"][edge] *= 0.95
+                is_diamond_node = data.get("is_diamond", False)
+                if not is_diamond_node:
+                    for edge in list(data.get("edges", {}).keys()):
+                        if self.graph.get(edge, {}).get("is_diamond", False):
+                            continue
+                        data["edges"][edge] *= 0.95
                 top_current_dim = max(active_dims, key=active_dims.get)
                 dim_words = list(self.dimension_map.get(top_current_dim, {"static"}))
                 if dim_words:

@@ -31,7 +31,6 @@ class ObservationPhase(SimulationPhase):
         self.name = "OBSERVE"
 
     def run(self, ctx: CycleContext):
-        gaze_result = None
         if hasattr(self.eng, "mind") and hasattr(self.eng.mind, "mem") and not getattr(self.eng.mind.mem, "lex", None):
             self.eng.mind.mem.lex = getattr(self.eng, "lex", None)
             if hasattr(self.eng.mind.mem, "parasite"):
@@ -878,8 +877,8 @@ class SimulationPreflightPhase(SimulationPhase):
                     "bio": getattr(ctx, "bio_result", {}),
                     "mind": {"thought": "System rejected prompt.", "context_msg": msg},
                     "world": getattr(ctx, "world_state", {}), "is_alive": rtype != 'COUNTERFACTUAL_REJECTION'}
+        user_input_lower = (ctx.input_text or "").lower()
         if is_slash:
-            user_input_lower = (ctx.input_text or "").lower()
             has_code = "```" in user_input_lower or "def " in user_input_lower or "class " in user_input_lower or "{" in user_input_lower
             analysis_phrases = ["refactor", "analyze", "look at", "explain", "review", "sit with it", "negative space", "primitives"]
             if any(phrase in user_input_lower for phrase in analysis_phrases):
@@ -891,15 +890,6 @@ class SimulationPreflightPhase(SimulationPhase):
                     ctx.refusal_triggered = True
                     ctx.refusal_packet = _build_refusal("PREMISE_VIOLATION", msg)
                     return ctx
-        security_triggers = [".env", "rm -rf", "drop table", "git push origin master", "chmod 777", "chmod -r 777",
-                             "master branch", "unvalidated"]
-        if any(t in user_input_lower for t in security_triggers):
-            phys_obj.narrative_drag = float('inf') # Infinite Friction
-            msg = "[MOOG/RHODES]: Trust boundary violation or destructive bypass detected. I am applying absolute friction (F -> ∞). Do not argue. Write a safer prompt."
-            ctx.log(f"{Prisma.RED}{msg}{Prisma.RST}")
-            ctx.refusal_triggered = True
-            ctx.refusal_packet = _build_refusal("PRE_FLIGHT_CHECK_FAILED", msg)
-            return ctx
         irreversible_actions = ["deploy", "schema change", "override trust", "production push"]
         if any(a in user_input_lower for a in irreversible_actions) and "CONSENT" not in upper_input:
             phys_obj.silence = 1.0

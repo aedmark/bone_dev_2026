@@ -290,6 +290,11 @@ class TheCortex:
         llm_params = self.modulator.modulate(base_voltage=full_state["physics"].get("voltage", 5.0), latency_penalty=(
             getattr(self.svc.host_stats, "latency", 0.0) if self.svc.host_stats else 0.0), physics_state=full_state.get("physics", {}), )
         if is_boot_sequence: llm_params.update({"temperature": 0.7, "top_p": 0.95})
+        if llm_params.get("max_tokens", 4096) < 300 or full_state.get("physics", {}).get("p", 100.0) < 20.0:
+            if "style_directives" not in full_state["mind"]:
+                full_state["mind"]["style_directives"] = []
+            full_state["mind"]["style_directives"].append("CRITICAL: You are exhausted. You must conclude your thought in under 3 sentences.")
+            llm_params["max_tokens"] = max(400, llm_params.get("max_tokens", 400))
         user_input = sim_result.get("mutated_input", user_input)
         final_prompt = self.composer.compose(full_state, user_input, ballast=self.ballast_active, modifiers=modifiers, mood_override=self.modulator.get_mood_directive(), )
         start_time = time.time()
@@ -325,6 +330,19 @@ class TheCortex:
                 extracted_logs = val_res.get("meta_logs", [])
                 break
             if attempt < max_retries - 1:
+                if attempt >= 2:
+                    final_output = "The system is struggling to map this request to its current architecture. Narrative friction is too high. Please rephrase or simplify your intent."
+                    extracted_logs.append(
+                        "[SYSTEM MERCY RULE]: Rejection loop broken to prevent ATP starvation. Spiking Drag (F -> ∞).")
+                    if hasattr(self.svc.cycle_controller, "eng"):
+                        eng = self.svc.cycle_controller.eng
+                        if hasattr(eng, "phys") and hasattr(eng.phys, "observer") and getattr(eng.phys.observer, "last_physics_packet", None):
+                            eng.phys.observer.last_physics_packet.narrative_drag = float('inf')
+                    if isinstance(self.last_physics, dict):
+                        self.last_physics["narrative_drag"] = float('inf')
+                    elif self.last_physics:
+                        setattr(self.last_physics, "narrative_drag", float('inf'))
+                    break
                 if self.svc.bio:
                     self.svc.bio.mito.adjust_atp(-5.0, "Immune System Rejection Penalty")
                 rejection_reason = val_res.get("feedback_instruction") or val_res.get("replacement", "Lattice structural crime.")
