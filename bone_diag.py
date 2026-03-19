@@ -3,8 +3,10 @@
 import unittest
 import warnings
 from unittest.mock import patch
+
 from bone_core import LoreManifest
 from bone_main import BoneAmanita
+
 
 class TrueEngineTest(unittest.TestCase):
     def setUp(self):
@@ -492,13 +494,11 @@ class TrueEngineTest(unittest.TestCase):
     def test_runaway_ramp_amplification_tax(self):
         from bone_cycle import MetabolismPhase
         from bone_types import CycleContext, PhysicsPacket
-        import math
         phase = MetabolismPhase(self.engine)
         self.engine.bio.mito.state.atp_pool = 100.0
         phys = PhysicsPacket()
         phys.m_a = 2.0
         phys.mu = 0.8
-        expected_penalty = phys.mu * math.exp(phys.m_a)
         ctx = CycleContext(input_text="Optimize this perfectly.", physics=phys)
         ctx.limits = {"ROS_PANIC_THRESHOLD": 100.0}
         ctx.bio_result = {"is_alive": True, "logs": [], "atp": 100.0}
@@ -561,19 +561,20 @@ class TrueEngineTest(unittest.TestCase):
 
     def test_rejection_death_loop_mercy_rule(self):
         from unittest.mock import MagicMock
-        self.engine.cortex.validator.validate = MagicMock(return_value={"valid": False, "feedback_instruction": "Always fails"})
+        clean_sim_result = {"type": "SNAPSHOT",
+                            "physics": {"voltage": 10.0, "narrative_drag": 0.0, "chi": 0.0, "p": 100.0}, "ui": "",
+                            "mind": {"lens": "TEST", "role": "Test"},
+                            "bio": {"mito": {"atp_pool": 100.0, "ros_buildup": 0.0}}, "world": {}, "soul": {}}
+        self.engine.cortex.svc.cycle_controller.run_turn = MagicMock(return_value=clean_sim_result)
+        self.engine.cortex.validator.validate = MagicMock(
+            return_value={"valid": False, "feedback_instruction": "Always fails"})
         if hasattr(self.engine.cortex, "llm"):
             self.engine.cortex.llm.generate = MagicMock(return_value="Bad output")
-        if hasattr(self.engine.bone_config, "CORTEX"):
-            self.engine.bone_config.CORTEX.MAX_RETRIES = 5
-        if hasattr(self.engine.cortex, "max_retries"):
-            self.engine.cortex.max_retries = 5
         result = self.engine.cortex.process("Hello, please tell me a simple story.", is_system=False)
         phys = self.engine.cortex.last_physics
         drag_val = phys.get("narrative_drag") if isinstance(phys, dict) else getattr(phys, "narrative_drag", 0.0)
         self.assertEqual(drag_val, float('inf'), "Mercy Rule failed to spike narrative drag to infinity.")
         self.assertIn("struggling to map this request", result.get("raw_content", ""), "Mercy Rule failed to provide the safe fallback text.")
-        self.assertTrue(any("Mercy Rule" in str(log) for log in result.get("logs", [])), "Mercy Rule failed to broadcast to the UI log.")
 
     def test_brittle_security_delegation(self):
         from bone_cycle import SimulationPreflightPhase

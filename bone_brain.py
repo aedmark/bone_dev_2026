@@ -330,10 +330,9 @@ class TheCortex:
                 extracted_logs = val_res.get("meta_logs", [])
                 break
             if attempt < max_retries - 1:
-                if attempt >= 2:
+                if attempt >= 1:
                     final_output = "The system is struggling to map this request to its current architecture. Narrative friction is too high. Please rephrase or simplify your intent."
-                    extracted_logs.append(
-                        "[SYSTEM MERCY RULE]: Rejection loop broken to prevent ATP starvation. Spiking Drag (F -> ∞).")
+                    extracted_logs.append("[SYSTEM MERCY RULE]: Rejection loop broken to prevent ATP starvation. Spiking Drag (F -> ∞).")
                     if hasattr(self.svc.cycle_controller, "eng"):
                         eng = self.svc.cycle_controller.eng
                         if hasattr(eng, "phys") and hasattr(eng.phys, "observer") and getattr(eng.phys.observer, "last_physics_packet", None):
@@ -342,6 +341,7 @@ class TheCortex:
                         self.last_physics["narrative_drag"] = float('inf')
                     elif self.last_physics:
                         setattr(self.last_physics, "narrative_drag", float('inf'))
+
                     break
                 if self.svc.bio:
                     self.svc.bio.mito.adjust_atp(-5.0, "Immune System Rejection Penalty")
