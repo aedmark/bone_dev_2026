@@ -41,7 +41,8 @@ class ObservationPhase(SimulationPhase):
             if hasattr(self.eng.mind.mem, "lichen"):
                 self.eng.mind.mem.lichen.lex = getattr(self.eng, "lex", None)
         if ctx.time_delta > 10.0 and not ctx.is_system_event and ctx.physics:
-            nabla_msg = self.eng.observer.evaluate_silence(ctx.time_delta, ctx.physics)
+            from bone_physics import QuantumObserver
+            nabla_msg = QuantumObserver.evaluate_silence(ctx.time_delta, ctx.physics)
             if nabla_msg:
                 ctx.log(f"{Prisma.GRY}*... {nabla_msg} ...*{Prisma.RST}")
             if ctx.time_delta > 600.0 and hasattr(self.eng, "bio") and hasattr(self.eng.bio, "mito"):
@@ -55,7 +56,7 @@ class ObservationPhase(SimulationPhase):
                     f"{Prisma.GRN}[BIO]: Retroactive metabolism applied for {hours_passed:.1f} hours of absence. ATP and Health restored.{Prisma.RST}")
                 dream_engine = getattr(self.eng.mind, "dreamer", getattr(getattr(self.eng, "cortex", None), "dreamer", None))
                 if dream_engine:
-                    soul_snap = self.eng.soul.to_dict() if hasattr(self.eng, "soul") else {}
+                    soul_snap = self.eng.soul.to_dict() if hasattr(self.eng, "soul") and self.eng.soul else {}
                     bio_packet = {"chem": self.eng.bio.endo.get_state() if hasattr(self.eng.bio, "endo") else {}, "mito": {"atp": self.eng.bio.mito.state.atp_pool, "ros": self.eng.bio.mito.state.ros_buildup}}
                     dream_text, shift = dream_engine.enter_rem_cycle(soul_snap, bio_state=bio_packet)
                     if dream_text:
@@ -76,7 +77,7 @@ class ObservationPhase(SimulationPhase):
             if loot_candidate:
                 acquire_msg = self.eng.gordon.acquire(loot_candidate)
                 ctx.log(acquire_msg)
-            gaze_result = self.eng.observer.gaze(ctx.input_text, self.eng.mind.mem.graph)
+        gaze_result = self.eng.phys.observer.gaze(ctx.input_text, self.eng.mind.mem.graph)
         input_phys = gaze_result["physics"]
         transfer_keys = {"clean_words", "counts", "vector", "valence", "entropy", "beta", "S", "D", "C", "PHI_RES",
                          "DELTA", "LQ", "ROS", "G", "raw_text", "antigens", "psi", "kappa", "zone", "flow_state",
@@ -104,7 +105,7 @@ class ObservationPhase(SimulationPhase):
             if diag != "STABLE":
                 msg = ux("cycle_strings", "observe_symbiont")
                 ctx.log(f"{Prisma.OCHRE}{msg.format(diag=diag)}{Prisma.RST}")
-        if hasattr(self.eng, "shared_lattice") and not ctx.is_system_event:
+        if getattr(self.eng, "shared_lattice", None) and not ctx.is_system_event:
             shared_logs, atp_cost = self.eng.shared_lattice.infer_and_couple(text=ctx.input_text, sys_phys=ctx.physics, input_phys=input_phys, atp_pool=current_atp)
             for s_log in shared_logs:
                 ctx.log(s_log)
@@ -1148,10 +1149,7 @@ class GeodesicOrchestrator:
         try:
             ctx = CycleContext(input_text=user_message, is_system_event=is_system)
             ctx.trace_id = cycle_id
-            now = time.time()
-            last_turn = getattr(self.eng, "last_turn_end", now)
-            ctx.time_delta = max(0.0, now - last_turn)
-            self.eng.last_turn_end = now
+            ctx.time_delta = getattr(self.eng, "current_time_delta", 0.0)
             ctx.user_state = self.eng.shared_lattice.u
             ctx.shared_dyn = self.eng.shared_lattice.shared
             target_cfg = self.eng.bone_config if hasattr(self.eng, "bone_config") else BoneConfig

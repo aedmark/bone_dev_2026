@@ -1,5 +1,19 @@
 # BONEAMANITA CHANGELOG
 
+### **BONEAMANITA v17.7.1 "The Diagnostic Isolation"**
+
+_A precision strike on phase cross-contamination and hidden scope traps. This patch isolates the retroactive metabolism testing, exposing and repairing critical object reference errors in the observation pipeline._
+
+#### **🧪 DIAGNOSTIC HARDENING (`bone_diag.py`)**
+* **Phase Isolation:** The test suite no longer relies on full-pipeline `process_turn()` executions to test phase-specific math. `ObservationPhase` and `MetabolismPhase` are now instantiated and tested in strict isolation, preventing the natural metabolic drain from obscuring retroactive ATP recovery.
+* **Mathematical Boundary Testing:** Eradicated "cheat" keyword triggers (e.g., passing "DATABASE" to force an apoptotic block). The `test_productive_worry_godel_scar_math` and `test_runaway_ramp_amplification_tax` diagnostics now prove the system's defenses using pure mathematical limits (e.g., configuring Friction and Chaos to synthetically breach 100.0 ROS).
+* **The Null Lattice Check:** Diagnostic environments can now safely quarantine the `shared_lattice` without triggering `AttributeError` crashes, allowing isolated observation testing without carrier-mode ATP drains.
+
+#### **⚙️ THE ENGINE & CYCLE (`bone_cycle.py`)**
+* **The Observer Identity Crisis:** Repaired a severe object mix-up in `ObservationPhase.run`. The system no longer attempts to call `evaluate_silence` or `gaze` on the systemic latency tracker (`TheObserver`), correctly routing them to the physics calculator (`QuantumObserver`).
+* **Gordon's Indentation Trap:** Hoisted the core semantic `gaze()` physics calculation out of the Gordon inventory block. The engine can now successfully calculate its physics vectors even if the Gordon archetype is suppressed, asleep, or disabled.
+* **Safe Truthy Checks:** Replaced vulnerable `hasattr` checks with `getattr(..., None)` truthy evaluations for the `shared_lattice`, preventing silent crashes when components are initialized but explicitly set to `None`.
+
 ### **BONEAMANITA v17.7.0 "The Semantic Realignment"**
 
 _A comprehensive audit of the biological, physical, and semantic layers. This update eliminates metabolic leaks, repairs broken JSON data routing, and significantly reduces the cognitive friction placed on the LLM through graceful degradation and prompt alignment._

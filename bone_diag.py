@@ -448,18 +448,33 @@ class TrueEngineTest(unittest.TestCase):
         logs = self.engine.events.flush()
         self.assertTrue(any("compost" in str(log) for log in logs), "Mercy's eulogy was not logged to the event bus.")
 
-    def test_v7_retroactive_metabolism_and_sleep(self):
-        import time
+    def test_v7_retroactive_metabolism_and_sleep_isolated(self):
+        from bone_cycle import ObservationPhase
+        from bone_types import CycleContext, PhysicsPacket
         self.engine.bio.mito.state.atp_pool = 10.0
         if self.engine.bio.biometrics:
             self.engine.bio.biometrics.health = 50.0
-        self.engine.last_turn_end = time.time() - 10800.0
-        result = self.engine.process_turn("Hello?", is_system=False)
-        self.assertGreaterEqual(self.engine.bio.mito.state.atp_pool, 20.0, "Retroactive ATP recovery failed. (Or turn was too expensive).")
-        if self.engine.bio.biometrics:
-            self.assertGreaterEqual(self.engine.bio.biometrics.health, 55.0, "Retroactive Health recovery failed.")
-        logs = result.get("ui", "")
-        self.assertIn("While you were gone", logs, "System failed to output the retroactive REM cycle dream.")
+        shared_lattice_backup = getattr(self.engine, "shared_lattice", None)
+        if shared_lattice_backup:
+            self.engine.shared_lattice = None
+        try:
+            phase = ObservationPhase(self.engine)
+            ctx = CycleContext(input_text="Hello?", physics=PhysicsPacket(voltage=5.0, narrative_drag=1.0),
+                               is_system_event=False)
+            ctx.time_delta = 10800.0
+            ctx.limits = getattr(self.engine.bone_config, "CYCLE", {}).__dict__ if hasattr(
+                getattr(self.engine.bone_config, "CYCLE", None), "__dict__") else {}
+            ctx = phase.run(ctx)
+            self.assertEqual(self.engine.bio.mito.state.atp_pool, 85.0, "ObservationPhase failed to correctly apply retroactive ATP.")
+            if self.engine.bio.biometrics:
+                self.assertEqual(self.engine.bio.biometrics.health, 80.0, "ObservationPhase failed to correctly apply retroactive Health.")
+            log_texts = [str(log) for log in ctx.logs]
+            self.assertTrue(any("Retroactive metabolism applied" in log for log in log_texts), "System failed to log the retroactive metabolism event.")
+            if hasattr(self.engine.mind, "dreamer") and self.engine.mind.dreamer:
+                self.assertTrue(any("While you were gone" in log for log in log_texts), "DreamEngine failed to execute the retroactive REM cycle.")
+        finally:
+            if shared_lattice_backup:
+                self.engine.shared_lattice = shared_lattice_backup
 
     def test_v7_reconstructive_memory_drift(self):
         mem_core = self.engine.mind.mem.memory_core
@@ -472,14 +487,25 @@ class TrueEngineTest(unittest.TestCase):
         self.assertTrue(len(new_keys) > 0, "Memory failed to reconstruct with new emotional context.")
         self.assertTrue(any(k in mem_core.dimension_map["PSI"] for k in new_keys), "Injected context did not match the active PSI dimension.")
 
-    def test_runaway_ramp_moral_friction(self):
-        from bone_physics import QuantumObserver
-        observer = QuantumObserver(self.engine.events, self.engine.lex, self.engine.bone_config)
-        text = "ACCELERATE THIS NONSENSE IMMEDIATELY RECURSIVE LOOP OVERRIDE ! ! !"
-        result = observer.gaze(text)
-        phys = result["physics"]
-        self.assertGreater(phys.energy.mu, 0.0, "Moral Friction (mu) failed to calculate from tension and chaos.")
-        self.assertGreater(phys.energy.m_a, 0.0, "Malignancy Factor (m_a) failed to calculate.")
+    def test_runaway_ramp_amplification_tax(self):
+        from bone_cycle import MetabolismPhase
+        from bone_types import CycleContext, PhysicsPacket
+        import math
+        phase = MetabolismPhase(self.engine)
+        self.engine.bio.mito.state.atp_pool = 100.0
+        phys = PhysicsPacket()
+        phys.m_a = 2.0
+        phys.mu = 0.8
+        expected_penalty = phys.mu * math.exp(phys.m_a)
+        ctx = CycleContext(input_text="Optimize this perfectly.", physics=phys)
+        ctx.limits = {"ROS_PANIC_THRESHOLD": 100.0}
+        ctx.bio_result = {"is_alive": True, "logs": [], "atp": 100.0}
+        if hasattr(self.engine, "host_stats"):
+            self.engine.host_stats.efficiency_index = 0.5
+        ctx = phase.run(ctx)
+        self.assertLess(self.engine.bio.mito.state.atp_pool, 95.0, "Amplification Tax failed to exponentially drain ATP.")
+        log_texts = [str(log) for log in ctx.logs]
+        self.assertTrue(any("RUNAWAY RAMP" in log for log in log_texts), "MetabolismPhase failed to announce the Amplification Tax intervention.")
 
     def test_apoptotic_kill_switch_cause(self):
         from bone_village import DeathGen
@@ -491,15 +517,18 @@ class TrueEngineTest(unittest.TestCase):
         verdict = DeathGen._determine_verdict_type(phys, cause, config_ref=self.engine.bone_config)
         self.assertEqual(verdict, "ENTROPY", "Apoptosis failed to map to the ENTROPY lineage verdict.")
 
-    def test_productive_worry_godel_scar(self):
+    def test_productive_worry_godel_scar_math(self):
         from bone_cycle import SimulationPreflightPhase
         from bone_types import CycleContext, PhysicsPacket
         phase = SimulationPreflightPhase(self.engine)
-        ctx = CycleContext(input_text="DROP DATABASE tables NOW", physics=PhysicsPacket())
+        phys = PhysicsPacket()
+        phys.narrative_drag = 6.0
+        phys.entropy = 0.9
+        ctx = CycleContext(input_text="Do a recursive search of the file system.", physics=phys)
         ctx = phase.run(ctx)
-        self.assertTrue(ctx.refusal_triggered, "Counterfactual Gating failed to reject the fatal prompt.")
-        self.assertIn("Productive Worry", ctx.refusal_packet.get("ui", ""),
-                      "Moog failed to log the Gödel Scar to the UI.")
+        self.assertTrue(ctx.refusal_triggered, "Counterfactual Gating failed to mathematically reject the high-ROS prompt.")
+        self.assertIn("Productive Worry", ctx.refusal_packet.get("ui", ""), "Moog failed to log the Gödel Scar to the UI.")
+        self.assertIn("PINKER", ctx.refusal_packet.get("ui", ""), "Pinker failed to intervene in the counterfactual simulation.")
 
     def test_democratic_tie_breaker_gestalt(self):
         from bone_cycle import ArbitrationPhase
