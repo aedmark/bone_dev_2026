@@ -583,7 +583,7 @@ class CosmicDynamics:
                 or not hasattr(network, "graph")
                 or not network.graph):
             fallback_msg = ux("physics_strings", "cosmic_void")
-            return "VOID_DRIFT", 3.0, self.logs.get("VOID", fallback_msg),
+            return "VOID_DRIFT", 3.0, self.logs.get("VOID", fallback_msg)
         current_time = int(time.time())
         if (not self.cached_wells
                 or (current_time - self.last_scan_tick) > self.SCAN_INTERVAL):
@@ -727,8 +727,29 @@ class CycleStabilizer:
 
     def stabilize(self, ctx: CycleContext, current_phase: str):
         p = ctx.physics
-        current_v = p.get("voltage", 0.0)
-        current_d = p.get("narrative_drag", 0.0)
+
+        def _get(obj, field, default=0.0):
+            if isinstance(obj, dict):
+                return obj.get(field, obj.get("energy", {}).get(field, obj.get("space", {}).get(field, default)))
+            return getattr(obj, field, getattr(getattr(obj, "energy", None), field, getattr(getattr(obj, "space", None), field, default)))
+
+        def _set(obj, field, val):
+            if isinstance(obj, dict):
+                if field == "voltage" and "energy" in obj:
+                    obj["energy"][field] = val
+                elif field == "narrative_drag" and "space" in obj:
+                    obj["space"][field] = val
+                else:
+                    obj[field] = val
+            else:
+                if hasattr(obj, "energy") and hasattr(obj.energy, field):
+                    setattr(obj.energy, field, val)
+                elif hasattr(obj, "space") and hasattr(obj.space, field):
+                    setattr(obj.space, field, val)
+                else:
+                    setattr(obj, field, val)
+        current_v = _get(p, "voltage", 0.0)
+        current_d = _get(p, "narrative_drag", 0.0)
         if current_v >= self.HARD_FUSE_VOLTAGE:
             msg = ux("physics_strings", "stabilizer_fuse")
             ctx.log(f"{Prisma.RED}{msg.format(voltage=self.HARD_FUSE_VOLTAGE)}{Prisma.RST}")
@@ -738,25 +759,26 @@ class CycleStabilizer:
             if hasattr(ctx, "record_flux"):
                 ctx.record_flux(current_phase, "voltage", current_v, rst_v, "FUSE_BLOWN")
                 ctx.record_flux(current_phase, "narrative_drag", current_d, rst_d, "FUSE_BLOWN")
-            p["voltage"] = rst_v
-            p["narrative_drag"] = rst_d
+            _set(p, "voltage", rst_v)
+            _set(p, "narrative_drag", rst_d)
             return True
         if self.pending_drag > 0:
-            p["narrative_drag"] = current_d + self.pending_drag
+            _set(p, "narrative_drag", current_d + self.pending_drag)
             msg = ux("physics_strings", "stabilizer_domestication")
             ctx.log(f"{Prisma.GRY}{msg.format(drag=self.pending_drag)}{Prisma.RST}")
             self.pending_drag = 0.0
         now = time.time()
         dt = max(0.001, min(1.0, now - self.last_tick_time))
         self.last_tick_time = now
-        manifold = p.get("manifold", "DEFAULT")
-        cfg = self.manifolds.get(manifold, self.manifolds["DEFAULT"])
-        target_v = cfg["voltage"]
-        if p.get("flow_state", "LAMINAR") in ["SUPERCONDUCTIVE", "FLOW_BOOST"]:
+        manifold = _get(p, "manifold", "DEFAULT")
+        cfg = self.manifolds.get(manifold, self.manifolds.get("DEFAULT", {"voltage": 10.0, "drag": 1.0}))
+        target_v = cfg.get("voltage", 10.0)
+        if _get(p, "flow_state", "LAMINAR") in ["SUPERCONDUCTIVE", "FLOW_BOOST"]:
             target_v = current_v
-            cfg["drag"] = max(0.1, cfg["drag"] * 0.5)
-        self.governor.recalibrate(target_v, cfg["drag"])
-        v_force, d_force = self.governor.regulate(p, dt=dt)
+            cfg["drag"] = max(0.1, cfg.get("drag", 1.0) * 0.5)
+        self.governor.recalibrate(target_v, cfg.get("drag", 1.0))
+        safe_phys = p.to_dict() if hasattr(p, "to_dict") else p
+        v_force, d_force = self.governor.regulate(safe_phys, dt=dt)
         v_floor = getattr(self.cfg.PHYSICS, "VOLTAGE_FLOOR", 0.0)
         v_max = getattr(self.cfg.PHYSICS, "VOLTAGE_MAX", 150.0)
         c1 = self._apply_force(ctx, current_phase, p, "voltage", v_force, (v_floor, v_max))
@@ -769,13 +791,27 @@ class CycleStabilizer:
         flux_thresh = 0.5
         if abs(force) <= deadband:
             return False
-        old_val = p.get(field, 0.0)
+
+        def _get(obj, f, default=0.0):
+            if isinstance(obj, dict): return obj.get(f, default)
+            return getattr(obj, f, getattr(getattr(obj, "energy", None), f, getattr(getattr(obj, "space", None), f, default)))
+        def _set(obj, f, val):
+            if isinstance(obj, dict):
+                obj[f] = val
+            else:
+                if hasattr(obj, "energy") and hasattr(obj.energy, f):
+                    setattr(obj.energy, f, val)
+                elif hasattr(obj, "space") and hasattr(obj.space, f):
+                    setattr(obj.space, f, val)
+                else:
+                    setattr(obj, f, val)
+        old_val = _get(p, field, 0.0)
         new_val = old_val + force
         if limits:
             new_val = max(limits[0], min(limits[1], new_val))
         else:
             new_val = max(0.0, new_val)
-        p[field] = new_val
+        _set(p, field, new_val)
         if abs(force) > flux_thresh:
             if hasattr(ctx, "record_flux"):
                 ctx.record_flux(phase, field, old_val, new_val, "PID_CORRECTION")

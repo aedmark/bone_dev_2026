@@ -225,6 +225,7 @@ class TheSubstrate:
     def __init__(self, events_ref):
         self.events = events_ref
         self.pending_writes: List[Dict[str, str]] = []
+        self._cords_instance = None
 
     def queue_write(self, path: str, content: str):
         self.pending_writes.append({"path": path, "content": content})
@@ -259,16 +260,19 @@ class TheSubstrate:
         return logs, cost
 
     def _trigger_tts(self, safe_path: str):
-        def _async_tts_task(path, events):
+        if not self._cords_instance:
+            self._cords_instance = TheVocalCords(self.events)
+
+        def _async_tts_task(path, events, cords_ref):
             try:
-                cords = TheVocalCords(events)
-                cords.synthesize_podcast(path)
+                cords_ref.synthesize_podcast(path)
                 if events:
                     events.log(f"{Prisma.VIOLET}SUBSTRATE: TTS synthesis complete for {path}.{Prisma.RST}")
             except Exception as e:
                 if events:
                     events.log(f"{Prisma.RED}SUBSTRATE FAULT: TTS failed - {e}{Prisma.RST}", "CRIT")
-        thread = threading.Thread(target=_async_tts_task, args=(safe_path, self.events))
+
+        thread = threading.Thread(target=_async_tts_task, args=(safe_path, self.events, self._cords_instance))
         thread.daemon = True
         thread.start()
 

@@ -281,7 +281,7 @@ class MitochondrialForge:
         chi = _p("entropy", _p("chi", 0.0))
         voltage = _p("voltage", 30.0)
         waste_generated = 0.0
-        cfg = getattr(BoneConfig, "BIO", None)
+        cfg = getattr(self.cfg, "BIO", None)
         psi_mult = getattr(cfg, "WASTE_PSI_MULT", 5.0) if cfg else 5.0
         chi_mult = getattr(cfg, "WASTE_CHI_MULT", 5.0) if cfg else 5.0
         volt_div = getattr(cfg, "WASTE_VOLT_DIV", 20.0) if cfg else 20.0
@@ -425,7 +425,10 @@ class DigestiveTrack:
             if cat == "antigen":
                 cliche_tax += self.CLICHE_TAX_RATE * count
                 continue
-            if cat not in ["kinetic", "explosive"]:
+            if cat in ["kinetic", "explosive"]:
+                val = self.COMPLEX_WORD_BONUS if len(word) > comp_len else self.BASE_WORD_VALUE
+                atp_yield += (val * 1.5) * (1.0 + math.log1p(max(0, count - 1)))
+            else:
                 enzyme = self.enzyme_map.get(cat, "AMYLASE")
                 if enzyme != "AMYLASE":
                     enzymes.append(enzyme)

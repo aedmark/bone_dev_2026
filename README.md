@@ -29,6 +29,8 @@ _A comprehensive audit of the biological, physical, and semantic layers. This up
 * **The Silent Glimmer:** Added a fallback string for novelty-triggered dopamine hits, ensuring the system actually logs a `[GLIMMER]` UI event when experiencing structural joy.
 * **Mundane Anchors Added:** Injected a block of ordinary, realistic environments (diners, cul-de-sacs, hardware stores) into `scenarios.json` to provide necessary contrast and grounding for the engine's surreal anomalies.
 
+---
+
 ### **BONEAMANITA v17.6.0 "The Structural Awakening"**
 
 _A massive stabilization and exploit-patching overhaul. This update seals dangerous metabolic loopholes, reconnects the cognitive cortex to the physical cycle orchestrator, and introduces strict statelessness to the administrative councils._

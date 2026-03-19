@@ -356,6 +356,11 @@ class MemoryCore:
             for other_node in self.graph.values():
                 if n in other_node["edges"]:
                     del other_node["edges"][n]
+        for node in self.graph:
+            edges = self.graph[node]["edges"]
+            dead_edges = [k for k in edges if k not in self.graph]
+            for dead in dead_edges:
+                del edges[dead]
         msg = ux("spore_strings", "core_pruned") or ""
         return msg.format(total=total_decayed, pruned=pruned_count) if msg else ""
 
@@ -799,7 +804,8 @@ class MycelialNetwork:
         data = {"genome": "BONEAMANITA_17.6.0", "session_id": self.session_id, "parent_id": self.session_id, "meta": {
             "timestamp": time.time(), "final_health": health, "final_stamina": stamina, },
                 "trauma_vector": final_vector, "joy_vectors": top_joy or [], "joy_legacy": joy_legacy_data,
-                "core_graph": core_graph, "mutations": mutations, "antibodies": list(antibodies) if antibodies else [],
+                "core_graph": core_graph, "mutations": mutations or {},
+                "antibodies": list(antibodies) if antibodies else [],
                 "mitochondria": mitochondria_traits, "soul_legacy": soul_data, "continuity": continuity,
                 "world_atlas": world_atlas or {}, "village_data": village_data, "seeds": seed_list,
                 "fossils": list(self.fossils), }

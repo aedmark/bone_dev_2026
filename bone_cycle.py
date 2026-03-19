@@ -31,6 +31,7 @@ class ObservationPhase(SimulationPhase):
         self.name = "OBSERVE"
 
     def run(self, ctx: CycleContext):
+        gaze_result = None
         if hasattr(self.eng, "mind") and hasattr(self.eng.mind, "mem") and not getattr(self.eng.mind.mem, "lex", None):
             self.eng.mind.mem.lex = getattr(self.eng, "lex", None)
             if hasattr(self.eng.mind.mem, "parasite"):
@@ -40,29 +41,30 @@ class ObservationPhase(SimulationPhase):
             if hasattr(self.eng.mind.mem, "lichen"):
                 self.eng.mind.mem.lichen.lex = getattr(self.eng, "lex", None)
         if ctx.time_delta > 10.0 and not ctx.is_system_event and ctx.physics:
-            nabla_msg = self.eng.phys.observer.evaluate_silence(ctx.time_delta, ctx.physics)
+            nabla_msg = self.eng.observer.evaluate_silence(ctx.time_delta, ctx.physics)
             if nabla_msg:
                 ctx.log(f"{Prisma.GRY}*... {nabla_msg} ...*{Prisma.RST}")
             if ctx.time_delta > 600.0 and hasattr(self.eng, "bio") and hasattr(self.eng.bio, "mito"):
-                    hours_passed = min(24.0, ctx.time_delta / 3600.0)
-                    if self.eng.bio.biometrics:
-                        target_cfg = self.eng.bone_config if hasattr(self.eng, "bone_config") else BoneConfig
-                        max_h = getattr(target_cfg, "MAX_HEALTH", 100.0)
-                        self.eng.bio.biometrics.health = min(max_h, self.eng.bio.biometrics.health + (hours_passed * 10.0))
-                        self.eng.bio.mito.state.atp_pool = min(100.0, self.eng.bio.mito.state.atp_pool + (hours_passed * 25.0))
-                        ctx.log(f"{{Prisma.GRN}}[BIO]: Retroactive metabolism applied for {{hours_passed:.1f}} hours of absence. ATP and Health restored.{{Prisma.RST}}")
-                    dream_engine = getattr(self.eng.mind, "dreamer", getattr(getattr(self.eng, "cortex", None), "dreamer", None))
-                    if dream_engine:
-                        soul_snap = self.eng.soul.to_dict() if hasattr(self.eng, "soul") else {}
-                        bio_packet = {"chem": self.eng.bio.endo.get_state() if hasattr(self.eng.bio, "endo") else {}, "mito": {"atp": self.eng.bio.mito.state.atp_pool, "ros": self.eng.bio.mito.state.ros_buildup}}
-                        dream_text, shift = dream_engine.enter_rem_cycle(soul_snap, bio_state=bio_packet)
-                        if dream_text:
-                            ctx.log(f"{Prisma.VIOLET}☁️ While you were gone: {dream_text}{Prisma.RST}")
-                            ctx.last_dream = dream_text
-                        if hours_passed > 4.0:
-                            defrag_msg = dream_engine.run_defragmentation(self.eng.mind.mem)
-                            if defrag_msg:
-                                ctx.log(f"{Prisma.CYN}🧹 {defrag_msg}{Prisma.RST}")
+                hours_passed = min(24.0, ctx.time_delta / 3600.0)
+                if self.eng.bio.biometrics:
+                    target_cfg = self.eng.bone_config if hasattr(self.eng, "bone_config") else BoneConfig
+                    max_h = getattr(target_cfg, "MAX_HEALTH", 100.0)
+                    self.eng.bio.biometrics.health = min(max_h, self.eng.bio.biometrics.health + (hours_passed * 10.0))
+                self.eng.bio.mito.state.atp_pool = min(100.0, self.eng.bio.mito.state.atp_pool + (hours_passed * 25.0))
+                ctx.log(
+                    f"{Prisma.GRN}[BIO]: Retroactive metabolism applied for {hours_passed:.1f} hours of absence. ATP and Health restored.{Prisma.RST}")
+                dream_engine = getattr(self.eng.mind, "dreamer", getattr(getattr(self.eng, "cortex", None), "dreamer", None))
+                if dream_engine:
+                    soul_snap = self.eng.soul.to_dict() if hasattr(self.eng, "soul") else {}
+                    bio_packet = {"chem": self.eng.bio.endo.get_state() if hasattr(self.eng.bio, "endo") else {}, "mito": {"atp": self.eng.bio.mito.state.atp_pool, "ros": self.eng.bio.mito.state.ros_buildup}}
+                    dream_text, shift = dream_engine.enter_rem_cycle(soul_snap, bio_state=bio_packet)
+                    if dream_text:
+                        ctx.log(f"{Prisma.VIOLET}☁️ While you were gone: {dream_text}{Prisma.RST}")
+                        ctx.last_dream = dream_text
+                    if hours_passed > 4.0:
+                        defrag_msg = dream_engine.run_defragmentation(self.eng.mind.mem)
+                        if defrag_msg:
+                            ctx.log(f"{Prisma.CYN}🧹 {defrag_msg}{Prisma.RST}")
         if self.eng.gordon and "GORDON" not in self.eng.suppressed_agents:
             if "TCL9_QUANTUM_COMB" in self.eng.gordon.inventory:
                 weaver = TheTclWeaver.get_instance()
@@ -74,7 +76,7 @@ class ObservationPhase(SimulationPhase):
             if loot_candidate:
                 acquire_msg = self.eng.gordon.acquire(loot_candidate)
                 ctx.log(acquire_msg)
-        gaze_result = self.eng.phys.observer.gaze(ctx.input_text, self.eng.mind.mem.graph)
+            gaze_result = self.eng.observer.gaze(ctx.input_text, self.eng.mind.mem.graph)
         input_phys = gaze_result["physics"]
         transfer_keys = {"clean_words", "counts", "vector", "valence", "entropy", "beta", "S", "D", "C", "PHI_RES",
                          "DELTA", "LQ", "ROS", "G", "raw_text", "antigens", "psi", "kappa", "zone", "flow_state",
@@ -1146,16 +1148,19 @@ class GeodesicOrchestrator:
         try:
             ctx = CycleContext(input_text=user_message, is_system_event=is_system)
             ctx.trace_id = cycle_id
-            ctx.time_delta = getattr(self.eng, "current_time_delta", 0.0)
+            now = time.time()
+            last_turn = getattr(self.eng, "last_turn_end", now)
+            ctx.time_delta = max(0.0, now - last_turn)
+            self.eng.last_turn_end = now
             ctx.user_state = self.eng.shared_lattice.u
             ctx.shared_dyn = self.eng.shared_lattice.shared
             target_cfg = self.eng.bone_config if hasattr(self.eng, "bone_config") else BoneConfig
             cfg_obj = getattr(target_cfg, "CYCLE", None)
             ctx.limits = vars(cfg_obj) if hasattr(cfg_obj, "__dict__") else (cfg_obj or {})
-            if (self.eng.phys
-                    and hasattr(self.eng.phys, "observer")
-                    and self.eng.phys.observer.last_physics_packet):
-                ctx.physics = self.eng.phys.observer.last_physics_packet.snapshot()
+            if (hasattr(self.eng, "observer")
+                    and self.eng.observer
+                    and self.eng.observer.last_physics_packet):
+                ctx.physics = self.eng.observer.last_physics_packet.snapshot()
             elif not ctx.physics:
                 ctx.physics = PanicRoom.get_safe_physics()
                 msg = ux("cycle_strings", "orch_physics_bypass")
@@ -1169,8 +1174,8 @@ class GeodesicOrchestrator:
             ctx.logs.extend(pre_logs)
             self.eng.telemetry.start_cycle(cycle_id)
             ctx = self.simulator.run_simulation(ctx)
-            if self.eng.phys and hasattr(self.eng.phys, "observer"):
-                self.eng.phys.observer.last_physics_packet = ctx.physics.snapshot()
+            if hasattr(self.eng, "observer") and self.eng.observer:
+                self.eng.observer.last_physics_packet = ctx.physics.snapshot()
             if hasattr(self.eng, "telemetry") and self.eng.telemetry:
                 self.eng.telemetry.finalize_cycle()
             return ctx

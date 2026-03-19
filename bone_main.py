@@ -20,7 +20,7 @@ from bone_council import CouncilChamber
 from bone_cycle import GeodesicOrchestrator
 from bone_genesis import BoneGenesis
 from bone_lexicon import LexiconService
-from bone_physics import CosmicDynamics, ZoneInertia
+from bone_physics import ZoneInertia
 from bone_protocols import ChronosKeeper
 from bone_types import Prisma, RealityLayer
 
@@ -275,9 +275,6 @@ class BoneAmanita:
         layer = self.mode_settings.get("ui_layer", RealityLayer.SIMULATION)
         if self.boot_mode == "CONVERSATION":
             self.soul.force_mutation("THE CONVERSATIONALIST")
-            self.health = getattr(self.bone_config, "MAX_HEALTH", 100.0)
-            self.stamina = getattr(self.bone_config, "MAX_STAMINA", 100.0)
-            self.trauma_accum.clear()
             if hasattr(self, "soul"):
                 self.soul.traits.hope = 0.85
                 self.soul.traits.cynicism = 0.15
@@ -393,7 +390,7 @@ class BoneAmanita:
                 if hasattr(self, "cortex"):
                     self.cortex.ballast_active = True
                     self.cortex.gordon_shock = violation_msg
-        last_phys = getattr(self.phys.observer, "last_physics_packet", None) if hasattr(self, "phys") and hasattr(self.phys, "observer") else None
+        last_phys = getattr(self.observer, "last_physics_packet", getattr(self.cortex, "last_physics", None))
         if last_phys and not is_system:
             m_a = getattr(last_phys, "m_a", 0.0)
             mu = getattr(last_phys, "mu", 0.0)

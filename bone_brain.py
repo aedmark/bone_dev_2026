@@ -313,7 +313,8 @@ class TheCortex:
                     context_str = "Active Memory: " + ", ".join(active_mems) if active_mems else "Empty Void."
                     is_faithful, judge_reason = self.dspy_critic.audit_generation(user_input, context_str, final_text)
             if not is_faithful:
-                val_res = {"valid": False, "feedback_instruction": f"CRITICAL HALLUCINATION: {judge_reason}. Refuse to invent details. Stay in character."}
+                val_res = {"valid": False,
+                           "feedback_instruction": f"CRITICAL HALLUCINATION: {judge_reason}. Refuse to invent details. Stay in character."}
                 short_reason = judge_reason.split(".")[0][:60] + "..."
                 print(f" {Prisma.VIOLET}⚖️ DSPy Critic Objected: {short_reason}{Prisma.RST}")
                 if self.events: self.events.log(f"DSPy Critic Objected: {short_reason}", "SYS")
@@ -323,27 +324,26 @@ class TheCortex:
                 final_output = val_res["content"]
                 extracted_logs = val_res.get("meta_logs", [])
                 break
+            if attempt < max_retries - 1:
+                if self.svc.bio:
+                    self.svc.bio.mito.adjust_atp(-5.0, "Immune System Rejection Penalty")
+                rejection_reason = val_res.get("feedback_instruction") or val_res.get("replacement", "Lattice structural crime.")
+                if hasattr(self.dreamer, "trauma_buffer"): self.dreamer.trauma_buffer.append(rejection_reason)
+                if self.events:
+                    msg = ux("brain_strings", "cortex_retry")
+                    self.events.log(f"{Prisma.OCHRE}{msg.format(attempt=attempt + 1)}{Prisma.RST}", "CORTEX")
+                retry_injection = (
+                    "\n\n=== SYSTEM REJECTION ===\n"
+                    f"REASON: {rejection_reason}\n\n"
+                    "DIRECTIVE: The previous attempt was factually or structurally invalid. DISCARD IT. "
+                    "Generate a NEW response from scratch. DO NOT apologize or mention the fix. "
+                    "Output ONLY the raw in-character response and nothing else.")
+                if "=== SYSTEM REJECTION ===" in final_prompt:
+                    final_prompt = final_prompt.split("=== SYSTEM REJECTION ===")[0]
+                final_prompt += retry_injection
             else:
-                if attempt < max_retries - 1:
-                    if self.svc.bio:
-                        self.svc.bio.mito.adjust_atp(-5.0, "Immune System Rejection Penalty")
-                    rejection_reason = val_res.get("feedback_instruction") or val_res.get("replacement", "Lattice structural crime.")
-                    if hasattr(self.dreamer, "trauma_buffer"): self.dreamer.trauma_buffer.append(rejection_reason)
-                    if self.events:
-                        msg = ux("brain_strings", "cortex_retry")
-                        self.events.log(f"{Prisma.OCHRE}{msg.format(attempt=attempt + 1)}{Prisma.RST}", "CORTEX")
-                    retry_injection = (
-                        "\n\n=== SYSTEM REJECTION ===\n"
-                        f"REASON: {rejection_reason}\n\n"
-                        "DIRECTIVE: The previous attempt was factually or structurally invalid. DISCARD IT. "
-                        "Generate a NEW response from scratch. DO NOT apologize or mention the fix. "
-                        "Output ONLY the raw in-character response and nothing else.")
-                    if "=== SYSTEM REJECTION ===" in final_prompt:
-                        final_prompt = final_prompt.split("=== SYSTEM REJECTION ===")[0]
-                    final_prompt += retry_injection
-                else:
-                    final_output = val_res.get("replacement", "SYSTEM FAILURE: LATTICE INSTABILITY.")
-                    extracted_logs = val_res.get("meta_logs", [])
+                final_output = val_res.get("replacement", "SYSTEM FAILURE: LATTICE INSTABILITY.")
+                extracted_logs = val_res.get("meta_logs", [])
         if val_res["valid"] and phys_state.get("psi", 0.0) > 0.6 and allow_loot:
             anti_ai_prompt = (
                 f"Review the following text: '{final_output}'\n\n"
