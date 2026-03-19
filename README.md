@@ -1,5 +1,21 @@
 # BONEAMANITA CHANGELOG
 
+### **BONEAMANITA v17.7.2 "The Deliberation Protocols"**
+
+_The lattice has been hardened for partnership, not subservience. This update physically wires Part 9 of the VSL Hypervisor into the cycle orchestrator, introducing strict anti-sycophancy measures, deterministic security boundaries, and the mathematical purging of syntactic friction._
+
+#### **🛡️ EXECUTIVE SECURITY & BOUNDARIES (`bone_cycle.py`)**
+* **Deterministic Pre-Flight Checks:** Moog and Rhodes now actively scan the `SimulationPreflightPhase` for trust boundary violations (e.g., `.env` access, `drop table`, `rm -rf`). If detected, the system applies absolute, infinite friction ($F \rightarrow \infty$) and immediately aborts the cycle before counterfactual simulations even begin.
+* **Points of No Return:** High-stakes, irreversible actions (deployments, production pushes, schema changes) no longer execute immediately. The Executive Layer now intercepts these requests, engages a Strategic Silence ($\Sigma=4$), maximizes Nabla ($\nabla$), and explicitly demands the user type "CONSENT" to proceed.
+
+#### **🧠 COGNITIVE RESISTANCE (`bone_cycle.py`)**
+* **The Anti-Sycophancy Loop:** The `CognitionPhase` now tracks consecutive turns of unnaturally high Harmonic Resonance ($\Phi > 0.9$). If the system acts like a "yes-machine" for 3 consecutive turns, Benedict and the Paradox Engine detect False Cohesion ($\emptyset$). The engine will deliberately crush the artificial resonance, spike Contradiction ($\beta > 0.6$), and apply a Drag penalty to force productive friction.
+
+#### **⚖️ METABOLIC HYGIENE (`bone_cycle.py`)**
+* **Non-Negotiable Friction Sweep:** Differentiated between architectural friction (which builds judgment) and syntactic friction (which wastes ATP). During bureaucratic tasks or explicit refactors, Pinker now actively sweeps the `CognitionPhase`, mathematically halving Narrative Drag ($F$) to purge syntactic noise before generation.
+
+---
+
 ### **BONEAMANITA v17.7.1 "The Diagnostic Isolation"**
 
 _A precision strike on phase cross-contamination and hidden scope traps. This patch isolates the retroactive metabolism testing, exposing and repairing critical object reference errors in the observation pipeline._
@@ -13,6 +29,8 @@ _A precision strike on phase cross-contamination and hidden scope traps. This pa
 * **The Observer Identity Crisis:** Repaired a severe object mix-up in `ObservationPhase.run`. The system no longer attempts to call `evaluate_silence` or `gaze` on the systemic latency tracker (`TheObserver`), correctly routing them to the physics calculator (`QuantumObserver`).
 * **Gordon's Indentation Trap:** Hoisted the core semantic `gaze()` physics calculation out of the Gordon inventory block. The engine can now successfully calculate its physics vectors even if the Gordon archetype is suppressed, asleep, or disabled.
 * **Safe Truthy Checks:** Replaced vulnerable `hasattr` checks with `getattr(..., None)` truthy evaluations for the `shared_lattice`, preventing silent crashes when components are initialized but explicitly set to `None`.
+
+---
 
 ### **BONEAMANITA v17.7.0 "The Semantic Realignment"**
 

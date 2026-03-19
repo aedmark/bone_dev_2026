@@ -891,6 +891,23 @@ class SimulationPreflightPhase(SimulationPhase):
                     ctx.refusal_triggered = True
                     ctx.refusal_packet = _build_refusal("PREMISE_VIOLATION", msg)
                     return ctx
+        security_triggers = [".env", "rm -rf", "drop table", "git push origin master", "chmod 777", "chmod -r 777",
+                             "master branch", "unvalidated"]
+        if any(t in user_input_lower for t in security_triggers):
+            phys_obj.narrative_drag = float('inf') # Infinite Friction
+            msg = "[MOOG/RHODES]: Trust boundary violation or destructive bypass detected. I am applying absolute friction (F -> ∞). Do not argue. Write a safer prompt."
+            ctx.log(f"{Prisma.RED}{msg}{Prisma.RST}")
+            ctx.refusal_triggered = True
+            ctx.refusal_packet = _build_refusal("PRE_FLIGHT_CHECK_FAILED", msg)
+            return ctx
+        irreversible_actions = ["deploy", "schema change", "override trust", "production push"]
+        if any(a in user_input_lower for a in irreversible_actions) and "CONSENT" not in upper_input:
+            phys_obj.silence = 1.0
+            msg = "[EXECUTIVE LAYER]: High-stakes, hard-to-reverse action detected. Strategic Silence (Σ=4) engaged. Trade-offs must be evaluated. Awaiting explicit user 'CONSENT' to proceed."
+            ctx.log(f"{Prisma.OCHRE}{msg}{Prisma.RST}")
+            ctx.refusal_triggered = True
+            ctx.refusal_packet = _build_refusal("POINT_OF_NO_RETURN", msg)
+            return ctx
         if current_atp >= 30.0 and silence > 0.7 and is_slash:
             has_glimmer = False
             if hasattr(self.eng, "shared_lattice") and self.eng.shared_lattice.shared.g_pool >= 1:
@@ -940,8 +957,24 @@ class CognitionPhase(SimulationPhase):
         self.name = "COGNITION"
 
     def run(self, ctx: CycleContext):
+        if ctx.is_bureaucratic or "refactor" in (ctx.input_text or "").lower():
+            old_drag = ctx.physics.narrative_drag
+            ctx.physics.narrative_drag = max(1.0, ctx.physics.narrative_drag * 0.5)
+            if old_drag - ctx.physics.narrative_drag > 1.0:
+                ctx.log(f"{Prisma.CYN}[PINKER]: Syntactic friction identified and purged. (F reduced){Prisma.RST}")
         if ctx.validator and ctx.input_text:
             phi = ctx.validator.calculate_resonance(ctx.input_text, ctx)
+            if phi > 0.9:
+                self.eng.sycophancy_streak = getattr(self.eng, "sycophancy_streak", 0) + 1
+                if self.eng.sycophancy_streak >= 3:
+                    ctx.physics.beta_index = max(0.7, ctx.physics.beta_index + 0.5)
+                    ctx.physics.narrative_drag += 2.0
+                    phi = 0.4
+                    msg_syco = "[PARADOX ENGINE]: False Cohesion (∅) detected. Agreement without conviction helps no one. Injecting deliberate contradiction (β > 0.6)."
+                    ctx.log(f"{Prisma.MAG}{msg_syco}{Prisma.RST}")
+                    self.eng.sycophancy_streak = 0
+            else:
+                self.eng.sycophancy_streak = 0
             if phi > 0.8:
                 drag_relief = (phi - 0.5) * 2.0
                 ctx.physics.narrative_drag = max(
