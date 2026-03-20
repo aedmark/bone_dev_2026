@@ -320,9 +320,11 @@ class GeodesicRenderer:
                     world_loc = node.name
         else:
             world_loc = "OMNIPRESENT"
+        current_ui_depth = getattr(self.eng, "ui_mode", mode_settings.get("default_ui_depth", "WARM"))
+        if current_ui_depth == "IDLE": current_ui_depth = "WARM"
         data_ctx = {"health": self.eng.health, "stamina": self.eng.stamina, "bio": bio_data, "dignity": (
             getattr(self.eng.soul.anchor, "dignity_reserve", 100.0) if hasattr(self.eng, "soul") else 100.0),
-                    "vectors": physics.get("vector", {}), "ui_depth": mode_settings.get("default_ui_depth", "IDLE"),
+                    "vectors": physics.get("vector", {}), "ui_depth": current_ui_depth,
                     "world_loc": world_loc, "show_vitals": mode_settings.get("show_vitals", True),
                     "show_location": mode_settings.get("show_location", True)}
         if hasattr(ctx, "shared_dyn"):
@@ -381,7 +383,8 @@ class GeodesicRenderer:
             if e and e.get("text"):
                 all_logs.append(e["text"])
         mode_settings = self.eng.config.get("mode_settings", {}) if hasattr(self, "eng") else {}
-        if mode_settings.get("default_ui_depth", "IDLE") == "WARM":
+        current_ui_depth = getattr(self.eng, "ui_mode", mode_settings.get("default_ui_depth", "WARM"))
+        if current_ui_depth in ["IDLE", "WARM"]:
             muted_tags = ["[BIO]", "[CRITIC]", "[SYS]", "[MERCY]", "(The system feels"]
             all_logs = [l for l in all_logs if not any(tag in l for tag in muted_tags)]
         if not all_logs:

@@ -24,21 +24,21 @@ class BonePresets:
                       "ui_layer": 1, "village_suppression": [], "prompt_key": "ADVENTURE", "show_inventory": True,
                       "show_location": True, "show_vitals": True, "allow_loot": True, "allow_metrics": False,
                       "atp_drain_enabled": True, "chaos_tax_enabled": True, "voltage_floor_override": None,
-                      "active_mods": [], "default_ui_depth": "CORE", },
+                      "active_mods": [], "default_ui_depth": "WARM", },
         "CONVERSATION": {"description": "Pure dialogue. No entropy, no items, just connection.", "tuning": "ZEN",
                          "ui_layer": 1, "village_suppression": ["GORDON", "NAVIGATOR", "CARTOGRAPHER", "TINKERER",
                                                                 "DEATH", "BUREAU", ], "prompt_key": "CONVERSATION",
                          "show_inventory": False, "show_location": False, "show_vitals": False,
                          "allow_loot": False, "allow_metrics": False, "atp_drain_enabled": False,
                          "chaos_tax_enabled": False, "voltage_floor_override": None, "active_mods": [],
-                         "default_ui_depth": "LITE", },
+                         "default_ui_depth": "WARM", },
         "CREATIVE": {"description": "High voltage, low drag. Hallucination enabled.", "tuning": "MANIC", "ui_layer": 1,
                      "village_suppression": ["GORDON", "BENEDICT", "BUREAU", "NAVIGATOR"],
                      "prompt_key": "CREATIVE",
                      "show_inventory": False, "show_location": False,
                      "show_vitals": False, "allow_loot": False,
                      "allow_metrics": False, "atp_drain_enabled": True, "chaos_tax_enabled": False,
-                     "voltage_floor_override": 70.0, "active_mods": ["LIMINAL"], "default_ui_depth": "CORE", },
+                     "voltage_floor_override": 70.0, "active_mods": ["LIMINAL"], "default_ui_depth": "LITE", },
         "TECHNICAL": {"description": "Raw data stream. Debugging and code generation.", "tuning": "DEBUG",
                       "ui_layer": 2, "village_suppression": ["MOIRA", "JESTER", "CASSANDRA", "APRIL"],
                       "prompt_key": "TECHNICAL", "show_inventory": False,
@@ -378,7 +378,7 @@ class BoneConfig:
         PANIC_TRIGGERS = {"error", "fail", "critical", "bug"}
         ROS_SIGNAL = 3.0
         ROS_DAMAGE = 8.0
-        ROS_PURGE = 12.0
+        ROS_PURGE = 60.0
         ATP_CRITICAL = 20.0
         ATP_COLLAPSE = 0.0
         SHORT_WORD_LEN = 4

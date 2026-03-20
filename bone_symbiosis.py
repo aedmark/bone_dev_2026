@@ -204,13 +204,14 @@ class SymbiosisManager:
         return round(entropy, 3)
 
     def monitor_host(self, latency: float, response_text: str, prompt_len: int = 0):
-        entropy = self._calculate_shannon_entropy(response_text)
+        safe_response = response_text or ""
+        entropy = self._calculate_shannon_entropy(safe_response)
         last_resp = self._last_host_response
-        if last_resp and len(last_resp) > 50 and last_resp[:50] in response_text:
+        if last_resp and len(last_resp) > 50 and last_resp[:50] in safe_response:
             entropy = max(0.0, entropy - 2.0)
-        self._last_host_response = response_text
-        is_refusal = self._detect_refusal(response_text)
-        completion_len = len(response_text)
+        self._last_host_response = safe_response
+        is_refusal = self._detect_refusal(safe_response)
+        completion_len = len(safe_response)
         self.current_health.latency = latency
         self.current_health.entropy = entropy
         if prompt_len > 0:

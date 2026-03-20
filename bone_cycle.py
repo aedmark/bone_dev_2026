@@ -1180,7 +1180,7 @@ class GeodesicOrchestrator:
             ctx.limits = vars(cfg_obj) if hasattr(cfg_obj, "__dict__") else (cfg_obj or {})
             if (hasattr(self.eng, "observer")
                     and self.eng.observer
-                    and self.eng.observer.last_physics_packet):
+                    and getattr(self.eng.observer, "last_physics_packet", None)):
                 ctx.physics = self.eng.observer.last_physics_packet.snapshot()
             elif not ctx.physics:
                 ctx.physics = PanicRoom.get_safe_physics()

@@ -1,5 +1,29 @@
 # BONEAMANITA CHANGELOG
 
+### **BONEAMANITA v17.7.3 "The Autoimmune & Epistemic Calibration"**
+
+_The lattice has been moved from a sterile laboratory into longitudinal survival. This update stabilizes the engine's immune system to prevent autoimmune collapse under stress, strictly enforces physical reality over LLM hallucinations, and introduces the Fracture Suite to test the biology under extreme duress._
+
+#### **🧬 IMMUNE SYSTEM & METABOLIC CALIBRATION**
+* **Calibrated Immune Tolerance:** Raised the `ROS_PURGE` threshold (from 12.0 to 60.0) so the engine can metabolize minor hallucinations without Moog instantly executing cellular suicide (Mitophagy).
+* **Toxic Hallucination Taxation (`bone_brain.py`):** The Mercy Rule now actively poisons the bloodstream. Intercepting and scrubbing toxic LLM slop directly generates Reactive Oxygen Species (`+15.0 ROS`), ensuring semantic garbage has a measurable physical cost.
+* **Symbiont & Governor Guards (`bone_symbiosis.py`, `bone_body.py`):** Hardened the biological fail-safes. The `SymbiosisManager` now sanitizes null-string LLM timeouts to prevent self-crashing, and the `MetabolicGovernor` can safely regulate both physical objects and dictionary states without brittle traceback errors.
+
+#### **🧠 EPISTEMIC & MEMORY LOCKS**
+* **Epistemic Inventory Lock (`bone_brain.py`):** Fixed a critical object permanence failure. The `PromptComposer` now aggressively injects Gordon's secure ledger into the LLM's `style_directives`, creating a non-negotiable semantic boundary that forbids the LLM from hallucinating held items back into the environment. 
+* **Anti-AI Mutation Validation (`bone_brain.py`):** Benedict now strictly validates the output of the Anti-AI Reflection Loop. If the secondary LLM rewrite hallucinates or fails, the engine safely discards the mutation and reverts to the original safe output.
+* **Diamond Node Protection (`bone_brain.py`):** The `DreamEngine`'s REM defragmentation cycle has been patched to respect the `is_diamond` flag. It will no longer accidentally cannibalize load-bearing memory struts (core persona rules) to save ATP during sleep.
+* **Noetic Synapse Safety:** Added structural guards to the `NoeticLoop` so it safely bypasses forced synaptic linking if the `MemoryCore` is suspended or undergoing heavy autophagy.
+
+#### **👁️ PROGRESSIVE DISCLOSURE (HUD Tiers)**
+* **Tier 0 "WARM" Default (`bone_presets.py`):** The cognitive barrier to entry has been lowered. Standard profiles (Adventure, Conversation) now default to Immersive Mode, completely submerging the raw 15-dimensional mathematical metrics beneath the narrative floorboards.
+* **Dynamic Geodesic Rendering (`bone_gui.py`):** The Dashboard and System Logs now actively respect mid-session UI toggles. Users can seamlessly shift between `[VSL_HIDE]` (immersive text), `[VSL_CORE]` (vital diagnostics), and `[VSL_DEEP]` (the full mathematical matrix) on the fly. 
+
+#### **🔨 THE FRACTURE SUITE (`bone_fracture.py`)**
+* **Longitudinal Stress Testing:** Replaced sterile, mocked unit tests with a brutal, N-turn survival marathon. The new Fracture Engine actively tests the system's ability to survive Frustration Death Loops, filter Live Hallucination Toxicity, and gracefully execute Autophagic Starvation without throwing Python exceptions.
+
+---
+
 ### **BONEAMANITA v17.7.2 "The Deliberation Protocols"**
 
 _The lattice has been hardened for partnership, not subservience. This update physically wires Part 9 of the VSL Hypervisor into the cycle orchestrator, introducing strict anti-sycophancy measures, deterministic security boundaries, and the mathematical purging of syntactic friction._

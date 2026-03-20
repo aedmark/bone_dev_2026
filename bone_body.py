@@ -881,8 +881,10 @@ class MetabolicGovernor:
 
     def regulate(self, physics, dt: float) -> Tuple[float, float]:
         safe_dt = max(0.001, dt)
-        v_force = self.voltage_pid.update(getattr(physics, "voltage"), safe_dt)
-        d_force = self.drag_pid.update(getattr(physics, "narrative_drag"), safe_dt)
+        v_val = physics.get("voltage", 0.0) if isinstance(physics, dict) else getattr(physics, "voltage", 0.0)
+        d_val = physics.get("narrative_drag", 0.0) if isinstance(physics, dict) else getattr(physics, "narrative_drag", 0.0)
+        v_force = self.voltage_pid.update(v_val, safe_dt)
+        d_force = self.drag_pid.update(d_val, safe_dt)
         return v_force, d_force
 
     def assess(self, physics_packet) -> Tuple[bool, float]:
