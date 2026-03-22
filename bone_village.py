@@ -18,7 +18,12 @@ def _hydrate_packet(p: Any) -> PhysicsPacket:
     def _get(k, default=None):
         if isinstance(p, dict):
             return p.get(k, p.get("energy", {}).get(k, p.get("space", {}).get(k, p.get("matter", {}).get(k, default))))
-        return getattr(p, k, getattr(getattr(p, "energy", None), k, getattr(getattr(p, "space", None), k, getattr(getattr(p, "matter", None), k, default))))
+
+        if hasattr(p, k): return getattr(p, k)
+        if hasattr(p, "energy") and hasattr(p.energy, k): return getattr(p.energy, k)
+        if hasattr(p, "space") and hasattr(p.space, k): return getattr(p.space, k)
+        if hasattr(p, "matter") and hasattr(p.matter, k): return getattr(p.matter, k)
+        return default
 
     for k in ("voltage", "narrative_drag", "vector", "clean_words", "counts", "zone", "kappa", "raw_text"):
         val = _get(k)
@@ -330,8 +335,11 @@ class TheCartographer:
         roots = scenarios.get("ROOTS", ["Construct", "Forge", "Garden"]) or {}
         name = f"{random.choice(prefixes)} {random.choice(roots)}"
         target_cfg = config_ref or BoneConfig
-        v_trig = getattr(target_cfg.COUNCIL, "MANIC_VOLTAGE_TRIGGER", 18.0) if hasattr(target_cfg, "COUNCIL") else 18.0
-        d_halt = getattr(target_cfg.PHYSICS, "DRAG_HALT", 10.0) if hasattr(target_cfg, "PHYSICS") else 10.0
+        council_cfg = getattr(target_cfg, "COUNCIL", None)
+        phys_cfg = getattr(target_cfg, "PHYSICS", None)
+        v_trig = getattr(council_cfg, "MANIC_VOLTAGE_TRIGGER", 18.0) if council_cfg else 18.0
+        d_halt = getattr(phys_cfg, "DRAG_HALT", 10.0) if phys_cfg else 10.0
+
         if packet.voltage > v_trig:
             suffix = manifest.get_ux("village_strings", "loci_flux_suffix")
             atmosphere = manifest.get_ux("village_strings", "loci_flux_atmos")
@@ -491,7 +499,9 @@ class TownHall:
         if latency > news_lat:
             msg = ux("village_strings", "town_crier_slow")
             if msg: alerts.append(f"{Prisma.OCHRE}{msg}{Prisma.RST}")
-        if volt > target_cfg.PHYSICS.VOLTAGE_CRITICAL:
+        phys_cfg = getattr(target_cfg, "PHYSICS", None)
+        volt_crit = getattr(phys_cfg, "VOLTAGE_CRITICAL", 100.0) if phys_cfg else 100.0
+        if volt > volt_crit:
             msg = ux("village_strings", "town_crier_volt")
             if msg: alerts.append(f"{Prisma.YEL}{msg}{Prisma.RST}")
         return "\n".join(alerts) if alerts else None
@@ -568,16 +578,21 @@ class DeathGen:
             mito_state.get("atp", 0)
             if isinstance(mito_state, dict)
             else getattr(mito_state, "atp_pool", 0))
-        if atp <= target_cfg.BIO.ATP_STARVATION:
+        bio_cfg = getattr(target_cfg, "BIO", None)
+        starvation_thresh = getattr(bio_cfg, "ATP_STARVATION", 0.0) if bio_cfg else 0.0
+        if atp <= starvation_thresh:
             return "STARVATION"
         m_a = getattr(p, "m_a", getattr(p.energy, "m_a", 0.0) if hasattr(p, "energy") else 0.0)
         i_c = getattr(p, "i_c", getattr(p.energy, "i_c", 1.0) if hasattr(p, "energy") else 1.0)
         chi = getattr(p, "chi", getattr(p.energy, "chi", 0.0) if hasattr(p, "energy") else 0.0)
         if (chi * m_a) > i_c:
             return "APOPTOSIS"
-        if p.voltage > target_cfg.PHYSICS.VOLTAGE_CRITICAL:
+        phys_cfg = getattr(target_cfg, "PHYSICS", None)
+        volt_crit = getattr(phys_cfg, "VOLTAGE_CRITICAL", 100.0) if phys_cfg else 100.0
+        drag_halt = getattr(phys_cfg, "DRAG_HALT", 10.0) if phys_cfg else 10.0
+        if p.voltage > volt_crit:
             return "GLUTTONY"
-        if p.narrative_drag > target_cfg.PHYSICS.DRAG_HALT:
+        if p.narrative_drag > drag_halt:
             return "BOREDOM"
         counts = p.counts or {}
         if counts.get("antigen", 0) > tox_crit:

@@ -353,7 +353,7 @@ class MemoryCore:
             for dead in dead_links:
                 del edges[dead]
                 pruned_count += 1
-            if not edges:
+            if not edges and not self.graph[node].get("is_diamond", False):
                 nodes_to_remove.append(node)
         for n in nodes_to_remove:
             del self.graph[n]
@@ -379,7 +379,7 @@ class MemoryCore:
         protected.update(self.cortical_stack)
         candidates = []
         for k, v in self.graph.items():
-            if k in protected:
+            if k in protected or v.get("is_diamond", False):
                 continue
             edge_count = len(v["edges"])
             age = max(1, current_tick - v.get("last_tick", 0))

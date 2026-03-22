@@ -224,6 +224,7 @@ class CouncilChamber:
         self.village = TheVillageCouncil()
         self.footnote = TheFootnote()
         self.slash_council = TheSlashCouncil()
+        self.overseer_council = TheOverseerCouncil()
         if not hasattr(self.eng, "paradox_engine"):
             from bone_machine import TheParadoxEngine
             self.eng.paradox_engine = TheParadoxEngine(getattr(self.eng, "events", None))
@@ -323,7 +324,8 @@ class CouncilChamber:
                 transcript.append(self.footnote.commentary(vlog))
         votes = {"YEA": 0, "NAY": 0}
         active_voices = [v for v in self.voices if v is not None]
-        if not active_voices:votes["YEA"] = 1
+        if not active_voices:
+            votes["YEA"] = 1
         voltage = physics_packet.get("voltage", physics_packet.get("energy", {}).get("voltage", 0.0)) if is_dict else getattr(physics_packet, "voltage", 0.0)
         cfg = getattr(BoneConfig, "COUNCIL", None)
         yea_thresh = getattr(cfg, "VOTE_YEA_THRESHOLD", 1.2) if cfg else 1.2

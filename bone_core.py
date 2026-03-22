@@ -311,14 +311,14 @@ class ArchetypeArbiter:
     @staticmethod
     def arbitrate(physics_lens: str, soul_archetype: str, council_mandates: List[Dict], trigram: Dict = None, config_ref=None) -> Tuple[str, str, str]:
         target_cfg = config_ref or BoneConfig
-        for mandate in council_mandates:
+        for mandate in (council_mandates or []):
             if mandate.get("type") == "LOCKDOWN":
                 return "THE CENSOR", "COUNCIL", ux("core_strings", "arb_martial_law")
             if mandate.get("type") == "FORCE_MODE":
                 return "THE MACHINE", "COUNCIL", ux("core_strings", "arb_bureaucratic")
-            if "/" in soul_archetype:
-                msg = ux("core_strings", "arb_diamond")
-                return soul_archetype, "SOUL", (msg.format(soul_archetype=soul_archetype) if msg else "")
+        if soul_archetype and "/" in soul_archetype:
+            msg = ux("core_strings", "arb_diamond")
+            return soul_archetype, "SOUL", (msg.format(soul_archetype=soul_archetype) if msg else "")
         if trigram:
             trigram_name = trigram.get("name")
             narrative = LoreManifest.get_instance().get("NARRATIVE_DATA") or {}
@@ -364,9 +364,10 @@ class TelemetryService:
         self._executor = ThreadPoolExecutor(max_workers=1)
 
     def record_event(self, event_dict: dict):
-        trace_file = os.path.join(self.log_dir, f"trace_{self.session_id}.jsonl")
+        if not self.current_trace_file or self.disabled:
+            return
         try:
-            with open(trace_file, "a", encoding="utf-8") as f:
+            with open(self.current_trace_file, "a", encoding="utf-8") as f:
                 f.write(json.dumps(event_dict, cls=BoneJSONEncoder) + "\n")
         except Exception:
             pass

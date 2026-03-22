@@ -67,7 +67,10 @@ class TheCrucible:
         adjustment = self.instability_index * 0.5
         if current_drag < 1.0 and adjustment < 0:
             adjustment *= 0.1
-        new_drag = max(0.0, min(10.0, current_drag + adjustment))
+        if current_drag == float('inf'):
+            new_drag = current_drag
+        else:
+            new_drag = max(0.0, min(10.0, current_drag + adjustment))
         if isinstance(physics, dict):
             physics["narrative_drag"] = round(new_drag, 2)
         else:
@@ -82,17 +85,17 @@ class TheCrucible:
             "system_surge_event", False)
         if surge:
             self.active_state = "SURGE"
-            return "SURGE", 0.0, self.logs.get("SURGE", "").format(voltage=voltage),
+            return "SURGE", 0.0, self.logs.get("SURGE", "").format(voltage=voltage)
         if voltage > 18.0:
             if structure > 0.5:
                 gain = voltage * 0.1
                 self.max_voltage_cap += gain
                 self.active_state = "RITUAL"
-                return "RITUAL", gain, self.logs.get("RITUAL", "").format(gain=gain),
+                return "RITUAL", gain, self.logs.get("RITUAL", "").format(gain=gain)
             else:
                 damage = voltage * 0.5
                 self.active_state = "MELTDOWN"
-                return "MELTDOWN", damage, self.logs.get("MELTDOWN", "").format(damage=damage),
+                return "MELTDOWN", damage, self.logs.get("MELTDOWN", "").format(damage=damage)
         self.active_state = "REGULATED"
         return "REGULATED", adjustment, msg
 
@@ -176,10 +179,10 @@ class TheForge:
                     entanglement = self._calculate_entanglement(hits, voltage)
                     if random.random() < entanglement:
                         msg = ux("machine_strings", "forge_alchemy_success")
-                        return True, msg.format(result=recipe["result"], item=item), item, recipe["result"],
+                        return True, msg.format(result=recipe["result"], item=item), item, recipe["result"]
                     else:
                         msg = ux("machine_strings", "forge_alchemy_fail")
-                        return False, msg.format(entanglement=int(entanglement * 100)), None, None,
+                        return False, msg.format(entanglement=int(entanglement * 100)), None, None
         return False, None, None, None
 
     @staticmethod

@@ -72,9 +72,9 @@ class TheEditor:
         if hasattr(LoreManifest, "get_instance"):
             narrative = LoreManifest.get_instance().get("NARRATIVE_DATA") or {}
         reviews = narrative.get("LITERARY_REVIEWS", {})
-        pos = reviews.get("POSITIVE", ["Valid."])
-        neg = reviews.get("NEGATIVE", ["Invalid."])
-        conf = reviews.get("CONFUSED", ["Unclear."])
+        pos = reviews.get("POSITIVE") or ["Valid."]
+        neg = reviews.get("NEGATIVE") or ["Invalid."]
+        conf = reviews.get("CONFUSED") or ["Unclear."]
         if stress_mode:
             pool = conf + neg
             prefix = "[THE WITNESS]"
@@ -413,20 +413,20 @@ class NarrativeSelf:
         if not new_arch:
             if t.empathy > 0.8 and t.hope > 0.6:
                 new_arch = "THE HEALER"
-        elif t.empathy > 0.7 and t.discipline > 0.6:
-            new_arch = "THE GARDENER"
-        elif t.hope > 0.7 and t.curiosity > 0.6:
-            new_arch = "THE POET"
-        elif t.discipline > 0.7 and t.curiosity > 0.6:
-            new_arch = "THE ENGINEER"
-        elif t.cynicism > 0.7 and t.discipline > 0.6:
-            new_arch = "THE CRITIC"
-        elif t.cynicism > 0.8 and t.hope < 0.3:
-            new_arch = "THE NIHILIST"
-        elif t.curiosity > 0.8:
-            new_arch = "THE EXPLORER"
-        else:
-            new_arch = "THE OBSERVER"
+            elif t.empathy > 0.7 and t.discipline > 0.6:
+                new_arch = "THE GARDENER"
+            elif t.hope > 0.7 and t.curiosity > 0.6:
+                new_arch = "THE POET"
+            elif t.discipline > 0.7 and t.curiosity > 0.6:
+                new_arch = "THE ENGINEER"
+            elif t.cynicism > 0.7 and t.discipline > 0.6:
+                new_arch = "THE CRITIC"
+            elif t.cynicism > 0.8 and t.hope < 0.3:
+                new_arch = "THE NIHILIST"
+            elif t.curiosity > 0.8:
+                new_arch = "THE EXPLORER"
+            else:
+                new_arch = "THE OBSERVER"
         self.archetype = new_arch
         if prev != self.archetype:
             msg_shift = ux("soul_strings", "soul_identity_shift")
@@ -537,7 +537,8 @@ class NarrativeSelf:
     def _synthesize_obsession(lex) -> Tuple[str, str, str]:
         negate_map = {"heavy": "aerobic", "kinetic": "heavy", "abstract": "meat"}
         target_cat, negate_cat = random.choice(list(negate_map.items()))
-        word = lex.get_random(target_cat).title() or target_cat.title()
+        random_word = lex.get_random(target_cat)
+        word = random_word.title() if random_word else target_cat.title()
         return word, target_cat, negate_cat
 
     @staticmethod
@@ -712,6 +713,8 @@ class TheOroboros:
 
     def apply_legacy(self, physics: Any, bio: Any):
         log = []
+        if not physics:
+            return log
         is_dict = isinstance(physics, dict)
         for scar in self.scars:
             if scar.stat_affected == "narrative_drag":

@@ -17,6 +17,16 @@ from bone_symbiosis import SymbiosisManager
 from bone_types import Prisma, CycleContext
 from bone_utils import TheTclWeaver
 
+def _deep_update(obj, d):
+    for k, v in d.items():
+        if isinstance(v, dict) and hasattr(obj, k) and not isinstance(getattr(obj, k), dict):
+            _deep_update(getattr(obj, k), v)
+        else:
+            try:
+                obj[k] = v
+            except Exception:
+                setattr(obj, k, v)
+
 class SimulationPhase:
     def __init__(self, engine_ref):
         self.eng = engine_ref
@@ -487,15 +497,6 @@ class NavigationPhase(SimulationPhase):
             phys_snapshot = physics.to_dict()
             reflex_triggered, reflex_msg = self.eng.gordon.emergency_reflex(phys_snapshot)
             if reflex_triggered:
-                def _deep_update(obj, d):
-                    for k, v in d.items():
-                        if isinstance(v, dict) and hasattr(obj, k) and not isinstance(getattr(obj, k), dict):
-                            _deep_update(getattr(obj, k), v)
-                        else:
-                            try:
-                                obj[k] = v
-                            except Exception:
-                                setattr(obj, k, v)
                 _deep_update(physics, phys_snapshot)
                 if reflex_msg:
                     ctx.log(reflex_msg)
@@ -589,16 +590,6 @@ class MachineryPhase(SimulationPhase):
             damage = c_val
             if self.eng.bio.biometrics:
                 self.eng.bio.biometrics.health = max(0.0, self.eng.bio.biometrics.health - damage)
-
-        def _deep_update(obj, d):
-            for k, v in d.items():
-                if isinstance(v, dict) and hasattr(obj, k) and not isinstance(getattr(obj, k), dict):
-                    _deep_update(getattr(obj, k), v)
-                else:
-                    try:
-                        obj[k] = v
-                    except Exception:
-                        setattr(obj, k, v)
         _deep_update(ctx.physics, phys_dict)
         return ctx
 

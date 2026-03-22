@@ -92,7 +92,7 @@ class SessionGuardian:
                     lattice_msg = ux("main_strings", "lattice_collapsed")
                     print(f"{Prisma.GRY}{lattice_msg}{Prisma.RST}")
         conn_msg = ux("main_strings", "conn_severed")
-        print(f"{Prisma.paint(conn_msg)}")
+        print(f"{Prisma.GRY}{conn_msg}{Prisma.RST}")
         return exc_type is KeyboardInterrupt
 
 class ConfigWizard:
@@ -449,8 +449,12 @@ class BoneAmanita:
             return pre_flight_halt
         if not is_system and getattr(self, "gordon", None) and hasattr(self.gordon, "inventory") and hasattr(
                 self.gordon, "get_item_data"):
-            pruning_active = any("CUT_THE_CRAP" in (self.gordon.get_item_data(i).passive_traits if self.gordon.get_item_data(i) else [])
-                for i in self.gordon.inventory)
+            def _has_trait(item_id):
+                data = self.gordon.get_item_data(item_id)
+                if not data: return False
+                traits = data.get("passive_traits", []) if isinstance(data, dict) else getattr(data, "passive_traits", [])
+                return "CUT_THE_CRAP" in traits
+            pruning_active = any(_has_trait(i) for i in self.gordon.inventory)
             if pruning_active:
                 from bone_utils import TheTclWeaver
                 original_msg = user_message
@@ -499,7 +503,8 @@ class BoneAmanita:
         if self.death_gen is None:
             crit_msg = ux("main_strings", "death_no_proto")
             return {"type": "DEATH", "ui": f"{Prisma.RED}{crit_msg}{Prisma.RST}", "logs": [], }
-        eulogy_text, cause_code = self.death_gen.eulogy(last_phys, self.bio.mito.state, self.trauma_accum)
+        mito_state = self.bio.mito.state if (hasattr(self, "bio") and self.bio and hasattr(self.bio, "mito") and self.bio.mito) else {}
+        eulogy_text, cause_code = self.death_gen.eulogy(last_phys, mito_state, self.trauma_accum)
         halt_msg = ux("main_strings", "death_halt")
         death_log = [f"\n{Prisma.RED}{halt_msg.format(eulogy_text=eulogy_text)}{Prisma.RST}"]
         legacy_msg = self.oroboros.crystallize(cause_code, self.soul)
@@ -518,11 +523,11 @@ class BoneAmanita:
                 list(self.bio.immune.active_antibodies)
                 if getattr(self.bio, "immune", None)
                 else [])
-            self.bio.mito.adapt(0)
-            mito_state = (
-                self.bio.mito.state.__dict__
-                if hasattr(self.bio.mito.state, "__dict__")
-                else {})
+            if hasattr(self, "bio") and self.bio and hasattr(self.bio, "mito") and self.bio.mito:
+                self.bio.mito.adapt(0)
+                mito_state = self.bio.mito.state.__dict__ if hasattr(self.bio.mito.state, "__dict__") else {}
+            else:
+                mito_state = {}
             path = self.mind.mem.save(health=0, stamina=self.stamina, mutations=mutations_data,
                                       trauma_accum=self.trauma_accum, joy_history=[], mitochondria_traits=mito_state,
                                       antibodies=immune_data, soul_data=self.soul.to_dict(),
