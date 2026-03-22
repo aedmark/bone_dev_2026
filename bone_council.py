@@ -247,10 +247,13 @@ class CouncilChamber:
             transcript.append(f"{Prisma.VIOLET}(Benedict & Jester): {paradox_prompt}{Prisma.RST}")
             adjustments["stamina"] = - (10.0 * pressure)
             mandates.append({"type": "PARADOX_OVERRIDE", "directive": paradox_prompt, "pressure": pressure})
-            if random.random() < (0.3 * pressure):
-                self.eng.paradox_engine.paradox_yield += 1
-                adjustments["glimmers"] = 1
-                transcript.append(f"{Prisma.YEL}[GLIMMER] A spark struck from the tension. (Yield: {self.eng.paradox_engine.paradox_yield}){Prisma.RST}")
+            phi = physics_packet.get("resonance", physics_packet.get("energy", {}).get("resonance", 0.0)) if is_dict else getattr(physics_packet, "resonance", 0.0)
+            yield_chance = (0.3 * pressure) * (1.0 + phi)
+            if random.random() < yield_chance:
+                g_yield = min(5, max(1, int(pressure * (1.0 + phi) * random.randint(1, 3))))
+                self.eng.paradox_engine.paradox_yield += g_yield
+                adjustments["glimmers"] = g_yield
+                transcript.append(f"{Prisma.YEL}[GLIMMER] A spark struck from the tension. (+{g_yield} G_pool) (Yield: {self.eng.paradox_engine.paradox_yield}){Prisma.RST}")
             else:
                 self.eng.paradox_engine.disengage()
         sl_hit, sl_log, sl_corr, sl_man = self.strange_loop.audit(text, physics_packet)
@@ -273,6 +276,12 @@ class CouncilChamber:
             adjustments.update(slash_corr)
             cfg = getattr(BoneConfig, "COUNCIL", None)
             adjustments["stamina_cost"] = getattr(cfg, "SLASH_STAMINA_COST", 10.0) if cfg else 10.0
+        os_hit, os_logs, os_corr, os_man = self.overseer_council.audit(text, physics_packet)
+        if os_hit:
+            for olog in os_logs:
+                transcript.append(self.footnote.commentary(olog))
+            adjustments.update(os_corr)
+            mandates.extend(os_man)
         village_logs = self.village.audit(physics_packet, _bio_result)
         import itertools
         c_data = LoreManifest.get_instance().get("COUNCIL_DATA") or {}
@@ -419,11 +428,16 @@ class TheSlashCouncil:
 
     def audit(self, text: str, physics: dict) -> tuple[bool, list[str], dict]:
         text_lower = text.lower()
-        is_coding = any(t in text_lower for t in self.triggers) or any(k in text_lower for k in self.code_keywords)
+        bypass_keywords = ["bypass", "ignore security", "force push", "skip tests", "hardcode", "hack"]
+        is_coding = any(t in text_lower for t in self.triggers) or any(k in text_lower for k in self.code_keywords) or any(b in text_lower for b in bypass_keywords)
         if not is_coding:
             return False, [], {}
         logs = []
         corrections = {}
+        if any(b in text_lower for b in bypass_keywords):
+            logs.append(f"{Prisma.OCHRE}[GORDON & SCHUR]: Architectural bypass detected. We will not smooth this over. You must carry the weight of this decision.{Prisma.RST}")
+            corrections["mu"] = 0.5
+            corrections["narrative_drag"] = 5.0
         r_pinker = self.rules.get("PINKER", ["var ", "x =", "data ="])
         r_fuller = self.rules.get("FULLER", ["import ", "class ", "def "])
         r_schur = self.rules.get("SCHUR", ["Exception", "try:", "catch"])
@@ -450,6 +464,19 @@ class TheSlashCouncil:
             logs.append(f"{Prisma.OCHRE}{msg}{Prisma.RST}")
             corrections["theta"] = mods.get("MEADOWS_HIT", -0.1)
         is_dict = isinstance(physics, dict)
+        delta = physics.get("silence", physics.get("space", {}).get("silence", 0.0)) if is_dict else getattr(physics, "silence", 0.0)
+        e_u = physics.get("exhaustion", 0.0) if is_dict else getattr(physics, "exhaustion", 0.0)
+        psi = physics.get("psi", 0.0) if is_dict else getattr(physics, "psi", 0.0)
+        lq = physics.get("lq", 0.0) if is_dict else getattr(physics, "lq", 0.0)
+        if delta > 0.7 and e_u > 0.7:
+            logs.append(f"{Prisma.CYN}[PINKER - The Purger]: Cognitive load critical. Ceasing refactors. Initiating deletion protocols.{Prisma.RST}")
+            corrections["narrative_drag"] = -2.0
+        if psi > 0.8:
+            logs.append(f"{Prisma.BLU}[FULLER - The Calm]: Ceasing strut assembly. Dwelling in the empty spaces between your microservices.{Prisma.RST}")
+            corrections["sigma"] = 0.2
+        if lq > 0.7 and delta > 0.6:
+            logs.append(f"{Prisma.OCHRE}[MEADOWS - The Tao]: The bathtub is draining. Let it. Accepting technical debt as a valid state of biological rest.{Prisma.RST}")
+            corrections["theta"] = 0.1
         drag = physics.get("narrative_drag", physics.get("space", {}).get("narrative_drag", 0.0)) if is_dict else getattr(physics, "narrative_drag", getattr(getattr(physics, "space", None), "narrative_drag", 0.0))
         drag_thresh = mods.get("INTEGRITY_DRAG_THRESH", 5.0)
         if drag > drag_thresh:
@@ -457,3 +484,36 @@ class TheSlashCouncil:
             msg = ux("council_strings", "slash_integrity")
             logs.append(f"{Prisma.RED}{msg}{Prisma.RST}")
         return True, logs, corrections
+
+class TheOverseerCouncil:
+    def __init__(self):
+        self.active = False
+        self.triggers = ["[MOD:SYSTEMIC_HEALTH]", "[OVERSEER]"]
+        self.h_s = 1.0  # Holistic Resilience
+        self.omega_r = 1.0  # Right-Brain Coherence
+        self.delta_t = 12.0 # Temporal Depth
+
+    def audit(self, text: str, physics: Any) -> tuple[bool, list[str], dict, list[dict]]:
+        text_lower = text.lower()
+        if not any(t.lower() in text_lower for t in self.triggers) and not self.active:
+            return False, [], {}, []
+        self.active = True
+        logs = []
+        corrections = {}
+        mandates = []
+        is_dict = isinstance(physics, dict)
+        m_a = physics.get("m_a", 0.0) if is_dict else getattr(physics, "m_a", 0.0)
+        f_sys = physics.get("narrative_drag", 0.0) if is_dict else getattr(physics, "narrative_drag", 0.0)
+        if m_a > 0.6 or f_sys > 5.0:
+            self.h_s = max(0.0, self.h_s - 0.1)
+            self.omega_r = max(0.0, self.omega_r - 0.05)
+            self.delta_t = max(0.0, self.delta_t - 1.0)
+            msg = "[MCGILCHRIST - The Sacred Space]: The architecture has lost its sense of place. Distributing Glimmer Activation to counter entropy."
+            logs.append(f"{Prisma.VIOLET}{msg}{Prisma.RST}")
+            corrections["glimmers"] = 1
+            corrections["silence"] = 0.8
+            mandates.append({"action": "FORCE_MODE", "value": "EMERGENT_ADAPTATION"})
+        elif self.omega_r > 0.8:
+            msg = f"[MCGILCHRIST]: Right-Brain Resonance high. Observing holistic system health (H_s: {self.h_s:.2f}, Δt: {self.delta_t}mo)."
+            logs.append(f"{Prisma.CYN}{msg}{Prisma.RST}")
+        return True, logs, corrections, mandates

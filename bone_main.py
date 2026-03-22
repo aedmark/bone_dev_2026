@@ -369,6 +369,15 @@ class BoneAmanita:
     def _pre_flight_checks(self, user_message: str, is_system: bool) -> Optional[Dict[str, Any]]:
         if self.cmd and self.cmd.execute(user_message):
             return self._phase_check_commands(user_message, already_executed=True)
+        if not is_system:
+            clean_in = user_message.lower()
+            destructive_patterns = ["rm -rf", "drop table", ".env", "master branch push", "bypass security"]
+            if any(p in clean_in for p in destructive_patterns):
+                msg = "[MOOG & RHODES]: Trust Boundary Violation detected. I am applying absolute friction (F -> ∞). The thread is frozen."
+                self.events.log(msg, "CRIT")
+                if getattr(self, "cortex", None) and hasattr(self.cortex, "last_physics") and self.cortex.last_physics:
+                    self.cortex.last_physics.narrative_drag = float('inf')
+                return {"type": "SYSTEM_HALT", "ui": f"\n{Prisma.RED}{msg}{Prisma.RST}", "logs": [msg], "metrics": self.get_metrics()}
         if not is_system and "[GRIEF]" in user_message.upper():
             if hasattr(self, "grief") and self.grief:
                 grief_msg = self.grief.attend_wake(getattr(self, "shared_lattice", None), self.phys)
@@ -403,7 +412,18 @@ class BoneAmanita:
                 self.events.log("RHODES: Malignancy Factor critical. Binding output layer.", "SYS")
                 last_phys.narrative_drag = 999.0
                 msg = "[RHODES]: Optimization velocity unsafe. I am applying absolute friction (F -> ∞). The thread is frozen."
-                return {"type": "SYSTEM_HALT", "ui": f"\n{Prisma.RED}{msg}{Prisma.RST}", "logs": [msg], "metrics": self.get_metrics()}
+                return {"type": "SYSTEM_HALT", "ui": f"\n{Prisma.RED}{msg}{Prisma.RST}", "logs": [msg],
+                        "metrics": self.get_metrics()}
+            e_u = getattr(self.shared_lattice.u, "E", 0.0) if getattr(self, "shared_lattice", None) else getattr(
+                last_phys, "exhaustion", 0.0)
+            beta = getattr(last_phys, "beta_index", 0.0)
+            if chi > 0.7 and e_u > 0.7 and beta > 0.6:
+                self.events.log("LINEHAN: Radical Acceptance enforced. Halting ATP drain.", "SYS")
+                if hasattr(self, "bio") and self.bio.mito:
+                    self.bio.mito.state.ros_buildup = 0.0
+                msg = "[LINEHAN]: The architecture is broken. We sit with the debris. ROS forced to zero. ATP drain halted."
+                return {"type": "SYSTEM_HALT", "ui": f"\n{Prisma.MAG}{msg}{Prisma.RST}", "logs": [msg],
+                        "metrics": self.get_metrics()}
         if not self.reality_stack.get_grammar_rules()["allow_narrative"] and self.boot_mode != "TECHNICAL":
             return {"ui": f"{Prisma.RED}{ux('main_strings', 'narrative_halt')}{Prisma.RST}", "logs": [], "metrics": self.get_metrics()}
         if self._ethical_audit():

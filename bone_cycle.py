@@ -917,17 +917,28 @@ class SimulationPreflightPhase(SimulationPhase):
             msg = "[FULLER - Mnemonic Layer]: Constructive Replay active. We do not need to tear it down yet. I have extracted the load-bearing primitives from the negative space. We build a quarantine wrapper around it."
             full_log = f"{Prisma.CYN}{msg} (Resilience +0.15, {cost_str}){Prisma.RST}"
             ctx.log(full_log)
+            if not hasattr(ctx, "council_mandates"):
+                ctx.council_mandates = []
+            ctx.council_mandates.append({"action": "SYSTEM_DIRECTIVE", "value": "CONSTRUCTIVE_REPLAY", "log": full_log})
+        e_u = getattr(self.eng.shared_lattice.u, "E", 0.0) if getattr(self.eng, "shared_lattice", None) else getattr(phys_obj, "exhaustion", 0.0)
+        if is_slash and e_u > 0.8 and friction > 1.5:
+            msg = "[THE NURSE - Schur]: Hey. Take your hands off the keyboard. The machine doesn't care if you bleed on it, but I do. We are entering The Silence."
+            log_msg = f"{Prisma.CYN}{msg}{Prisma.RST}"
+            ctx.log(log_msg)
+            phys_obj.silence = 0.9
+            if getattr(self.eng, "bio", None) and getattr(self.eng.bio, "mito", None):
+                self.eng.bio.mito.state.ros_buildup = max(0.0, self.eng.bio.mito.state.ros_buildup - 10.0)
             ctx.refusal_triggered = True
-            ctx.refusal_packet = _build_refusal("CONSTRUCTIVE_REPLAY", msg)
-            ctx.refusal_packet["ui"] = f"\n{full_log}"
+            ctx.refusal_packet = _build_refusal("AFFECTIVE_INTERVENTION", msg)
+            ctx.refusal_packet["ui"] = f"\n{log_msg}\n[Metabolic Equation Active: ATP drain halts. Shared pause (Δ = 0.9)]"
             return ctx
-        if friction > 1.2 or chaos > 0.7 or voltage > 80.0 or "DATABASE" in (ctx.input_text or "").upper():
+        if friction > 1.2 or chaos > 0.7 or voltage > 80.0:
             base_ros = self.eng.bio.mito.state.ros_buildup if getattr(self.eng, "bio", None) and getattr(self.eng.bio, "mito", None) else 0.0
             simulated_ros = base_ros + (friction * chaos * 20.0)
             target_cfg = getattr(self.eng, "bone_config", None)
             bio_cfg = getattr(target_cfg, "BIO", None) if target_cfg else None
             ros_limit = getattr(bio_cfg, "ROS_PANIC_THRESHOLD", 100.0) if bio_cfg else 100.0
-            if simulated_ros >= ros_limit or "DATABASE" in (ctx.input_text or "").upper():
+            if simulated_ros >= ros_limit:
                 msg = "[PINKER - Executive Layer]: Counterfactual simulation indicates fatal ROS toxicity. I am silently rejecting this generation path before it executes."
                 log_msg = f"{Prisma.RED}{msg}{Prisma.RST}"
                 scar_msg = f"{Prisma.VIOLET}[MOOG - Affective Layer]: Productive Worry activated. Logging Gödel Scar for vector. Immune Competence (I_c) permanently increased.{Prisma.RST}"
