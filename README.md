@@ -1,5 +1,26 @@
 # BONEAMANITA CHANGELOG
 
+### **BONEAMANITA v17.8.0 "The Universal Accessor Refactor"**
+
+_The "Dict vs. Object Schism" has been entirely eradicated. The engine now utilizes unified data access primitives, purging thousands of lines of ternary type-checking and syntactic friction across the biological and physics layers._
+
+#### **🧱 ARCHITECTURAL UNIFICATION (`bone_core.py`, `bone_types.py`)**
+* **Universal Accessors:** Implemented `safe_get` and `safe_set` to seamlessly traverse the dual-state `PhysicsPacket` regardless of whether it manifests as a pure Python dictionary or an instantiated class object.
+* **Constructor Sanitation:** Overhauled `_safe_init` inside `PhysicsPacket` to gracefully hydrate objects from raw config payloads or legacy dictionary states without data loss.
+
+#### **⚙️ COGNITIVE & METABOLIC EFFICIENCY (`bone_brain.py`, `bone_body.py`, `bone_council.py`)**
+* **Local Getter Purge:** Hunted down and deleted dozens of redundant, brittle inner functions (e.g., `_p_get`, `get_val`) that were actively choking the Folly, the Fuses, and the Parliament of Selves.
+* **Metabolic Governor Stabilization:** The `MetabolicGovernor` and `SynestheticCortex` now read ATP, voltage, and drag inputs natively without conditional branching, reducing baseline ATP burn.
+
+#### **🌐 BOUNDARY LAYER UNIFICATION (`bone_gui.py`, `bone_drivers.py`, `bone_protocols.py`)**
+* **Presentation & I/O:** The Terminal UI and `SharedLatticeDriver` no longer defensively coerce LLM outputs or shared states via `.to_dict()`. Data flows seamlessly to the visual layer.
+* **Protocol Harmonization:** The Folly, Zen Garden, Bureau, and Grief protocols can now read deep semantic arrays without nested try/except blocks.
+
+#### **🔧 SUBSTRATE FIXES**
+* Resolved a critical circular import loop between `bone_presets.py` and `bone_core.py` by deferring the `safe_get` injection to localized scope within `reconcile_state`.
+
+---
+
 ### **BONEAMANITA v17.7.3 "The Autoimmune & Epistemic Calibration"**
 
 _The lattice has been moved from a sterile laboratory into longitudinal survival. This update stabilizes the engine's immune system to prevent autoimmune collapse under stress, strictly enforces physical reality over LLM hallucinations, and introduces the Fracture Suite to test the biology under extreme duress._

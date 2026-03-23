@@ -18,6 +18,16 @@ from bone_types import Prisma, RealityLayer, ErrorLog, DecisionTrace, DecisionCr
 def ux(section: str, key: str, default: Any = "") -> Any:
     return LoreManifest.get_instance().get_ux(section, key, default)
 
+def safe_get(obj: Any, key: str, default: Any = None) -> Any:
+    if obj is None: return default
+    if isinstance(obj, dict): return obj.get(key, default)
+    return getattr(obj, key, default)
+
+def safe_set(obj: Any, key: str, value: Any) -> None:
+    if obj is None: return
+    if isinstance(obj, dict): obj[key] = value
+    else: setattr(obj, key, value)
+
 class BoneJSONEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, set):

@@ -8,7 +8,7 @@ import tempfile
 import time
 from collections import deque
 from typing import List, Tuple, Optional, Dict, Any
-from bone_core import EventBus, LoreManifest, BoneJSONEncoder, ux
+from bone_core import EventBus, LoreManifest, BoneJSONEncoder, ux, safe_get, safe_set
 from bone_presets import BoneConfig
 from bone_types import Prisma
 from bone_village import ParadoxSeed
@@ -453,7 +453,7 @@ class MycelialNetwork:
 
     def run_ecosystem(self, physics: Any, stamina: float, tick: int) -> List[str]:
         logs = []
-        clean_words = physics.get("clean_words", []) if isinstance(physics, dict) else getattr(physics, "clean_words", getattr(getattr(physics, "matter", None), "clean_words", []))
+        clean_words = safe_get(physics, "clean_words", safe_get(safe_get(physics, "matter"), "clean_words", []))
         sugar, lichen_msg = self.lichen.photosynthesize(physics, clean_words, tick)
         if lichen_msg:
             logs.append(lichen_msg)
@@ -487,16 +487,10 @@ class MycelialNetwork:
                 total_drag_penalty += d_pen
                 echo_count += 1
         if echo_count > 0:
-            if isinstance(physics, dict):
-                v_targ = physics["energy"] if "energy" in physics else physics
-                d_targ = physics["space"] if "space" in physics else physics
-                v_targ["voltage"] = v_targ.get("voltage", physics.get("voltage", 0.0)) + total_voltage_boost
-                d_targ["narrative_drag"] = d_targ.get("narrative_drag", physics.get("narrative_drag", 0.0)) + total_drag_penalty
-            else:
-                v_targ = physics.energy if hasattr(physics, "energy") else physics
-                d_targ = physics.space if hasattr(physics, "space") else physics
-                if hasattr(v_targ, "voltage"): v_targ.voltage += total_voltage_boost
-                if hasattr(d_targ, "narrative_drag"): d_targ.narrative_drag += total_drag_penalty
+            v_targ = safe_get(physics, "energy", physics)
+            d_targ = safe_get(physics, "space", physics)
+            safe_set(v_targ, "voltage", safe_get(v_targ, "voltage", safe_get(physics, "voltage", 0.0)) + total_voltage_boost)
+            safe_set(d_targ, "narrative_drag", safe_get(d_targ, "narrative_drag", safe_get(physics, "narrative_drag", 0.0)) + total_drag_penalty)
             cfg = getattr(self.cfg, "SPORES", None)
             heavy_v = getattr(cfg, "ECHO_VOLTAGE_HEAVY", 4.0) if cfg else 4.0
             if total_voltage_boost > heavy_v:
@@ -530,16 +524,10 @@ class MycelialNetwork:
         total_v_shift = min(15.0, total_v_shift)
         total_d_shift = min(5.0, total_d_shift)
         if haunted_words:
-            if isinstance(physics, dict):
-                v_targ = physics["energy"] if "energy" in physics else physics
-                d_targ = physics["space"] if "space" in physics else physics
-                v_targ["voltage"] = max(0.0, v_targ.get("voltage", physics.get("voltage", 0.0)) + total_v_shift)
-                d_targ["narrative_drag"] = max(0.0, d_targ.get("narrative_drag", physics.get("narrative_drag", 0.0)) + total_d_shift)
-            else:
-                v_targ = physics.energy if hasattr(physics, "energy") else physics
-                d_targ = physics.space if hasattr(physics, "space") else physics
-                if hasattr(v_targ, "voltage"): v_targ.voltage = max(0.0, v_targ.voltage + total_v_shift)
-                if hasattr(d_targ, "narrative_drag"): d_targ.narrative_drag = max(0.0, d_targ.narrative_drag + total_d_shift)
+            v_targ = safe_get(physics, "energy", physics)
+            d_targ = safe_get(physics, "space", physics)
+            safe_set(v_targ, "voltage", max(0.0, safe_get(v_targ, "voltage", safe_get(physics, "voltage", 0.0)) + total_v_shift))
+            safe_set(d_targ, "narrative_drag", max(0.0, safe_get(d_targ, "narrative_drag", safe_get(physics, "narrative_drag", 0.0)) + total_d_shift))
             msg = ux("spore_strings", "net_ghost_haunt") or "The ghosts of [{words}] alter the atmosphere (V:{v:+.2f}, D:{d:+.2f})."
             return f"{Prisma.VIOLET}{msg.format(words=', '.join(haunted_words).upper(), v=total_v_shift, d=total_d_shift)}{Prisma.RST}"
         return None
@@ -548,10 +536,7 @@ class MycelialNetwork:
         return self.memory_core.prune_synapses(scaling_factor, prune_threshold)
 
     def encode(self, clean_words, physics, governor_mode):
-        if isinstance(physics, dict):
-            significance = physics.get("voltage", physics.get("energy", {}).get("voltage", 0.0))
-        else:
-            significance = getattr(physics, "voltage", getattr(getattr(physics, "energy", None), "voltage", 0.0))
+        significance = float(safe_get(physics, "voltage", safe_get(safe_get(physics, "energy"), "voltage", 0.0)))
         if governor_mode == "FORGE":
             significance *= 2.0
         elif governor_mode == "LABORATORY":
@@ -805,7 +790,7 @@ class MycelialNetwork:
                      for s in self.seeds
                      if not s.bloomed]
         seed_list.append({"q": future_seed_q, "m": 0.0, "b": False})
-        data = {"genome": "BONEAMANITA_17.7.2", "session_id": self.session_id, "parent_id": self.session_id, "meta": {
+        data = {"genome": "BONEAMANITA_17.8.0", "session_id": self.session_id, "parent_id": self.session_id, "meta": {
             "timestamp": time.time(), "final_health": health, "final_stamina": stamina, },
                 "trauma_vector": final_vector, "joy_vectors": top_joy or [], "joy_legacy": joy_legacy_data,
                 "core_graph": core_graph, "mutations": mutations or {},
@@ -987,12 +972,8 @@ class BioLichen:
 
     def photosynthesize(self, phys, clean_words, tick_count):
         msgs = []
-        if hasattr(phys, "counts"):
-            counts = phys.counts
-            drag = getattr(phys, "narrative_drag", 0.0)
-        else:
-            counts = phys.get("counts", {})
-            drag = phys.get("narrative_drag", 0.0)
+        counts = safe_get(phys, "counts", {})
+        drag = float(safe_get(phys, "narrative_drag", 0.0))
         light = counts.get("photo", 0)
         sugar = 0.0
         light_words = [w for w in clean_words if w in self.archetypes]
@@ -1031,11 +1012,7 @@ class LiteraryReproduction:
 
     @staticmethod
     def _extract_counts(physics_container):
-        if hasattr(physics_container, "counts"):
-            return physics_container.counts
-        if isinstance(physics_container, dict):
-            return physics_container.get("counts", {})
-        return {}
+        return safe_get(physics_container, "counts", {})
 
     @staticmethod
     def mutate_config(current_config):

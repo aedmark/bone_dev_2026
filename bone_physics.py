@@ -8,7 +8,7 @@ from collections import Counter, deque
 from dataclasses import dataclass
 from typing import Dict, List, Any, Tuple, Optional, Deque
 
-from bone_core import LoreManifest, ux
+from bone_core import LoreManifest, ux, safe_get, safe_set
 from bone_presets import BoneConfig
 from bone_types import Prisma, PhysicsPacket, CycleContext, SpatialState, MaterialState, EnergyState
 
@@ -477,13 +477,11 @@ class ZoneInertia:
         self.strain_gauge = 0.0
         return self.is_anchored
 
-    def stabilize(self, proposed_zone: str, physics: Any, cosmic_state: Tuple[str, float, str], ) -> Tuple[str, Optional[str]]:
-        if isinstance(physics, dict):
-            beta = physics.get("beta_index", physics.get("energy", {}).get("beta_index", 1.0))
-            truth = physics.get("truth_ratio", physics.get("matter", {}).get("truth_ratio", 0.5))
-        else:
-            beta = getattr(physics, "beta_index", getattr(physics.energy, "beta_index", 1.0) if hasattr(physics, "energy") else 1.0)
-            truth = getattr(physics, "truth_ratio", getattr(physics.matter, "truth_ratio", 0.5) if hasattr(physics, "matter") else 0.5)
+    def stabilize(self, proposed_zone: str, physics: Any, cosmic_state: Tuple[str, float, str]) -> Tuple[str, Optional[str]]:
+        energy = safe_get(physics, "energy", physics)
+        matter = safe_get(physics, "matter", physics)
+        beta = safe_get(physics, "beta_index", safe_get(energy, "beta_index", 1.0))
+        truth = safe_get(physics, "truth_ratio", safe_get(matter, "truth_ratio", 0.5))
         grav_pull = 1.0 if cosmic_state[0] != "VOID_DRIFT" else 0.0
         current_vec = (beta, truth, grav_pull)
         self.dwell_counter += 1
@@ -725,43 +723,14 @@ class CycleStabilizer:
         amount = payload.get("drag_penalty", 0.0)
         self.pending_drag += amount
 
-    def stabilize(self, ctx: CycleContext, current_phase: str):
-        p = ctx.physics
-
-        def _get(obj, field, default=0.0):
-            if isinstance(obj, dict):
-                return obj.get(field, obj.get("energy", {}).get(field, obj.get("space", {}).get(field, default)))
-            return getattr(obj, field, getattr(getattr(obj, "energy", None), field, getattr(getattr(obj, "space", None), field, default)))
-
-        def _set(obj, field, val):
-            if isinstance(obj, dict):
-                if field == "voltage" and "energy" in obj:
-                    obj["energy"][field] = val
-                elif field == "narrative_drag" and "space" in obj:
-                    obj["space"][field] = val
-                else:
-                    obj[field] = val
-            else:
-                if hasattr(obj, "energy") and hasattr(obj.energy, field):
-                    setattr(obj.energy, field, val)
-                elif hasattr(obj, "space") and hasattr(obj.space, field):
-                    setattr(obj.space, field, val)
-                else:
-                    setattr(obj, field, val)
-        current_v = _get(p, "voltage", 0.0)
-        current_d = _get(p, "narrative_drag", 0.0)
-        if current_v >= self.HARD_FUSE_VOLTAGE:
-            msg = ux("physics_strings", "stabilizer_fuse")
-            ctx.log(f"{Prisma.RED}{msg.format(voltage=self.HARD_FUSE_VOLTAGE)}{Prisma.RST}")
-            cfg_deep = getattr(self.cfg, "PHYSICS_DEEP", None)
-            rst_v = getattr(cfg_deep, "FUSE_RESET_V", 10.0) if cfg_deep else 10.0
-            rst_d = getattr(cfg_deep, "FUSE_RESET_D", 5.0) if cfg_deep else 5.0
-            if hasattr(ctx, "record_flux"):
-                ctx.record_flux(current_phase, "voltage", current_v, rst_v, "FUSE_BLOWN")
-                ctx.record_flux(current_phase, "narrative_drag", current_d, rst_d, "FUSE_BLOWN")
-            _set(p, "voltage", rst_v)
-            _set(p, "narrative_drag", rst_d)
-            return True
+    def stabilize(self, proposed_zone: str, physics: Any, cosmic_state: Tuple[str, float, str]) -> Tuple[str, Optional[str]]:
+        energy = safe_get(physics, "energy", physics)
+        matter = safe_get(physics, "matter", physics)
+        beta = safe_get(physics, "beta_index", safe_get(energy, "beta_index", 1.0))
+        truth = safe_get(physics, "truth_ratio", safe_get(matter, "truth_ratio", 0.5))
+        grav_pull = 1.0 if cosmic_state[0] != "VOID_DRIFT" else 0.0
+        current_vec = (beta, truth, grav_pull)
+        self.dwell_counter += 1
         if self.pending_drag > 0:
             _set(p, "narrative_drag", current_d + self.pending_drag)
             msg = ux("physics_strings", "stabilizer_domestication")

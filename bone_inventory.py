@@ -5,7 +5,7 @@ import re
 from dataclasses import dataclass, field
 from typing import List, Dict, Tuple, Optional, Any
 from bone_presets import BoneConfig
-from bone_core import LoreManifest, ux
+from bone_core import LoreManifest, ux, safe_get, safe_set
 from bone_types import Prisma
 
 @dataclass
@@ -224,10 +224,9 @@ class GordonKnot:
 
     def _get_loot_candidates(self, physics: Any) -> List[str]:
         candidates = []
-        is_dict = isinstance(physics, dict)
-        voltage = physics.get("voltage", 0.0) if is_dict else getattr(physics, "voltage", 0.0)
-        drag = physics.get("narrative_drag", 0.0) if is_dict else getattr(physics, "narrative_drag", 0.0)
-        psi = physics.get("psi", 0.0) if is_dict else getattr(physics, "psi", 0.0)
+        voltage = float(safe_get(physics, "voltage", 0.0))
+        drag = float(safe_get(physics, "narrative_drag", 0.0))
+        psi = float(safe_get(physics, "psi", 0.0))
         v_high = getattr(self.cfg.PHYSICS, "VOLTAGE_HIGH", 12.0)
         v_crit = getattr(self.cfg.PHYSICS, "VOLTAGE_CRITICAL", 15.0)
         d_heavy = getattr(self.cfg.PHYSICS, "DRAG_HEAVY", 5.0)
@@ -333,10 +332,9 @@ class GordonKnot:
         return True, msg.format(item=item_name, usage_msg=item.usage_msg)
 
     def emergency_reflex(self, physics_ref: Any) -> Tuple[bool, Optional[str]]:
-        is_dict = isinstance(physics_ref, dict)
-        voltage = physics_ref.get("voltage", 0.0) if is_dict else getattr(physics_ref, "voltage", 0.0)
-        drag = physics_ref.get("narrative_drag", 0.0) if is_dict else getattr(physics_ref, "narrative_drag", 0.0)
-        kappa = physics_ref.get("kappa", 0.5) if is_dict else getattr(physics_ref, "kappa", 0.5)
+        voltage = float(safe_get(physics_ref, "voltage", 0.0))
+        drag = float(safe_get(physics_ref, "narrative_drag", 0.0))
+        kappa = float(safe_get(physics_ref, "kappa", 0.5))
         cfg = getattr(self.cfg, "INVENTORY", None)
         v_trig = getattr(cfg, "REFLEX_VOLTAGE_TRIGGER", 18.0) if cfg else 18.0
         v_reset = getattr(cfg, "REFLEX_VOLTAGE_RESET", 12.0) if cfg else 12.0
@@ -351,26 +349,17 @@ class GordonKnot:
             trigger = item.reflex_trigger
             if trigger == "VOLTAGE_CRITICAL" and voltage > v_trig:
                 self.safe_remove_item(name)
-                if is_dict:
-                    physics_ref["voltage"] = v_reset
-                else:
-                    setattr(physics_ref, "voltage", v_reset)
+                safe_set(physics_ref, "voltage", v_reset)
                 msg = ux("gordon_strings", "reflex_voltage")
                 return True, f"{Prisma.CYN}{msg.format(name=name)}{Prisma.RST}"
             if trigger == "DRIFT_CRITICAL" and drag > d_trig:
                 self.safe_remove_item(name)
-                if is_dict:
-                    physics_ref["narrative_drag"] = d_reset
-                else:
-                    setattr(physics_ref, "narrative_drag", d_reset)
+                safe_set(physics_ref, "narrative_drag", d_reset)
                 msg = ux("gordon_strings", "reflex_drift")
                 return True, f"{Prisma.OCHRE}{msg.format(name=name)}{Prisma.RST}"
             if trigger == "KAPPA_CRITICAL" and kappa < k_trig:
                 self.safe_remove_item(name)
-                if is_dict:
-                    physics_ref["kappa"] = k_reset
-                else:
-                    setattr(physics_ref, "kappa", k_reset)
+                safe_set(physics_ref, "kappa", k_reset)
                 msg = ux("gordon_strings", "reflex_kappa")
                 return True, f"{Prisma.GRN}{msg.format(name=name)}{Prisma.RST}"
         return False, None

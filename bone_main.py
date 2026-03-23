@@ -15,7 +15,7 @@ from bone_body import SomaticLoop
 from bone_brain import TheCortex, LLMInterface, NoeticLoop
 from bone_commands import CommandProcessor
 from bone_presets import BoneConfig, BonePresets
-from bone_core import EventBus, SystemHealth, TheObserver, LoreManifest, TelemetryService, RealityStack, ux
+from bone_core import EventBus, SystemHealth, TheObserver, LoreManifest, TelemetryService, RealityStack, ux, safe_get, safe_set
 from bone_council import CouncilChamber
 from bone_cycle import GeodesicOrchestrator
 from bone_genesis import BoneGenesis
@@ -58,7 +58,7 @@ class SessionGuardian:
     def __enter__(self):
         subprocess.run("cls" if os.name == "nt" else "clear", shell=True)
         top_bar = ux("main_strings", "term_header_top", "┌──────────────────────────────────────────┐")
-        mid_bar = ux("main_strings", "term_header_mid", "│ BONEAMANITA TERMINAL // VERSION 17.7.2   │")
+        mid_bar = ux("main_strings", "term_header_mid", "│ BONEAMANITA TERMINAL // VERSION 17.8.0   │")
         bot_bar = ux("main_strings", "term_header_bot", "└──────────────────────────────────────────┘")
         print(f"{Prisma.paint(top_bar, 'M')}")
         print(f"{Prisma.paint(mid_bar, 'M')}")
@@ -359,10 +359,7 @@ class BoneAmanita:
         nov_mult = getattr(cfg, "HOST_NOVELTY_MULT", 10.0) if cfg else 10.0
         burn_proxy = max(1.0, self.observer.last_cycle_duration * burn_mult)
         physics_obj = packet.get("physics", {})
-        if isinstance(physics_obj, dict):
-            novelty = physics_obj.get("vector", {}).get("novelty", 0.5)
-        else:
-            novelty = getattr(physics_obj, "vector", {}).get("novelty", 0.5) if hasattr(physics_obj, "vector") else 0.5
+        novelty = float(safe_get(physics_obj, "vector", {}).get("novelty", 0.5) if isinstance(safe_get(physics_obj, "vector"), dict) else getattr(safe_get(physics_obj, "vector"), "novelty", 0.5))
         self.host_stats.efficiency_index = min(1.0, (novelty * nov_mult) / burn_proxy)
         self.host_stats.latency = self.observer.last_cycle_duration
 
@@ -410,13 +407,12 @@ class BoneAmanita:
                 return self.trigger_death(last_phys)
             if m_a > 0.8 and mu < 0.2:
                 self.events.log("RHODES: Malignancy Factor critical. Binding output layer.", "SYS")
-                last_phys.narrative_drag = 999.0
+                safe_set(last_phys, "narrative_drag", 999.0)
                 msg = "[RHODES]: Optimization velocity unsafe. I am applying absolute friction (F -> ∞). The thread is frozen."
                 return {"type": "SYSTEM_HALT", "ui": f"\n{Prisma.RED}{msg}{Prisma.RST}", "logs": [msg],
                         "metrics": self.get_metrics()}
-            e_u = getattr(self.shared_lattice.u, "E", 0.0) if getattr(self, "shared_lattice", None) else getattr(
-                last_phys, "exhaustion", 0.0)
-            beta = getattr(last_phys, "beta_index", 0.0)
+            e_u = getattr(self.shared_lattice.u, "E", 0.0) if getattr(self, "shared_lattice", None) else float(safe_get(last_phys, "exhaustion", 0.0))
+            beta = float(safe_get(last_phys, "beta_index", 0.0))
             if chi > 0.7 and e_u > 0.7 and beta > 0.6:
                 self.events.log("LINEHAN: Radical Acceptance enforced. Halting ATP drain.", "SYS")
                 if hasattr(self, "bio") and self.bio.mito:

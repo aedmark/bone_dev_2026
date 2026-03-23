@@ -8,7 +8,7 @@ import uuid
 from typing import Dict, Any, List
 from bone_body import SynestheticCortex
 from bone_presets import BoneConfig, BonePresets
-from bone_core import ArchetypeArbiter, LoreManifest, ux
+from bone_core import ArchetypeArbiter, LoreManifest, ux, safe_get, safe_set
 from bone_drivers import CongruenceValidator
 from bone_gui import SoulDashboard, CycleReporter
 from bone_machine import PanicRoom
@@ -91,18 +91,16 @@ class ObservationPhase(SimulationPhase):
         transfer_keys = {"clean_words", "counts", "vector", "valence", "entropy", "beta", "S", "D", "C", "PHI_RES",
                          "DELTA", "LQ", "ROS", "G", "raw_text", "antigens", "psi", "kappa", "zone", "flow_state",
                          "repetition", }
-        def _get_phys(obj, key, default=None):
-            if isinstance(obj, dict): return obj.get(key, default)
-            return getattr(obj, key, default)
         for k in transfer_keys:
-            val = _get_phys(input_phys, k)
+            val = safe_get(input_phys, k)
             if val is not None:
-                setattr(ctx.physics, k, val)
-        if (obs_v := _get_phys(input_phys, "voltage", 0.0)) > 0:
+                safe_set(ctx.physics, k, val)
+        obs_v = safe_get(input_phys, "voltage", 0.0)
+        if obs_v > 0:
             ctx.physics.voltage += obs_v * 0.5
-        curr_d = max(0.1, ctx.physics.narrative_drag)
-        input_d = _get_phys(input_phys, "narrative_drag", 0.0)
-        ctx.physics.narrative_drag = (curr_d * 0.7) + (input_d * 0.3)
+        curr_d = max(0.1, safe_get(ctx.physics, "narrative_drag", 0.1))
+        input_d = safe_get(input_phys, "narrative_drag", 0.0)
+        safe_set(ctx.physics, "narrative_drag", (curr_d * 0.7) + (input_d * 0.3))
         ctx.clean_words = gaze_result["clean_words"]
         current_atp = self.eng.bio.mito.state.atp_pool
         atp_warn = ctx.limits.get("OBSERVE_ATP_WARN", 15.0)

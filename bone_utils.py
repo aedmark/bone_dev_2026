@@ -528,19 +528,11 @@ class DSPyCritic:
         self.cfg = config_ref
         if self.enabled:
             try:
-                if self.cfg and hasattr(self.cfg, "PROVIDER"):
-                    provider = getattr(self.cfg, "PROVIDER", "ollama")
-                    model_name = getattr(self.cfg, "MODEL", "vsl-hermes")
-                    base_url = getattr(self.cfg, "BASE_URL", "http://127.0.0.1:11434/v1/chat/completions")
-                elif isinstance(self.cfg, dict):
-                    provider = self.cfg.get("provider", "ollama")
-                    model_name = self.cfg.get("model", "vsl-hermes")
-                    base_url = self.cfg.get("base_url", "http://127.0.0.1:11434/v1/chat/completions")
-                else:
-                    from bone_presets import BoneConfig
-                    provider = getattr(BoneConfig, "PROVIDER", "ollama")
-                    model_name = getattr(BoneConfig, "MODEL", "vsl-hermes")
-                    base_url = getattr(BoneConfig, "BASE_URL", "http://127.0.0.1:11434/v1/chat/completions")
+                from bone_core import safe_get
+                from bone_presets import BoneConfig
+                provider = safe_get(self.cfg, "PROVIDER", safe_get(self.cfg, "provider", getattr(BoneConfig, "PROVIDER", "ollama")))
+                model_name = safe_get(self.cfg, "MODEL", safe_get(self.cfg, "model", getattr(BoneConfig, "MODEL", "vsl-hermes")))
+                base_url = safe_get(self.cfg, "BASE_URL", safe_get(self.cfg, "base_url", getattr(BoneConfig, "BASE_URL", "http://127.0.0.1:11434/v1/chat/completions")))
                 if base_url:
                     base_url = base_url.replace("/chat/completions", "")
                 else:

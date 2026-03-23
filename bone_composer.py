@@ -9,7 +9,7 @@ import urllib.request
 from typing import Dict, Any, Optional
 
 from bone_presets import BoneConfig
-from bone_core import Prisma, EventBus, ux, BoneJSONEncoder
+from bone_core import Prisma, EventBus, ux, BoneJSONEncoder, safe_get, safe_set
 
 class SynapseError(Exception):
     pass
@@ -193,17 +193,13 @@ class PromptComposer:
 
     @staticmethod
     def _safe_get(p_state: Any, key: str, default: Any = 0.0) -> Any:
-        if isinstance(p_state, dict):
-            return p_state.get(key, p_state.get("energy", {}).get(key, p_state.get("space", {}).get(key, p_state.get(
-                "matter", {}).get(key, default))))
-        val = getattr(p_state, key, None)
-        if val is not None: return val
-        for sub in ["energy", "space", "matter"]:
-            sub_obj = getattr(p_state, sub, None)
-            if sub_obj:
-                val = getattr(sub_obj, key, sub_obj.get(key) if isinstance(sub_obj, dict) else None)
-                if val is not None: return val
-        return default
+        val = safe_get(p_state, key)
+        if val is None:
+            for sub in ["energy", "space", "matter"]:
+                sub_obj = safe_get(p_state, sub)
+                val = safe_get(sub_obj, key)
+                if val is not None: break
+        return default if val is None else val
 
     def load_template(self, template_data: Dict[str, Any]):
         if not template_data:
@@ -655,11 +651,7 @@ class ResponseValidator:
                 if not primary_replacement:
                     primary_replacement = self._generate_dynamic_rejection("MARKDOWN_DETECTED")
         phys_ref = _state.get("physics", {})
-        if isinstance(phys_ref, dict):
-            voltage = phys_ref.get("energy", {}).get(
-                "voltage", phys_ref.get("voltage", 30.0))
-        else:
-            voltage = getattr(phys_ref, "voltage", 30.0)
+        voltage = float(safe_get(phys_ref, "voltage", safe_get(safe_get(phys_ref, "energy"), "voltage", 30.0)))
         if voltage > 60 and "?" in sanitized_response:
             if not primary_replacement:
                 msg_q = ux("brain_strings", "val_gordon_question") or ""
@@ -697,13 +689,8 @@ class ResponseValidator:
                     "feedback_instruction": "FIX ALL OF THESE ERRORS: " + " | ".join(errors_found),
                     "meta_logs": extracted_meta_logs, }
         target_cfg = getattr(self, "cfg", BoneConfig)
-
-        def _safe_get(obj, key, default):
-            if isinstance(obj, dict): return obj.get(key, default)
-            return getattr(obj, key, default)
-
-        cfg = _safe_get(target_cfg, "CORTEX", None)
-        stutter_len = _safe_get(cfg, "VALIDATOR_STUTTER_LENGTH", 5) if cfg else 5
+        cfg = safe_get(target_cfg, "CORTEX")
+        stutter_len = safe_get(cfg, "VALIDATOR_STUTTER_LENGTH", 5) if cfg else 5
         if len(sanitized_response.strip()) < stutter_len:
             return {"valid": False, "reason": "STUTTER", "replacement": ux("brain_strings", "val_stutter"), "meta_logs": extracted_meta_logs, }
         return {"valid": True, "content": sanitized_response, "meta_logs": extracted_meta_logs, }

@@ -6,7 +6,7 @@ import random
 from dataclasses import dataclass, field, asdict
 from typing import List, Dict, Any, Tuple, Optional, Set
 from bone_presets import BoneConfig
-from bone_core import LoreManifest, EventBus, ux
+from bone_core import LoreManifest, EventBus, ux, safe_get, safe_set
 from bone_physics import PhysicsDelta
 from bone_types import Prisma, PhysicsPacket
 
@@ -259,8 +259,7 @@ class TheCartographer:
         self.current_node_id: str = "GENESIS_POINT"
         self._init_genesis()
 
-    def apply_environment(self, packet_input: Any) -> List[str]:
-        packet = _hydrate_packet(packet_input)
+    def apply_environment(self, packet: Any) -> List[str]:
         logs = []
         node = self.world_graph.get(self.current_node_id)
         if not node:
@@ -271,22 +270,22 @@ class TheCartographer:
         c_ent_step = getattr(cfg, "CARTO_ENTROPY_STEP", 0.1) if cfg else 0.1
         c_ent_cap = getattr(cfg, "CARTO_ENTROPY_CAP", 5.0) if cfg else 5.0
         if "heavy" in node.atmosphere.lower():
-            packet.narrative_drag += c_heavy
+            current_drag = safe_get(packet, "narrative_drag", 0.0)
+            safe_set(packet, "narrative_drag", current_drag + c_heavy)
             msg_raw = ux("village_strings", "carto_env_heavy")
             if msg_raw:
-                msg = msg_raw.format(c_heavy=c_heavy)
-                logs.append(f"{Prisma.GRY}{msg}{Prisma.RST}")
+                logs.append(f"{Prisma.GRY}{msg_raw.format(c_heavy=c_heavy)}{Prisma.RST}")
         if "vibrating" in node.atmosphere.lower():
-            packet.voltage += c_static
+            current_volt = safe_get(packet, "voltage", 0.0)
+            safe_set(packet, "voltage", current_volt + c_static)
             msg_raw = ux("village_strings", "carto_env_static")
             if msg_raw:
-                msg = msg_raw.format(c_static=c_static)
-                logs.append(f"{Prisma.YEL}{msg}{Prisma.RST}")
+                logs.append(f"{Prisma.YEL}{msg_raw.format(c_static=c_static)}{Prisma.RST}")
         node.entropy_buildup += c_ent_step
         if node.entropy_buildup > c_ent_cap:
-            if not packet.vector:
-                packet.vector = {}
-            packet.vector["ENT"] = packet.vector.get("ENT", 0.0) + c_ent_step
+            vector = safe_get(packet, "vector", {})
+            vector["ENT"] = vector.get("ENT", 0.0) + c_ent_step
+            safe_set(packet, "vector", vector)
         return logs
 
     def _init_genesis(self):
@@ -566,35 +565,34 @@ class DeathGen:
         return f"{prefix} CAUSE: {random.choice(causes)}. {random.choice(verdicts)}", cause
 
     @staticmethod
-    def _determine_cause(
-            p: PhysicsPacket, mito_state: Any, trauma_vector: Dict = None, config_ref=None) -> str:
+    def _determine_cause(p: Any, mito_state: Any, trauma_vector: Dict = None, config_ref=None) -> str:
         target_cfg = config_ref or BoneConfig
         cfg = getattr(target_cfg, "VILLAGE", None)
         t_crit = getattr(cfg, "DEATH_TRAUMA_CRIT", 50.0) if cfg else 50.0
         tox_crit = getattr(cfg, "DEATH_TOXICITY_CRIT", 5) if cfg else 5
         if trauma_vector and sum(trauma_vector.values()) > t_crit:
             return "TRAUMA"
-        atp = float(
-            mito_state.get("atp", 0)
-            if isinstance(mito_state, dict)
-            else getattr(mito_state, "atp_pool", 0))
+        atp = float(safe_get(mito_state, "atp_pool", safe_get(mito_state, "atp", 0.0)))
         bio_cfg = getattr(target_cfg, "BIO", None)
         starvation_thresh = getattr(bio_cfg, "ATP_STARVATION", 0.0) if bio_cfg else 0.0
         if atp <= starvation_thresh:
             return "STARVATION"
-        m_a = getattr(p, "m_a", getattr(p.energy, "m_a", 0.0) if hasattr(p, "energy") else 0.0)
-        i_c = getattr(p, "i_c", getattr(p.energy, "i_c", 1.0) if hasattr(p, "energy") else 1.0)
-        chi = getattr(p, "chi", getattr(p.energy, "chi", 0.0) if hasattr(p, "energy") else 0.0)
+        energy = safe_get(p, "energy", p)
+        m_a = safe_get(p, "m_a", safe_get(energy, "m_a", 0.0))
+        i_c = safe_get(p, "i_c", safe_get(energy, "i_c", 1.0))
+        chi = safe_get(p, "chi", safe_get(energy, "chi", 0.0))
         if (chi * m_a) > i_c:
             return "APOPTOSIS"
         phys_cfg = getattr(target_cfg, "PHYSICS", None)
         volt_crit = getattr(phys_cfg, "VOLTAGE_CRITICAL", 100.0) if phys_cfg else 100.0
         drag_halt = getattr(phys_cfg, "DRAG_HALT", 10.0) if phys_cfg else 10.0
-        if p.voltage > volt_crit:
+        voltage = safe_get(p, "voltage", safe_get(energy, "voltage", 0.0))
+        drag = safe_get(p, "narrative_drag", safe_get(safe_get(p, "space", p), "narrative_drag", 0.0))
+        if voltage > volt_crit:
             return "GLUTTONY"
-        if p.narrative_drag > drag_halt:
+        if drag > drag_halt:
             return "BOREDOM"
-        counts = p.counts or {}
+        counts = safe_get(p, "counts", safe_get(safe_get(p, "matter", p), "counts", {}))
         if counts.get("antigen", 0) > tox_crit:
             return "TOXICITY"
         return "STARVATION"

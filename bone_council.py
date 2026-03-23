@@ -3,7 +3,7 @@
 import random
 from typing import Dict, Any
 from bone_presets import BoneConfig
-from bone_core import LoreManifest, ux
+from bone_core import LoreManifest, ux, safe_get, safe_set
 from bone_symbiosis import get_symbiont
 from bone_types import Prisma
 
@@ -18,9 +18,8 @@ class TheStrangeLoop:
     def audit(self, text: str, physics: Any) -> tuple[bool, str, dict, dict]:
         text_lower = text.lower()
         phrase_hit = any(t in text_lower for t in self.triggers)
-        is_dict = isinstance(physics, dict)
-        psi = physics.get("psi", physics.get("energy", {}).get("psi", 0.0)) if is_dict else getattr(physics, "psi", getattr(getattr(physics, "energy", None), "psi", 0.0))
-        voltage = physics.get("voltage", physics.get("energy", {}).get("voltage", 0.0)) if is_dict else getattr(physics, "voltage", getattr(getattr(physics, "energy", None), "voltage", 0.0))
+        psi = float(safe_get(physics, "psi", safe_get(safe_get(physics, "energy"), "psi", 0.0)))
+        voltage = float(safe_get(physics, "voltage", safe_get(safe_get(physics, "energy"), "voltage", 0.0)))
         abstract_hit = psi > 0.6 and any(w in text_lower for w in self.keywords)
         threshold = getattr(BoneConfig.COUNCIL, "STRANGE_LOOP_VOLTAGE", 8.0)
         if (phrase_hit or abstract_hit) and voltage > threshold:
@@ -48,9 +47,8 @@ class TheLeveragePoint:
         self.TARGET_DRAG = getattr(cfg, "LEVERAGE_TARGET_DRAG", 3.0) if cfg else 3.0
 
     def audit(self, physics: Any, _bio_state: dict = None) -> tuple[bool, str, dict, dict]:
-        is_dict = isinstance(physics, dict)
-        current_drag = physics.get("narrative_drag", physics.get("space", {}).get("narrative_drag", 0.0)) if is_dict else getattr(physics, "narrative_drag", 0.0)
-        current_voltage = physics.get("voltage", physics.get("energy", {}).get("voltage", 0.0)) if is_dict else getattr(physics, "voltage", 0.0)
+        current_drag = float(safe_get(physics, "narrative_drag", safe_get(safe_get(physics, "space"), "narrative_drag", 0.0)))
+        current_voltage = float(safe_get(physics, "voltage", safe_get(safe_get(physics, "energy"), "voltage", 0.0)))
         if self.last_drag == 0.0 and current_drag > 0:
             self.last_drag = current_drag
         delta = current_drag - self.last_drag
@@ -113,27 +111,15 @@ class TheVillageCouncil:
     @staticmethod
     def audit(p: Any, _bio_state: dict) -> list[str]:
         logs = []
-        is_dict = isinstance(p, dict)
-
         def get_val(key: str, attr: str, default: float) -> float:
+            val = safe_get(p, key, safe_get(p, attr))
+            if val is None:
+                for sub in ["energy", "space", "matter"]:
+                    sub_obj = safe_get(p, sub)
+                    val = safe_get(sub_obj, key, safe_get(sub_obj, attr))
+                    if val is not None: break
             try:
-                if is_dict:
-                    val = p.get(key, p.get(attr))
-                    if val is None:
-                        for sub in ["energy", "space", "matter"]:
-                            if sub in p and (key in p[sub] or attr in p[sub]):
-                                val = p[sub].get(key, p[sub].get(attr))
-                                break
-                    return float(val) if val is not None else default
-                else:
-                    val = getattr(p, attr, getattr(p, key, None))
-                    if val is None:
-                        for sub in ["energy", "space", "matter"]:
-                            if hasattr(p, sub):
-                                sub_obj = getattr(p, sub)
-                                val = getattr(sub_obj, attr, getattr(sub_obj, key, None))
-                                if val is not None: break
-                    return float(val) if val is not None else default
+                return float(val) if val is not None else default
             except (ValueError, TypeError):
                 return default
         V = get_val("voltage", "V", 30.0)
@@ -147,8 +133,8 @@ class TheVillageCouncil:
         psi = get_val("psi", "psi", 0.2)
         chi = get_val("chi", "chi", 0.2)
         valence = get_val("valence", "valence", 0.0)
-        vec = p.get("vector", {}) if is_dict else getattr(p, "vector", {})
-        lam = float(vec.get("LAMBDA", 0.0)) if vec and isinstance(vec, dict) else 0.0
+        vec = safe_get(p, "vector", {})
+        lam = float(safe_get(vec, "LAMBDA", 0.0)) if vec else 0.0
         phi = get_val("resonance", "PHI_RES", 0.0)
         delta = get_val("silence", "DELTA", 0.0)
         lq = get_val("lq", "LQ", 0.0)
@@ -238,17 +224,16 @@ class CouncilChamber:
         transcript = []
         adjustments = {}
         mandates = []
-        is_dict = isinstance(physics_packet, dict)
-        beta = physics_packet.get("beta_index", physics_packet.get("energy", {}).get("beta_index", 0.0)) if is_dict else getattr(physics_packet, "beta_index", getattr(physics_packet, "beta", 0.0))
+        beta = float(safe_get(physics_packet, "beta_index", safe_get(safe_get(physics_packet, "energy"), "beta_index", safe_get(physics_packet, "beta", 0.0))))
         stamina = _bio_result.get("stamina", 100.0)
-        clean_words = physics_packet.get("clean_words", physics_packet.get("matter", {}).get("clean_words", [])) if is_dict else getattr(physics_packet, "clean_words", getattr(physics_packet, "matter", {}).clean_words if hasattr(physics_packet, "matter") else [])
+        clean_words = safe_get(physics_packet, "clean_words", safe_get(safe_get(physics_packet, "matter"), "clean_words", []))
         if self.eng.paradox_engine.evaluate_tension(beta, stamina):
             pressure, paradox_prompt = self.eng.paradox_engine.ignite(clean_words)
             transcript.append(f"{Prisma.VIOLET}[PARADOX ENGINE ACTIVATED] Πx={pressure:.2f}{Prisma.RST}")
             transcript.append(f"{Prisma.VIOLET}(Benedict & Jester): {paradox_prompt}{Prisma.RST}")
             adjustments["stamina"] = - (10.0 * pressure)
             mandates.append({"type": "PARADOX_OVERRIDE", "directive": paradox_prompt, "pressure": pressure})
-            phi = physics_packet.get("resonance", physics_packet.get("energy", {}).get("resonance", 0.0)) if is_dict else getattr(physics_packet, "resonance", 0.0)
+            phi = float(safe_get(physics_packet, "resonance", safe_get(safe_get(physics_packet, "energy"), "resonance", 0.0)))
             yield_chance = (0.3 * pressure) * (1.0 + phi)
             if random.random() < yield_chance:
                 g_yield = min(5, max(1, int(pressure * (1.0 + phi) * random.randint(1, 3))))
@@ -326,7 +311,7 @@ class CouncilChamber:
         active_voices = [v for v in self.voices if v is not None]
         if not active_voices:
             votes["YEA"] = 1
-        voltage = physics_packet.get("voltage", physics_packet.get("energy", {}).get("voltage", 0.0)) if is_dict else getattr(physics_packet, "voltage", 0.0)
+        voltage = float(safe_get(physics_packet, "voltage", safe_get(safe_get(physics_packet, "energy"), "voltage", 0.0)))
         cfg = getattr(BoneConfig, "COUNCIL", None)
         yea_thresh = getattr(cfg, "VOTE_YEA_THRESHOLD", 1.2) if cfg else 1.2
         nay_thresh = getattr(cfg, "VOTE_NAY_THRESHOLD", 0.8) if cfg else 0.8
@@ -465,11 +450,10 @@ class TheSlashCouncil:
             msg = ux("council_strings", "slash_meadows")
             logs.append(f"{Prisma.OCHRE}{msg}{Prisma.RST}")
             corrections["theta"] = mods.get("MEADOWS_HIT", -0.1)
-        is_dict = isinstance(physics, dict)
-        delta = physics.get("silence", physics.get("space", {}).get("silence", 0.0)) if is_dict else getattr(physics, "silence", 0.0)
-        e_u = physics.get("exhaustion", 0.0) if is_dict else getattr(physics, "exhaustion", 0.0)
-        psi = physics.get("psi", 0.0) if is_dict else getattr(physics, "psi", 0.0)
-        lq = physics.get("lq", 0.0) if is_dict else getattr(physics, "lq", 0.0)
+        delta = float(safe_get(physics, "silence", safe_get(safe_get(physics, "space"), "silence", 0.0)))
+        e_u = float(safe_get(physics, "exhaustion", 0.0))
+        psi = float(safe_get(physics, "psi", 0.0))
+        lq = float(safe_get(physics, "lq", 0.0))
         if delta > 0.7 and e_u > 0.7:
             logs.append(f"{Prisma.CYN}[PINKER - The Purger]: Cognitive load critical. Ceasing refactors. Initiating deletion protocols.{Prisma.RST}")
             corrections["narrative_drag"] = -2.0
@@ -479,7 +463,7 @@ class TheSlashCouncil:
         if lq > 0.7 and delta > 0.6:
             logs.append(f"{Prisma.OCHRE}[MEADOWS - The Tao]: The bathtub is draining. Let it. Accepting technical debt as a valid state of biological rest.{Prisma.RST}")
             corrections["theta"] = 0.1
-        drag = physics.get("narrative_drag", physics.get("space", {}).get("narrative_drag", 0.0)) if is_dict else getattr(physics, "narrative_drag", getattr(getattr(physics, "space", None), "narrative_drag", 0.0))
+        drag = float(safe_get(physics, "narrative_drag", safe_get(safe_get(physics, "space"), "narrative_drag", 0.0)))
         drag_thresh = mods.get("INTEGRITY_DRAG_THRESH", 5.0)
         if drag > drag_thresh:
             corrections["upsilon"] = mods.get("INTEGRITY_HIT", -0.3)
@@ -491,9 +475,9 @@ class TheOverseerCouncil:
     def __init__(self):
         self.active = False
         self.triggers = ["[MOD:SYSTEMIC_HEALTH]", "[OVERSEER]"]
-        self.h_s = 1.0  # Holistic Resilience
-        self.omega_r = 1.0  # Right-Brain Coherence
-        self.delta_t = 12.0 # Temporal Depth
+        self.h_s = 1.0
+        self.omega_r = 1.0
+        self.delta_t = 12.0
 
     def audit(self, text: str, physics: Any) -> tuple[bool, list[str], dict, list[dict]]:
         text_lower = text.lower()
@@ -503,9 +487,8 @@ class TheOverseerCouncil:
         logs = []
         corrections = {}
         mandates = []
-        is_dict = isinstance(physics, dict)
-        m_a = physics.get("m_a", 0.0) if is_dict else getattr(physics, "m_a", 0.0)
-        f_sys = physics.get("narrative_drag", 0.0) if is_dict else getattr(physics, "narrative_drag", 0.0)
+        m_a = float(safe_get(physics, "m_a", 0.0))
+        f_sys = float(safe_get(physics, "narrative_drag", 0.0))
         if m_a > 0.6 or f_sys > 5.0:
             self.h_s = max(0.0, self.h_s - 0.1)
             self.omega_r = max(0.0, self.omega_r - 0.05)

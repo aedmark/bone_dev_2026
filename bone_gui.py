@@ -3,7 +3,7 @@
 import re
 from typing import Dict, List, Any, Tuple
 from bone_presets import BoneConfig
-from bone_core import Prisma, ux
+from bone_core import Prisma, ux, safe_get
 from bone_physics import ChromaScope
 import markdown
 
@@ -32,14 +32,10 @@ class Projector:
 
     @staticmethod
     def _extract(physics_obj: Any, field: str, sub_field: str, default: Any = 0.0):
-        val = None
-        if hasattr(physics_obj, sub_field):
-            val = getattr(physics_obj, sub_field)
-        elif isinstance(physics_obj, dict):
-            if sub_field in physics_obj:
-                val = physics_obj[sub_field]
-            elif field in physics_obj and isinstance(physics_obj[field], dict):
-                val = physics_obj[field].get(sub_field)
+        val = safe_get(physics_obj, sub_field)
+        if val is None:
+            field_obj = safe_get(physics_obj, field)
+            val = safe_get(field_obj, sub_field)
         return default if val is None else val
 
     def render(self, physics_ctx: Dict, data_ctx: Dict, mind_ctx: tuple, reality_depth: int = 1,
@@ -130,13 +126,13 @@ class Projector:
         volt = float(self._extract(physics, "energy", "voltage", 0.0) or 0.0)
         drag = float(self._extract(physics, "space", "narrative_drag", 0.0) or 0.0)
         drag_profile_str = ""
-        if hasattr(physics, "drag_profile") or (isinstance(physics, dict) and "drag_profile" in physics):
-            dp = getattr(physics, "drag_profile", None) or physics.get("drag_profile", {})
-            sem = float(getattr(dp, "semantic", 0.0) if hasattr(dp, "semantic") else dp.get("semantic", 0.0) or 0.0)
-            met = float(getattr(dp, "metabolic", 0.0) if hasattr(dp, "metabolic") else dp.get("metabolic", 0.0) or 0.0)
-            emo = float(getattr(dp, "emotional", 0.0) if hasattr(dp, "emotional") else dp.get("emotional", 0.0) or 0.0)
-            struc = float(getattr(dp, "structural", 0.0) if hasattr(dp, "structural") else dp.get("structural", 0.0) or 0.0)
-            tra = float(getattr(dp, "trauma", 0.0) if hasattr(dp, "trauma") else dp.get("trauma", 0.0) or 0.0)
+        dp = safe_get(physics, "drag_profile")
+        if dp:
+            sem = float(safe_get(dp, "semantic", 0.0) or 0.0)
+            met = float(safe_get(dp, "metabolic", 0.0) or 0.0)
+            emo = float(safe_get(dp, "emotional", 0.0) or 0.0)
+            struc = float(safe_get(dp, "structural", 0.0) or 0.0)
+            tra = float(safe_get(dp, "trauma", 0.0) or 0.0)
             parts = []
             if sem > 0: parts.append(f"Sem:{sem:.1f}")
             if met > 0: parts.append(f"Met:{met:.1f}")
@@ -157,21 +153,12 @@ class Projector:
     def _get_lattice_val(self, physics: Any, keys: List[str], default: float) -> float:
         val = None
         for k in keys:
-            if isinstance(physics, dict):
-                val = physics.get(k)
-                if val is None:
-                    for sub in ["energy", "space", "matter"]:
-                        if sub in physics and k in physics[sub]:
-                            val = physics[sub][k]
-                            break
-            else:
-                val = getattr(physics, k, None)
-                if val is None:
-                    for sub in ["energy", "space", "matter"]:
-                        sub_obj = getattr(physics, sub, None)
-                        if sub_obj and hasattr(sub_obj, k):
-                            val = getattr(sub_obj, k)
-                            break
+            val = safe_get(physics, k)
+            if val is None:
+                for sub in ["energy", "space", "matter"]:
+                    sub_obj = safe_get(physics, sub)
+                    val = safe_get(sub_obj, k)
+                    if val is not None: break
             if val is not None: break
         try:
             return float(val) if val is not None else default
@@ -210,7 +197,7 @@ class Projector:
         shared = data_ctx.get("shared_dyn")
         if shared:
             def _safe_val(obj, k, default):
-                v = getattr(obj, k, None) if hasattr(obj, k) else obj.get(k) if isinstance(obj, dict) else None
+                v = safe_get(obj, k)
                 if v is None: return default
                 try:
                     return float(v)

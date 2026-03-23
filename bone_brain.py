@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from typing import Dict, Any, List, Tuple, Optional
 from bone_composer import LLMInterface, PromptComposer, ResponseValidator
 from bone_presets import BoneConfig, BonePresets
-from bone_core import EventBus, TelemetryService, LoreManifest, ux
+from bone_core import EventBus, TelemetryService, LoreManifest, ux, safe_get, safe_set
 from bone_gui import beautify_thoughts
 from bone_symbiosis import SymbiosisManager
 from bone_types import Prisma, DecisionCrystal
@@ -32,10 +32,6 @@ class CortexServices:
     village: Any = None
     config_ref: Any = None
 
-def _safe_get(obj, key, default=None):
-    if isinstance(obj, dict): return obj.get(key, default)
-    return getattr(obj, key, default)
-
 @dataclass
 class ChemicalState:
     dopamine: float = 0.2
@@ -46,9 +42,9 @@ class ChemicalState:
 
     def homeostasis(self, rate: float = 0.1):
         target_cfg = self.config_ref or BoneConfig
-        cfg = _safe_get(target_cfg, "CORTEX", {})
-        targets = {"dopamine": _safe_get(cfg, "RESTING_DOPAMINE", 0.2), "cortisol": _safe_get(cfg, "RESTING_CORTISOL", 0.1),
-                   "adrenaline": _safe_get(cfg, "RESTING_ADRENALINE", 0.1), "serotonin": _safe_get(cfg, "RESTING_SEROTONIN", 0.2), }
+        cfg = safe_get(target_cfg, "CORTEX", {})
+        targets = {"dopamine": safe_get(cfg, "RESTING_DOPAMINE", 0.2), "cortisol": safe_get(cfg, "RESTING_CORTISOL", 0.1),
+                   "adrenaline": safe_get(cfg, "RESTING_ADRENALINE", 0.1), "serotonin": safe_get(cfg, "RESTING_SEROTONIN", 0.2), }
         for attr, target in targets.items():
             current = getattr(self, attr)
             delta = (target - current) * rate
@@ -85,11 +81,11 @@ class NeurotransmitterModulator:
             incoming_chem = self.bio.endo.get_state()
         else:
             incoming_chem = {}
-        cfg = _safe_get(self.cfg, "CORTEX", {})
-        self.current_chem.homeostasis(rate=_safe_get(cfg, "BASE_DECAY_RATE", 0.1))
-        plasticity = _safe_get(cfg, "BASE_PLASTICITY", 0.1) + (
-                    base_voltage * _safe_get(cfg, "VOLTAGE_SENSITIVITY", 0.05))
-        plasticity = max(0.1, min(_safe_get(cfg, "MAX_PLASTICITY", 1.0), plasticity))
+        cfg = safe_get(self.cfg, "CORTEX", {})
+        self.current_chem.homeostasis(rate=safe_get(cfg, "BASE_DECAY_RATE", 0.1))
+        plasticity = safe_get(cfg, "BASE_PLASTICITY", 0.1) + (
+                    base_voltage * safe_get(cfg, "VOLTAGE_SENSITIVITY", 0.05))
+        plasticity = max(0.1, min(safe_get(cfg, "MAX_PLASTICITY", 1.0), plasticity))
         self.current_chem.mix(incoming_chem, weight=min(0.5, plasticity))
         if self.current_chem.dopamine < 0.15:
             self.starvation_ticks += 1
@@ -122,10 +118,15 @@ class NeurotransmitterModulator:
         base_top_p = getattr(cfg, "BASE_TOP_P", 0.95)
 
         def _p_get(k, d=0.0):
-            return physics_state.get(k, physics_state.get("energy", {}).get(k, physics_state.get("space", {}).get(k, physics_state.get("matter", {}).get(k, d))))
+            val = safe_get(physics_state, k)
+            if val is None:
+                for sub in ["energy", "space", "matter"]:
+                    val = safe_get(safe_get(physics_state, sub), k)
+                    if val is not None: break
+            return d if val is None else val
 
-        chi = _p_get("chi", _p_get("entropy", 0.2))
-        beta = _p_get("contradiction", _p_get("beta_index", 0.4))
+        chi = float(_p_get("chi", _p_get("entropy", 0.2)))
+        beta = float(_p_get("contradiction", _p_get("beta_index", 0.4)))
         ent_offset = getattr(cfg, "TEMP_ENTROPY_OFFSET", 0.5)
         ent_scalar = getattr(cfg, "TEMP_ENTROPY_SCALAR", 1.5)
         entropy_bonus = max(0.0, chi - ent_offset) * ent_scalar
@@ -332,10 +333,8 @@ class TheCortex:
                         eng = self.svc.cycle_controller.eng
                         if hasattr(eng, "phys") and hasattr(eng.phys, "observer") and getattr(eng.phys.observer, "last_physics_packet", None):
                             eng.phys.observer.last_physics_packet.narrative_drag = float('inf')
-                    if isinstance(self.last_physics, dict):
-                        self.last_physics["narrative_drag"] = float('inf')
-                    elif self.last_physics:
-                        setattr(self.last_physics, "narrative_drag", float('inf'))
+                    if self.last_physics:
+                        safe_set(self.last_physics, "narrative_drag", float('inf'))
                     break
                 if self.svc.bio:
                     self.svc.bio.mito.adjust_atp(-5.0, "Immune System Rejection Penalty")
@@ -405,9 +404,8 @@ class TheCortex:
             suppressed = getattr(self.svc.village, "suppressed_agents", [])
             if bureau and "BUREAU" not in suppressed:
                 phys = full_state.get("physics", {})
-                phys_dict = dict(phys.to_dict() if hasattr(phys, "to_dict") else (phys if isinstance(phys, dict) else {}))
-                phys_dict["raw_text"] = final_output
-                audit = bureau.audit(phys_dict, {"health": 100}, origin="SYSTEM")
+                safe_set(phys, "raw_text", final_output)
+                audit = bureau.audit(phys, {"health": 100}, origin="SYSTEM")
                 if audit and "ui" in audit: sim_result["ui"] += f"\n\n{audit['ui']}"
         return sim_result
 
@@ -540,15 +538,13 @@ class TheCortex:
         return new_loot
 
     def gather_state(self, sim_result: Dict[str, Any]) -> Dict[str, Any]:
-        raw_phys = sim_result.get("physics", {})
-        phys = raw_phys.to_dict() if hasattr(raw_phys, "to_dict") else (
-            raw_phys if isinstance(raw_phys, dict) else getattr(raw_phys, "__dict__", {}))
+        phys = sim_result.get("physics", {})
         bio = sim_result.get("bio", {})
         if bio:
-            phys["p"] = bio.get("mito", {}).get("atp_pool", 100.0)
-            phys["ros"] = bio.get("mito", {}).get("ros_buildup", 0.0)
-            phys["h"] = bio.get("biometrics", {}).get("health", 100.0)
-            phys["stamina"] = phys["p"]
+            safe_set(phys, "p", safe_get(safe_get(bio, "mito"), "atp_pool", 100.0))
+            safe_set(phys, "ros", safe_get(safe_get(bio, "mito"), "ros_buildup", 0.0))
+            safe_set(phys, "h", safe_get(safe_get(bio, "biometrics"), "health", 100.0))
+            safe_set(phys, "stamina", safe_get(phys, "p"))
         mind = sim_result.get("mind", {})
         world = sim_result.get("world", {})
         soul_data = sim_result.get("soul", {})
@@ -684,8 +680,8 @@ class DreamEngine:
                                 disk_prompts[active_mode]["directives"] = []
                             if new_axiom not in disk_prompts[active_mode]["directives"]:
                                 disk_prompts[active_mode]["directives"].append(new_axiom)
-                            cortex_cfg = _safe_get(self.cfg, "CORTEX", {})
-                            threshold = _safe_get(cortex_cfg, "EPIGENETIC_PRUNE_THRESHOLD", 12)
+                            cortex_cfg = safe_get(self.cfg, "CORTEX", {})
+                            threshold = safe_get(cortex_cfg, "EPIGENETIC_PRUNE_THRESHOLD", 12)
                             if len(disk_prompts[active_mode]["directives"]) > threshold:
                                 compressed = getattr(self.dspy_critic, "compress_prompts", lambda x: None)(
                                     disk_prompts[active_mode]["directives"])
@@ -853,14 +849,14 @@ class NoeticLoop:
         self.cfg = config_ref or BoneConfig
 
     def think(self, physics_packet, _bio, _inventory, voltage_history, _tick_count, soul_ref=None, ):
-        voltage = getattr(physics_packet, "voltage", 0.0) if not isinstance(physics_packet, dict) else physics_packet.get("voltage", 0.0)
-        clean_words = getattr(physics_packet, "clean_words", []) if not isinstance(physics_packet, dict) else physics_packet.get("clean_words", [])
+        voltage = float(safe_get(physics_packet, "voltage", 0.0))
+        clean_words = safe_get(physics_packet, "clean_words", [])
         avg_v = sum(voltage_history) / len(voltage_history) if voltage_history else 0
-        cfg = _safe_get(self.cfg, "CORTEX", {})
-        v_div = _safe_get(cfg, "IGNITION_V_DIV", 20.0)
-        w_div = _safe_get(cfg, "IGNITION_W_DIV", 10.0)
-        link_v = _safe_get(cfg, "LINK_VOLTAGE_THRESH", 12.0)
-        link_chance = _safe_get(cfg, "LINK_CHANCE", 0.15)
+        cfg = safe_get(self.cfg, "CORTEX", {})
+        v_div = safe_get(cfg, "IGNITION_V_DIV", 20.0)
+        w_div = safe_get(cfg, "IGNITION_W_DIV", 10.0)
+        link_v = safe_get(cfg, "LINK_VOLTAGE_THRESH", 12.0)
+        link_chance = safe_get(cfg, "LINK_CHANCE", 0.15)
         ignition = min(1.0, (avg_v / v_div) * (len(clean_words) / w_div))
         if voltage > link_v and random.random() < link_chance:
             if len(clean_words) >= 2:
@@ -881,9 +877,9 @@ class NoeticLoop:
     @staticmethod
     def _force_link(graph, wa, wb, config_ref=None):
         target_cfg = config_ref or BoneConfig
-        cfg = _safe_get(target_cfg, "CORTEX", {})
-        max_edge = _safe_get(cfg, "LINK_MAX_WEIGHT", 10.0)
-        edge_boost = _safe_get(cfg, "LINK_BOOST", 2.5)
+        cfg = safe_get(target_cfg, "CORTEX", {})
+        max_edge = safe_get(cfg, "LINK_MAX_WEIGHT", 10.0)
+        edge_boost = safe_get(cfg, "LINK_BOOST", 2.5)
         for a, b in [(wa, wb), (wb, wa)]:
             if a not in graph:
                 graph[a] = {"edges": {}, "last_tick": 0}

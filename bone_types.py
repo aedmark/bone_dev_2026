@@ -418,9 +418,10 @@ class PhysicsPacket:
 
         def _safe_init(cls, data):
             if isinstance(data, cls): return data
-            if not isinstance(data, dict): return cls()
+            if data is None: return cls()
+            from bone_core import safe_get
             valid_keys = {f.name for f in fields(cls)}
-            return cls(**{k: v for k, v in data.items() if k in valid_keys and v is not None})
+            return cls(**{k: safe_get(data, k) for k in valid_keys if safe_get(data, k) is not None})
         self.energy = _safe_init(EnergyState, energy)
         self.matter = _safe_init(MaterialState, matter)
         self.space = _safe_init(SpatialState, space)

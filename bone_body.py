@@ -6,7 +6,7 @@ import time
 from collections import deque, Counter
 from dataclasses import dataclass, field, asdict
 from typing import Optional, Dict, List, Any, Tuple
-from bone_core import Prisma, LoreManifest, ux
+from bone_core import Prisma, LoreManifest, ux, safe_get, safe_set
 from bone_presets import BoneConfig
 from bone_spores import ImmuneMycelium, BioLichen, BioParasite
 
@@ -879,10 +879,10 @@ class MetabolicGovernor:
         self.voltage_pid.setpoint = target_voltage
         self.drag_pid.setpoint = target_drag
 
-    def regulate(self, physics, dt: float) -> Tuple[float, float]:
+    def regulate(self, physics: Any, dt: float) -> Tuple[float, float]:
         safe_dt = max(0.001, dt)
-        v_val = physics.get("voltage", 0.0) if isinstance(physics, dict) else getattr(physics, "voltage", 0.0)
-        d_val = physics.get("narrative_drag", 0.0) if isinstance(physics, dict) else getattr(physics, "narrative_drag", 0.0)
+        v_val = safe_get(physics, "voltage", safe_get(safe_get(physics, "energy", physics), "voltage", 0.0))
+        d_val = safe_get(physics, "narrative_drag", safe_get(safe_get(physics, "space", physics), "narrative_drag", 0.0))
         v_force = self.voltage_pid.update(v_val, safe_dt)
         d_force = self.drag_pid.update(d_val, safe_dt)
         return v_force, d_force
@@ -1003,7 +1003,6 @@ class SynestheticCortex:
         return getattr(physics, "__dict__", {})
 
     def perceive(self, physics: Dict, traits: Any = None, latency: float = 0.0) -> BiologicalImpulse:
-        physics = self._normalize_physics(physics)
         impulse = BiologicalImpulse()
         impulse.stamina_impact -= 1.0
         cortex_cfg = getattr(self.cfg, "CORTEX", None)
@@ -1013,10 +1012,10 @@ class SynestheticCortex:
             discipline = getattr(traits, "discipline", 0.5)
             base_sens *= 1.0 + curiosity - discipline
         sens = max(0.0, base_sens)
-        valence = physics.get("valence", 0.0)
-        counts = physics.get("counts", {})
-        voltage = physics.get("voltage", 0)
-        drag = physics.get("narrative_drag", 0)
+        valence = safe_get(physics, "valence", 0.0)
+        counts = safe_get(physics, "counts", safe_get(safe_get(physics, "matter", physics), "counts", {}))
+        voltage = safe_get(physics, "voltage", 0.0)
+        drag = safe_get(physics, "narrative_drag", 0.0)
         if drag > 3.0:
             impulse.stamina_impact -= drag * 0.4
         if valence < -0.5:

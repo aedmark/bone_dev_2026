@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 from typing import List, Dict, Optional, Any, Tuple, ClassVar
 from bone_akashic import TheAkashicRecord
 from bone_presets import BoneConfig
-from bone_core import LoreManifest, EventBus, ux
+from bone_core import LoreManifest, EventBus, ux, safe_get, safe_set
 from bone_lexicon import LexiconService
 from bone_types import Prisma
 
@@ -437,12 +437,10 @@ class NarrativeSelf:
             self.archetype_tenure += 1
 
     def synaptic_dance(self, physics: Any, bio_state: Any) -> str:
-        is_dict = isinstance(physics, dict)
-        voltage = physics.get("voltage", 0.0) if is_dict else getattr(physics, "voltage", 0.0)
-        drag = physics.get("narrative_drag", 0.0) if is_dict else getattr(physics, "narrative_drag", 0.0)
-        bio_dict = bio_state if isinstance(bio_state, dict) else (
-            bio_state.__dict__ if hasattr(bio_state, "__dict__") else {})
-        oxy = bio_dict.get("chem", {}).get("oxytocin", 0.0)
+        voltage = safe_get(physics, "voltage", 0.0)
+        drag = safe_get(physics, "narrative_drag", 0.0)
+        bio_chem = safe_get(bio_state, "chem", {})
+        oxy = safe_get(bio_chem, "oxytocin", 0.0)
         move_name = "Drifting"
         provenance = []
         cfg = getattr(self.cfg, "SOUL", None)
@@ -454,10 +452,8 @@ class NarrativeSelf:
             provenance.append("Oxytocin")
         is_manic = voltage > (getattr(cfg, "MANIC_TRIGGER", 18.0) if cfg else 18.0)
         is_heavy = drag > (getattr(cfg, "ENTROPY_DRAG_TRIGGER", 4.0) if cfg else 4.0)
-        if is_dict:
-            beta = physics.get("beta_index", physics.get("beta", physics.get("energy", {}).get("beta_index", 0.0)))
-        else:
-            beta = getattr(physics, "beta_index", getattr(physics.energy, "beta_index", 0.0) if hasattr(physics, "energy") else 0.0)
+        energy_block = safe_get(physics, "energy", {})
+        beta = safe_get(physics, "beta_index", safe_get(physics, "beta", safe_get(energy_block, "beta_index", 0.0)))
         beta_thresh = getattr(cfg, "BETA_TENSION_THRESH", 0.7) if cfg else 0.7
         if (is_manic and is_heavy) or beta > beta_thresh:
             if self.traits.empathy > 0.6:
@@ -715,38 +711,26 @@ class TheOroboros:
         log = []
         if not physics:
             return log
-        is_dict = isinstance(physics, dict)
         for scar in self.scars:
             if scar.stat_affected == "narrative_drag":
-                curr_drag = physics.get("narrative_drag", 0.0) if is_dict else getattr(physics, "narrative_drag", 0.0)
-                if is_dict:
-                    physics["narrative_drag"] = curr_drag + scar.value
-                else:
-                    setattr(physics, "narrative_drag", curr_drag + scar.value)
+                curr_drag = safe_get(physics, "narrative_drag", 0.0)
+                safe_set(physics, "narrative_drag", curr_drag + scar.value)
                 msg = ux("soul_strings", "scar_drag")
                 log.append(msg.format(name=scar.name))
             elif scar.stat_affected == "voltage_cap":
                 cfg = getattr(self.cfg, "OROBOROS", None)
                 v_penalty = getattr(cfg, "VOLTAGE_PENALTY", 5.0) if cfg else 5.0
-                curr_volt = physics.get("voltage", 0.0) if is_dict else getattr(physics, "voltage", 0.0)
-                if is_dict:
-                    physics["voltage"] = max(0, curr_volt - v_penalty)
-                else:
-                    setattr(physics, "voltage", max(0, curr_volt - v_penalty))
+                curr_volt = safe_get(physics, "voltage", 0.0)
+                safe_set(physics, "voltage", max(0, curr_volt - v_penalty))
                 msg = ux("soul_strings", "scar_voltage")
                 log.append(msg.format(name=scar.name))
             elif scar.stat_affected == "trauma_baseline":
-                if isinstance(bio, dict) and "trauma_vector" in bio:
-                    current_trauma = bio["trauma_vector"].get("EXISTENTIAL", 0.0)
-                    bio["trauma_vector"]["EXISTENTIAL"] = current_trauma + scar.value
-                elif hasattr(bio, "trauma_vector"):
-                    current_trauma = bio.trauma_vector.get("EXISTENTIAL", 0.0)
-                    bio.trauma_vector["EXISTENTIAL"] = current_trauma + scar.value
-                curr_t = physics.get("T", 0.0) if is_dict else getattr(physics, "T", 0.0)
-                if is_dict:
-                    physics["T"] = curr_t + scar.value
-                else:
-                    setattr(physics, "T", curr_t + scar.value)
+                trauma_vec = safe_get(bio, "trauma_vector", {})
+                curr_existential = safe_get(trauma_vec, "EXISTENTIAL", 0.0)
+                safe_set(trauma_vec, "EXISTENTIAL", curr_existential + scar.value)
+                curr_t = safe_get(physics, "T", 0.0)
+                safe_set(physics, "T", curr_t + scar.value)
                 msg = ux("soul_strings", "scar_frailty")
                 log.append(msg.format(name=scar.name))
+
         return log

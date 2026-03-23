@@ -6,7 +6,7 @@ import uuid
 from typing import Any, Dict, List, Optional, Set, Tuple, cast
 
 from bone_presets import BoneConfig
-from bone_core import BoneJSONEncoder, LoreManifest, ux
+from bone_core import BoneJSONEncoder, LoreManifest, ux, safe_get
 from bone_types import Prisma
 
 class TheAkashicRecord:
@@ -57,30 +57,19 @@ class TheAkashicRecord:
 
     def record_scar(self, concept: str, p: Any):
         cfg_defaults = getattr(getattr(BoneConfig, "AKASHIC", None), "DEFAULT_SCAR_COORDS", {})
-        default_coords = {
-            "E": ("exhaustion", cfg_defaults.get("E", 0.2)),
-            "beta": ("beta_index", cfg_defaults.get("beta", 0.4)),
-            "S": ("scope", cfg_defaults.get("S", 0.3)),
-            "D": ("depth", cfg_defaults.get("D", 0.3)),
-            "C": ("connectivity", cfg_defaults.get("C", 0.2)),
-            "T": ("trauma", cfg_defaults.get("T", 0.0)),
-            "psi": ("psi", cfg_defaults.get("psi", 0.0)),
-            "chi": ("entropy", cfg_defaults.get("chi", 0.0)),
-            "valence": ("valence", cfg_defaults.get("valence", 0.0)),
-            "ROS": ("ros", cfg_defaults.get("ROS", 0.0))
-        }
+        default_coords = {"E": ("exhaustion", cfg_defaults.get("E", 0.2)),
+                          "beta": ("beta_index", cfg_defaults.get("beta", 0.4)),
+                          "S": ("scope", cfg_defaults.get("S", 0.3)), "D": ("depth", cfg_defaults.get("D", 0.3)),
+                          "C": ("connectivity", cfg_defaults.get("C", 0.2)),
+                          "T": ("trauma", cfg_defaults.get("T", 0.0)), "psi": ("psi", cfg_defaults.get("psi", 0.0)),
+                          "chi": ("entropy", cfg_defaults.get("chi", 0.0)),
+                          "valence": ("valence", cfg_defaults.get("valence", 0.0)),
+                          "ROS": ("ros", cfg_defaults.get("ROS", 0.0))}
         coords = {}
-        is_dict = isinstance(p, dict)
         for short_k, (real_k, default_v) in default_coords.items():
-            if is_dict:
-                val = p.get(short_k, p.get("energy", {}).get(real_k, default_v))
-            else:
-                energy_obj = getattr(p, "energy", None)
-                if isinstance(energy_obj, dict):
-                    val = energy_obj.get(real_k, default_v)
-                else:
-                    val = getattr(energy_obj, real_k, default_v) if energy_obj else default_v
-                val = getattr(p, short_k, val)
+            val = safe_get(p, short_k)
+            if val is None:
+                val = safe_get(safe_get(p, "energy"), real_k, default_v)
             coords[short_k] = val
         scar = {"concept": concept, "coordinates": coords, "gilded": True}
         self.scar_map.append(scar)
@@ -106,10 +95,7 @@ class TheAkashicRecord:
 
     @staticmethod
     def _extract_dominant_trigram(physics: Any) -> str:
-        if isinstance(physics, dict):
-            vector = physics.get("vector", physics.get("matter", {}).get("vector", {}))
-        else:
-            vector = getattr(physics, "vector", getattr(physics.matter, "vector", {}) if hasattr(physics, "matter") else {})
+        vector = safe_get(physics, "vector", safe_get(safe_get(physics, "matter"), "vector", {}))
         if not vector:
             return "KAN"
         dom = max(vector, key=vector.get)
