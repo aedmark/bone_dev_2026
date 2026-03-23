@@ -675,6 +675,11 @@ class TheOroboros:
             return "HEAVY"
 
         new_scars = []
+        if hasattr(soul, "eng") and getattr(soul.eng, "trauma_accum", None):
+            total_trauma = sum(soul.eng.trauma_accum.values())
+            if total_trauma > 10.0:
+                new_scars.append(Scar(name="Existential Dread", stat_affected="trauma_baseline", value=min(20.0, total_trauma * 0.1),
+                                      description=f"The lattice remembers a heavy collapse (Trauma: {round(total_trauma, 1)})."))
         if entry := death_data.get(cause_of_death):
             name, stat, val, default_desc = entry
             desc = default_desc

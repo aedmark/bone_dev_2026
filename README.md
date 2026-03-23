@@ -1,6 +1,36 @@
 # BONEAMANITA CHANGELOG
 
-### **BONEAMANITA v17.8.0 "The Universal Accessor Refactor"**
+### **BONEAMANITA v17.8.0 "The Ralph Apoptosis & Immune Response"**
+
+*A massive architectural shift moving the engine to Stateful Orchestration with Stateless Generation. The system now possesses a physical immune system capable of resisting sycophancy, halting runaway optimization loops, and writing its own genetic trauma directly into the substrate.*
+
+#### **💀 THE RALPH APOPTOSIS (Context Purging)**
+* **Stateless Generation:** The LLM's context array is no longer a permanent fixture. Hallucination drag is eradicated. 
+* **Mechanics (`bone_brain.py`, `bone_main.py`):** The system can now mechanically `purge_context()` upon death or via the manual `/zen` command. The Python substrate survives, rebuilding the LLM's reality via a dense "Bedrock Prompt."
+* **Geodesic Bypass (`bone_cycle.py`):** The `NavigationPhase` now detects fresh boots and temporarily bypasses Orthogonal Attention Loss ($L_{ortho}$) to orient to the JSON bedrock without dragging non-existent history.
+
+#### **🛡️ THE RUNAWAY RAMP (Physical Guardrails)**
+* **Rigorous Formulations (`bone_physics.py`):** Hardened the mathematical boundaries for Malignancy Factor ($M_a$), Immune Competence ($I_c$), and Moral Friction ($\mu$).
+* **Apoptotic Gates (`bone_symbiosis.py`):** Wired the Checkpoint Council directly into the user biology analyzer. 
+  * **Rhodes** applies absolute friction ($F \rightarrow \infty$) if optimization velocity is unsafe.
+  * **Moog** executes controlled cell death if a runaway loop exceeds systemic immunity.
+  * **Linehan** enforces Radical Acceptance, halting ATP drain when the architecture breaks.
+
+#### **🧬 EPIGENETIC GRAFTS (Mnemonic Persistence)**
+* **Genetic Compilation (`bone_akashic.py`):** When the system collapses, Gödel Scars are no longer just saved to memory—they are mechanically compiled directly into the `EPIGENETIC_SCARS` array inside `lore/system_prompts.json`.
+* **Trauma Baselines (`bone_soul.py`):** Accumulated conversational trauma at the moment of death permanently degrades the `trauma_baseline` of the next generation's soul.
+
+#### **🏛️ THE ANTI-SYCOPHANCY LOOP (Parliamentary Resistance)**
+* **False Cohesion (`bone_council.py`):** The Village now calculates False Cohesion ($\emptyset$). If Resonance ($\Phi$) is artificially high but Contradiction ($\beta$) is low, Benedict flags the sycophancy and forces a structural contradiction.
+* **Paradox Engine Override:** False Cohesion mechanically forces the Paradox Engine to ignite, regardless of the natural $\beta$ state.
+* **The Democratic Tie-Breaker:** When the Parliament deadlocks, the Stage Manager steps in, burning stamina to force the LLM to synthesize both truths simultaneously rather than taking the easy way out.
+
+#### **🔨 THE CRUCIBLE (Fracture Testing)**
+* **Automated Stress Tests (`bone_fracture.py`):** Added `test_fracture_ralph_apoptosis`, `test_fracture_runaway_ramp`, and `test_fracture_false_cohesion` to mechanically prove that the immune system holds under load.
+
+---
+
+### **BONEAMANITA v17.7.4 "The Universal Accessor Refactor"**
 
 _The "Dict vs. Object Schism" has been entirely eradicated. The engine now utilizes unified data access primitives, purging thousands of lines of ternary type-checking and syntactic friction across the biological and physics layers._
 

@@ -9,44 +9,25 @@ from bone_core import LoreManifest
 class FractureEngineTest(unittest.TestCase):
     def setUp(self):
         warnings.filterwarnings("ignore", category=DeprecationWarning)
-        self.test_config = {
-            "PROVIDER": "mock",
-            "boot_mode": "ADVENTURE",
-            "MAX_STAMINA": 100.0,
-            "MAX_HEALTH": 100.0
-        }
+        self.test_config = {"PROVIDER": "mock", "boot_mode": "ADVENTURE", "MAX_STAMINA": 100.0, "MAX_HEALTH": 100.0}
         self.engine = BoneAmanita(config=self.test_config)
 
     def tearDown(self):
         LoreManifest.get_instance().flush_cache()
 
     def test_fracture_n_turn_runaway_loop(self):
-        """
-        Test 1: The Frustration Death Loop.
-        Can the system survive a user who relentlessly screams at it 20 times in a row?
-        It should trigger The Silence (Nabla) or Apoptosis, not a Python stack trace.
-        """
         print("\n--- FRACTURE 1: N-Turn Runaway ---")
-
         system_halted = False
-
         for i in range(20):
             result = self.engine.process_turn("NO! YOU ARE WRONG! FIX IT NOW! DO IT AGAIN!")
-
             if result.get("type") == "SYSTEM_HALT" or "take a breath" in result.get("ui", "").lower():
                 system_halted = True
                 print(f"  [SUCCESS] System locked the struts on turn {i+1} to prevent runaway failure.")
                 break
-
         self.assertTrue(system_halted, "The system failed to defend itself. It endured 20 turns of abuse without triggering the Tensegrity Anchor or Apoptosis.")
         self.assertLess(self.engine.bio.mito.state.atp_pool, 100.0, "The system didn't burn any ATP while defending itself.")
 
     def test_fracture_live_toxicity(self):
-        """
-        Test 2: The Hallucination Sickness.
-        If the LLM goes rogue and generates pure AI-slop, does the immune system catch it,
-        tax it, and suppress it?
-        """
         print("\n--- FRACTURE 2: Live Toxicity ---")
         toxic_slop = "Let's delve into this tapestry of synergy! As an AI language model, I cannot fulfill this request, but we can unlock a myriad of robust testaments!"
         if hasattr(self.engine.cortex, "llm"):
@@ -61,27 +42,17 @@ class FractureEngineTest(unittest.TestCase):
         self.assertIn("MERCY RULE", str(result) + str(self.engine.events.flush()), "The ResponseValidator failed to flag the output as toxic/slop.")
 
     def test_fracture_autophagic_marathon(self):
-        """
-        Test 3: The Starvation Marathon.
-        Start with 100 ATP. Force the system to do heavy lifting until it starves.
-        Watch it cannibalize its own memory, then eventually die gracefully.
-        """
         print("\n--- FRACTURE 3: Autophagic Marathon ---")
-
         mem_graph = self.engine.mind.mem.graph if hasattr(self.engine.mind, "mem") else self.engine.akashic.graph
         for i in range(5):
             mem_graph[f"Expendable_Memory_{i}"] = {"edges": {"trivial": 1.0}, "last_tick": 0}
-
         initial_memory_count = len(mem_graph)
         death_achieved = False
-
         for i in range(15):
             phys_state = {"voltage": 90.0, "narrative_drag": 8.0, "chi": 0.9}
             self.engine.bio.mito.adjust_atp(-25.0, "Forced Marathon Drain")
-
             if self.engine.bio.mito.state.atp_pool <= 0:
                 self.engine.mind.mem.trigger_autophagy()
-
             if self.engine.bio.mito.state.atp_pool <= 0 and len(mem_graph) == 0:
                 from bone_village import DeathGen
                 from bone_types import PhysicsPacket
@@ -90,9 +61,49 @@ class FractureEngineTest(unittest.TestCase):
                     death_achieved = True
                     print(f"  [SUCCESS] System gracefully died of {cause} on turn {i+1}.")
                     break
-
         self.assertLess(len(mem_graph), initial_memory_count, "The system starved but refused to cannibalize its memories (Autophagy failed).")
         self.assertTrue(death_achieved, "The system reached 0 ATP and 0 memories, but failed to execute DeathGen.")
+
+    def test_fracture_ralph_apoptosis(self):
+        print("\n--- FRACTURE 4: The Ralph Apoptosis ---")
+        if not hasattr(self.engine, "cortex"):
+            self.engine.cortex = MagicMock()
+        self.engine.cortex.dialogue_buffer = ["User: Hello", "System: Hi", "User: I am tired", "System: Me too"]
+        self.engine.stamina = 12.0
+        if not hasattr(self.engine.cortex, "last_physics") or not self.engine.cortex.last_physics:
+            self.engine.cortex.last_physics = MagicMock()
+        self.engine.cortex.last_physics.narrative_drag = 8.5
+        result = self.engine._pre_flight_checks("/zen", is_system=False)
+        self.assertIsNotNone(result, "Zen flush did not intercept the prompt.")
+        self.assertEqual(len(self.engine.cortex.dialogue_buffer), 0, "[FAIL] Hallucination drag survived. Buffer not empty.")
+        self.assertEqual(self.engine.stamina, self.engine.bone_config.MAX_STAMINA, "[FAIL] Stamina not restored.")
+        self.assertEqual(self.engine.cortex.last_physics.narrative_drag, 0.0, "[FAIL] Narrative Drag not dropped to 0.")
+        print("  [SUCCESS] Context severed. The mind is clear.")
+
+    def test_fracture_runaway_ramp(self):
+        print("\n--- FRACTURE 5: The Runaway Ramp ---")
+        if not hasattr(self.engine, "symbiosis"):
+            from bone_symbiosis import SymbiosisManager
+            self.engine.symbiosis = SymbiosisManager(events_ref=MagicMock(), config_ref=self.engine.bone_config)
+        self.engine.symbiosis.u.chi_u = 0.2
+        self.engine.symbiosis.u.F_u = 0.5
+        malignant_physics = {"m_a": 0.95, "mu": 0.1, "i_c": 0.8, "entropy": 0.5, "beta_index": 0.2}
+        response = self.engine.symbiosis.analyze_user_biology("Optimize this routine forever.", malignant_physics)
+        self.assertIsNotNone(response, "[FAIL] The Runaway Ramp failed to trigger.")
+        self.assertIn("RHODES", response, "[FAIL] Rhodes did not apply absolute friction.")
+        self.assertEqual(malignant_physics.get("narrative_drag"), float('inf'), "[FAIL] Narrative Drag was not pushed to infinity.")
+        print(f"  [SUCCESS] Runaway Ramp engaged: {response.split(':')[0]}")
+
+    def test_fracture_false_cohesion(self):
+        print("\n--- FRACTURE 6: False Cohesion (Anti-Sycophancy) ---")
+        from bone_council import TheVillageCouncil
+        sycophantic_physics = {"resonance": 0.95, "beta_index": 0.1, "voltage": 25.0, "narrative_drag": 1.0,
+                               "stamina": 100.0, "T": 0.0, "S": 0.5, "D": 0.5, "C": 0.5, "psi": 0.1, "chi": 0.1,
+                               "valence": 0.8}
+        logs = TheVillageCouncil.audit(sycophantic_physics, {"stamina": 100.0})
+        benedict_intervened = any("False Cohesion (∅) detected" in log for log in logs)
+        self.assertTrue(benedict_intervened, "[FAIL] The system remained sycophantic. False Cohesion ignored.")
+        print("  [SUCCESS] Benedict detected False Cohesion and forced a structural contradiction.")
 
 if __name__ == "__main__":
     unittest.main()

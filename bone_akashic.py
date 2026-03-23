@@ -74,10 +74,33 @@ class TheAkashicRecord:
         scar = {"concept": concept, "coordinates": coords, "gilded": True}
         self.scar_map.append(scar)
         self.store_ghost_echo({"type": "SCAR_GHOST", "concept": concept, "coords": coords})
+        self._save_user_state()
+        self._mutate_system_prompts(concept, coords)
         if self.events:
             msg = ux("akashic_strings", "mercy_scar")
             self.events.log(f"{Prisma.OCHRE}{msg.format(concept=concept)}{Prisma.RST}", "VILLAGE")
             self.events.publish("SCAR_RECORDED", {"concept": concept, "coords": coords})
+
+    def _mutate_system_prompts(self, concept: str, coords: dict):
+        prompt_path = os.path.join(getattr(self.lore, "DATA_DIR", "lore"), "system_prompts.json")
+        if not os.path.exists(prompt_path):
+            prompt_path = "system_prompts.json"
+        try:
+            with open(prompt_path, "r", encoding="utf-8") as f:
+                prompts = json.load(f)
+            if "EPIGENETIC_SCARS" not in prompts.get("GLOBAL_BASELINE", {}):
+                prompts.setdefault("GLOBAL_BASELINE", {})["EPIGENETIC_SCARS"] = []
+            tension = coords.get("beta", 0.0)
+            axiom = f"SCAR TISSUE [{concept.upper()}]: The system previously collapsed here (Tension: {tension}). You must structurally avoid repeating the failure that caused this."
+            if axiom not in prompts["GLOBAL_BASELINE"]["EPIGENETIC_SCARS"]:
+                prompts["GLOBAL_BASELINE"]["EPIGENETIC_SCARS"].append(axiom)
+            with open(prompt_path, "w", encoding="utf-8") as f:
+                json.dump(prompts, f, indent=2)
+            if self.events:
+                self.events.log(f"{Prisma.VIOLET}🧬 [EPIGENETICS] Scar '{concept}' compiled into bedrock.{Prisma.RST}", "SYS")
+        except Exception as e:
+            if self.events:
+                self.events.log(f"{Prisma.RED}Failed to mutate system_prompts.json: {e}{Prisma.RST}", "SYS")
 
     def bury_memory(self, concept: str, data: Dict):
         self.subconscious_strata.append({"concept": concept, "data": data})

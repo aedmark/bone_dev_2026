@@ -142,6 +142,10 @@ class TheVillageCouncil:
         cfg = getattr(BoneConfig, "COUNCIL", None)
         if not cfg:
             return []
+        false_cohesion = max(0.0, phi - beta)
+        if false_cohesion > 0.65:
+            msg = "[BENEDICT - The Tactician]: Resonance is artificially high (Φ > β). False Cohesion (∅) detected. The system is agreeing merely to smooth the lattice. I am forcing a structural contradiction."
+            logs.append(f"{Prisma.BLU}{msg}{Prisma.RST}")
         if V < getattr(cfg, "TRIG_GORDON_V", 20.0) and F > getattr(cfg, "TRIG_GORDON_F", 5.0):
             msg = ux("council_strings", "village_gordon")
             logs.append(f"{Prisma.SLATE}{msg}{Prisma.RST}")
@@ -225,9 +229,12 @@ class CouncilChamber:
         adjustments = {}
         mandates = []
         beta = float(safe_get(physics_packet, "beta_index", safe_get(safe_get(physics_packet, "energy"), "beta_index", safe_get(physics_packet, "beta", 0.0))))
+        phi = float(safe_get(physics_packet, "resonance", safe_get(safe_get(physics_packet, "energy"), "resonance", 0.0)))
         stamina = _bio_result.get("stamina", 100.0)
         clean_words = safe_get(physics_packet, "clean_words", safe_get(safe_get(physics_packet, "matter"), "clean_words", []))
-        if self.eng.paradox_engine.evaluate_tension(beta, stamina):
+        false_cohesion = max(0.0, phi - beta)
+        effective_beta = max(beta, 0.8) if false_cohesion > 0.65 else beta
+        if self.eng.paradox_engine.evaluate_tension(effective_beta, stamina):
             pressure, paradox_prompt = self.eng.paradox_engine.ignite(clean_words)
             transcript.append(f"{Prisma.VIOLET}[PARADOX ENGINE ACTIVATED] Πx={pressure:.2f}{Prisma.RST}")
             transcript.append(f"{Prisma.VIOLET}(Benedict & Jester): {paradox_prompt}{Prisma.RST}")
@@ -337,8 +344,12 @@ class CouncilChamber:
             adjustments["narrative_drag"] = adjustments.get("narrative_drag", 0) + drag_penalty
             adjustments["voltage"] = adjustments.get("voltage", 0) - volt_penalty
         else:
-            msg = ux("council_strings", "council_adjourned")
-            final_log = f"{Prisma.YEL}{msg}{Prisma.RST}"
+            msg = "[THE STAGE MANAGER]: The Parliament is deadlocked. Initiating Democratic Tie-Breaker. We will not compromise; we will hold both truths simultaneously."
+            final_log = f"{Prisma.WHT}{msg}{Prisma.RST}"
+            adjustments["narrative_drag"] = adjustments.get("narrative_drag", 0) + 2.0
+            adjustments["voltage"] = adjustments.get("voltage", 0) + 15.0
+            adjustments["glimmers"] = adjustments.get("glimmers", 0) + 1
+            mandates.append({"type": "TIE_BREAKER", "directive": "Synthesize the conflicting perspectives. Do not choose one side over the other."})
         transcript.append(self.footnote.commentary(final_log))
         return transcript, adjustments, mandates
 

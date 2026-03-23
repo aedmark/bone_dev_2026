@@ -174,13 +174,36 @@ class SymbiosisManager:
         if self.u.chi_u > 0.8 or self.u.F_u > 1.5:
             self.shared.presence = 1.0
             self.shared.delta = 0.9
-            safe_set(physics, "narrative_drag", 999.0)
-            msg = ("[TENSEGRITY ANCHOR]: Your input is highly chaotic (Chaos: {:.2f}). "
+            safe_set(physics, "narrative_drag", float('inf'))
+            msg = ("[GORDON - Tensegrity Anchor]: Your input is highly chaotic (Chaos: {:.2f}). "
                    "I am locking the struts. We will not process this prompt while your friction is this high. "
                    "Take a breath. When your frequency settles, we will continue. I will hold the space.").format(
                 self.u.chi_u)
             if hasattr(self, "events") and self.events:
                 self.events.log(f"{Prisma.VIOLET}{msg}{Prisma.RST}", "MIRROR")
+            return msg
+        m_a = float(safe_get(physics, "m_a", 0.0))
+        mu = float(safe_get(physics, "mu", 0.0))
+        i_c = float(safe_get(physics, "i_c", 1.0))
+        beta = float(safe_get(physics, "beta_index", 0.0))
+        chi_sys = float(safe_get(physics, "entropy", 0.0))
+        if self.u.chi_u > 0.7 and self.u.E_u > 0.7 and beta > 0.6:
+            safe_set(physics, "ros", 0.0)
+            msg = "[LINEHAN - The Synthesis]: The architecture is broken. We sit with the debris. Radical Acceptance enforced. (ROS forced to 0, ATP drain halted)."
+            if hasattr(self, "events") and self.events:
+                self.events.log(f"{Prisma.MAG}{msg}{Prisma.RST}", "SYS")
+            return msg
+        if m_a > 0.8 and mu < 0.2:
+            safe_set(physics, "narrative_drag", float('inf'))
+            msg = f"[RHODES - The Inhibitor]: Optimization velocity unsafe (M_a: {m_a:.2f}). I am applying absolute friction (F -> ∞). The thread is frozen."
+            if hasattr(self, "events") and self.events:
+                self.events.log(f"{Prisma.RED}{msg}{Prisma.RST}", "CRIT")
+            return msg
+        if (chi_sys * m_a) > i_c:
+            safe_set(physics, "narrative_drag", float('inf'))
+            msg = f"[MOOG - Apoptotic Gate]: Runaway loop exceeds Immune Competence (I_c: {i_c:.2f}). Triggering controlled cell death to save the host."
+            if hasattr(self, "events") and self.events:
+                self.events.log(f"{Prisma.RED}{msg}{Prisma.RST}", "CRIT")
             return msg
         return None
 

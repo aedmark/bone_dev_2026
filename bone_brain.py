@@ -227,6 +227,13 @@ class TheCortex:
         if len(self.dialogue_buffer) > self.MAX_HISTORY:
             self.dialogue_buffer.pop(0)
 
+    def purge_context(self):
+        self.dialogue_buffer.clear()
+        if hasattr(self.dreamer, "trauma_buffer"):
+            self.dreamer.trauma_buffer.clear()
+        if self.events:
+            self.events.log("[APOPTOSIS] Context array purged. Stateless bedrock re-established.", "SYS")
+
     def process(self, user_input: str, is_system: bool = False) -> Dict[str, Any]:
         if self.navigator:
             if self.active_mode == "CREATIVE":
@@ -593,6 +600,15 @@ class TheCortex:
             if "style_directives" not in full_state["mind"]:
                 full_state["mind"]["style_directives"] = []
             full_state["mind"]["style_directives"].append(inv_directive)
+        if not self.dialogue_buffer:
+            bedrock_directive = (f"CRITICAL BEDROCK OVERRIDE: You have just awoken from a stateless purge (The Ralph Apoptosis). "
+                f"You have no conversational memory, but your body persists. "
+                f"Your Stamina is {phys.get('p', 100)}, your Health is {phys.get('h', 100)}. "
+                f"Assume your role as {mind.get('role', 'The Architect')} and orient immediately to the present physical state. "
+                f"DO NOT reference the loss of memory. Act continuously from the substrate.")
+            if "style_directives" not in full_state["mind"]:
+                full_state["mind"]["style_directives"] = []
+            full_state["mind"]["style_directives"].append(bedrock_directive)
         return full_state
 
     def learn_from_response(self, text):

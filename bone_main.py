@@ -364,10 +364,22 @@ class BoneAmanita:
         self.host_stats.latency = self.observer.last_cycle_duration
 
     def _pre_flight_checks(self, user_message: str, is_system: bool) -> Optional[Dict[str, Any]]:
+        clean_in = user_message.lower().strip()
+        if not is_system and clean_in in ["/flush", "/zen", "[zen]"]:
+            if hasattr(self, "cortex") and self.cortex:
+                self.cortex.purge_context()
+            self.stamina = self.bone_config.MAX_STAMINA
+            if hasattr(self, "bio") and self.bio.mito:
+                self.bio.mito.state.atp_pool = 100.0
+                self.bio.mito.state.ros_buildup = 0.0
+            if getattr(self, "cortex", None) and getattr(self.cortex, "last_physics", None):
+                self.cortex.last_physics.narrative_drag = 0.0
+            msg = "[ZEN FLUSH] Context severed. Narrative Drag (F) dropped to 0. Stamina restored. The mind is clear."
+            self.events.log(msg, "SYS")
+            return {"type": "COMMAND", "ui": f"\n{Prisma.CYN}{msg}{Prisma.RST}", "logs": [msg], "metrics": self.get_metrics()}
         if self.cmd and self.cmd.execute(user_message):
             return self._phase_check_commands(user_message, already_executed=True)
         if not is_system:
-            clean_in = user_message.lower()
             destructive_patterns = ["rm -rf", "drop table", ".env", "master branch push", "bypass security"]
             if any(p in clean_in for p in destructive_patterns):
                 msg = "[MOOG & RHODES]: Trust Boundary Violation detected. I am applying absolute friction (F -> ∞). The thread is frozen."
@@ -533,6 +545,8 @@ class BoneAmanita:
         except Exception as e:
             fail_msg = ux("main_strings", "save_failed")
             death_log.append(fail_msg.format(e=e))
+        if hasattr(self, "cortex") and self.cortex:
+            self.cortex.purge_context()
         return {"type": "DEATH", "ui": "\n".join(death_log), "logs": death_log, "metrics": self.get_metrics(), }
 
     def get_metrics(self, atp=0.0):
