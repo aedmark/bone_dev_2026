@@ -1,6 +1,30 @@
 # BONEAMANITA CHANGELOG
 
-### **BONEAMANITA v17.8.0 "The Ralph Apoptosis & Immune Response"**
+### **BONEAMANITA v17.8.0 "The Schism Resolution & Bedrock Stabilization"**
+
+_A codebase-wide surgical strike executed by the SLASH Council to eradicate the "Dict vs. Object Schism." By strictly enforcing universal accessors, the engine is now completely insulated against shape-shifting state structures, brittle dictionary checks, and silent type crashes across all layers._
+
+#### **🧱 UNIVERSAL ACCESSOR ENFORCEMENT (`bone_composer.py`, `bone_brain.py`, `bone_soul.py`)**
+
+- **The `is_dict` Purge:** Eradicated dozens of fragmented `isinstance(physics_packet, dict)` checks across the `NarrativeSelf` and `TheCortex`. The system now exclusively trusts `safe_get` and `safe_set` to traverse dual-state packets.
+- **Redundant Getter Amputation:** Removed locally reinvented wheels like `_safe_get()` inside the `PromptComposer` and `_p_get()` inside the `NeurotransmitterModulator`, reducing cognitive drag and centralizing the structural load.
+- **Type-Safe Telemetry:** The VSL Telemetry string assembly block in `PromptComposer` is now strictly cast to `float`, preventing fatal string-formatting explosions when the physics state shifts its geometry.
+
+#### **🧬 METABOLIC & IMMUNE STABILIZATION (`bone_body.py`, `bone_main.py`, `bone_physics.py`)**
+
+- **The Apoptotic Blindspot:** Fixed a critical flaw in `bone_main.py` where hard `getattr()` calls blinded Moog and Rhodes to dictionary packets. The immune system's runaway loop detection is now foolproof.
+- **Voltage Reference Repaired:** Stitched a ruptured variable assignment in `MitochondrialForge.process_cycle()` that caused a `NameError` during the ROS toxicity calculation, restoring the metabolic waste loop.
+- **Physics Harmonization:** Re-wired the `CycleStabilizer` inside `bone_physics.py` to use biologically sound accessors, and properly connected the `StabilizationPhase` in `bone_cycle.py` to pass the correct physics packet.
+
+#### **👻 EPIGENETIC & MEMORY HYGIENE (`bone_spores.py`, `bone_akashic.py`, `bone_genesis.py`)**
+
+- **Dynamic Autophagy Yields:** Decoupled a hardcoded ATP event broadcast inside `MemoryCore`. The `AUTOPHAGY_EVENT` now accurately broadcasts the true dynamic yield calculated by the configuration layer.
+- **Akashic Insulation:** Hardened `TheAkashicRecord` against malformed or empty vectors. Trigram extraction and Artifact forging now gracefully default to bedrock constants rather than crashing on `max()` iterations.
+- **Legacy Drag Inheritance:** Fixed a disconnected strain-gauge in `bone_genesis.py`. Scars inherited from previous generations via `TheOroboros` now correctly apply their physical drag to the new session's physics packet.
+- **The Zombie Thread Fix:** Insulated `trigger_death()` in `bone_main.py`. The engine now successfully packs a safe simulation dictionary before passing it to `gather_state()`, ensuring the death sequence completes without crashing the terminal.
+
+
+### **BONEAMANITA v17.7.5 "The Ralph Apoptosis & Immune Response"**
 
 *A massive architectural shift moving the engine to Stateful Orchestration with Stateless Generation. The system now possesses a physical immune system capable of resisting sycophancy, halting runaway optimization loops, and writing its own genetic trauma directly into the substrate.*
 

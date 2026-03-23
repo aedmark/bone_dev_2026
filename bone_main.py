@@ -359,7 +359,8 @@ class BoneAmanita:
         nov_mult = getattr(cfg, "HOST_NOVELTY_MULT", 10.0) if cfg else 10.0
         burn_proxy = max(1.0, self.observer.last_cycle_duration * burn_mult)
         physics_obj = packet.get("physics", {})
-        novelty = float(safe_get(physics_obj, "vector", {}).get("novelty", 0.5) if isinstance(safe_get(physics_obj, "vector"), dict) else getattr(safe_get(physics_obj, "vector"), "novelty", 0.5))
+        vector_obj = safe_get(physics_obj, "vector", {})
+        novelty = float(safe_get(vector_obj, "novelty", 0.5))
         self.host_stats.efficiency_index = min(1.0, (novelty * nov_mult) / burn_proxy)
         self.host_stats.latency = self.observer.last_cycle_duration
 
@@ -400,8 +401,7 @@ class BoneAmanita:
         if not is_system and self.gordon:
             self.gordon.mode = "ADVENTURE"
             current_physics = (getattr(self, "cortex", None) and getattr(self.cortex, "last_physics", {}))
-            zone_name = current_physics.get("zone", "Unknown") if isinstance(current_physics, dict) else getattr(
-                current_physics, "zone", "Unknown")
+            zone_name = safe_get(current_physics, "zone", "Unknown")
             violation_msg = self.gordon.enforce_object_action_coupling(user_message, zone_name)
             if violation_msg:
                 self.events.log(ux("main_strings", "gordon_intercept"), "SYS")
@@ -410,10 +410,10 @@ class BoneAmanita:
                     self.cortex.gordon_shock = violation_msg
         last_phys = getattr(self.observer, "last_physics_packet", getattr(self.cortex, "last_physics", None))
         if last_phys and not is_system:
-            m_a = getattr(last_phys, "m_a", 0.0)
-            mu = getattr(last_phys, "mu", 0.0)
-            i_c = getattr(last_phys, "i_c", 1.0)
-            chi = getattr(last_phys, "entropy", 0.2)
+            m_a = float(safe_get(last_phys, "m_a", 0.0))
+            mu = float(safe_get(last_phys, "mu", 0.0))
+            i_c = float(safe_get(last_phys, "i_c", 1.0))
+            chi = float(safe_get(last_phys, "entropy", safe_get(last_phys, "chi", 0.2)))
             if (chi * m_a) > i_c:
                 self.events.log("MOOG: Apoptotic Gate triggered. Runaway loop exceeds Immune Competence.", "CRIT")
                 return self.trigger_death(last_phys)
@@ -517,7 +517,8 @@ class BoneAmanita:
         death_log = [f"\n{Prisma.RED}{halt_msg.format(eulogy_text=eulogy_text)}{Prisma.RST}"]
         legacy_msg = self.oroboros.crystallize(cause_code, self.soul)
         death_log.append(f"{Prisma.MAG}🐍 {legacy_msg}{Prisma.RST}")
-        continuity_packet = {"location": self.cortex.gather_state(self.cortex.last_physics or {})
+        sim_data = {"physics": self.cortex.last_physics} if self.cortex.last_physics else {}
+        continuity_packet = {"location": self.cortex.gather_state(sim_data)
         .get("world", {})
         .get("orbit", ["Void"])[0], "last_output": (
             self.cortex.dialogue_buffer[-1]

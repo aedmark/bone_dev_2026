@@ -20,10 +20,10 @@ class BoneGenesis:
             config: Dict[str, Any], lexicon_ref: Any, events_ref: Any = None) -> Dict[str, Any]:
         events = events_ref or EventBus()
         if events_ref:
-            msg = ux("genesis_strings", "ignite_log") 
+            msg = ux("genesis_strings", "ignite_log")
             events.log(msg, "GENESIS")
         else:
-            msg = ux("genesis_strings", "ignite_print") 
+            msg = ux("genesis_strings", "ignite_print")
             print(msg)
         target_cfg = config.get("bone_config") or BoneConfig
         lore = LoreManifest.get_instance(config_ref=target_cfg)
@@ -52,13 +52,18 @@ class BoneGenesis:
             safe_bio_proxy = {"trauma_vector": trauma_proxy}
             logs = oroboros.apply_legacy(dummy_phys, safe_bio_proxy)
             if logs:
+                from bone_core import safe_get, safe_set
                 msg_scars = ux("genesis_strings", "legacy_scars")
                 events.log(msg_scars.format(logs=", ".join(logs)), "OROBOROS")
+                applied_drag = dummy_phys.get("narrative_drag", 0.0)
                 if getattr(embryo.physics, "dynamics", None):
                     if hasattr(embryo.physics.dynamics, "base_drag"):
-                        embryo.physics.dynamics.base_drag += dummy_phys["narrative_drag"]
+                        embryo.physics.dynamics.base_drag += applied_drag
                     elif hasattr(embryo.physics.dynamics, "strain_gauge"):
-                        embryo.physics.dynamics.strain_gauge += (dummy_phys.get("narrative_drag", 0.0) * strain_scalar)
+                        embryo.physics.dynamics.strain_gauge += (applied_drag * strain_scalar)
+                else:
+                    curr_drag = float(safe_get(embryo.physics, "narrative_drag", 0.0))
+                    safe_set(embryo.physics, "narrative_drag", curr_drag + applied_drag)
                 if hasattr(embryo.mind, "mem"):
                     embryo.mind.mem.session_trauma_vector = safe_bio_proxy.get("trauma_vector", {})
         drivers = DriverRegistry(events, config_ref=target_cfg)

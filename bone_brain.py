@@ -116,17 +116,8 @@ class NeurotransmitterModulator:
         chemical_delta = (c.dopamine * chem_weights.get("dop", 0.4)) - (c.adrenaline * chem_weights.get("adr", 0.3)) - (c.cortisol * chem_weights.get("cor", 0.2))
         base_temp = getattr(cfg, "BASE_TEMP", 0.4)
         base_top_p = getattr(cfg, "BASE_TOP_P", 0.95)
-
-        def _p_get(k, d=0.0):
-            val = safe_get(physics_state, k)
-            if val is None:
-                for sub in ["energy", "space", "matter"]:
-                    val = safe_get(safe_get(physics_state, sub), k)
-                    if val is not None: break
-            return d if val is None else val
-
-        chi = float(_p_get("chi", _p_get("entropy", 0.2)))
-        beta = float(_p_get("contradiction", _p_get("beta_index", 0.4)))
+        chi = float(safe_get(physics_state, "chi", safe_get(physics_state, "entropy", 0.2)))
+        beta = float(safe_get(physics_state, "contradiction", safe_get(physics_state, "beta_index", 0.4)))
         ent_offset = getattr(cfg, "TEMP_ENTROPY_OFFSET", 0.5)
         ent_scalar = getattr(cfg, "TEMP_ENTROPY_SCALAR", 1.5)
         entropy_bonus = max(0.0, chi - ent_offset) * ent_scalar
@@ -258,9 +249,9 @@ class TheCortex:
             return sim_result
         full_state = self.gather_state(sim_result)
         phys_state = full_state.get("physics", {})
-        f_drag = phys_state.get("narrative_drag", 0.0)
-        chi_val = phys_state.get("chi", phys_state.get("entropy", 0.0))
-        m_a = phys_state.get("m_a", 0.0)
+        f_drag = float(safe_get(phys_state, "narrative_drag", 0.0))
+        chi_val = float(safe_get(phys_state, "chi", safe_get(phys_state, "entropy", 0.0)))
+        m_a = float(safe_get(phys_state, "m_a", 0.0))
         if f_drag > 1.5 or chi_val > 0.8:
             reject_msg = "[GORDON - The Anchor]: Frequency too high. Tensegrity Anchor engaged. I am locking the architecture. Take a breath and lower your narrative friction before we proceed."
             if self.events: self.events.log(f"{Prisma.RED}{reject_msg}{Prisma.RST}", "SYS_LOCK")
@@ -290,10 +281,10 @@ class TheCortex:
         if is_boot_sequence:
             self._apply_boot_overlay(full_state, user_input)
             modifiers["include_inventory"] = False
-        llm_params = self.modulator.modulate(base_voltage=full_state["physics"].get("voltage", 5.0), latency_penalty=(
-            getattr(self.svc.host_stats, "latency", 0.0) if self.svc.host_stats else 0.0), physics_state=full_state.get("physics", {}), )
+        phys = full_state.get("physics", {})
+        llm_params = self.modulator.modulate(base_voltage=float(safe_get(phys, "voltage", 5.0)), latency_penalty=(getattr(self.svc.host_stats, "latency", 0.0) if self.svc.host_stats else 0.0), physics_state=phys, )
         if is_boot_sequence: llm_params.update({"temperature": 0.7, "top_p": 0.95})
-        if llm_params.get("max_tokens", 4096) < 300 or full_state.get("physics", {}).get("p", 100.0) < 20.0:
+        if llm_params.get("max_tokens", 4096) < 300 or float(safe_get(phys, "p", 100.0)) < 20.0:
             if "style_directives" not in full_state["mind"]:
                 full_state["mind"]["style_directives"] = []
             full_state["mind"]["style_directives"].append("CRITICAL: You are exhausted. You must conclude your thought in under 3 sentences.")
@@ -335,11 +326,12 @@ class TheCortex:
             if attempt < max_retries - 1:
                 if attempt >= 1:
                     final_output = "The system is struggling to map this request to its current architecture. Narrative friction is too high. Please rephrase or simplify your intent."
-                    extracted_logs.append("[SYSTEM MERCY RULE]: Rejection loop broken to prevent ATP starvation. Spiking Drag (F ->  ).")
+                    extracted_logs.append("[SYSTEM MERCY RULE]: Rejection loop broken to prevent ATP starvation. Spiking Drag (F -> ∞).")
                     if hasattr(self.svc.cycle_controller, "eng"):
                         eng = self.svc.cycle_controller.eng
-                        if hasattr(eng, "phys") and hasattr(eng.phys, "observer") and getattr(eng.phys.observer, "last_physics_packet", None):
-                            eng.phys.observer.last_physics_packet.narrative_drag = float('inf')
+                        obs_packet = getattr(getattr(getattr(eng, "phys", None), "observer", None), "last_physics_packet", None)
+                        if obs_packet:
+                            safe_set(obs_packet, "narrative_drag", float('inf'))
                     if self.last_physics:
                         safe_set(self.last_physics, "narrative_drag", float('inf'))
                     break

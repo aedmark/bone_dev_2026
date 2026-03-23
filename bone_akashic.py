@@ -119,9 +119,12 @@ class TheAkashicRecord:
     @staticmethod
     def _extract_dominant_trigram(physics: Any) -> str:
         vector = safe_get(physics, "vector", safe_get(safe_get(physics, "matter"), "vector", {}))
-        if not vector:
+        if not vector or not isinstance(vector, dict):
             return "KAN"
-        dom = max(vector, key=vector.get)
+        valid_keys = [k for k in vector.keys() if vector.get(k) is not None]
+        if not valid_keys:
+            return "KAN"
+        dom = max(valid_keys, key=lambda k: vector.get(k, 0.0))
         constants = LoreManifest.get_instance().get("PHYSICS_CONSTANTS") or {}
         trigrams = constants.get("TRIGRAM_MAP", {})
         fallback_mapping = constants.get("FALLBACK_TRIGRAMS", {"CHI": "KAN", "LAMBDA": "KUN"})
@@ -175,7 +178,12 @@ class TheAkashicRecord:
             self.store_ghost_echo(payload)
 
     def forge_new_item(self, vector: Dict[str, float]) -> Tuple[str, Dict]:
-        dominant_force = max(vector, key=vector.__getitem__) if vector else "CHI"
+        if not vector or not isinstance(vector, dict):
+            dominant_force = "CHI"
+        else:
+            valid_keys = [k for k in vector.keys() if vector.get(k) is not None]
+            dominant_force = max(valid_keys, key=lambda k: vector.get(k, 0.0)) if valid_keys else "CHI"
+
         item_gen_data = self.lore.get("ITEM_GENERATION") or {}
         prefixes = item_gen_data.get("PREFIXES", {})
         prefix = prefixes.get(dominant_force, item_gen_data.get("FALLBACK_PREFIX", "Ascended"))
@@ -326,12 +334,16 @@ class TheAkashicRecord:
             return
 
         def get_weights(l_name):
-            return existing_lenses.get(l_name, {}).get("weights", {"v": 0, "d": 0})
+            data = safe_get(existing_lenses, l_name, {})
+            return safe_get(data, "weights", {"v": 0.0, "d": 0.0})
 
         w_a = get_weights(lens_a)
         w_b = get_weights(lens_b)
-        new_weights = {"voltage": round((w_a.get("voltage", w_a.get("v", 0)) + w_b.get("voltage", w_b.get("v", 0))) / 2, 2, ),
-                       "drag": round((w_a.get("drag", w_a.get("d", 0)) + w_b.get("drag", w_b.get("d", 0)))/ 2,2,),}
+        v_a = float(safe_get(w_a, "voltage", safe_get(w_a, "v", 0.0)))
+        v_b = float(safe_get(w_b, "voltage", safe_get(w_b, "v", 0.0)))
+        d_a = float(safe_get(w_a, "drag", safe_get(w_a, "d", 0.0)))
+        d_b = float(safe_get(w_b, "drag", safe_get(w_b, "d", 0.0)))
+        new_weights = {"voltage": round((v_a + v_b) / 2, 2), "drag": round((d_a + d_b) / 2, 2)}
         desc_template = ux("akashic_strings", "lens_desc")
         new_lens_data = {"description": desc_template.format(lens_a=lens_a, lens_b=lens_b), "weights": new_weights,
                          "parentage": [lens_a, lens_b], }

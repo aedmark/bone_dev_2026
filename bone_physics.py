@@ -723,57 +723,65 @@ class CycleStabilizer:
         amount = payload.get("drag_penalty", 0.0)
         self.pending_drag += amount
 
-    def stabilize(self, proposed_zone: str, physics: Any, cosmic_state: Tuple[str, float, str]) -> Tuple[str, Optional[str]]:
-        energy = safe_get(physics, "energy", physics)
-        matter = safe_get(physics, "matter", physics)
-        beta = safe_get(physics, "beta_index", safe_get(energy, "beta_index", 1.0))
-        truth = safe_get(physics, "truth_ratio", safe_get(matter, "truth_ratio", 0.5))
-        grav_pull = 1.0 if cosmic_state[0] != "VOID_DRIFT" else 0.0
-        current_vec = (beta, truth, grav_pull)
-        self.dwell_counter += 1
+    def stabilize(self, physics: Any) -> bool:
+        applied_correction = False
+
+        def _get(obj, f, default=0.0):
+            if isinstance(obj, dict): return obj.get(f, default)
+            return getattr(obj, f, getattr(getattr(obj, "energy", None), f, getattr(getattr(obj, "space", None), f, default)))
+
+        def _set(obj, f, val):
+            if isinstance(obj, dict): obj[f] = val
+            else:
+                if hasattr(obj, "energy") and hasattr(obj.energy, f): setattr(obj.energy, f, val)
+                elif hasattr(obj, "space") and hasattr(obj.space, f): setattr(obj.space, f, val)
+                else: setattr(obj, f, val)
+
         if self.pending_drag > 0:
-            _set(p, "narrative_drag", current_d + self.pending_drag)
-            msg = ux("physics_strings", "stabilizer_domestication")
-            ctx.log(f"{Prisma.GRY}{msg.format(drag=self.pending_drag)}{Prisma.RST}")
+            current_d = _get(physics, "narrative_drag", 0.0)
+            _set(physics, "narrative_drag", current_d + self.pending_drag)
+            msg = ux("physics_strings", "stabilizer_domestication") or "Domestication penalty applied."
+            if hasattr(self.events, "log"):
+                self.events.log(f"STABILIZER: {msg} (+{self.pending_drag} Drag)", "PHYSICS")
             self.pending_drag = 0.0
+            applied_correction = True
         now = time.time()
         dt = max(0.001, min(1.0, now - self.last_tick_time))
         self.last_tick_time = now
-        manifold = _get(p, "manifold", "DEFAULT")
+        if not self.governor:
+            return applied_correction
+        manifold = _get(physics, "manifold", "DEFAULT")
         cfg = self.manifolds.get(manifold, self.manifolds.get("DEFAULT", {"voltage": 10.0, "drag": 1.0}))
         target_v = cfg.get("voltage", 10.0)
-        if _get(p, "flow_state", "LAMINAR") in ["SUPERCONDUCTIVE", "FLOW_BOOST"]:
+        current_v = _get(physics, "voltage", 10.0)
+        if _get(physics, "flow_state", "LAMINAR") in ["SUPERCONDUCTIVE", "FLOW_BOOST"]:
             target_v = current_v
             cfg["drag"] = max(0.1, cfg.get("drag", 1.0) * 0.5)
         self.governor.recalibrate(target_v, cfg.get("drag", 1.0))
-        safe_phys = p.to_dict() if hasattr(p, "to_dict") else p
+        safe_phys = physics.to_dict() if hasattr(physics, "to_dict") else physics
         v_force, d_force = self.governor.regulate(safe_phys, dt=dt)
-        v_floor = getattr(self.cfg.PHYSICS, "VOLTAGE_FLOOR", 0.0)
-        v_max = getattr(self.cfg.PHYSICS, "VOLTAGE_MAX", 150.0)
-        c1 = self._apply_force(ctx, current_phase, p, "voltage", v_force, (v_floor, v_max))
-        c2 = self._apply_force(ctx, current_phase, p, "narrative_drag", d_force)
-        return c1 or c2
+        v_floor = getattr(self.cfg.PHYSICS, "VOLTAGE_FLOOR", 0.0) if hasattr(self.cfg, "PHYSICS") else 0.0
+        v_max = getattr(self.cfg.PHYSICS, "VOLTAGE_MAX", 150.0) if hasattr(self.cfg, "PHYSICS") else 150.0
+        c1 = self._apply_force(physics, "voltage", v_force, (v_floor, v_max))
+        c2 = self._apply_force(physics, "narrative_drag", d_force)
+        return applied_correction or c1 or c2
 
-    @staticmethod
-    def _apply_force(ctx, phase, p, field, force, limits=None):
+    def _apply_force(self, p, field, force, limits=None) -> bool:
         deadband = 0.05
-        flux_thresh = 0.5
         if abs(force) <= deadband:
             return False
 
         def _get(obj, f, default=0.0):
             if isinstance(obj, dict): return obj.get(f, default)
             return getattr(obj, f, getattr(getattr(obj, "energy", None), f, getattr(getattr(obj, "space", None), f, default)))
+
         def _set(obj, f, val):
-            if isinstance(obj, dict):
-                obj[f] = val
+            if isinstance(obj, dict): obj[f] = val
             else:
-                if hasattr(obj, "energy") and hasattr(obj.energy, f):
-                    setattr(obj.energy, f, val)
-                elif hasattr(obj, "space") and hasattr(obj.space, f):
-                    setattr(obj.space, f, val)
-                else:
-                    setattr(obj, f, val)
+                if hasattr(obj, "energy") and hasattr(obj.energy, f): setattr(obj.energy, f, val)
+                elif hasattr(obj, "space") and hasattr(obj.space, f): setattr(obj.space, f, val)
+                else: setattr(obj, f, val)
+
         old_val = _get(p, field, 0.0)
         new_val = old_val + force
         if limits:
@@ -781,7 +789,4 @@ class CycleStabilizer:
         else:
             new_val = max(0.0, new_val)
         _set(p, field, new_val)
-        if abs(force) > flux_thresh:
-            if hasattr(ctx, "record_flux"):
-                ctx.record_flux(phase, field, old_val, new_val, "PID_CORRECTION")
         return True

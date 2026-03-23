@@ -394,8 +394,6 @@ class MemoryCore:
         lifespan = current_tick - data.get("strata", {}).get("birth_tick", current_tick)
         fossil_data = {"word": victim, "mass": round(mass, 2), "lifespan": lifespan, "edges": data["edges"], "death_tick": current_tick, }
         self.subconscious.bury(fossil_data, config_ref=self.cfg)
-        if hasattr(self, 'events') and self.events and victim:
-            self.events.publish("AUTOPHAGY_EVENT", {"node": victim, "atp_gained": 15.0})
         del self.graph[victim]
         for node in self.graph:
             if victim in self.graph[node]["edges"]:
@@ -506,6 +504,8 @@ class MycelialNetwork:
         if victim:
             cfg = getattr(self.cfg, "AKASHIC", None)
             atp_gain = getattr(cfg, "AUTOPHAGY_YIELD", 15.0) if cfg else 15.0
+            if hasattr(self.events, "publish"):
+                self.events.publish("AUTOPHAGY_EVENT", {"node": victim, "atp_gained": atp_gain})
             return atp_gain, msg
         return 0.0, msg
 
@@ -773,9 +773,7 @@ class MycelialNetwork:
         top_joy = sorted(valid_joy, key=lambda x: x.get("resonance", 0), reverse=True)[:3]
         joy_legacy_data = None
         if top_joy:
-            joy_legacy_data = {"flavor": top_joy[0].get("dominant_flavor", "UNKNOWN"),
-                               "resonance": top_joy[0].get("resonance", 0),
-                               "timestamp": top_joy[0].get("timestamp", 0)}
+            joy_legacy_data = {"flavor": top_joy[0].get("dominant_flavor", "UNKNOWN"), "resonance": top_joy[0].get("resonance", 0), "timestamp": top_joy[0].get("timestamp", 0)}
         core_graph = {}
         for k, data in self.graph.items():
             filtered_edges = {}
@@ -913,7 +911,7 @@ class BioParasite:
         return score, comment
 
     def infect(self, physics_packet, stamina):
-        psi = physics_packet.get("psi", 0.0)
+        psi = safe_get(physics_packet, "psi", 0.0)
         cfg = getattr(self.cfg, "SPORES", None)
         p_stam = getattr(cfg, "PARASITE_STAMINA_MAX", 40.0) if cfg else 40.0
         p_psi = getattr(cfg, "PARASITE_PSI_MIN", 0.6) if cfg else 0.6

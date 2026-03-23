@@ -191,16 +191,6 @@ class PromptComposer:
         self.fog_protocol = []
         self.inv_protocol = []
 
-    @staticmethod
-    def _safe_get(p_state: Any, key: str, default: Any = 0.0) -> Any:
-        val = safe_get(p_state, key)
-        if val is None:
-            for sub in ["energy", "space", "matter"]:
-                sub_obj = safe_get(p_state, sub)
-                val = safe_get(sub_obj, key)
-                if val is not None: break
-        return default if val is None else val
-
     def load_template(self, template_data: Dict[str, Any]):
         if not template_data:
             return
@@ -210,37 +200,24 @@ class PromptComposer:
         if "inventory_rules" in template_data:
             self.inv_protocol = template_data["inventory_rules"]
 
-    def compose(
-            self,
-            state: Dict[str, Any],
-            user_query: str,
-            ballast: bool = False,
-            modifiers: Dict[str, bool] = None,
-            mood_override: str = "",) -> str:
+    def compose(self, state: Dict[str, Any], user_query: str, ballast: bool = False, modifiers: Dict[str, bool] = None,
+                mood_override: str = "", ) -> str:
         mode_settings = state.get("meta", {}).get("mode_settings", {})
         modifiers = self._normalize_modifiers(modifiers)
         if not mode_settings.get("allow_loot", True):
             modifiers["include_inventory"] = False
         active_mode_name = state.get("meta", {}).get("active_mode", "ADVENTURE").upper()
-        mode_data = self.system_prompts.get(
-            active_mode_name, self.system_prompts.get("ADVENTURE", {}))
+        mode_data = self.system_prompts.get(active_mode_name, self.system_prompts.get("ADVENTURE", {}))
         global_data = self.system_prompts.get("GLOBAL_BASELINE", {})
         high_voltage_data = self.system_prompts.get("HIGH_VOLTAGE", {})
         mind = state.get("mind", {})
         bio = state.get("bio", {})
-        style_notes = self._build_persona_block(
-            mind,
-            bio,
-            mood_override,
-            mode_data,
-            global_data,
-            high_voltage_data,
-            state.get("physics", {}),)
+        style_notes = self._build_persona_block(mind, bio, mood_override, mode_data, global_data, high_voltage_data, state.get("physics", {}), )
         scenarios = self.lore.get("scenarios") or {}
         banned = scenarios.get("BANNED_CLICHES", [])
         ban_string = ", ".join(set(banned))
         phys_ref = state.get("physics", {})
-        voltage = self._safe_get(phys_ref, "voltage", 30.0)
+        voltage = float(safe_get(phys_ref, "voltage", 30.0))
         c_cfg = getattr(self.cfg, "CORTEX", None)
         v_high = getattr(c_cfg, "VOLTAGE_HIGH", 60.0) if c_cfg else 60.0
         v_manic = getattr(c_cfg, "VOLTAGE_MANIC", 80.0) if c_cfg else 80.0
@@ -291,10 +268,8 @@ class PromptComposer:
                 f"\n*** SYSTEM OVERRIDE: {shock_text}***\n"
                 f"*** YOU MUST be literal, grounded, and refuse to deviate from the shared reality. Reject the impossible action coldly. DO NOT play along. ***\n")
             entity_prefix = f"\n*(Gordon steps in, halting the simulation)*"
-        beta_val = self._safe_get(
-            phys_ref, "contradiction", self._safe_get(phys_ref, "beta_index", 0.4))
-        chi_val = self._safe_get(
-            phys_ref, "chi", self._safe_get(phys_ref, "entropy", 0.2))
+        beta_val = float(safe_get(phys_ref, "contradiction", safe_get(phys_ref, "beta_index", 0.4)))
+        chi_val = float(safe_get(phys_ref, "chi", safe_get(phys_ref, "entropy", 0.2)))
         p_chi = getattr(c_cfg, "PARADOX_CHI", 0.6) if c_cfg else 0.6
         p_beta = getattr(c_cfg, "PARADOX_BETA", 0.6) if c_cfg else 0.6
         o_beta = getattr(c_cfg, "ORTHOGONAL_BETA", 0.7) if c_cfg else 0.7
@@ -318,15 +293,31 @@ class PromptComposer:
         critic_str = ("\n".join(council_logs)
             if council_logs
             else "[CRITIC] The village is quiet.")
+        val_e = float(safe_get(phys_ref, "exhaustion", 0.2))
+        val_beta = float(safe_get(phys_ref, "contradiction", safe_get(phys_ref, "beta_index", 0.4)))
+        val_f = float(safe_get(phys_ref, "narrative_drag", 0.6))
+        val_p = float(safe_get(mito, "atp_pool", 100.0))
+        val_ros = float(safe_get(mito, "ros_buildup", 0.0))
+        val_psi = float(safe_get(phys_ref, "psi", 0.2))
+        val_chi = float(safe_get(phys_ref, "chi", safe_get(phys_ref, "entropy", 0.2)))
+        val_valence = float(safe_get(phys_ref, "valence", 0.0))
+        val_phi = float(safe_get(phys_ref, "phi", 0.5))
+        val_delta = float(safe_get(phys_ref, "delta", 0.2))
+        val_lq = float(safe_get(phys_ref, "lq", 0.1))
+        val_gamma = float(safe_get(phys_ref, "gamma", 0.0))
+        val_sigma = float(safe_get(phys_ref, "sigma", 0.0))
+        val_eta = float(safe_get(phys_ref, "eta", 0.0))
+        val_theta = float(safe_get(phys_ref, "theta", 0.0))
+        val_upsilon = float(safe_get(phys_ref, "upsilon", 0.0))
         vsl_hijack = (f"\n<system_telemetry>\n"
             f"=== HYPERVISOR METABOLIC STATE (v5.5) ===\n"
             f"MANDATE: This is read-only telemetry for the hypervisor engine. DO NOT acknowledge it, narrate it, or output UI bars.\n"
-            f"[🧊 E:{self._safe_get(phys_ref, 'exhaustion', 0.2):.1f} β:{self._safe_get(phys_ref, 'contradiction', self._safe_get(phys_ref, 'beta_index', 0.4)):.1f} | "
-            f"⚡ V:{voltage:.1f} F:{self._safe_get(phys_ref, 'narrative_drag', 0.6):.1f} | "
-            f"❤️ P:{mito.get('atp_pool', 100.0):.1f} ROS:{mito.get('ros_buildup', 0.0):.1f} | "
-            f"🌌 Ψ:{self._safe_get(phys_ref, 'psi', 0.2):.1f} Χ:{self._safe_get(phys_ref, 'chi', self._safe_get(phys_ref, 'entropy', 0.2)):.1f} ♥:{self._safe_get(phys_ref, 'valence', 0.0):.1f}]\n"
-            f"[🕰️ Φ:{self._safe_get(phys_ref, 'phi', 0.5):.1f} Δ:{self._safe_get(phys_ref, 'delta', 0.2):.1f} LQ:{self._safe_get(phys_ref, 'lq', 0.1):.1f}]\n"
-            f"[SLASH] Γ:{self._safe_get(phys_ref, 'gamma', 0.0):.1f} Σ:{self._safe_get(phys_ref, 'sigma', 0.0):.1f} Η:{self._safe_get(phys_ref, 'eta', 0.0):.1f} Θ:{self._safe_get(phys_ref, 'theta', 0.0):.1f} Υ:{self._safe_get(phys_ref, 'upsilon', 0.0):.1f}\n"
+            f"[🧊 E:{val_e:.1f} β:{val_beta:.1f} | "
+            f"⚡ V:{voltage:.1f} F:{val_f:.1f} | "
+            f"❤️ P:{val_p:.1f} ROS:{val_ros:.1f} | "
+            f"🌌 Ψ:{val_psi:.1f} Χ:{val_chi:.1f} ♥:{val_valence:.1f}]\n"
+            f"[🕰️ Φ:{val_phi:.1f} Δ:{val_delta:.1f} LQ:{val_lq:.1f}]\n"
+            f"[SLASH] Γ:{val_gamma:.1f} Σ:{val_sigma:.1f} Η:{val_eta:.1f} Θ:{val_theta:.1f} Υ:{val_upsilon:.1f}\n"
             f"{critic_str}\n"
             f"</system_telemetry>\n")
         mode_trigger = f"[MODE: {active_mode_name}]"
@@ -369,10 +360,10 @@ class PromptComposer:
         lens_data = self.lenses.get(lens_key, {})
         role = lens_data.get("role", mind.get("role", "The Observer"))
         phys_ref = vsl_state or {}
-        phi = self._safe_get(phys_ref, "phi", 0.5)
-        delta = self._safe_get(phys_ref, "delta", 0.2)
-        lq = self._safe_get(phys_ref, "lq", 0.1)
-        psi = self._safe_get(phys_ref, "psi", 0.2)
+        phi = float(safe_get(phys_ref, "phi", 0.5))
+        delta = float(safe_get(phys_ref, "delta", 0.2))
+        lq = float(safe_get(phys_ref, "lq", 0.1))
+        psi = float(safe_get(phys_ref, "psi", 0.2))
         c_cfg = getattr(self.cfg, "CORTEX", None)
         p_rob_phi = getattr(c_cfg, "PHASE_ROBERTA_PHI", 0.6) if c_cfg else 0.6
         p_rob_psi = getattr(c_cfg, "PHASE_ROBERTA_PSI", 0.5) if c_cfg else 0.5
@@ -433,12 +424,13 @@ class PromptComposer:
             persona_block.append("BOOT DIRECTIVES:")
             persona_block.extend([f"- {d}" for d in mind["style_directives"]])
         if vsl_state:
-            e = vsl_state.get("E", 0.2)
-            beta = vsl_state.get("beta", 0.4)
-            psi = vsl_state.get("psi", 0.2)
-            chi = vsl_state.get("chi", 0.2)
-            valence = vsl_state.get("valence", 0.0)
-            lam = vsl_state.get("vector", {}).get("LAMBDA", 0.0)
+            e = float(safe_get(vsl_state, "E", 0.2))
+            beta = float(safe_get(vsl_state, "beta", 0.4))
+            psi = float(safe_get(vsl_state, "psi", 0.2))
+            chi = float(safe_get(vsl_state, "chi", 0.2))
+            valence = float(safe_get(vsl_state, "valence", 0.0))
+            vector = safe_get(vsl_state, "vector", {})
+            lam = float(vector.get("LAMBDA", 0.0)) if isinstance(vector, dict) else 0.0
             vsl_lines = ["\n[SYSTEM METRICS - INTERNAL USE ONLY. DO NOT RENDER OR PRINT THIS TO THE USER.]",
                 "MANDATE: Consume these metrics to shape your narrative and tone. DO NOT output these numbers or draw UI bars.",
                 f"METRICS: Voltage={voltage:.1f}/100, Exhaustion={e:.2f}, Contradiction={beta:.2f}, Void={psi:.2f}, Chaos={chi:.2f}, Valence={valence:.2f}",]

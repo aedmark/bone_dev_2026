@@ -483,13 +483,10 @@ class NavigationPhase(SimulationPhase):
     def run(self, ctx: CycleContext):
         physics = ctx.physics
         mode_settings = getattr(self.eng, "mode_settings", {})
-
-        # Detect Stateless Boot
         is_fresh_boot = len(self.eng.cortex.dialogue_buffer) == 0 if hasattr(self.eng, "cortex") else False
         if is_fresh_boot:
             ctx.log(f"{Prisma.MAG}[NAVIGATION]: Fresh boot detected. Bypassing Orthogonal Attention Loss. Orienting to JSON bedrock.{Prisma.RST}")
             physics.narrative_drag = max(0.1, physics.narrative_drag * 0.1)
-
         v_floor = mode_settings.get("voltage_floor_override")
         if v_floor is not None:
             physics.voltage = max(physics.voltage, v_floor)
@@ -1066,7 +1063,10 @@ class StabilizationPhase(SimulationPhase):
         self.stabilizer = stabilizer_ref
 
     def run(self, ctx: CycleContext):
-        self.stabilizer.stabilize(ctx, self.name)
+        if hasattr(self.stabilizer, "stabilize"):
+            applied = self.stabilizer.stabilize(ctx.physics)
+            if applied:
+                ctx.record_flux(self.name, "PID_CORRECTION", 0.0, 1.0, "STABILIZER_APPLIED")
         return ctx
 
 class PhaseExecutor:

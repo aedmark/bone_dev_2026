@@ -289,36 +289,25 @@ class NarrativeSelf:
         status_msg = ux("soul_strings", "soul_state_status")
         return status_msg.format(obs=self.current_obsession, bar=dignity_bar, pct=int(self.anchor.dignity_reserve), feel=feeling, )
 
-    def crystallize_memory(
-            self, physics_packet: Any, bio_state: Any, _tick: int) -> Optional[str]:
+    def crystallize_memory(self, physics_packet: Any, bio_state: Any, _tick: int) -> Optional[str]:
         if not physics_packet:
             return None
-        is_dict = isinstance(physics_packet, dict)
         cfg = getattr(self.cfg, "SOUL", None)
         momentum = getattr(cfg, "TRAIT_MOMENTUM", 0.05) if cfg else 0.05
         if self.eng and hasattr(self.eng, "akashic") and hasattr(self.eng.akashic, "calculate_manifold_shift"):
             shift = self.eng.akashic.calculate_manifold_shift(self.archetype, self.traits.to_dict())
             v_bias = float(shift.get("voltage_bias", 0.0))
             d_scalar = float(shift.get("drag_scalar", 1.0))
-            current_v = float(
-                physics_packet.get("voltage", 0.0) if is_dict else getattr(physics_packet, "voltage", 0.0))
-            current_d = float(
-                physics_packet.get("narrative_drag", 1.0) if is_dict else getattr(physics_packet, "narrative_drag", 1.0))
-            if is_dict:
-                physics_packet["voltage"] = current_v + v_bias
-                physics_packet["narrative_drag"] = current_d * d_scalar
-            else:
-                setattr(physics_packet, "voltage", current_v + v_bias)
-                setattr(physics_packet, "narrative_drag", current_d * d_scalar)
+            current_v = float(safe_get(physics_packet, "voltage", 0.0))
+            current_d = float(safe_get(physics_packet, "narrative_drag", 1.0))
+            safe_set(physics_packet, "voltage", current_v + v_bias)
+            safe_set(physics_packet, "narrative_drag", current_d * d_scalar)
         if self.anchor.audit_existence(physics_packet, bio_state) > 0:
             self.traits.adjust("hope", momentum)
         dance_provenance = self.synaptic_dance(physics_packet, bio_state)
         self._update_archetype()
-        voltage = physics_packet.get("voltage", 0.0) if is_dict else getattr(physics_packet, "voltage", 0.0)
-        if is_dict:
-            truth = physics_packet.get("truth_ratio", physics_packet.get("matter", {}).get("truth_ratio", 0.0))
-        else:
-            truth = getattr(physics_packet, "truth_ratio", getattr(physics_packet.matter, "truth_ratio", 0.0) if hasattr(physics_packet, "matter") else 0.0)
+        voltage = float(safe_get(physics_packet, "voltage", 0.0))
+        truth = float(safe_get(physics_packet, "truth_ratio", safe_get(safe_get(physics_packet, "matter"), "truth_ratio", 0.0)))
         v_min = getattr(cfg, "MEMORY_VOLTAGE_MIN", 12.0) if cfg else 12.0
         t_min = getattr(cfg, "MEMORY_TRUTH_MIN", 0.5) if cfg else 0.5
         if voltage > v_min and truth > t_min:
@@ -347,11 +336,7 @@ class NarrativeSelf:
     def pursue_obsession(self, physics: Any) -> str | None:
         if not self.current_obsession:
             return None
-        is_dict = isinstance(physics, dict)
-        if is_dict:
-            clean_words = physics.get("clean_words", physics.get("matter", {}).get("clean_words", []))
-        else:
-            clean_words = getattr(physics, "clean_words", getattr(physics.matter, "clean_words", []) if hasattr(physics, "matter") else [])
+        clean_words = safe_get(physics, "clean_words", safe_get(safe_get(physics, "matter"), "clean_words", []))
         hit = False
         if self.current_target_cat:
             lex = self.eng.lex if self.eng and hasattr(self.eng, "lex") else None
@@ -365,12 +350,8 @@ class NarrativeSelf:
             cfg = getattr(self.cfg, "SOUL", None)
             assist_div = getattr(cfg, "OBSESSION_GRAVITY_ASSIST", 10.0) if cfg else 10.0
             gravity_assist = 1.0 + (self.obsession_progress / max(1.0, assist_div))
-            if is_dict:
-                current_drag = physics.get("narrative_drag", 0)
-                physics["narrative_drag"] = max(0.0, current_drag - gravity_assist)
-            else:
-                current_drag = getattr(physics, "narrative_drag", 0.0)
-                setattr(physics, "narrative_drag", max(0.0, current_drag - gravity_assist))
+            current_drag = float(safe_get(physics, "narrative_drag", 0.0))
+            safe_set(physics, "narrative_drag", max(0.0, current_drag - gravity_assist))
             msg_syn = ux("soul_strings", "soul_synergy_muse")
             return f"{Prisma.MAG}{msg_syn.format(assist=gravity_assist)}{Prisma.RST}"
         self.obsession_neglect += 1.0
@@ -395,13 +376,12 @@ class NarrativeSelf:
         new_arch = None
         physics = self._safe_get_packet()
         if physics:
-            is_dict = isinstance(physics, dict)
-            psi = physics.get("psi", 0.0) if is_dict else getattr(physics, "psi", 0.0)
-            exhaustion = physics.get("exhaustion", physics.get("E", 0.0)) if is_dict else getattr(physics, "exhaustion", getattr(physics, "E", 0.0))
-            silence = physics.get("silence", physics.get("delta", 0.0)) if is_dict else getattr(physics, "silence", getattr(physics, "delta", 0.0))
-            resonance = physics.get("phi", 0.0) if is_dict else getattr(physics, "phi", 0.0)
-            trauma = physics.get("T", 0.0) if is_dict else getattr(physics, "T", 0.0)
-            lq = physics.get("lq", 0.0) if is_dict else getattr(physics, "lq", 0.0)
+            psi = float(safe_get(physics, "psi", 0.0))
+            exhaustion = float(safe_get(physics, "exhaustion", safe_get(physics, "E", 0.0)))
+            silence = float(safe_get(physics, "silence", safe_get(physics, "delta", 0.0)))
+            resonance = float(safe_get(physics, "phi", 0.0))
+            trauma = float(safe_get(physics, "T", 0.0))
+            lq = float(safe_get(physics, "lq", 0.0))
             if silence > 0.7 and exhaustion > 0.7:
                 new_arch = "THE PURGER"
             elif psi > 0.8:
@@ -502,11 +482,7 @@ class NarrativeSelf:
         packet = self._safe_get_packet()
         if not packet:
             return None, None
-        is_dict = isinstance(packet, dict)
-        if is_dict:
-            clean_words = packet.get("clean_words", packet.get("matter", {}).get("clean_words", []))
-        else:
-            clean_words = getattr(packet, "clean_words", getattr(packet.matter, "clean_words", []) if hasattr(packet, "matter") else [])
+        clean_words = safe_get(packet, "clean_words", safe_get(safe_get(packet, "matter"), "clean_words", []))
         if not clean_words:
             return None, None
         candidates = []
@@ -548,10 +524,7 @@ class NarrativeSelf:
         return random.choice(templates).format(word)
 
     def _forge_core_memory(self, physics_packet, bio_state, voltage, dance_move):
-        if isinstance(physics_packet, dict):
-            clean_words = physics_packet.get("clean_words", physics_packet.get("matter", {}).get("clean_words", []))
-        else:
-            clean_words = getattr(physics_packet, "clean_words", getattr(physics_packet.matter, "clean_words", []) if hasattr(physics_packet, "matter") else [])
+        clean_words = safe_get(physics_packet, "clean_words", safe_get(safe_get(physics_packet, "matter"), "clean_words", []))
         lesson = "The world is loud."
         chem = bio_state.get("chem", {})
         if chem.get("oxytocin", 0) > 0.6:
