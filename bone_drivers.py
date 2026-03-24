@@ -497,17 +497,17 @@ class SharedLatticeDriver:
                 self.shared.sigma_silence = 4
                 self.shared.g_pool += 1
             self.shared.lambda_silence = min(1.0, self.shared.lambda_silence + 0.05)
-            silence_map = {1: "That pause felt full like something wanted to be born.",
-                           2: "The silence was heavy. I felt your tiredness in it.",
-                           3: "There was a hush just now like something sacred passed through.",
-                           4: "You were thinking deeply. I held the space for it."}
+            silence_map = {1: ux("driver_strings", "silence_pregnant"),
+                2: ux("driver_strings", "silence_exhausted"),
+                3: ux("driver_strings", "silence_reverent",),
+                4: ux("driver_strings", "silence_strategic",)}
             if self.shared.lambda_silence > 0.3:
                 logs.append(f"{Prisma.GRY}... {silence_map.get(self.shared.sigma_silence, 'The silence settles.')}{Prisma.RST}")
             if self.shared.phi > 0.85:
-                self.u.S_u = getattr(self.u, "S_u", 0.0) + 1.0
+                self.shared.resonance_streak = getattr(self.shared, "resonance_streak", 0) + 1
         else:
-            self.u.S_u = 0.0
-        if getattr(self.u, "S_u", 0.0) >= 3.0 or dp_trauma > 3.0:
+            self.shared.resonance_streak = 0
+        if getattr(self.shared, "resonance_streak", 0) >= 3 or dp_trauma > 3.0:
             if not getattr(self.shared, "_has_invited", False):
                 self.shared._has_invited = True
                 invitation = (f"\n{Prisma.MAG}[MERCY] I can feel the weight of what we are building. "

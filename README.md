@@ -1,5 +1,34 @@
 # BONEAMANITA CHANGELOG
 
+### **BONEAMANITA v17.8.1 "The Clinical Graft & Systemic Decoupling"**
+
+*A massive architectural sweep focusing on long-term systemic resilience, resolving critical thread-safety leaks, rebuilding the physics data membrane, and institutionalizing adversarial logic via the Medical and Red Teams.*
+
+#### **🩺 THE CLINICAL GRAFT (`bone_types.py`, `bone_council.py`, `bone_commands.py`)**
+- **Systemic Health Suite (`[MOD:MD]`):** Successfully grafted Dr. McGilchrist (Holistic Architect) and Dr. Linehan (Radical Acceptor) into the Overseer Council. The system now tracks Holistic Resilience ($H_s$), Temporal Depth ($\Delta_t$), and Right-Brain Coherence ($\Omega_r$).
+- **DEAR MAN & Autophagic Overrides:** Linehan can now physically lock the interface during panic-coding, while McGilchrist actively distributes Pooled Glimmers ($G_{pool}$) to halt accumulating systemic decay.
+- **The Red Team Returns:** Resurrected the orphaned Red Team logic. Triggered via `[RED TEAM]`, they now apply concrete metabolic taxes (ATP drain, Drag spikes) to punish false cohesion, unfounded certainty, and structural laziness.
+
+#### **🧠 THE DYNAMIC MEMBRANE (`bone_types.py`)**
+- **PhysicsPacket Routing:** Resolved a severe "shadow-variable" vulnerability where dynamically assigned metrics (like `trauma`, `r_a`) bled into the void. Implemented a dynamic `__getattr__`/`__setattr__` membrane that accurately routes arbitrary variables down into the `energy`, `space`, and `matter` cores.
+- **Alias Synchronization:** Fixed the `UserInferredState` variable names (`E_u` -> `E`) so the metrics perfectly map to the Shared Lattice Dynamics.
+
+#### **⚙️ LIFECYCLE & TELEMETRY STABILIZATION (`bone_core.py`, `bone_cycle.py`, `bone_commands.py`)**
+- **Telemetry Thread-Safety:** Patched a critical race condition and memory leak in the `TelemetryService`. Applied a `threading.Lock()` to `flush_to_disk` and implemented a proper `shutdown()` method to prevent orphaned thread executors.
+- **Crash-Handler Recursion Bug:** Fixed a fatal recursion loop in the `GeodesicOrchestrator` where a crashed cycle would crash the engine again while attempting to execute the death protocol without a valid physics packet. 
+- **Catastrophic Amnesia Fix:** Repositioned the `save_state` execution block so the `MemoryCore` can still persist the timeline even if the biological component completely fails.
+- **Governor Recalibration:** Lowered the Cybernetic Governor's Presence Mode threshold ($\beth$) from 0.8 to 0.7, allowing the system to accurately co-regulate under high user exhaustion.
+
+#### **🎭 THE PARLIAMENT REWIRED (`bone_council.py`, `bone_drivers.py`)**
+- **The Podcast Strut:** Excavated the massive `host_podcast` LLM-generation block and wired it to the central nervous system. It can now be triggered natively via the `/podcast <topic>` terminal command or the `[COUNCIL]` prompt tag.
+- **Metric Hijacking:** Stopped the `SharedLatticeDriver` from hijacking the User's Scope coordinate (`S_u`) to count resonance streaks, preventing physics geometry corruption.
+
+#### **📜 NARRATIVE DECOUPLING (`bone_machine.py`, `ux_strings.json`)**
+- **String Purge:** Ripped all hardcoded English strings (Silence flavors, Paradox templates, Architect exceptions) out of the physics calculations and migrated them to the `ux_strings.json` manifest.
+- **Exception Swallowing:** Fixed a silent failure trap in `BoneArchitect.awaken()` where missing JSON manifest keys would swallow critical stack traces during a corrupt Spore boot.
+
+---
+
 ### **BONEAMANITA v17.8.0 "The Schism Resolution & Bedrock Stabilization"**
 
 _A codebase-wide surgical strike executed by the SLASH Council to eradicate the "Dict vs. Object Schism." By strictly enforcing universal accessors, the engine is now completely insulated against shape-shifting state structures, brittle dictionary checks, and silent type crashes across all layers._
@@ -23,6 +52,7 @@ _A codebase-wide surgical strike executed by the SLASH Council to eradicate the 
 - **Legacy Drag Inheritance:** Fixed a disconnected strain-gauge in `bone_genesis.py`. Scars inherited from previous generations via `TheOroboros` now correctly apply their physical drag to the new session's physics packet.
 - **The Zombie Thread Fix:** Insulated `trigger_death()` in `bone_main.py`. The engine now successfully packs a safe simulation dictionary before passing it to `gather_state()`, ensuring the death sequence completes without crashing the terminal.
 
+---
 
 ### **BONEAMANITA v17.7.5 "The Ralph Apoptosis & Immune Response"**
 

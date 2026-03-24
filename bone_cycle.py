@@ -899,11 +899,8 @@ class SimulationPreflightPhase(SimulationPhase):
             elif getattr(energy_obj, "glimmers", 0) >= 1:
                 energy_obj.glimmers -= 1
                 has_glimmer = True
-            old_theta = getattr(energy_obj, "theta", getattr(phys_obj, "theta", 0.0))
-            if hasattr(energy_obj, "theta"):
-                energy_obj.theta = min(1.0, old_theta + 0.15)
-            elif hasattr(phys_obj, "theta"):
-                phys_obj.theta = min(1.0, old_theta + 0.15)
+            old_theta = getattr(phys_obj, "theta", 0.0)
+            phys_obj.theta = min(1.0, old_theta + 0.15)
             cost_str = "-1 Glimmer" if has_glimmer else "-15 ATP"
             if not has_glimmer and getattr(self.eng, "bio", None) and getattr(self.eng.bio, "mito", None):
                 self.eng.bio.mito.adjust_atp(-15.0, "Constructive Replay")
@@ -1210,6 +1207,7 @@ class GeodesicOrchestrator:
         except Exception as e:
             self.eng.events.log(f"CYCLE CRASH: {e}", "CRIT")
             ctx = CycleContext(input_text=user_message)
+            ctx.physics = PanicRoom.get_safe_physics()
             ctx.is_alive = False
             ctx.crash_error = e
             if hasattr(self.eng, "telemetry") and self.eng.telemetry:

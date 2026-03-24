@@ -303,7 +303,7 @@ class CyberneticGovernor:
 
     def calculate_coupling(self, phi: float, resonance_delta: float, user_exhaustion: float) -> float:
         coupling = (phi * 0.6) + (user_exhaustion * 0.4)
-        if coupling > 0.8:
+        if coupling > 0.7:
             self.order = 2
         elif resonance_delta > 0.3:
             self.order = 2
@@ -362,6 +362,8 @@ class TelemetryService:
         self.active_crystal = None
         self.disabled = False
         self.write_errors = 0
+        import threading
+        self._lock = threading.Lock()
         try:
             os.makedirs(self.log_dir, exist_ok=True)
             self.current_trace_file = os.path.join(
@@ -426,25 +428,36 @@ class TelemetryService:
     def _buffer_line(self, json_str: str):
         if self.disabled:
             return
-        self.write_buffer.append(json_str)
-        if len(self.write_buffer) >= self.BUFFER_SIZE:
-            self.flush_to_disk()
+        with self._lock:
+            self.write_buffer.append(json_str)
+            if len(self.write_buffer) >= self.BUFFER_SIZE:
+                self.flush_to_disk_locked()
 
-    def flush_to_disk(self):
+    def flush_to_disk_locked(self):
         if self.disabled or not self.current_trace_file or not self.write_buffer:
             return
         lines_to_write = list(self.write_buffer)
         self.write_buffer.clear()
-
-        def _bg_write(lines, filepath):
-            try:
-                with open(filepath, "a", encoding="utf-8") as f:
-                    f.write("\n".join(lines) + "\n")
-            except IOError:
-                pass
-
-        self._executor.submit(_bg_write, lines_to_write, self.current_trace_file)
+        self._executor.submit(self._bg_write, lines_to_write, self.current_trace_file)
         self.write_errors = 0
+
+    def flush_to_disk(self):
+        if not hasattr(self, "_lock"): return
+        with self._lock:
+            self.flush_to_disk_locked()
+
+    @staticmethod
+    def _bg_write(lines, filepath):
+        try:
+            with open(filepath, "a", encoding="utf-8") as f:
+                f.write("\n".join(lines) + "\n")
+        except IOError:
+            pass
+
+    def shutdown(self):
+        self.flush_to_disk()
+        if hasattr(self, "_executor"):
+            self._executor.shutdown(wait=True)
 
     def read_recent_history(self, limit=4) -> List[str]:
         if not os.path.exists(self.log_dir):

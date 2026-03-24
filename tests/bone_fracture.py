@@ -105,5 +105,28 @@ class FractureEngineTest(unittest.TestCase):
         self.assertTrue(benedict_intervened, "[FAIL] The system remained sycophantic. False Cohesion ignored.")
         print("  [SUCCESS] Benedict detected False Cohesion and forced a structural contradiction.")
 
+    def test_fracture_systemic_health_medical_chip(self):
+        print("\n--- FRACTURE 7: Systemic Health (The Medical Team) ---")
+        from bone_council import TheOverseerCouncil
+        overseer = TheOverseerCouncil()
+        physics_decay = {"m_a": 0.8, "narrative_drag": 6.0}
+        hit, logs, corr, man = overseer.audit("[MOD:SYSTEMIC_HEALTH] fix this", physics_decay)
+        self.assertTrue(hit, "[FAIL] Overseer did not activate.")
+        self.assertTrue(any("MCGILCHRIST - The Sacred Space" in log for log in logs), "[FAIL] McGilchrist ECP failed to trigger.")
+        self.assertEqual(corr.get("h_s"), -0.1, "[FAIL] Holistic resilience was not taxed.")
+        self.assertTrue(any(m.get("value") == "EMERGENT_ADAPTATION" for m in man), "[FAIL] Emergent Adaptation mandate missing.")
+        physics_panic = {"voltage": 85.0, "i_c": 0.3}
+        hit, logs, corr, man = overseer.audit("[MD] I need this right now panic", physics_panic)
+        self.assertTrue(any("LINEHAN - DEAR MAN Lock" in log for log in logs), "[FAIL] Linehan DEAR MAN failed to lock.")
+        self.assertEqual(corr.get("narrative_drag"), 100.0, "[FAIL] Linehan did not apply infinite friction.")
+        self.assertTrue(any(m.get("action") == "TIPP_PROTOCOL" for m in man), "[FAIL] T.I.P.P. Protocol missing.")
+        physics_broken = {"chi": 0.8, "exhaustion": 0.8, "beta_index": 0.7, "narrative_drag": 10.0}
+        hit, logs, corr, man = overseer.audit("[MD] just force it to compile", physics_broken)
+        self.assertTrue(any("LINEHAN - The Synthesis" in log for log in logs), "[FAIL] Linehan Radical Acceptance failed.")
+        self.assertEqual(corr.get("ros"), -100.0, "[FAIL] Linehan did not force ROS to 0.")
+        self.assertEqual(corr.get("r_a"), 1.0, "[FAIL] Radical Acceptance Index not maximized.")
+        self.assertTrue(any(m.get("value") == "RADICAL_ACCEPTANCE" for m in man), "[FAIL] Radical Acceptance mandate missing.")
+        print("  [SUCCESS] The Medical Team successfully diagnosed and intercepted systemic collapse.")
+
 if __name__ == "__main__":
     unittest.main()

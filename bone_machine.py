@@ -112,10 +112,14 @@ class TheParadoxEngine:
         valid_seeds = [w for w in recent_words if len(w) > 4]
         seed = random.choice(valid_seeds) if valid_seeds else "the architecture"
         pressure = 0.4 + (random.random() * 0.6)
-        templates = [f"What if '{seed}' and its exact opposite were both non-negotiable truths? Do not resolve the contradiction. Do not compromise. Build the structure that can hold both simultaneously.",
-            f"[RECURSIVE PARADOX] Apply the concept of '{seed}' to the architecture of this very conversation. How does the act of thinking about '{seed}' alter the physical constraints of our dialogue? Both are non-negotiable truths.",
-            f"[NEGATIVE SPACE] Define '{seed}' entirely by what it is not. Construct the boundary of the concept without ever naming the center. Both the center and the void are non-negotiable truths."]
-        return pressure, random.choice(templates)
+        templates = ux("machine_strings", "paradox_templates") or [
+            "What if '{seed}' and its exact opposite were both non-negotiable truths? Do not resolve the contradiction. Do not compromise. Build the structure that can hold both simultaneously.",
+            "[RECURSIVE PARADOX] Apply the concept of '{seed}' to the architecture of this very conversation. How does the act of thinking about '{seed}' alter the physical constraints of our dialogue? Both are non-negotiable truths.",
+            "[NEGATIVE SPACE] Define '{seed}' entirely by what it is not. Construct the boundary of the concept without ever naming the center. Both the center and the void are non-negotiable truths."
+        ]
+
+        chosen_template = random.choice(templates)
+        return pressure, chosen_template.format(seed=seed)
 
     def disengage(self):
         self.is_active = False
@@ -437,7 +441,7 @@ class BoneArchitect:
             if hasattr(embryo.mind.mem, "autoload_last_spore"):
                 load_result = embryo.mind.mem.autoload_last_spore()
         except Exception as e:
-            msg = ux("machine_strings", "arch_spore_fail") 
+            msg = ux("machine_strings", "arch_spore_fail") or "[ARCHITECT]: Spore resurrection failed: {e}"
             events.log(f"{Prisma.RED}{msg.format(e=e)}{Prisma.RST}", "CRIT", )
             load_result = None
         embryo.soul_legacy = {}
@@ -462,10 +466,10 @@ class BoneArchitect:
             if hasattr(embryo.physics.nav, "import_atlas"):
                 try:
                     embryo.physics.nav.import_atlas(recovered_atlas)
-                    msg = ux("machine_strings", "arch_map_restored")
+                    msg = ux("machine_strings", "arch_map_restored") or "[ARCHITECT]: World Map restored."
                     events.log(f"{Prisma.MAG}{msg}{Prisma.RST}", "SYS", )
                 except Exception as e:
-                    msg = ux("machine_strings", "arch_map_corrupt")
+                    msg = ux("machine_strings", "arch_map_corrupt") or "[ARCHITECT]: Atlas corrupt, discarding map: {e}"
                     events.log(f"{Prisma.OCHRE}{msg.format(e=e)}{Prisma.RST}", "WARN", )
         if embryo.bio and embryo.bio.mito and embryo.bio.mito.state.atp_pool <= 0.0:
             target_cfg = getattr(embryo.bio, "config_ref", None) or BoneConfig
