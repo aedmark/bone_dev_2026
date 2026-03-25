@@ -273,20 +273,17 @@ class BoneAmanita:
         msg = ux("main_strings", "engaging_mode")
         self.events.log(msg.format(boot_mode=self.boot_mode))
         layer = self.mode_settings.get("ui_layer", RealityLayer.SIMULATION)
-        if self.boot_mode == "CONVERSATION":
-            self.soul.force_mutation("THE CONVERSATIONALIST")
-            if hasattr(self, "soul"):
+        if getattr(self, "soul", None):
+            if self.boot_mode == "CONVERSATION":
+                self.soul.force_mutation("THE CONVERSATIONALIST")
                 self.soul.traits.hope = 0.85
                 self.soul.traits.cynicism = 0.15
-            if hasattr(self, "bio") and hasattr(self.bio, "endo"):
-                self.bio.endo.serotonin = 0.8
-                self.bio.endo.cortisol = 0.1
-        elif self.boot_mode == "ADVENTURE":
-            self.soul.force_mutation("THE ARCHITECT")
-        elif self.boot_mode == "TECHNICAL":
-            self.soul.force_mutation("THE SYSTEM_KERNEL")
-        elif self.boot_mode == "CREATIVE":
-            self.soul.force_mutation("THE CATALYST")
+            elif self.boot_mode == "ADVENTURE":
+                self.soul.force_mutation("THE ARCHITECT")
+            elif self.boot_mode == "TECHNICAL":
+                self.soul.force_mutation("THE SYSTEM_KERNEL")
+            elif self.boot_mode == "CREATIVE":
+                self.soul.force_mutation("THE CATALYST")
         self.reality_stack.stabilize_at(layer)
         prompt_key = self.mode_settings.get("prompt_key", "ADVENTURE")
         if self.prompt_library and prompt_key in self.prompt_library:
@@ -369,9 +366,10 @@ class BoneAmanita:
         if not is_system and clean_in in ["/flush", "/zen", "[zen]"]:
             if hasattr(self, "cortex") and self.cortex:
                 self.cortex.purge_context()
-            self.stamina = self.bone_config.MAX_STAMINA
+            self.stamina = getattr(self.bone_config, "MAX_STAMINA", 100.0)
             if hasattr(self, "bio") and self.bio.mito:
-                self.bio.mito.state.atp_pool = 100.0
+                max_atp = getattr(self.bone_config, "MAX_ATP", 100.0)
+                self.bio.mito.state.atp_pool = max_atp
                 self.bio.mito.state.ros_buildup = 0.0
             if getattr(self, "cortex", None) and getattr(self.cortex, "last_physics", None):
                 self.cortex.last_physics.narrative_drag = 0.0
@@ -517,13 +515,11 @@ class BoneAmanita:
         death_log = [f"\n{Prisma.RED}{halt_msg.format(eulogy_text=eulogy_text)}{Prisma.RST}"]
         legacy_msg = self.oroboros.crystallize(cause_code, self.soul)
         death_log.append(f"{Prisma.MAG}🐍 {legacy_msg}{Prisma.RST}")
-        sim_data = {"physics": self.cortex.last_physics} if self.cortex.last_physics else {}
-        continuity_packet = {"location": self.cortex.gather_state(sim_data)
-        .get("world", {})
-        .get("orbit", ["Void"])[0], "last_output": (
-            self.cortex.dialogue_buffer[-1]
-            if self.cortex.dialogue_buffer
-            else "Silence."), "inventory": self.gordon.inventory if self.gordon else [], }
+        safe_cortex = getattr(self, "cortex", None)
+        sim_data = {"physics": safe_cortex.last_physics} if safe_cortex and getattr(safe_cortex, "last_physics", None) else {}
+        continuity_packet = {"location": safe_cortex.gather_state(sim_data).get("world", {}).get("orbit", ["Void"])[0] if safe_cortex else "Void",
+            "last_output": safe_cortex.dialogue_buffer[-1] if safe_cortex and getattr(safe_cortex, "dialogue_buffer", None) else "Silence.",
+            "inventory": self.gordon.inventory if getattr(self, "gordon", None) else [],}
         try:
             mutations_data = (self.repro.attempt_reproduction(self, "MITOSIS")[1]
                 if getattr(self, "repro", None)
@@ -552,7 +548,7 @@ class BoneAmanita:
 
     def get_metrics(self, atp=0.0):
         real_atp = atp
-        if real_atp <= 0.0 and hasattr(self, "bio") and hasattr(self.bio, "mito"):
+        if real_atp <= 0.0 and getattr(self, "bio", None) and getattr(self.bio, "mito", None):
             real_atp = getattr(self.bio.mito.state, "atp_pool", 0.0)
         real_atp = max(0.0, float(real_atp))
         clamped_health = max(0.0, float(self.health))
@@ -575,7 +571,7 @@ class BoneAmanita:
             llm_ref = self.cortex.llm if hasattr(self, "cortex") else None
             needs_therapy, t_msg = self.village["therapist"].evaluate_catharsis(self.trauma_accum, self.health, llm=llm_ref)
             if needs_therapy:
-                self.health = max(80.0, self.health + 50.0)
+                self.health = min(max_h, max(80.0, self.health + 50.0))
                 self.trauma_accum.clear()
                 return True
         if self.tick_count % audit_freq != 0 and self.health > (max_h * bypass_ratio):

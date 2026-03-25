@@ -73,7 +73,10 @@ class EventBus:
         self.buffer.append(event)
         if source in self.subscribers:
             for cb in self.subscribers[source]:
-                cb(event)
+                try:
+                    cb(event)
+                except Exception:
+                    pass
         if self.telemetry:
             self.telemetry.record_event(event)
         else:

@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from typing import Dict, Any, List, Tuple, Optional
 from bone_composer import LLMInterface, PromptComposer, ResponseValidator
 from bone_presets import BoneConfig, BonePresets
+from bone_ann import MemoryConsolidator
 from bone_core import EventBus, TelemetryService, LoreManifest, ux, safe_get, safe_set
 from bone_gui import beautify_thoughts
 from bone_symbiosis import SymbiosisManager
@@ -311,9 +312,28 @@ class TheCortex:
                     active_mems = self.svc.mind_memory.memory_core.illuminate(full_state["physics"].get("vector", {}))
                     context_str = "Active Memory: " + ", ".join(active_mems) if active_mems else "Empty Void."
                     is_faithful, judge_reason = self.dspy_critic.audit_generation(user_input, context_str, final_text)
+                    if is_faithful:
+                        e_u = float(safe_get(phys_state, "exhaustion", 0.0))
+                        beta = float(safe_get(phys_state, "beta_index", safe_get(phys_state, "contradiction", 0.0)))
+                        if e_u > 0.6 or beta > 0.7:
+                            affect_prompt = ("SYSTEM_INSTRUCTION: You are the Affective Real-Time Critic.\n"
+                                f"The user is currently highly exhausted or holding heavy emotional contradiction (Exhaustion: {e_u:.2f}, Tension: {beta:.2f}).\n"
+                                f"USER INPUT: '{user_input}'\n"
+                                f"SYSTEM OUTPUT: '{final_text}'\n\n"
+                                "EVALUATION: Does the system output demand too much cognitive load? Is it lecturing, overly verbose, pushing toxic positivity, or failing to hold the silence?\n"
+                                "If it is too heavy/demanding, output 'FAIL: [1 sentence reason]'. If it is appropriately gentle and spacious, output 'PASS'.")
+                            try:
+                                affect_res = self.llm.generate(affect_prompt, {"temperature": 0.1, "max_tokens": 50}).strip()
+                                if affect_res.upper().startswith("FAIL"):
+                                    is_faithful = False
+                                    judge_reason = affect_res.replace("FAIL:", "").replace("FAIL", "").strip()
+                                    self.modulator.current_chem.cortisol = min(1.0, self.modulator.current_chem.cortisol + 0.20)
+                                    if self.events:
+                                        self.events.log(f"{Prisma.RED}Affective Audit Failed: Cortisol spiked (+0.20).{Prisma.RST}", "BIO")
+                            except Exception:
+                                pass
             if not is_faithful:
-                val_res = {"valid": False,
-                           "feedback_instruction": f"CRITICAL HALLUCINATION: {judge_reason}. Refuse to invent details. Stay in character."}
+                val_res = {"valid": False, "feedback_instruction": f"CRITICAL FAILURE: {judge_reason}. If the user is exhausted, drastically shorten and soften your tone. Prioritize presence over output. Stay in character."}
                 short_reason = judge_reason.split(".")[0][:60] + "..."
                 print(f" {Prisma.VIOLET}⚖️ DSPy Critic Objected: {short_reason}{Prisma.RST}")
                 if self.events: self.events.log(f"DSPy Critic Objected: {short_reason}", "SYS")
@@ -659,11 +679,26 @@ class DreamEngine:
         self.dspy_critic = None
 
     def enter_rem_cycle(
-            self, soul_snapshot: Dict[str, Any], bio_state: Dict[str, Any]) -> Tuple[str, Dict[str, float]]:
+        self, soul_snapshot: Dict[str, Any], bio_state: Dict[str, Any]) -> Tuple[str, Dict[str, float]]:
         chem = bio_state.get("chem", {})
         cortisol = chem.get("cortisol", 0.0)
+        available_atp = bio_state.get("mito", {}).get("atp", 0.0)
         dream_text = None
         is_deep_rem = False
+        shift = {"cortisol": -0.3, "dopamine": 0.1} if cortisol <= 0.6 else {"cortisol": 0.1}
+        if self.mem and hasattr(self.mem, "hippocampus") and hasattr(self.mem, "cortex"):
+            consolidator = MemoryConsolidator(self.mem.hippocampus, self.mem.cortex, self.events)
+            nodes_moved, atp_cost = consolidator.trigger_rem_consolidation(available_atp)
+            if nodes_moved > 0:
+                is_deep_rem = True
+                shift["voltage"] = 2.0
+                shift["atp_drain"] = atp_cost
+                if nodes_moved > 10:
+                    dream_text = f"The system enters Deep REM. {nodes_moved} synaptic structures dissolve from the active cache and permanently crystallize into the deep Cerebral Cortex."
+                    if self.events:
+                        self.events.log(
+                            f"{{Prisma.MAG}}✨ [REM CYCLE]: Synaptic Consolidation complete. {nodes_moved} nodes written to deep index. (-{atp_cost:.1f} ATP){{Prisma.RST}}",
+                            "SYS")
         if getattr(self, "dspy_critic", None) and getattr(self.dspy_critic, "enabled", False):
             if hasattr(self, "trauma_buffer") and len(self.trauma_buffer) > 0:
                 trauma = self.trauma_buffer.popleft()

@@ -60,9 +60,10 @@ class ObservationPhase(SimulationPhase):
                     target_cfg = self.eng.bone_config if hasattr(self.eng, "bone_config") else BoneConfig
                     max_h = getattr(target_cfg, "MAX_HEALTH", 100.0)
                     self.eng.bio.biometrics.health = min(max_h, self.eng.bio.biometrics.health + (hours_passed * 10.0))
-                self.eng.bio.mito.state.atp_pool = min(100.0, self.eng.bio.mito.state.atp_pool + (hours_passed * 25.0))
-                ctx.log(
-                    f"{Prisma.GRN}[BIO]: Retroactive metabolism applied for {hours_passed:.1f} hours of absence. ATP and Health restored.{Prisma.RST}")
+                target_cfg = self.eng.bone_config if hasattr(self.eng, "bone_config") else BoneConfig
+                max_atp = getattr(target_cfg, "MAX_ATP", 100.0)
+                self.eng.bio.mito.state.atp_pool = min(max_atp, self.eng.bio.mito.state.atp_pool + (hours_passed * 25.0))
+                ctx.log(f"{Prisma.GRN}[BIO]: Retroactive metabolism applied for {hours_passed:.1f} hours of absence. ATP and Health restored.{Prisma.RST}")
                 dream_engine = getattr(self.eng.mind, "dreamer", getattr(getattr(self.eng, "cortex", None), "dreamer", None))
                 if dream_engine:
                     soul_snap = self.eng.soul.to_dict() if hasattr(self.eng, "soul") and self.eng.soul else {}
@@ -560,11 +561,13 @@ class MachineryPhase(SimulationPhase):
         if ctx.is_system_event:
             return ctx
         phys_dict = ctx.physics.to_dict()
-        if hasattr(self.eng, "critics") and (review := self.eng.critics.audit_performance(phys_dict, self.eng.tick_count)):
+        if getattr(self.eng, "critics", None) and (review := self.eng.critics.audit_performance(phys_dict, self.eng.tick_count)):
             ctx.log(review)
             good_icon = ux("cycle_strings", "machinery_critic_good_icon")
             ctx.physics.narrative_drag += -1.0 if good_icon in review else 1.0
-        boost, z_msg = self.eng.zen.raking_the_sand(phys_dict, ctx.bio_result)
+        boost, z_msg = 0.0, None
+        if getattr(self.eng, "zen", None):
+            boost, z_msg = self.eng.zen.raking_the_sand(phys_dict, ctx.bio_result)
         if z_msg:
             ctx.log(z_msg)
         if boost > 0:
@@ -715,7 +718,9 @@ class SoulPhase(SimulationPhase):
                     ctx.physics.voltage += 5.0
                     ctx.record_flux("SOUL", "VOLTAGE", old_volts, ctx.physics.voltage, "MYTH_BUFF")
                     if self.eng.bio.biometrics:
-                        self.eng.bio.biometrics.stamina = min(100.0, self.eng.bio.biometrics.stamina + 5.0)
+                        target_cfg = self.eng.bone_config if hasattr(self.eng, "bone_config") else BoneConfig
+                        max_s = getattr(target_cfg, "MAX_STAMINA", 100.0)
+                        self.eng.bio.biometrics.stamina = min(max_s, self.eng.bio.biometrics.stamina + 5.0)
         if self.eng.gordon and self.eng.tinkerer:
             if self.eng.gordon.inventory:
                 self.eng.tinkerer.audit_tool_use(ctx.physics, self.eng.gordon.inventory)
@@ -790,8 +795,9 @@ class ArbitrationPhase(SimulationPhase):
             self.eng.arbiter = ArchetypeArbiter()
 
     def run(self, ctx: CycleContext):
-        phys_lens, _, _ = self.eng.drivers.enneagram.decide_persona(ctx.physics, soul_ref=self.eng.soul)
-        soul_arch = self.eng.soul.archetype
+        safe_soul = getattr(self.eng, "soul", None)
+        phys_lens, _, _ = self.eng.drivers.enneagram.decide_persona(ctx.physics, soul_ref=safe_soul)
+        soul_arch = safe_soul.archetype if safe_soul else "UNKNOWN_ARCHETYPE"
         mandates = getattr(ctx, "council_mandates", [])
         current_trigram = ctx.world_state.get("trigram", None)
         final_lens, source, opinion = self.eng.arbiter.arbitrate(physics_lens=phys_lens, soul_archetype=soul_arch, council_mandates=mandates, trigram=current_trigram, )
@@ -896,11 +902,12 @@ class SimulationPreflightPhase(SimulationPhase):
             if hasattr(self.eng, "shared_lattice") and self.eng.shared_lattice.shared.g_pool >= 1:
                 self.eng.shared_lattice.shared.g_pool -= 1
                 has_glimmer = True
-            elif getattr(energy_obj, "glimmers", 0) >= 1:
-                energy_obj.glimmers -= 1
+            elif safe_get(energy_obj, "glimmers", 0) >= 1:
+                current_glimmers = safe_get(energy_obj, "glimmers", 0)
+                safe_set(energy_obj, "glimmers", current_glimmers - 1)
                 has_glimmer = True
-            old_theta = getattr(phys_obj, "theta", 0.0)
-            phys_obj.theta = min(1.0, old_theta + 0.15)
+            old_theta = safe_get(phys_obj, "theta", 0.0)
+            safe_set(phys_obj, "theta", min(1.0, old_theta + 0.15))
             cost_str = "-1 Glimmer" if has_glimmer else "-15 ATP"
             if not has_glimmer and getattr(self.eng, "bio", None) and getattr(self.eng.bio, "mito", None):
                 self.eng.bio.mito.adjust_atp(-15.0, "Constructive Replay")
@@ -1048,7 +1055,7 @@ class SensationPhase(SimulationPhase):
             target_cfg = self.eng.bone_config if hasattr(self.eng, "bone_config") else BoneConfig
             max_s = float(getattr(target_cfg, "MAX_STAMINA", 100.0))
             impact = float(impulse.stamina_impact)
-            if self.eng.bio.biometrics:
+            if getattr(self.eng, "bio", None) and getattr(self.eng.bio, "biometrics", None):
                 current_bio_s = float(self.eng.bio.biometrics.stamina)
                 self.eng.bio.biometrics.stamina = max(0.0, min(max_s, current_bio_s + impact))
         return ctx

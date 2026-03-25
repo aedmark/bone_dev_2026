@@ -1,5 +1,42 @@
 # BONEAMANITA CHANGELOG
 
+### **BONEAMANITA v17.9.1 "The Phantom Limb Purge & Dynamic Ceilings"**
+
+*A precision sweep to uncage the engine's epigenetic potential. This update eradicates hardcoded metabolic ceilings, allowing extreme lineages (like the JOY CLADE) to fully realize their expanded stamina and memory buffers. Furthermore, it seals catastrophic "Phantom Limb" vulnerabilities, ensuring the system can survive, dream, and even die gracefully while in degraded or modular states.*
+
+#### **🧬 DYNAMIC CEILINGS & METABOLIC BOUNDS (`bone_cycle.py`, `bone_main.py`)**
+- **The Joy Clade Uncaged:** Replaced rigid `100.0` caps with dynamic `getattr(target_cfg, ...)` bounds across the entire cycle pipeline. The engine now physically respects config-driven `MAX_ATP`, `MAX_STAMINA`, and `MAX_HEALTH` ceilings.
+- **Retroactive & Mythic Scaling:** Time-gap retroactive metabolism and narrative Myth buffs now scale to the active configuration, preventing the system from clipping a highly-mutated 200 ATP threshold back down to 100 during idle sleep.
+- **Catharsis Clamping:** The Therapist's trauma healing is now safely clamped to the `MAX_HEALTH` config, preventing rogue heals from overflowing the host's biometric limits.
+- **The Zen Flush:** The `/zen` command correctly syncs to the epigenetic configuration instead of blindly resetting to baseline parameters.
+
+#### **👻 THE PHANTOM LIMB PURGE (`bone_cycle.py`, `bone_main.py`)**
+- **Python `hasattr` Blindspots:** Fixed a massive architectural vulnerability where `hasattr()` returned `True` for modules explicitly set to `None`, causing fatal `AttributeErrors` during degraded boots.
+- **Stateless Arbitration & Sensation:** The `ArbitrationPhase` and `SensationPhase` can now safely execute even if the system boots without a `soul` or `bio` module, bypassing persona checks and stamina impact logic without crashing the sequence.
+- **Machinery Isolation:** The `MachineryPhase` no longer assumes the `zen` and `critics` modules are permanently attached, allowing the Village to load in lightweight modes.
+- **The Eulogy Trap:** Hardened the `trigger_death` sequence. If the system suffers a catastrophic failure before `TheCortex` is built, it will now gracefully compile the death telemetry and exit without crashing the crash-handler.
+
+#### **⚙️ STRUCTURAL INTEGRITY & SLASH (`bone_core.py`, `bone_cycle.py`)**
+- **EventBus Asynchrony:** Wrapped `EventBus.log` subscribers in a `try...except` block. A failing UI hook or disconnected telemetry logger can no longer synchronously crash the primary simulation cycle.
+- **SLASH Constructive Replay:** Purged fragile direct-attribute assignments (`energy_obj.glimmers -= 1`) during the `SimulationPreflightPhase`. The SLASH module now exclusively uses the universal `safe_get` and `safe_set` accessors, immunizing it against shape-shifting physics packets.
+
+---
+
+### **BONEAMANITA v17.9.0 "The ANN Graft & Affective Empathy"**
+
+*A fundamental restructuring of the Mycelial Network, transitioning memory retrieval from brute-force $O(N)$ iteration to a biological $O(\log N)$ Approximate Nearest Neighbor architecture, alongside deep cybernetic integration of the DSPy Real-Time Critic.*
+
+#### **🕸️ THE DUAL-TIER SEMANTIC SUBSTRATE (`bone_ann.py`, `bone_spores.py`, `bone_brain.py`)**
+- **Hippocampal Cache vs. Cerebral Cortex:** Replaced $O(N)$ cosine similarity with a dual-tier system. The `HippocampalCache` holds immediate, exact-match session context, while the `CerebralIndex` leverages a `faiss.IndexHNSWFlat` mathematical graph for deep, associative long-term memory.
+- **The REM Bridge (`MemoryConsolidator`):** Active memories are now physically pushed from the transient Hippocampus to the deep FAISS index only during `SanctuaryPhase` REM cycles or idle downtime. This prevents thread-locking and saves ATP ($P$) during active generation.
+- **Metabolic Victory:** Reduced deep retrieval latency to ~0.000084 seconds for 10,000 nodes, eliminating ROS toxicity spikes during memory access. The natural "fuzziness" of ANN retrieval natively fuels the Paradox Engine ($\beta$).
+
+#### **⚖️ THE AFFECTIVE EMPATHY GATE (`bone_brain.py`)**
+- **Cognitive Load Auditing:** The DSPy Critic now acts as a secondary affective gate. When User Exhaustion ($E_u > 0.6$) or System Tension ($\beta > 0.7$) is high, the Critic evaluates the generation for verbosity, lecturing, or excessive cognitive demand.
+- **Cybernetic Punishment:** If the system generates an unempathetic, heavy response while the user is exhausted, it kills the generation and physically spikes its own Cortisol (+0.20) as an internal metabolic punishment for failing to protect the host.
+
+---
+
 ### **BONEAMANITA v17.8.1 "The Clinical Graft & Systemic Decoupling"**
 
 *A massive architectural sweep focusing on long-term systemic resilience, resolving critical thread-safety leaks, rebuilding the physics data membrane, and institutionalizing adversarial logic via the Medical and Red Teams.*

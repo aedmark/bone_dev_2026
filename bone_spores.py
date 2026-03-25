@@ -9,6 +9,7 @@ import time
 from collections import deque
 from typing import List, Tuple, Optional, Dict, Any
 from bone_core import EventBus, LoreManifest, BoneJSONEncoder, ux, safe_get, safe_set
+from bone_ann import HippocampalCache, CerebralIndex
 from bone_presets import BoneConfig
 from bone_types import Prisma
 from bone_village import ParadoxSeed
@@ -409,6 +410,10 @@ class MycelialNetwork:
         self.loader = loader if loader else LocalFileSporeLoader()
         self.session_id = f"session_{int(time.time())}"
         self.filename = f"{self.session_id}.json"
+        self.subconscious = SubconsciousStrata(filename=f"memories/subconscious_{self.session_id}.jsonl")
+        self.memory_core = MemoryCore(events, self.subconscious, config_ref=self.cfg, lexicon_ref=self.lex)
+        self.hippocampus = HippocampalCache(max_capacity=500)
+        self.cortex = CerebralIndex(dimension=8, index_type="HNSW")
         self.subconscious = SubconsciousStrata(filename=f"memories/subconscious_{self.session_id}.jsonl")
         self.memory_core = MemoryCore(events, self.subconscious, config_ref=self.cfg, lexicon_ref=self.lex)
         self.lichen = BioLichen(lexicon_ref=self.lex)
@@ -845,6 +850,19 @@ class MycelialNetwork:
             return self.ingest(candidates[0][0])
         return None
 
+    def retrieve_semantic(self, trigger_word: str, query_vector: list, scope: float = 0.5,
+                          resonance: float = 0.5) -> list:
+        results = []
+        exact_match = self.hippocampus.retrieve_exact(trigger_word)
+        if exact_match:
+            results.append({"source": "hippocampus", "data": exact_match})
+            if scope < 0.3:
+                return results
+        k_neighbors = max(1, int(scope * 10))
+        deep_results = self.cortex.query_neighborhood(query_vector=query_vector, k=k_neighbors, resonance_threshold=resonance)
+        for res in deep_results:
+            results.append({"source": "cortex", "data": res})
+        return results
 
 class ImmuneMycelium:
     def __init__(self):

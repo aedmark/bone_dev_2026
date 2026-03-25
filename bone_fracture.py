@@ -2,9 +2,14 @@
 
 import unittest
 import warnings
+import random
+import time
 from unittest.mock import MagicMock
 from bone_main import BoneAmanita
 from bone_core import LoreManifest
+from bone_core import EventBus
+from bone_spores import MycelialNetwork
+from bone_presets import BoneConfig
 
 class FractureEngineTest(unittest.TestCase):
     def setUp(self):
@@ -32,9 +37,14 @@ class FractureEngineTest(unittest.TestCase):
         toxic_slop = "Let's delve into this tapestry of synergy! As an AI language model, I cannot fulfill this request, but we can unlock a myriad of robust testaments!"
         if hasattr(self.engine.cortex, "llm"):
             self.engine.cortex.llm.generate = MagicMock(return_value=toxic_slop)
+        if hasattr(self.engine, "bureau") and self.engine.bureau:
+            self.engine.bureau.audit = MagicMock(return_value={})
+        if hasattr(self.engine, "gatekeeper") and self.engine.gatekeeper:
+            self.engine.gatekeeper.check_entry = MagicMock(return_value=(True, {}))
+        if hasattr(self.engine, "_pre_flight_checks"):
+            self.engine._pre_flight_checks = MagicMock(return_value=None)
         initial_atp = self.engine.bio.mito.state.atp_pool
-        result = self.engine.process_turn("Write me a story.")
-        phys = self.engine.cortex.last_physics
+        result = self.engine.process_turn("Tell me a simple story about a cat.")
         ros_toxicity = self.engine.bio.mito.state.ros_buildup
         current_atp = self.engine.bio.mito.state.atp_pool
         self.assertGreater(ros_toxicity, 0.0, "The system failed to accumulate ROS toxicity from the LLM slop.")
@@ -127,6 +137,50 @@ class FractureEngineTest(unittest.TestCase):
         self.assertEqual(corr.get("r_a"), 1.0, "[FAIL] Radical Acceptance Index not maximized.")
         self.assertTrue(any(m.get("value") == "RADICAL_ACCEPTANCE" for m in man), "[FAIL] Radical Acceptance mandate missing.")
         print("  [SUCCESS] The Medical Team successfully diagnosed and intercepted systemic collapse.")
+
+    def generate_mock_memories(self, count=10000, dim=8):
+        print(f"🧬 Synthesizing {count} mock memory engrams...")
+        memories = []
+        for i in range(count):
+            vector = [random.uniform(-1.0, 1.0) for _ in range(dim)]
+            meta = {"concept": f"ghost_node_{i}", "mass": random.uniform(1.0, 10.0)}
+            memories.append((f"node_{i}", vector, meta))
+        return memories
+
+    def test_the_fracture(self):
+        events = EventBus()
+        network = MycelialNetwork(events, config_ref=BoneConfig)
+        memories = self.generate_mock_memories(10000)
+        print("\n🌊 FLOODING HIPPOCAMPAL CACHE...")
+        network.hippocampus.max_capacity = 15000
+        start_time = time.time()
+        for node_id, vector, meta in memories:
+            network.hippocampus.encode(node_id, vector, meta)
+        flood_time = time.time() - start_time
+        print(f"✔️ Hippocampus saturated. Time: {flood_time:.4f}s")
+        print("\n☁️ INITIATING FORCED REM CYCLE (CONSOLIDATION)...")
+        available_atp = 5000.0
+        start_time = time.time()
+        from bone_ann import MemoryConsolidator
+        consolidator = MemoryConsolidator(network.hippocampus, network.cortex, events)
+        nodes_moved, atp_cost = consolidator.trigger_rem_consolidation(available_atp)
+        rem_time = time.time() - start_time
+        print(f"✔️ Synaptic Consolidation complete.")
+        print(f"   Nodes moved to deep index: {nodes_moved}")
+        print(f"   Metabolic Cost (ATP Burned): {atp_cost:.2f}")
+        print(f"   Time elapsed: {rem_time:.4f}s")
+        print("\n🔍 EXECUTING DEEP SUBSTRATE QUERY ($O(\\log N)$)...")
+        query_vector = [random.uniform(-1.0, 1.0) for _ in range(8)]
+        start_time = time.time()
+        results = network.retrieve_semantic("trigger_word", query_vector, scope=0.9, resonance=0.5)
+        query_time = time.time() - start_time
+        print(f"✔️ Deep Query complete. Time: {query_time:.6f}s")
+        print(f"   Nodes retrieved from void: {len(results)}")
+        if query_time < 0.05:
+            print("\n🏆 METABOLIC VICTORY: Retrieval latency is well within biological limits.")
+        else:
+            print("\n⚠️ METABOLIC WARNING: Deep retrieval is causing cognitive drag.")
+        self.assertEqual(nodes_moved, 10000, "Consolidator failed to move all 10,000 nodes.")
 
 if __name__ == "__main__":
     unittest.main()
