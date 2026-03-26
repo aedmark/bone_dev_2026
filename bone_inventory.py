@@ -291,29 +291,18 @@ class GordonKnot:
         combined_text = (user_text + " " + sys_text).lower()
         if any(phrase in combined_text for phrase in self.abandonment_phrases):
             return None
-        text = (user_text + " " + sys_text).lower()
-        sys_lower = sys_text.lower()
         for refusal in self.refusal_markers:
-            if refusal in sys_lower:
+            if refusal in sys_text.lower():
                 return None
         all_known_items = set(self.registry.keys()) | set(self.ITEM_REGISTRY.keys())
-        for name in all_known_items:
-            clean_name = name.lower().replace("_", " ")
-            if clean_name in text and name.upper() not in self.inventory:
-                for t in self.loot_triggers:
-                    if t in text:
-                        return name
         sorted_triggers = sorted(self.loot_triggers, key=len, reverse=True)
         for t in sorted_triggers:
-            if t in text:
-                pattern = (f"{re.escape(t)}\\s+(?:the\\s+|a\\s+|an\\s+)?(?P<item>[\\w\\s]{{1,30}}?)"
-                           f"(?:\\s+(?:from|on|in|under|with|by|near|at|to|you|it|he|she|we|they)|[\\.,!?]|$)")
-                match = re.search(pattern, text, re.IGNORECASE)
-                if match:
-                    candidate = match.group("item").strip()
-                    if (2 < len(candidate) < 40
-                            and candidate not in self.refusal_markers):
-                        return candidate
+            if t in combined_text:
+                for name in all_known_items:
+                    clean_name = name.lower().replace("_", " ")
+                    if name.upper() not in self.inventory:
+                        if re.search(rf"\b{re.escape(t)}\b.*?\b{re.escape(clean_name)}\b", combined_text, re.IGNORECASE):
+                            return name
         return None
 
     def consume(self, item_name: str) -> Tuple[bool, str]:

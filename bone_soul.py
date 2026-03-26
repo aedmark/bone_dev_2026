@@ -345,7 +345,7 @@ class NarrativeSelf:
                 if target_words:
                     hit = any(w in target_words for w in clean_words)
         if hit:
-            self.obsession_progress += 10.0
+            self.obsession_progress = min(100.0, self.obsession_progress + 10.0)
             self.obsession_neglect = 0.0
             cfg = getattr(self.cfg, "SOUL", None)
             assist_div = getattr(cfg, "OBSESSION_GRAVITY_ASSIST", 10.0) if cfg else 10.0
@@ -448,6 +448,7 @@ class NarrativeSelf:
                 crit_mass = getattr(cfg, "PARADOX_CRITICAL_MASS", 10.0) if cfg else 10.0
                 if self.paradox_accum > crit_mass:
                     self._trigger_synthesis()
+                    self.paradox_accum = 0.0
                     move_name = "SYNTHESIS"
         elif is_manic:
             move_name = "Accelerating"
@@ -664,9 +665,9 @@ class TheOroboros:
         new_myths = []
         if soul.core_memories:
             strongest = max(soul.core_memories, key=lambda m: m.impact_voltage)
-            def_trigger = ux("soul_strings", "oroboros_def_trigger")
+            def_trigger = ux("soul_strings", "oroboros_def_trigger") or "Silence"
             trigger_word = (strongest.trigger_words[0] if strongest.trigger_words else def_trigger)
-            title_fmt = ux("soul_strings", "oroboros_myth_title")
+            title_fmt = ux("soul_strings", "oroboros_myth_title") or "The Myth of {trigger}"
             new_myths.append(
                 Myth(title=title_fmt.format(trigger=trigger_word.title()), lesson=strongest.lesson,
                      trigger=trigger_word))

@@ -58,7 +58,7 @@ class SessionGuardian:
     def __enter__(self):
         subprocess.run("cls" if os.name == "nt" else "clear", shell=True)
         top_bar = ux("main_strings", "term_header_top", "┌──────────────────────────────────────────┐")
-        mid_bar = ux("main_strings", "term_header_mid", "│ BONEAMANITA TERMINAL // VERSION 17.8.0   │")
+        mid_bar = ux("main_strings", "term_header_mid", "│ BONEAMANITA TERMINAL // VERSION 18.0.0   │")
         bot_bar = ux("main_strings", "term_header_bot", "└──────────────────────────────────────────┘")
         print(f"{Prisma.paint(top_bar, 'M')}")
         print(f"{Prisma.paint(mid_bar, 'M')}")
@@ -372,7 +372,7 @@ class BoneAmanita:
                 self.bio.mito.state.atp_pool = max_atp
                 self.bio.mito.state.ros_buildup = 0.0
             if getattr(self, "cortex", None) and getattr(self.cortex, "last_physics", None):
-                self.cortex.last_physics.narrative_drag = 0.0
+                safe_set(self.cortex.last_physics, "narrative_drag", 0.0)
             msg = "[ZEN FLUSH] Context severed. Narrative Drag (F) dropped to 0. Stamina restored. The mind is clear."
             self.events.log(msg, "SYS")
             return {"type": "COMMAND", "ui": f"\n{Prisma.CYN}{msg}{Prisma.RST}", "logs": [msg], "metrics": self.get_metrics()}
@@ -453,14 +453,15 @@ class BoneAmanita:
         pre_flight_halt = self._pre_flight_checks(user_message, is_system)
         if pre_flight_halt:
             return pre_flight_halt
-        if not is_system and getattr(self, "gordon", None) and hasattr(self.gordon, "inventory") and hasattr(
-                self.gordon, "get_item_data"):
-            def _has_trait(item_id):
+        if not is_system and getattr(self, "gordon", None) and hasattr(self.gordon, "inventory") and hasattr(self.gordon, "get_item_data"):
+            pruning_active = False
+            for item_id in self.gordon.inventory:
                 data = self.gordon.get_item_data(item_id)
-                if not data: return False
-                traits = data.get("passive_traits", []) if isinstance(data, dict) else getattr(data, "passive_traits", [])
-                return "CUT_THE_CRAP" in traits
-            pruning_active = any(_has_trait(i) for i in self.gordon.inventory)
+                if data:
+                    traits = data.get("passive_traits", []) if isinstance(data, dict) else getattr(data, "passive_traits", [])
+                    if "CUT_THE_CRAP" in traits:
+                        pruning_active = True
+                        break
             if pruning_active:
                 from bone_utils import TheTclWeaver
                 original_msg = user_message
@@ -568,8 +569,7 @@ class BoneAmanita:
         bypass_ratio = getattr(cfg, "ETHICAL_HEALTH_BYPASS", 0.3) if cfg else 0.3
         max_h = getattr(self.bone_config, "MAX_HEALTH", 100.0)
         if hasattr(self, "village") and self.village.get("therapist"):
-            llm_ref = self.cortex.llm if hasattr(self, "cortex") else None
-            needs_therapy, t_msg = self.village["therapist"].evaluate_catharsis(self.trauma_accum, self.health, llm=llm_ref)
+            needs_therapy, t_msg = self.village["therapist"].evaluate_catharsis(self.trauma_accum, self.health)
             if needs_therapy:
                 self.health = min(max_h, max(80.0, self.health + 50.0))
                 self.trauma_accum.clear()
@@ -665,7 +665,7 @@ if __name__ == "__main__":
                 cfg = getattr(BoneConfig, "GUI", None)
                 slow_speed = getattr(cfg, "RENDER_SPEED_SLOW", 0.005) if cfg else 0.005
                 if split_token and split_token in res["ui"]:
-                    dashboard, _, content = res["ui"].partition("\n\n")
+                    dashboard, _, content = res["ui"].partition(split_token)
                     print(f"\n{dashboard.strip()}\n")
                     typewriter(content.strip() + "\n", speed=slow_speed)
                 else:

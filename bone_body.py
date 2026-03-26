@@ -245,7 +245,7 @@ class MitochondrialForge:
         if liminal_intensity > 0:
             liminal_tax = liminal_intensity**2
             cognitive_load_tax += liminal_tax
-        base_demand = base_cost + (self.state.ros_buildup * 0.5)
+        base_demand = base_cost + (math.log1p(max(0.0, self.state.ros_buildup)) * 2.0)
         atp_crit = getattr(cfg, "ATP_CRITICAL", 20.0) if cfg else 20.0
         is_critical = self.state.atp_pool < atp_crit
         if is_critical:
@@ -304,9 +304,9 @@ class MitochondrialForge:
 
     def _apply_adaptive_dynamics(self):
         cfg = getattr(self.cfg, "BIO", None)
-        ros_sig = getattr(cfg, "ROS_SIGNAL", 3.0) if cfg else 3.0
-        ros_dam = getattr(cfg, "ROS_DAMAGE", 8.0) if cfg else 8.0
-        ros_purge = getattr(cfg, "ROS_PURGE", 12.0) if cfg else 12.0
+        ros_sig = getattr(cfg, "ROS_SIGNAL", 5.0) if cfg else 5.0
+        ros_dam = getattr(cfg, "ROS_DAMAGE", 25.0) if cfg else 25.0
+        ros_purge = getattr(cfg, "ROS_PURGE", 40.0) if cfg else 40.0
         if self.state.ros_buildup < ros_sig:
             self.state.membrane_potential = max(0.5, self.state.membrane_potential - 0.001)
             self.state.retrograde_signal = "QUIET"

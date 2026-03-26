@@ -1,5 +1,38 @@
 # BONEAMANITA CHANGELOG
 
+### **BONEAMANITA v18.0.0 "The SLASH Architecture Sweep"**
+
+_A massive, system-wide stabilization pass focusing on thermodynamic equilibrium, latency reduction, and architectural memory safety. This update purges redundant LLM calls, mathematically balances the biological ROS accumulation, and hardens the simulation loop against polymorphic state crashes._
+
+#### **⚡ LATENCY & COGNITIVE OPTIMIZATION (`bone_council.py`, `bone_brain.py`, `bone_village.py`)**
+
+- **Parallel Parliament:** The Council debate engine now utilizes `concurrent.futures.ThreadPoolExecutor` to generate the Thesis, Antithesis, and Lateral arguments simultaneously. This perfectly preserves the unique thermodynamic temperature and token limits of each archetype while dropping debate latency by ~60%.
+- **Pre-flight Anti-AI Filter:** The Anti-AI scrubbing loop was shifted from a post-generation reactive LLM call into a proactive, pre-generation `style_directive`, saving an entire LLM round-trip and significantly reducing API burn.
+- **Therapist Native Integration:** Ripped out the unnecessary LLM latency trap inside `TheTherapist`. Micro-catharsis interventions now rely entirely on instantaneous, native UX strings to vent pressure without breaking narrative flow.
+
+#### **🩸 THERMODYNAMIC & BIOLOGICAL BALANCE (`bone_body.py`, `bone_soul.py`)**
+
+- **Logarithmic Toxicity Curve:** Fixed the linear ROS (Toxicity) death spiral. Base ATP demand now scales logarithmically (`math.log1p`) against ROS buildup, preventing the system from instantly redlining and dying during deep abstractions.
+- **Mitohormesis Widen:** Widened the biological stress windows (`ROS_DAMAGE` and `ROS_PURGE`). The lattice can now safely carry cognitive load and actually benefit from mild stress before entering permanent oxidative failure.
+- **Obsession & Paradox Venting:** Fixed the scale mismatch in `pursue_obsession` that caused the engine to instantly abandon passions. Furthermore, the Paradox Engine now properly vents tension (`paradox_accum = 0.0`) after synthesizing a Gestalt archetype, preventing infinite recursive loops of the same identity.
+
+#### **🍄 SEMANTIC SUBSTRATE & FAISS STABILITY (`bone_ann.py`, `bone_spores.py`)**
+
+- **Synaptic FAISS Alignment:** Fixed a silent memory corruption bug where nodes missing vectors would misalign the FAISS index with its metadata payloads. The REM consolidator now uniformly filters exact-matches before committing them to the deep Cortex.
+- **Pseudo-Resonance Mapping:** The `CerebralIndex` now properly maps FAISS L2 distances into a `0.0 - 1.0` pseudo-resonance score, allowing the `resonance_threshold` to successfully filter out irrelevant hallucinations.
+- **Hebbian I/O Deferral:** Temporary reconstructive associations generated during active memory recall no longer force synchronous disk writes of the $8x8$ Q-matrix, completely eliminating the I/O hemorrhage during the `CognitionPhase`.
+- **Genetic Crossover Fix:** Patched a fatal defect during timeline merging where the system attempted to pull `enzymes` directly from the mitochondria instead of the digestive tract.
+
+#### **🏗️ ENGINE HARDENING & LOOP SAFETY (`bone_physics.py`, `bone_cycle.py`, `bone_machine.py`, `bone_main.py`, `bone_inventory.py`)**
+
+- **Infinite Friction Handling:** The `TheCrucible` physics regulator now safely bypasses rounding when `narrative_drag` hits `float('inf')` (during security lockdowns), preventing fatal Python `OverflowError` crashes.
+- **Polymorphic State Safety:** Deployed the `_safe_dict()` helper across all Simulation Phases (Sensation, Machinery, Intrusion, Soul, etc.). Calling `.to_dict()` during a headless panic fallback will no longer trigger `AttributeError` crashes.
+- **Kleptomania Leak Plugged:** Rewrote the implicit loot regex parser in `GordonKnot`. Gordon will now only pick up known items if the acquisition verb is contextually adjacent to the object, stopping the engine from hallucinating items out of thin air.
+- **Phantom Flushes & Allocation Drags:** Fixed the `/zen` command to properly route drag resets using `safe_set`. Lifted heavily repeated helper functions (`_get`, `_set`, `_has_trait`) out of hot `while` loops into static methods to stop relentless memory allocation/garbage collection cycles.
+- **Orphaned Organs Restored:** Ensured the Lexicon and Config files are properly passed down to the `BioLichen` and `BioParasite` modules during embryo incubation. Ancestral antibodies are now actively retained across session reloads.
+
+---
+
 ### **BONEAMANITA v17.9.1 "The Phantom Limb Purge & Dynamic Ceilings"**
 
 *A precision sweep to uncage the engine's epigenetic potential. This update eradicates hardcoded metabolic ceilings, allowing extreme lineages (like the JOY CLADE) to fully realize their expanded stamina and memory buffers. Furthermore, it seals catastrophic "Phantom Limb" vulnerabilities, ensuring the system can survive, dream, and even die gracefully while in degraded or modular states.*

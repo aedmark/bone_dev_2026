@@ -27,6 +27,13 @@ def _deep_update(obj, d):
             except Exception:
                 setattr(obj, k, v)
 
+def _safe_dict(obj):
+    if hasattr(obj, "to_dict"):
+        return obj.to_dict()
+    if isinstance(obj, dict):
+        return obj
+    return {}
+
 class SimulationPhase:
     def __init__(self, engine_ref):
         self.eng = engine_ref
@@ -231,7 +238,7 @@ class MaintenancePhase(SimulationPhase):
                 ctx.log(f"{Prisma.OCHRE}{msg.format(status=status, advice=advice)}{Prisma.RST}")
         if self.eng.mind and hasattr(self.eng.mind, "mem"):
             if hasattr(self.eng.mind.mem, "run_ecosystem"):
-                eco_logs = self.eng.mind.mem.run_ecosystem(ctx.physics.to_dict(), self.eng.stamina, self.eng.tick_count)
+                eco_logs = self.eng.mind.mem.run_ecosystem(_safe_dict(ctx.physics), self.eng.stamina, self.eng.tick_count)
                 for log in eco_logs:
                     ctx.log(log)
         return ctx
@@ -560,7 +567,7 @@ class MachineryPhase(SimulationPhase):
     def run(self, ctx: CycleContext):
         if ctx.is_system_event:
             return ctx
-        phys_dict = ctx.physics.to_dict()
+        phys_dict = _safe_dict(ctx.physics)
         if getattr(self.eng, "critics", None) and (review := self.eng.critics.audit_performance(phys_dict, self.eng.tick_count)):
             ctx.log(review)
             good_icon = ux("cycle_strings", "machinery_critic_good_icon")
@@ -626,7 +633,7 @@ class IntrusionPhase(SimulationPhase):
         self.name = "INTRUSION"
 
     def run(self, ctx: CycleContext):
-        phys_data = ctx.physics.to_dict()
+        phys_data = _safe_dict(ctx.physics)
         p_active, p_log = self.eng.bio.parasite.infect(phys_data, self.eng.stamina)
         if p_active:
             ctx.log(p_log)
@@ -674,7 +681,7 @@ class IntrusionPhase(SimulationPhase):
             ctx.log(f"{Prisma.VIOLET}{msg_p.format(current_psi=current_psi)}{Prisma.RST}")
             weaver = TheTclWeaver.get_instance()
             ctx.input_text = weaver.consume_by_void(ctx.input_text, current_psi)
-            ctx.physics.psi = min(1.0, current_psi + 0.1)
+            safe_set(ctx.physics, "psi", min(1.0, current_psi + 0.1))
             if self.eng.bio and self.eng.bio.biometrics:
                 self.eng.bio.biometrics.stamina = max(0.0, self.eng.bio.biometrics.stamina - 5.0)
                 msg_drain = ux("cycle_strings", "intrusion_hallucination_drain")
@@ -701,13 +708,14 @@ class SoulPhase(SimulationPhase):
             ctx.physics.narrative_drag *= 0.8
             msg = ux("cycle_strings", "soul_dignity_high")
             ctx.log(f"{Prisma.MAG}{msg}{Prisma.RST}")
-        lesson = self.eng.soul.crystallize_memory(ctx.physics.to_dict(), ctx.bio_result, self.eng.tick_count)
+        phys_data = _safe_dict(ctx.physics)
+        lesson = self.eng.soul.crystallize_memory(phys_data, ctx.bio_result, self.eng.tick_count)
         if lesson:
             msg = ux("cycle_strings", "soul_lesson")
             ctx.log(f"{Prisma.VIOLET}{msg.format(lesson=lesson)}{Prisma.RST}")
         if not self.eng.soul.current_obsession:
             self.eng.soul.find_obsession(self.eng.lex)
-        self.eng.soul.pursue_obsession(ctx.physics.to_dict())
+        self.eng.soul.pursue_obsession(phys_data)
         if hasattr(self.eng, "oroboros") and self.eng.oroboros.myths:
             for myth in self.eng.oroboros.myths:
                 if myth.trigger in ctx.clean_words:
@@ -872,7 +880,7 @@ class SimulationPreflightPhase(SimulationPhase):
             return {"type": rtype,
                     "ui": f"\n{Prisma.RED if rtype == 'COUNTERFACTUAL_REJECTION' else Prisma.CYN}{msg}{Prisma.RST}",
                     "logs": [msg], "metrics": self.eng.get_metrics() if hasattr(self.eng, "get_metrics") else {},
-                    "physics": phys_obj.to_dict() if hasattr(phys_obj, "to_dict") else {},
+                    "physics": _safe_dict(phys_obj),
                     "bio": getattr(ctx, "bio_result", {}),
                     "mind": {"thought": "System rejected prompt.", "context_msg": msg},
                     "world": getattr(ctx, "world_state", {}), "is_alive": rtype != 'COUNTERFACTUAL_REJECTION'}
@@ -1041,7 +1049,7 @@ class SensationPhase(SimulationPhase):
             self.eng.somatic = self.synesthesia
 
     def run(self, ctx: CycleContext):
-        phys_data = ctx.physics.to_dict()
+        phys_data = _safe_dict(ctx.physics)
         current_latency = 0.0
         if hasattr(self.eng, "host_stats"):
             current_latency = self.eng.host_stats.latency

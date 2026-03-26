@@ -3,16 +3,18 @@
 import random
 from dataclasses import dataclass
 from typing import Tuple, Optional, List, Dict, Any
+
 from bone_body import BioSystem, MitochondrialState, Biometrics, MitochondrialForge, EndocrineSystem, MetabolicGovernor
 from bone_brain import DreamEngine, ShimmerState
-from bone_presets import BoneConfig
 from bone_core import LoreManifest, ux, safe_get, safe_set
 from bone_lexicon import LexiconService
-from bone_physics import TheGatekeeper, QuantumObserver, SurfaceTension, ZoneInertia, CosmicDynamics
+from bone_physics import TheGatekeeper, QuantumObserver, SurfaceTension, CosmicDynamics
+from bone_presets import BoneConfig
 from bone_protocols import LimboLayer
 from bone_spores import MycelialNetwork, ImmuneMycelium, BioLichen, BioParasite
 from bone_types import MindSystem, PhysSystem, PhysicsPacket, Prisma
 from bone_village import MirrorGraph, TheCartographer
+
 
 class TheCrucible:
     def __init__(self, config_ref=None):
@@ -70,7 +72,8 @@ class TheCrucible:
             new_drag = current_drag
         else:
             new_drag = max(0.0, min(10.0, current_drag + adjustment))
-        safe_set(physics, "narrative_drag", round(new_drag, 2))
+        final_drag = new_drag if new_drag == float('inf') else round(new_drag, 2)
+        safe_set(physics, "narrative_drag", final_drag)
         msg = None
         if abs(adjustment) > 0.1:
             dir_tight = ux("machine_strings", "crucible_tightening") or "TIGHTENING"
@@ -407,8 +410,8 @@ class BoneArchitect:
         start_stamina = getattr(target_cfg, "MAX_STAMINA", 100.0)
         bio_metrics = Biometrics(health=start_health, stamina=start_stamina)
         return BioSystem(mito=MitochondrialForge(mito_state, events, config_ref=target_cfg), endo=EndocrineSystem(config_ref=target_cfg), immune=ImmuneMycelium(),
-                         lichen=BioLichen(), governor=MetabolicGovernor(config_ref=target_cfg), shimmer=ShimmerState(),
-                         parasite=BioParasite(mind.mem, lex), events=events, biometrics=bio_metrics, config_ref=target_cfg)
+                         lichen=BioLichen(lexicon_ref=lex), governor=MetabolicGovernor(config_ref=target_cfg), shimmer=ShimmerState(),
+                         parasite=BioParasite(mind.mem, lex, config_ref=target_cfg), events=events, biometrics=bio_metrics, config_ref=target_cfg)
 
     @staticmethod
     def _construct_physics(events, bio, mind, lex, config_ref=None) -> PhysSystem:
@@ -452,10 +455,11 @@ class BoneArchitect:
             mito_legacy, immune_legacy, soul_legacy, continuity, atlas = padded_result[:5]
             if mito_legacy and hasattr(embryo.bio.mito, "apply_inheritance"):
                 embryo.bio.mito.apply_inheritance(mito_legacy)
-            if (immune_legacy
-                    and isinstance(immune_legacy, (list, set))
-                    and hasattr(embryo.bio.immune, "load_antibodies")):
-                embryo.bio.immune.load_antibodies(immune_legacy)
+            if immune_legacy and isinstance(immune_legacy, (list, set)):
+                if hasattr(embryo.bio.immune, "load_antibodies"):
+                    embryo.bio.immune.load_antibodies(immune_legacy)
+                else:
+                    embryo.bio.immune.active_antibodies.update(immune_legacy)
             if isinstance(soul_legacy, dict):
                 embryo.soul_legacy = soul_legacy
             if isinstance(continuity, dict):

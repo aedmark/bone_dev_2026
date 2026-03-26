@@ -224,7 +224,8 @@ class SubconsciousStrata:
             H = _householder(K)
             self.Q_n = _mat_mul(H, self.Q_n)
             self.Q_n = _reorthogonalize(self.Q_n)
-            self.save_matrix()
+            if not fossil_data.get("reconstructive", False):
+                self.save_matrix()
             return True
         except IOError:
             return False
@@ -410,8 +411,6 @@ class MycelialNetwork:
         self.loader = loader if loader else LocalFileSporeLoader()
         self.session_id = f"session_{int(time.time())}"
         self.filename = f"{self.session_id}.json"
-        self.subconscious = SubconsciousStrata(filename=f"memories/subconscious_{self.session_id}.jsonl")
-        self.memory_core = MemoryCore(events, self.subconscious, config_ref=self.cfg, lexicon_ref=self.lex)
         self.hippocampus = HippocampalCache(max_capacity=500)
         self.cortex = CerebralIndex(dimension=8, index_type="HNSW")
         self.subconscious = SubconsciousStrata(filename=f"memories/subconscious_{self.session_id}.jsonl")
@@ -793,7 +792,7 @@ class MycelialNetwork:
                      for s in self.seeds
                      if not s.bloomed]
         seed_list.append({"q": future_seed_q, "m": 0.0, "b": False})
-        data = {"genome": "BONEAMANITA_17.8.0", "session_id": self.session_id, "parent_id": self.session_id, "meta": {
+        data = {"genome": "BONEAMANITA_18.0.0", "session_id": self.session_id, "parent_id": self.session_id, "meta": {
             "timestamp": time.time(), "final_health": health, "final_stamina": stamina, },
                 "trauma_vector": final_vector, "joy_vectors": top_joy or [], "joy_legacy": joy_legacy_data,
                 "core_graph": core_graph, "mutations": mutations or {},
@@ -1082,7 +1081,7 @@ class LiteraryReproduction:
         enzymes_a = set()
         if "mito" in parent_a_bio:
             if hasattr(parent_a_bio["mito"], "state"):
-                enzymes_a = set(parent_a_bio["mito"].state.enzymes)
+                enzymes_a = set(getattr(parent_a_bio["mito"].state, "enzymes", []))
             elif isinstance(parent_a_bio["mito"], dict):
                 enzymes_a = set(parent_a_bio["mito"].get("enzymes", []))
         enzymes_b = set(parent_b_data.get("mitochondria", {}).get("enzymes", []))

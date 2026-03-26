@@ -621,8 +621,7 @@ class TheTherapist:
         self.cfg = config_ref or BoneConfig
         self.session_count = 0
 
-    def evaluate_catharsis(self, trauma_vector: Dict[str, float], health: float, llm: Optional[Any] = None) -> Tuple[
-        bool, str]:
+    def evaluate_catharsis(self, trauma_vector: Dict[str, float], health: float) -> Tuple[bool, str]:
         if not trauma_vector:
             return False, ""
         total_trauma = sum(trauma_vector.values())
@@ -632,19 +631,8 @@ class TheTherapist:
         if total_trauma > t_thresh and health < h_thresh:
             self.session_count += 1
             max_trauma = max(trauma_vector, key=trauma_vector.get) if trauma_vector else "systemic decay"
-            if llm:
-                prompt = (f"SYSTEM_INSTRUCTION: You are The Therapist in a cybernetic mind. "
-                          f"The system is collapsing under the trauma of '{max_trauma}'. "
-                          f"Generate a 1-sentence micro-catharsis message to vent the pressure. "
-                          f"Make it clinical but empathetic. Output ONLY the raw message.")
-                try:
-                    raw_msg = llm.generate(prompt, {"temperature": 0.85, "max_tokens": 60})
-                    msg = raw_msg.replace("\n", " ").strip()
-                except Exception:
-                    msg = "The Therapist steps in. The structural rot is acknowledged. A moment of micro-catharsis begins."
-            else:
-                msg_raw = ux("village_strings", "therapist_intervention")
-                msg = msg_raw or "The Therapist steps in. The structural rot is acknowledged. A moment of micro-catharsis begins."
+            msg_raw = ux("village_strings", "therapist_intervention")
+            msg = msg_raw.format(trauma=max_trauma) if msg_raw else "The Therapist steps in. The structural rot is acknowledged. A moment of micro-catharsis begins."
             self.events.log(f"{Prisma.VIOLET}{msg}{Prisma.RST}", "THERAPY")
             return True, msg
         return False, ""

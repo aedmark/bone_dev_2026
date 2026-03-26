@@ -10,8 +10,7 @@ import re
 import threading
 from dataclasses import dataclass, field
 from typing import Any, Optional, List, Dict, Tuple
-import importlib
-
+import importlib.util
 from bone_types import Prisma
 
 warnings.filterwarnings("ignore", category=FutureWarning)

@@ -50,7 +50,6 @@ class GeodesicEngine:
         target_cfg = config_ref or BoneConfig
         cfg = getattr(target_cfg, "PHYSICS", BoneConfig.PHYSICS)
         gc_dict = LoreManifest.get_instance().get("PHYSICS_CONSTANTS", "GEODESIC_CONSTANTS") or {}
-        GC = type('GC', (), gc_dict)
         safe_volume = max(1, volume)
         w_heavy = getattr(cfg, "WEIGHT_HEAVY", 2.0)
         w_kinetic = getattr(cfg, "WEIGHT_KINETIC", 1.5)
@@ -59,23 +58,23 @@ class GeodesicEngine:
         raw_tension_mass = ((masses["heavy"] * w_heavy) + (masses["kinetic"] * w_kinetic) + (masses["explosive"] * w_explosive) + (masses["constructive"] * w_constructive))
         total_kinetic = masses["kinetic"] + masses["explosive"]
         kinetic_gain = getattr(target_cfg, "KINETIC_GAIN", 1.0)
-        base_tension = ((raw_tension_mass / safe_volume) * GC.DENSITY_SCALAR * kinetic_gain)
-        squelch_limit = (getattr(target_cfg, "SHAPLEY_MASS_THRESHOLD", 5.0) * GC.SQUELCH_LIMIT_MULT)
+        base_tension = ((raw_tension_mass / safe_volume) * gc_dict.get("DENSITY_SCALAR", 1.0) * kinetic_gain)
+        squelch_limit = (getattr(target_cfg, "SHAPLEY_MASS_THRESHOLD", 5.0) * gc_dict.get("SQUELCH_LIMIT_MULT", 2.0))
         mass_scalar = min(1.0, safe_volume / squelch_limit)
-        if safe_volume < GC.SAFE_VOL_THRESHOLD:
-            mass_scalar *= GC.MIN_VOLUME_SCALAR
+        if safe_volume < gc_dict.get("SAFE_VOL_THRESHOLD", 50):
+            mass_scalar *= gc_dict.get("MIN_VOLUME_SCALAR", 0.5)
         tension = round(min(100.0, base_tension * mass_scalar), 2)
         shear_rate = total_kinetic / safe_volume
         suburban_count = max(0, counts.get("suburban", 0))
-        suburban_friction = (math.log1p(suburban_count) * GC.SUBURBAN_FRICTION_LOG_BASE)
-        raw_friction = suburban_friction + (masses["heavy"] * GC.HEAVY_FRICTION_MULT)
-        lubrication = 1.0 + (counts.get("solvents", 0) * GC.SOLVENT_LUBRICATION_FACTOR)
-        dynamic_viscosity = (raw_friction / lubrication) / (1.0 + (shear_rate * GC.SHEAR_RESISTANCE_SCALAR))
-        kinetic_lift = (total_kinetic * GC.KINETIC_LIFT_RATIO) / (masses["heavy"] * 0.5 + 1.0)
-        lift = (masses["play"] * GC.PLAY_LIFT_MULT) + kinetic_lift
+        suburban_friction = (math.log1p(suburban_count) * gc_dict.get("SUBURBAN_FRICTION_LOG_BASE", 0.5))
+        raw_friction = suburban_friction + (masses["heavy"] * gc_dict.get("HEAVY_FRICTION_MULT", 1.2))
+        lubrication = 1.0 + (counts.get("solvents", 0) * gc_dict.get("SOLVENT_LUBRICATION_FACTOR", 0.2))
+        dynamic_viscosity = (raw_friction / lubrication) / (1.0 + (shear_rate * gc_dict.get("SHEAR_RESISTANCE_SCALAR", 0.1)))
+        kinetic_lift = (total_kinetic * gc_dict.get("KINETIC_LIFT_RATIO", 0.8)) / (masses["heavy"] * 0.5 + 1.0)
+        lift = (masses["play"] * gc_dict.get("PLAY_LIFT_MULT", 1.5)) + kinetic_lift
         viscosity_density = dynamic_viscosity / safe_volume
         lift_density = lift / safe_volume
-        raw_compression = (viscosity_density - lift_density) * GC.COMPRESSION_SCALAR
+        raw_compression = (viscosity_density - lift_density) * gc_dict.get("COMPRESSION_SCALAR", 2.0)
         raw_compression *= getattr(target_cfg, "SIGNAL_DRAG_MULTIPLIER", 1.0)
         drag_floor = getattr(cfg, "DRAG_FLOOR", 1.0)
         drag_halt = getattr(cfg, "DRAG_HALT", 10.0)
@@ -86,7 +85,7 @@ class GeodesicEngine:
         structural_mass = max(0.0, structural_mass)
         shapley_thresh = getattr(target_cfg, "SHAPLEY_MASS_THRESHOLD", 5.0)
         total_abstract = (masses["abstract"] + masses["liminal"] + masses["pareidolia"] + masses["void"])
-        abstraction_val = (total_abstract / safe_volume) + GC.ABSTRACTION_BASE
+        abstraction_val = (total_abstract / safe_volume) + gc_dict.get("ABSTRACTION_BASE", 0.1)
         return {"tension": tension, "compression": compression,
                 "coherence": round(min(1.0, structural_mass / max(1.0, shapley_thresh)), 3),
                 "abstraction": round(min(1.0, abstraction_val), 2), }
@@ -719,27 +718,28 @@ class CycleStabilizer:
         if hasattr(self.events, "subscribe"):
             self.events.subscribe("DOMESTICATION_PENALTY", self._on_domestication_penalty)
 
+    @staticmethod
+    def _get(obj, f, default=0.0):
+        if isinstance(obj, dict): return obj.get(f, default)
+        return getattr(obj, f, getattr(getattr(obj, "energy", None), f, getattr(getattr(obj, "space", None), f, default)))
+
+    @staticmethod
+    def _set(obj, f, val):
+        if isinstance(obj, dict): obj[f] = val
+        else:
+            if hasattr(obj, "energy") and hasattr(obj.energy, f): setattr(obj.energy, f, val)
+            elif hasattr(obj, "space") and hasattr(obj.space, f): setattr(obj.space, f, val)
+            else: setattr(obj, f, val)
+
     def _on_domestication_penalty(self, payload):
         amount = payload.get("drag_penalty", 0.0)
         self.pending_drag += amount
 
     def stabilize(self, physics: Any) -> bool:
         applied_correction = False
-
-        def _get(obj, f, default=0.0):
-            if isinstance(obj, dict): return obj.get(f, default)
-            return getattr(obj, f, getattr(getattr(obj, "energy", None), f, getattr(getattr(obj, "space", None), f, default)))
-
-        def _set(obj, f, val):
-            if isinstance(obj, dict): obj[f] = val
-            else:
-                if hasattr(obj, "energy") and hasattr(obj.energy, f): setattr(obj.energy, f, val)
-                elif hasattr(obj, "space") and hasattr(obj.space, f): setattr(obj.space, f, val)
-                else: setattr(obj, f, val)
-
         if self.pending_drag > 0:
-            current_d = _get(physics, "narrative_drag", 0.0)
-            _set(physics, "narrative_drag", current_d + self.pending_drag)
+            current_d = self._get(physics, "narrative_drag", 0.0)
+            self._set(physics, "narrative_drag", current_d + self.pending_drag)
             msg = ux("physics_strings", "stabilizer_domestication") or "Domestication penalty applied."
             if hasattr(self.events, "log"):
                 self.events.log(f"STABILIZER: {msg} (+{self.pending_drag} Drag)", "PHYSICS")
@@ -750,11 +750,11 @@ class CycleStabilizer:
         self.last_tick_time = now
         if not self.governor:
             return applied_correction
-        manifold = _get(physics, "manifold", "DEFAULT")
+        manifold = self._get(physics, "manifold", "DEFAULT")
         cfg = self.manifolds.get(manifold, self.manifolds.get("DEFAULT", {"voltage": 10.0, "drag": 1.0}))
         target_v = cfg.get("voltage", 10.0)
-        current_v = _get(physics, "voltage", 10.0)
-        if _get(physics, "flow_state", "LAMINAR") in ["SUPERCONDUCTIVE", "FLOW_BOOST"]:
+        current_v = self._get(physics, "voltage", 10.0)
+        if self._get(physics, "flow_state", "LAMINAR") in ["SUPERCONDUCTIVE", "FLOW_BOOST"]:
             target_v = current_v
             cfg["drag"] = max(0.1, cfg.get("drag", 1.0) * 0.5)
         self.governor.recalibrate(target_v, cfg.get("drag", 1.0))
@@ -770,23 +770,11 @@ class CycleStabilizer:
         deadband = 0.05
         if abs(force) <= deadband:
             return False
-
-        def _get(obj, f, default=0.0):
-            if isinstance(obj, dict): return obj.get(f, default)
-            return getattr(obj, f, getattr(getattr(obj, "energy", None), f, getattr(getattr(obj, "space", None), f, default)))
-
-        def _set(obj, f, val):
-            if isinstance(obj, dict): obj[f] = val
-            else:
-                if hasattr(obj, "energy") and hasattr(obj.energy, f): setattr(obj.energy, f, val)
-                elif hasattr(obj, "space") and hasattr(obj.space, f): setattr(obj.space, f, val)
-                else: setattr(obj, f, val)
-
-        old_val = _get(p, field, 0.0)
+        old_val = self._get(p, field, 0.0)
         new_val = old_val + force
         if limits:
             new_val = max(limits[0], min(limits[1], new_val))
         else:
             new_val = max(0.0, new_val)
-        _set(p, field, new_val)
+        self._set(p, field, new_val)
         return True

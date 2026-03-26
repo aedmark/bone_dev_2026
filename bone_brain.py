@@ -375,17 +375,8 @@ class TheCortex:
                 final_output = val_res.get("replacement", "SYSTEM FAILURE: LATTICE INSTABILITY.")
                 extracted_logs = val_res.get("meta_logs", [])
         if val_res["valid"] and phys_state.get("psi", 0.0) > 0.6 and allow_loot:
-            anti_ai_prompt = (f"Review the following text: '{final_output}'\n\n"
-                "What makes this obviously AI-generated? (Look for inflated symbolism, 'delve', 'tapestry', superficial '-ing' lists, rule of three, copula avoidance, or generic positive conclusions).\n"
-                "Now rewrite it to completely remove those AI tells. Make it sound like a flawed, opinionated human wrote it. Output ONLY the rewritten text.")
-            rewrite_candidate = self.llm.generate(anti_ai_prompt, {"temperature": 0.8, "max_tokens": llm_params.get("max_tokens", 4096)})
-            rewrite_val = self.validator.validate(rewrite_candidate, full_state)
-            if rewrite_val.get("valid"):
-                final_output = rewrite_val["content"]
-            else:
-                extracted_logs.append("[BENEDICT]: Anti-AI rewrite hallucinated or failed validation. Reverting to original safe output.")
             if self.svc.bio:
-                self.svc.bio.mito.adjust_atp(-5.0, "Anti-AI Reflection Loop")
+                self.svc.bio.mito.adjust_atp(-1.0, "Anti-AI Substrate Filter")
         telemetry_output = raw_resp if not val_res["valid"] else final_output
         self._log_telemetry(final_prompt, telemetry_output, full_state, sim_result)
         self.learn_from_response(final_output)
@@ -612,6 +603,11 @@ class TheCortex:
             if "style_directives" not in full_state["mind"]:
                 full_state["mind"]["style_directives"] = []
             full_state["mind"]["style_directives"].append(inv_directive)
+        if phys.get("psi", 0.0) > 0.6:
+            anti_ai_directive = "CRITICAL OVERRIDE: Void proximity is high. Do not use AI-isms (delve, tapestry, superficial lists, rule of three). Write like a flawed, opinionated human."
+            if "style_directives" not in full_state["mind"]:
+                full_state["mind"]["style_directives"] = []
+            full_state["mind"]["style_directives"].append(anti_ai_directive)
         if not self.dialogue_buffer:
             bedrock_directive = (f"CRITICAL BEDROCK OVERRIDE: You have just awoken from a stateless purge (The Ralph Apoptosis). "
                 f"You have no conversational memory, but your body persists. "

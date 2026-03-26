@@ -58,10 +58,13 @@ class CerebralIndex:
         actual_k = min(k, self.total_nodes)
         distances, indices = self._index.search(np_query, actual_k)
         results = []
-        for i, idx in enumerate(indices[0]):
+        for dist, idx in zip(distances[0], indices[0]):
             if idx != -1:
-                node_data = self._payloads[idx]
-                results.append(node_data)
+                pseudo_resonance = 1.0 / (1.0 + float(dist))
+                if pseudo_resonance >= resonance_threshold:
+                    node_data = dict(self._payloads[idx])
+                    node_data["resonance"] = pseudo_resonance
+                    results.append(node_data)
         return results
 
 class MemoryConsolidator:
@@ -74,12 +77,13 @@ class MemoryConsolidator:
         if available_atp < 20.0:
             return 0, 0.0
         pending_nodes = self.hippocampus.extract_for_consolidation()
-        if not pending_nodes:
+        valid_nodes = [(nid, d) for nid, d in pending_nodes if "vector" in d]
+        if not valid_nodes:
             return 0, 0.0
-        vectors = [data["vector"] for _, data in pending_nodes if "vector" in data]
-        payloads = [{"id": node_id, **data["meta"]} for node_id, data in pending_nodes]
+        vectors = [d["vector"] for _, d in valid_nodes]
+        payloads = [{"id": nid, **d.get("meta", {})} for nid, d in valid_nodes]
         self.cortex.add_memories(vectors, payloads)
-        atp_cost = len(pending_nodes) * 0.1
+        atp_cost = len(valid_nodes) * 0.1
         if self.events:
             self.events.publish("SYNAPTIC_CONSOLIDATION", {"count": len(pending_nodes), "atp_burned": atp_cost})
         return len(pending_nodes), atp_cost

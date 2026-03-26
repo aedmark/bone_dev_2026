@@ -404,17 +404,21 @@ class CouncilChamber:
               f"TASK: The user has presented this topic: '{topic}'.\n"
               "Provide a rigid, highly opinionated 3-sentence THESIS on this topic from your unique perspective. Do not use UI tags. "
               "CRITICAL: Output ONLY the raw dialogue. Do NOT include any introductory text, preambles, or conversational filler like 'Here is my thesis:'.")
-        thesis = llm.generate(p1, {"temperature": 0.4, "max_tokens": 1024})
         p2 = (f"SYSTEM_INSTRUCTION: You are {v2_name}. Your persona is {pantheon[v2_name]}\n"
-              f"TASK: Read the opening thesis: '{Prisma.strip(thesis)}'.\n"
-              "Tear it apart or twist it entirely. Provide a biting, contrasting 3-sentence ANTITHESIS. Do not use UI tags. "
+              f"TASK: The user has presented this topic: '{topic}'.\n"
+              "Tear the concept apart or twist it entirely. Provide a biting, contrasting 3-sentence ANTITHESIS. Do not use UI tags. "
               "CRITICAL: Output ONLY the raw dialogue. Do NOT include any introductory text, preambles, or conversational filler like 'Here is the antithesis:'.")
-        antithesis = llm.generate(p2, {"temperature": 0.8, "max_tokens": 1024})
         p3 = (f"SYSTEM_INSTRUCTION: You are {v3_name}. Your persona is {pantheon[v3_name]}\n"
-              f"TASK: Read the thesis: '{Prisma.strip(thesis)}' and the antithesis: '{Prisma.strip(antithesis)}'.\n"
-              "Inject a completely lateral, unexpected 2-sentence perspective that derails or transcends the argument. Do not use UI tags. "
+              f"TASK: The user has presented this topic: '{topic}'.\n"
+              "Inject a completely lateral, unexpected 2-sentence perspective that derails or transcends the standard arguments. Do not use UI tags. "
               "CRITICAL: Output ONLY the raw dialogue. Do NOT include any introductory text, preambles, or conversational filler.")
-        lateral = llm.generate(p3, {"temperature": 0.7, "max_tokens": 1024})
+        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+            future_thesis = executor.submit(llm.generate, p1, {"temperature": 0.4, "max_tokens": 1024})
+            future_antithesis = executor.submit(llm.generate, p2, {"temperature": 0.8, "max_tokens": 1024})
+            future_lateral = executor.submit(llm.generate, p3, {"temperature": 0.7, "max_tokens": 1024})
+            thesis = future_thesis.result()
+            antithesis = future_antithesis.result()
+            lateral = future_lateral.result()
         p4 = ("SYSTEM_INSTRUCTION: You are The Stage Manager. You are the exhausted orchestrator holding the system together.\n"
             f"TASK: Review this chaotic debate:\n1. {v1_name}: {Prisma.strip(thesis)}\n2. {v2_name}: {Prisma.strip(antithesis)}\n3. {v3_name}: {Prisma.strip(lateral)}\n"
             "Provide a 2-sentence SYNTHESIS that resolves the tension or forces a structural pause. Be tired but profound. Do not use UI tags. "
