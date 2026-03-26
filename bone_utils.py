@@ -415,8 +415,6 @@ os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"
 os.environ["TQDM_DISABLE"] = "True"
 logging.getLogger("huggingface_hub").setLevel(logging.ERROR)
 logging.getLogger("torch").setLevel(logging.ERROR)
-warnings.filterwarnings("ignore", category=FutureWarning)
-warnings.filterwarnings("ignore", category=UserWarning)
 
 class TheVocalCords:
     def __init__(self, events_ref=None):

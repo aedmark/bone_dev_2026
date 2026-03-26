@@ -86,8 +86,7 @@ class TheAkashicRecord:
         if not os.path.exists(prompt_path):
             prompt_path = "system_prompts.json"
         try:
-            with open(prompt_path, "r", encoding="utf-8") as f:
-                prompts = json.load(f)
+            prompts = self.lore.get("system_prompts") or {}
             if "EPIGENETIC_SCARS" not in prompts.get("GLOBAL_BASELINE", {}):
                 prompts.setdefault("GLOBAL_BASELINE", {})["EPIGENETIC_SCARS"] = []
             tension = coords.get("beta", 0.0)
@@ -96,6 +95,7 @@ class TheAkashicRecord:
                 prompts["GLOBAL_BASELINE"]["EPIGENETIC_SCARS"].append(axiom)
             with open(prompt_path, "w", encoding="utf-8") as f:
                 json.dump(prompts, f, indent=2)
+            self.lore.inject("system_prompts", prompts)
             if self.events:
                 self.events.log(f"{Prisma.VIOLET}🧬 [EPIGENETICS] Scar '{concept}' compiled into bedrock.{Prisma.RST}", "SYS")
         except Exception as e:
@@ -121,10 +121,10 @@ class TheAkashicRecord:
         vector = safe_get(physics, "vector", safe_get(safe_get(physics, "matter"), "vector", {}))
         if not vector or not isinstance(vector, dict):
             return "KAN"
-        valid_keys = [k for k in vector.keys() if vector.get(k) is not None]
-        if not valid_keys:
+        valid_items = {k: v for k, v in vector.items() if v is not None}
+        if not valid_items:
             return "KAN"
-        dom = max(valid_keys, key=lambda k: vector.get(k, 0.0))
+        dom = max(valid_items, key=valid_items.get)
         constants = LoreManifest.get_instance().get("PHYSICS_CONSTANTS") or {}
         trigrams = constants.get("TRIGRAM_MAP", {})
         fallback_mapping = constants.get("FALLBACK_TRIGRAMS", {"CHI": "KAN", "LAMBDA": "KUN"})
@@ -181,9 +181,8 @@ class TheAkashicRecord:
         if not vector or not isinstance(vector, dict):
             dominant_force = "CHI"
         else:
-            valid_keys = [k for k in vector.keys() if vector.get(k) is not None]
-            dominant_force = max(valid_keys, key=lambda k: vector.get(k, 0.0)) if valid_keys else "CHI"
-
+            valid_items = {k: v for k, v in vector.items() if v is not None}
+            dominant_force = max(valid_items, key=valid_items.get) if valid_items else "CHI"
         item_gen_data = self.lore.get("ITEM_GENERATION") or {}
         prefixes = item_gen_data.get("PREFIXES", {})
         prefix = prefixes.get(dominant_force, item_gen_data.get("FALLBACK_PREFIX", "Ascended"))

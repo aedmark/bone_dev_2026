@@ -4,7 +4,7 @@ from typing import Dict, Any, Set
 
 from bone_akashic import TheAkashicRecord
 from bone_presets import BoneConfig
-from bone_core import EventBus, LoreManifest, ux
+from bone_core import EventBus, LoreManifest, ux, safe_get, safe_set
 from bone_drivers import DriverRegistry, BoneConsultant
 from bone_inventory import GordonKnot
 from bone_machine import BoneArchitect
@@ -34,7 +34,6 @@ class BoneGenesis:
         mode_settings = config.get("mode_settings", {})
         suppressed = set(mode_settings.get("village_suppression", []))
         boot_mode = config.get("boot_mode", "ADVENTURE")
-        target_cfg = config.get("bone_config") or BoneConfig
         village_bundle = BoneGenesis._summon_village(events, embryo, akashic, suppressed, boot_mode, target_cfg)
         soul = NarrativeSelf(engine_ref=None, events_ref=events, memory_ref=embryo.mind.mem, akashic_ref=akashic, config_ref=target_cfg)
         if embryo.soul_legacy:
@@ -52,7 +51,6 @@ class BoneGenesis:
             safe_bio_proxy = {"trauma_vector": trauma_proxy}
             logs = oroboros.apply_legacy(dummy_phys, safe_bio_proxy)
             if logs:
-                from bone_core import safe_get, safe_set
                 msg_scars = ux("genesis_strings", "legacy_scars")
                 events.log(msg_scars.format(logs=", ".join(logs)), "OROBOROS")
                 applied_drag = dummy_phys.get("narrative_drag", 0.0)

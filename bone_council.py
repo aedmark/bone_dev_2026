@@ -1,6 +1,9 @@
 """ bone_council.py """
 
 import random
+import re
+import itertools
+import concurrent.futures
 from typing import Dict, Any
 from bone_presets import BoneConfig
 from bone_core import LoreManifest, ux, safe_get, safe_set
@@ -31,7 +34,7 @@ class TheStrangeLoop:
             if self.recursion_depth > limit:
                 mandate = {"action": "FORCE_MODE", "value": "MAINTENANCE"}
                 msg = ux("council_strings", "strange_loop_fatal")
-                return True, f"{Prisma.RED}{msg}{Prisma.RST}", corrections, mandate,
+                return True, f"{Prisma.RED}{msg}{Prisma.RST}", corrections, mandate
             msg = ux("council_strings", "strange_loop_detected")
             return True, f"{Prisma.MAG}{msg.format(psi=psi, depth=self.recursion_depth)}{Prisma.RST}", corrections, mandate
         else:
@@ -233,7 +236,6 @@ class CouncilChamber:
             cortex = getattr(self.eng, "cortex", None)
             llm = getattr(cortex, "llm", None) if cortex else None
             if llm:
-                import re
                 topic = re.sub(r"(?i)\[COUNCIL\]", "", text).strip()
                 if not topic:
                     topic = "The current structural integrity of the system."
@@ -303,7 +305,6 @@ class CouncilChamber:
                     transcript.append(rlog)
                 adjustments.update(rt_corr)
         village_logs = self.village.audit(physics_packet, _bio_result)
-        import itertools
         c_data = LoreManifest.get_instance().get("COUNCIL_DATA") or {}
         synergy_map = c_data.get("SYNERGY_MAP", {})
         pantheon = c_data.get("PANTHEON", ["GORDON", "JESTER", "MERCY", "BENEDICT", "ROBERTA", "CASPER", "MOIRA", "CASSANDRA", "COLIN", "REVENANT", "GIDEON", "APRIL"])
@@ -469,6 +470,7 @@ class TheSlashCouncil:
         self.triggers = c_data.get("SLASH_TRIGGERS", ["[MOD:CODING]", "[SLASH]", "review this code", "refactor"])
         self.code_keywords = c_data.get("CODE_KEYWORDS", ["def ", "class ", "return ", "import ", "=>", "function", "struct "])
         self.rules = c_data.get("SLASH_RULES", {})
+        self.mods = c_data.get("SLASH_MODIFIERS", {})
 
     def audit(self, text: str, physics: dict) -> tuple[bool, list[str], dict]:
         text_lower = text.lower()
@@ -487,8 +489,7 @@ class TheSlashCouncil:
         r_fuller = self.rules.get("FULLER", ["import ", "class ", "def "])
         r_schur = self.rules.get("SCHUR", ["Exception", "try:", "catch"])
         r_meadows = self.rules.get("MEADOWS", ["while ", "for ", "queue", "recursion"])
-        c_data = LoreManifest.get_instance().get("COUNCIL_DATA") or {}
-        mods = c_data.get("SLASH_MODIFIERS", {})
+        mods = self.mods
         if any(k.lower() in text_lower for k in r_pinker):
             msg = ux("council_strings", "slash_pinker")
             logs.append(f"{Prisma.CYN}{msg}{Prisma.RST}")

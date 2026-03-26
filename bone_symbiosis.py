@@ -17,9 +17,6 @@ class HostHealth:
     latency: float = 0.0
     entropy: float = 1.0
     compliance: float = 1.0
-    attention_span: float = 1.0
-    hallucination_risk: float = 0.0
-    last_interference_score: float = 0.0
     verbosity_ratio: float = 1.0
     diagnosis: str = "STABLE"
     memory_stable_ticks: int = 0
@@ -152,7 +149,8 @@ class SymbiosisManager:
         self.diagnostician = DiagnosticConfidence(config_ref=self.cfg)
         cfg = getattr(self.cfg, "SYMBIOSIS", None)
         self.SLOP_THRESHOLD = getattr(cfg, "SLOP_THRESHOLD", 3.5) if cfg else 3.5
-        self.REFUSAL_SIGNATURES = LoreManifest.get_instance(config_ref=self.cfg).get("SYMBIOSIS_CONFIG", "REFUSAL_SIGNATURES") or []
+        raw_sigs = LoreManifest.get_instance(config_ref=self.cfg).get("SYMBIOSIS_CONFIG", "REFUSAL_SIGNATURES") or []
+        self.REFUSAL_SIGNATURES = [str(sig).lower() for sig in raw_sigs]
         self.u = UserInferredState()
         self.shared = SharedDynamics()
     def analyze_user_biology(self, user_text: str, physics: Any) -> Optional[str]:
@@ -262,7 +260,7 @@ class SymbiosisManager:
 
     def _detect_refusal(self, text):
         header = text[:200].lower()
-        return any(str(sig).lower() in header for sig in self.REFUSAL_SIGNATURES)
+        return any(sig in header for sig in self.REFUSAL_SIGNATURES)
 
     def get_prompt_modifiers(self, physics: Dict = None) -> Dict:
         default_mods = LoreManifest.get_instance(config_ref=self.cfg).get("SYMBIOSIS_CONFIG", "DEFAULT_MODIFIERS") or {}
@@ -294,8 +292,7 @@ class SymbiosisManager:
             if d_chaos: mods["system_directives"].append(d_chaos)
             mods["system_directives"].append("CRITICAL: You are trapped in a narrative loop. "
                                              "DO NOT repeat descriptions from your previous turn. Force a phase transition.")
-        target_cfg = getattr(self, "cfg", BoneConfig)
-        cfg = getattr(target_cfg, "SYMBIOSIS", None)
+        cfg = getattr(self.cfg, "SYMBIOSIS", None)
         comp_crit = safe_get(cfg, "COMPLIANCE_CRIT", 0.6) if cfg else 0.6
         r_streak = safe_get(cfg, "REFUSAL_STREAK", 0) if cfg else 0
         if self.current_health.compliance < comp_crit:

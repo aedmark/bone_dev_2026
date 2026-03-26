@@ -1,6 +1,7 @@
 """ bone_machine.py """
 
 import random
+import math
 from dataclasses import dataclass
 from typing import Tuple, Optional, List, Dict, Any
 
@@ -68,11 +69,10 @@ class TheCrucible:
         adjustment = self.instability_index * 0.5
         if current_drag < 1.0 and adjustment < 0:
             adjustment *= 0.1
-        if current_drag == float('inf'):
-            new_drag = current_drag
+        if math.isinf(current_drag):
+            final_drag = current_drag
         else:
-            new_drag = max(0.0, min(10.0, current_drag + adjustment))
-        final_drag = new_drag if new_drag == float('inf') else round(new_drag, 2)
+            final_drag = round(max(0.0, min(10.0, current_drag + adjustment)), 2)
         safe_set(physics, "narrative_drag", final_drag)
         msg = None
         if abs(adjustment) > 0.1:
@@ -144,7 +144,7 @@ class TheForge:
     def hammer_alloy(physics: Any) -> Tuple[bool, Optional[str], Optional[str]]:
         counts = safe_get(physics, "counts", {})
         clean_words = safe_get(physics, "clean_words", [])
-        if not clean_words:
+        if not clean_words or len(clean_words) == 0:
             return False, None, None
         heavy = counts.get("heavy", 0)
         kinetic = counts.get("kinetic", 0)
@@ -298,6 +298,8 @@ class SystemEmbryo:
     continuity: Optional[Dict] = None
 
 class PanicRoom:
+    _SAFE_VECTOR = {k: 0.0 for k in ["STR", "VEL", "PSI", "ENT", "PHI", "BET", "DEL", "LAMBDA", "CHI"]}
+
     @staticmethod
     def get_safe_physics():
         safe_packet = PhysicsPacket.void_state()
@@ -310,7 +312,7 @@ class PanicRoom:
         safe_packet.entropy = 0.0
         safe_packet.valence = 0.0
         safe_packet.kappa = 0.0
-        safe_packet.vector = {k: 0.0 for k in ["STR", "VEL", "PSI", "ENT", "PHI", "BET", "DEL", "LAMBDA", "CHI"]}
+        safe_packet.vector = PanicRoom._SAFE_VECTOR.copy()
         default_words = ["white", "room", "safe", "mode"]
         manifest_words = ux("machine_strings", "panic_clean_words")
         safe_packet.clean_words = manifest_words if isinstance(manifest_words, list) else default_words

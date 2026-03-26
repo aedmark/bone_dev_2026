@@ -10,6 +10,8 @@ import markdown
 def render_markdown(text: str) -> str:
     return markdown.markdown(text, extensions=['extra'])
 
+_THOUGHT_PATTERN = re.compile(r"<(?:think|thought)>(.*?)(?:</(?:think|thought)>|$)", re.DOTALL | re.IGNORECASE)
+
 def beautify_thoughts(text: str) -> str:
     def replacer(match):
         content = match.group(1).strip()
@@ -22,13 +24,21 @@ def beautify_thoughts(text: str) -> str:
         footer = f"{Prisma.CYN}  └─{Prisma.RST}"
         inner_content = "\n".join(fmt)
         return f"<div class='substrate-block'>{header}\n{inner_content}\n{footer}</div>"
-    pattern = re.compile(r"<(?:think|thought)>(.*?)(?:</(?:think|thought)>|$)", re.DOTALL | re.IGNORECASE)
-    return pattern.sub(replacer, text)
+    return _THOUGHT_PATTERN.sub(replacer, text)
 
 class Projector:
     def __init__(self, config_ref=None):
         self.cfg = config_ref or BoneConfig
         self.width = 80
+
+    @staticmethod
+    def _safe_val(obj, k, default):
+        v = safe_get(obj, k)
+        if v is None: return default
+        try:
+            return float(v)
+        except (ValueError, TypeError):
+            return default
 
     @staticmethod
     def _extract(physics_obj: Any, field: str, sub_field: str, default: Any = 0.0):
@@ -196,17 +206,10 @@ class Projector:
         shared_str = ""
         shared = data_ctx.get("shared_dyn")
         if shared:
-            def _safe_val(obj, k, default):
-                v = safe_get(obj, k)
-                if v is None: return default
-                try:
-                    return float(v)
-                except (ValueError, TypeError):
-                    return default
-            phi = _safe_val(shared, "phi", 0.5)
-            delta = _safe_val(shared, "delta", 0.0)
-            g_pool = int(_safe_val(shared, "g_pool", 0))
-            sigma = int(_safe_val(shared, "sigma_silence", 0))
+            phi = self._safe_val(shared, "phi", 0.5)
+            delta = self._safe_val(shared, "delta", 0.0)
+            g_pool = int(self._safe_val(shared, "g_pool", 0))
+            sigma = int(self._safe_val(shared, "sigma_silence", 0))
             shared_str = f" {Prisma.INDIGO}[Φ:{phi:.2f} ∇:{delta:.2f} (Σ{sigma}) G:{g_pool}]{Prisma.RST}"
         paradox_str = ""
         paradox = data_ctx.get("paradox")
@@ -640,9 +643,10 @@ class CycleReporter:
         if not hasattr(self.eng, "somatic"):
             return
         qualia = self.eng.somatic.get_current_qualia(getattr(ctx, "last_impulse", None))
-        ctx.logs.insert(0, f"{Prisma.GRY}({qualia.internal_monologue_hint}){Prisma.RST}")
         l_sens = ux("cycle_reporter", "sensation_prefix") or "Felt:"
-        ctx.logs.insert(0, f"{qualia.color_code}{l_sens} {qualia.somatic_sensation} [{qualia.tone}]{Prisma.RST}", )
+        somatic_block = [f"{qualia.color_code}{l_sens} {qualia.somatic_sensation} [{qualia.tone}]{Prisma.RST}",
+            f"{Prisma.GRY}({qualia.internal_monologue_hint}){Prisma.RST}"]
+        ctx.logs[:0] = somatic_block
 
     @staticmethod
     def _inject_flux_readout(ctx):
@@ -667,11 +671,8 @@ class CycleReporter:
                 f"   {Prisma.GRY}{pipe}{Prisma.RST} {icon} {e['metric'][:3].upper()} {color}{arrow} {d:.1f}{Prisma.RST} ({e['reason']})")
         if significant:
             h_flux = ux("cycle_reporter", "flux_header") or "SYSTEM FLUX DETECTED:"
-            ctx.logs.insert(0, "")
-            ctx.logs.insert(1, f" {Prisma.GRY}{h_flux}{Prisma.RST}")
-            for line in reversed(significant):
-                ctx.logs.insert(2, line)
-            ctx.logs.insert(2 + len(significant), f" {Prisma.GRY}{footer}{Prisma.RST}")
+            flux_block = ["", f" {Prisma.GRY}{h_flux}{Prisma.RST}"] + significant + [f" {Prisma.GRY}{footer}{Prisma.RST}"]
+            ctx.logs[:0] = flux_block
 
     def _package_bureaucracy(self, ctx):
         if not self.eng.bureau:

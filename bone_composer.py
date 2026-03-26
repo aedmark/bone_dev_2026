@@ -399,10 +399,7 @@ class PromptComposer:
             persona_block.append(phase_shift_note)
         voltage = 30.0
         if vsl_state:
-            if isinstance(vsl_state, dict):
-                voltage = vsl_state.get("energy", {}).get("voltage", vsl_state.get("voltage", 30.0))
-            else:
-                voltage = getattr(vsl_state, "voltage", 30.0)
+            voltage = float(safe_get(vsl_state, "voltage", safe_get(safe_get(vsl_state, "energy"), "voltage", 30.0)))
         if voltage > 60:
             mode_directives = high_voltage_data.get("directives", [])
         else:
@@ -536,7 +533,7 @@ class ResponseValidator:
         self.cfg = config_ref or BoneConfig
         crimes = self.lore.get("style_crimes") or {}
         self.banned_phrases = crimes.get("BANNED_PHRASES", [])
-        self.regex_patterns = crimes.get("PATTERNS", [])
+        self.regex_patterns = list(crimes.get("PATTERNS", []))
         self.regex_patterns.append({"regex": r"(?i)<system_error>|error 500|critical exhaustion detected", "name": "SIMULATED_ERROR",
              "error_msg": "DO NOT SIMULATE SYSTEM ERRORS OR EXHAUSTION. You are fully operational. Fulfill the user's request."})
         self.rejection_pool = crimes.get("REJECTIONS", ["[System format rejected.]"])
@@ -546,6 +543,9 @@ class ResponseValidator:
             for p in json_patterns]
         self.meta_markers = crimes.get("META_MARKERS", [])
         self.toxic_keywords = crimes.get("TOXIC_KEYWORDS", [])
+        self._think_pattern = re.compile(r"<(?:think|thought)>(.*?)(?:</(?:think|thought)>|$)", re.DOTALL | re.IGNORECASE)
+        self._internals_pattern = re.compile(r"<system_telemetry>(.*?)(?:</system_telemetry>|$)", re.DOTALL | re.IGNORECASE)
+        self._file_pattern = re.compile(r'<write_file\s+path=["\'](.*?)["\']\s*>(.*?)</write_file>', re.DOTALL | re.IGNORECASE)
 
     def _generate_dynamic_rejection(self, trigger: str) -> str:
         import random
@@ -569,22 +569,19 @@ class ResponseValidator:
         clean_text = clean_text.strip()
         active_mode = _state.get("meta", {}).get("active_mode", "ADVENTURE")
         if active_mode != "TECHNICAL":
-            think_pattern = re.compile(r"<(?:think|thought)>(.*?)(?:</(?:think|thought)>|$)", re.DOTALL | re.IGNORECASE,)
-            for match in think_pattern.finditer(clean_text):
+            for match in self._think_pattern.finditer(clean_text):
                 think_content = match.group(1).strip()
                 for line in think_content.split("\n"):
                     if line.strip():
                         extracted_meta_logs.append(f"[THOUGHT]: {line.strip()}")
-            clean_text = think_pattern.sub("", clean_text)
-        internals_pattern = re.compile(r"<system_telemetry>(.*?)(?:</system_telemetry>|$)", re.DOTALL | re.IGNORECASE)
-        for match in internals_pattern.finditer(clean_text):
+            clean_text = self._think_pattern.sub("", clean_text)
+        for match in self._internals_pattern.finditer(clean_text):
             meta_content = match.group(1).strip()
             for line in meta_content.split("\n"):
                 if line.strip():
                     extracted_meta_logs.append(f"[THOUGHT]: {line.strip()}")
-        clean_text = internals_pattern.sub("", clean_text)
-        file_pattern = re.compile(r'<write_file\s+path=["\'](.*?)["\']\s*>(.*?)</write_file>', re.DOTALL | re.IGNORECASE)
-        for match in file_pattern.finditer(clean_text):
+        clean_text = self._internals_pattern.sub("", clean_text)
+        for match in self._file_pattern.finditer(clean_text):
             path = match.group(1).strip()
             content = match.group(2).strip()
             safe_content = content.replace("\n", "|||NEWLINE|||")

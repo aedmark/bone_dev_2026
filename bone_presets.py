@@ -1,6 +1,10 @@
 """ bone_presets.py """
 
+import copy
 from typing import Dict, Any, List
+
+class _ConfigNode:
+    pass
 
 def ux(section: str, key: str, default: Any = "") -> Any:
     from bone_core import LoreManifest
@@ -58,7 +62,7 @@ class BoneConfig:
                         "THE EXPLORER": {"KINETIC": 0.6, "AEROBIC": 0.4},
                         "THE OBSERVER": {"VOID": 0.5, "ABSTRACT": 0.2}, }
     TRAUMA_VECTOR = {"THERMAL": 0.0, "CRYO": 0.0, "SEPTIC": 0.0, "BARIC": 0.0}
-    VERSION = "18.0.0"
+    VERSION = "18.1.0"
     VERBOSE_LOGGING = True
     MAX_HEALTH = 100.0
     MAX_STAMINA = 100.0
@@ -741,12 +745,11 @@ class BoneConfig:
         FUSE_RESET_D = 5.0
 
     def __init__(self):
-        import copy
         for name in dir(self.__class__):
             if not name.startswith("__"):
                 val = getattr(self.__class__, name)
                 if isinstance(val, type):
-                    clone = type(name + "Clone", (object,), {})()
+                    clone = _ConfigNode()
                     for k, v in vars(val).items():
                         if not k.startswith("__") and not callable(v):
                             setattr(clone, k, copy.deepcopy(v) if isinstance(v, (dict, list, set)) else v)

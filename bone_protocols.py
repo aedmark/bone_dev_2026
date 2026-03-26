@@ -82,7 +82,7 @@ class TheBureau:
                     err_msg = ux("protocol_strings", "bureau_compile_fail")
                     print(f"{Prisma.RED}{err_msg.format(name=p.get('name'), e=e)}{Prisma.RST}")
         scenarios = LoreManifest.get_instance().get("scenarios") or {}
-        self.cliches = set(scenarios.get("BANNED_CLICHES", []))
+        self.cliches = {str(c).lower() for c in scenarios.get("BANNED_CLICHES", [])}
 
     def to_dict(self) -> Dict[str, Any]:
         return {"stamp_count": self.stamp_count}
@@ -144,7 +144,8 @@ class TheBureau:
             tax = tax_chaos
         elif not selected_form:
             buzz_hits = [w for w in clean_words if w in self.buzzwords]
-            cliche_hits = [c for c in self.cliches if c.lower() in raw_text.lower()]
+            raw_text_lower = raw_text.lower()
+            cliche_hits = [c for c in self.cliches if c in raw_text_lower]
             if buzz_hits:
                 selected_form = random.choice(self.forms)
                 evidence = buzz_hits
@@ -281,7 +282,9 @@ class KintsugiProtocol:
         raw_text = safe_get(phys, "raw_text", safe_get(safe_get(phys, "matter"), "raw_text", ""))
         if lexicon_ref:
             clean = lexicon_ref.sanitize(raw_text)
-            play_count = sum(1 for w in clean if w in lexicon_ref.get("play") or w in lexicon_ref.get("abstract"))
+            play_set = lexicon_ref.get("play") or []
+            abstract_set = lexicon_ref.get("abstract") or []
+            play_count = sum(1 for w in clean if w in play_set or w in abstract_set)
         else:
             clean = raw_text.split()
             play_count = 0
@@ -492,9 +495,8 @@ class LimboLayer:
                     echo_msg = ux("protocol_strings", "limbo_echo")
                     self.ghosts.append(echo_msg.format(k=k))
         if "mutations" in data and "heavy" in data["mutations"]:
-            bones = list(data["mutations"]["heavy"])
-            random.shuffle(bones)
-            self.ghosts.extend(bones[:3])
+            bones = data["mutations"]["heavy"]
+            self.ghosts.extend(random.sample(bones, min(3, len(bones))))
 
     def trigger_stasis_failure(self, intended_thought):
         self.stasis_leak += 1.0

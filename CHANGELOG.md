@@ -1,5 +1,31 @@
 # BONEAMANITA CHANGELOG
 
+### **BONEAMANITA v18.1.0 "The Frictionless Lattice"**
+
+*A deep-tissue architectural optimization pass executed by the SLASH Council. This update surgically removes inline imports, repetitive regex compilations, dynamic metaclass generation, and $O(N^2)$ list traversals, drastically dropping the baseline ATP burn (compute latency) across the entire engine.*
+
+#### **⚡ STRUCTURAL & MEMORY OPTIMIZATION (`bone_presets.py`, `bone_gui.py`, `bone_composer.py`)**
+- **Dynamic Metaclass Purge:** Excised the heavy `type()` dynamic class generation inside `BoneConfig.__init__`, replacing it with a static `_ConfigNode` to stop massive memory bloat on boot.
+- **$O(N^2)$ Sifting Resolved:** Replaced repetitive `.insert(0, ...)` loops in the GUI's `CycleReporter` with direct `[:0]` slice assignments, preventing the array from shifting memory indices thousands of times a second.
+- **Sealed Memory Leaks:** Stopped `ResponseValidator` from permanently mutating the global `LoreManifest` list during initialization, preventing exponential logic duplication.
+
+#### **⚙️ COMPILER & REGEX BEDROCK (`bone_lexicon.py`, `bone_gui.py`, `bone_composer.py`)**
+- **Bedrock Compilation:** Pulled massive regex pattern compilations (Thought patterns, Telemetry patterns, Antigen patterns) out of active loop evaluations and hoisted them to class constructors or global scope.
+- **Phonetic Caching:** `LinguisticAnalyzer` now caches its `char_to_sound` dictionary on `__init__` rather than rebuilding it token-by-token during viscosity measurements.
+
+#### **🧬 LATTICE EFFICIENCY (`bone_akashic.py`, `bone_protocols.py`, `bone_symbiosis.py`)**
+- **Direct Manifest Injection:** `_mutate_system_prompts` no longer reads from the disk every time an epigenetic scar is recorded. It modifies the live `LoreManifest` and flushes it seamlessly.
+- **Generator Optimization:** `KintsugiProtocol` no longer queries the lexicon dictionary for every single word evaluated during a repair attempt.
+- **Set & List Math:** Swapped heavy `random.shuffle` lists for native `random.sample` arrays in the `LimboLayer`, and removed redundant `.copy()` calls on massive category sets in the `LexiconStore`.
+
+#### **🛡️ GUARDRAILS & BUG FIXES (`bone_council.py`, `bone_machine.py`, `bone_genesis.py`)**
+- **Fatal Unpack Fixed:** Removed a trailing comma in `TheStrangeLoop` that was causing a silent terminal tuple-unpacking crash during recursion audits.
+- **ZeroDivision Guard:** Secured `TheForge` against empty-string lists to prevent division-by-zero crashes during alloy hammering.
+- **Safe Vector Pre-Allocation:** The `PanicRoom` now holds its safe physics vector statically, preventing the engine from having to construct dictionaries while actively crashing.
+- **Inline Import Purge:** Dozens of lazy `import` and `from X import Y` statements were moved from inside active loops to the top of their respective files (the bedrock), stabilizing dependency flow.
+
+---
+
 ### **BONEAMANITA v18.0.0 "The SLASH Architecture Sweep"**
 
 _A massive, system-wide stabilization pass focusing on thermodynamic equilibrium, latency reduction, and architectural memory safety. This update purges redundant LLM calls, mathematically balances the biological ROS accumulation, and hardens the simulation loop against polymorphic state crashes._

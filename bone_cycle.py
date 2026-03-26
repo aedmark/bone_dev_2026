@@ -1273,12 +1273,6 @@ class GeodesicOrchestrator:
         return snapshot
 
     def _hydrate_snapshot_metadata(self, snapshot: Dict, ctx: CycleContext):
-        def _safe_dict(obj):
-            if hasattr(obj, "to_dict"):
-                return obj.to_dict()
-            if isinstance(obj, dict):
-                return obj
-            return {}
         snapshot.update(
             {"trace_id": getattr(ctx, "trace_id", "UNKNOWN"), "is_alive": True, "physics": _safe_dict(ctx.physics),
              "bio": _safe_dict(ctx.bio_result), "mind": _safe_dict(ctx.mind_state),
