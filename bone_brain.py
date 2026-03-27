@@ -344,7 +344,7 @@ class TheCortex:
                 extracted_logs = val_res.get("meta_logs", [])
                 break
             if attempt < max_retries - 1:
-                if attempt >= 1:
+                if attempt >= max_retries - 2:
                     final_output = "The system is struggling to map this request to its current architecture. Narrative friction is too high. Please rephrase or simplify your intent."
                     extracted_logs.append("[SYSTEM MERCY RULE]: Rejection loop broken to prevent ATP starvation. Spiking Drag (F -> ∞).")
                     if hasattr(self.svc.cycle_controller, "eng"):
@@ -489,19 +489,6 @@ class TheCortex:
             state["mind"]["style_directives"] = [f"SYSTEM_BOOT DETECTED. Seed: '{seed}'.", "DIRECTIVE: Let's brainstorm. Open with a high-energy creative spark based on the seed."]
         if "dialogue_history" not in state:
             state["dialogue_history"] = []
-
-    def _process_inventory_changes(self, found, lost):
-        logs = []
-        for item in found:
-            logs.append(self.svc.inventory.acquire(item))
-            if self.events:
-                self.events.publish("ITEM_ACQUIRED", {"item": item})
-        for item in lost:
-            if self.svc.inventory.safe_remove_item(item):
-                logs.append(f"{Prisma.GRY}ENTROPY: {item} consumed/lost.{Prisma.RST}")
-            else:
-                logs.append(f"{Prisma.OCHRE}GLITCH: Tried to lose {item}, but you didn't have it.{Prisma.RST}")
-        return logs
 
     @staticmethod
     def _log_telemetry(prompt, response, state, sim_result):
@@ -851,7 +838,7 @@ class DreamEngine:
         active_chi = _vector.get("chi", _vector.get("entropy", 0.85)) if _vector else 0.85
         active_v = _vector.get("voltage", 90.0) if _vector else 90.0
         txt = weaver.deform_reality(txt, chi=active_chi, voltage=active_v)
-        msg = ux("brain_strings", "dream_hallucination")
+        msg = ux("brain_strings", "dream_hallucination") or "{txt}"
         return f"{Prisma.MAG}{msg.format(txt=txt)}{Prisma.RST}", 0.2
 
     @staticmethod

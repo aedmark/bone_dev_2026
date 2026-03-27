@@ -182,5 +182,36 @@ class FractureEngineTest(unittest.TestCase):
             print("\n⚠️ METABOLIC WARNING: Deep retrieval is causing cognitive drag.")
         self.assertEqual(nodes_moved, 10000, "Consolidator failed to move all 10,000 nodes.")
 
+    def test_fracture_aerodynamic_lift(self):
+        print("\n--- FRACTURE 8: Aerodynamic Lift (Negative Drag) ---")
+        from bone_physics import GeodesicEngine
+        counts = {"play": 15, "kinetic": 10, "explosive": 5, "heavy": 0, "constructive": 0, "void": 0}
+        masses = GeodesicEngine._weigh_mass(counts)
+        forces = GeodesicEngine._calculate_forces(masses, counts, volume=30, config_ref=self.engine.bone_config)
+        self.assertLess(forces["compression"], 0.0, f"[FAIL] Drag/Compression was {forces['compression']}. The lift clamp is still active!")
+        print(f"  [SUCCESS] Engine achieved aerodynamic lift: {forces['compression']} Drag.")
+
+    def test_fracture_gatekeeper_metrics_padding(self):
+        print("\n--- FRACTURE 9: Gatekeeper Metrics Padding (HUD Crash) ---")
+        cursed_input = "Please write a function. ```python print('hello') ```"
+        result = self.engine.process_turn(cursed_input)
+        self.assertIn("type", result, "[FAIL] Gatekeeper did not return a valid packet type.")
+        self.assertIn("SYNTAX_ERR", result["type"], "[FAIL] Gatekeeper did not flag the payload as a syntax error.")
+        self.assertIn("metrics", result, "[FAIL] Refusal packet missing 'metrics' key! The HUD will suffer a KeyError crash.")
+        print("  [SUCCESS] Gatekeeper refusal packet safely padded with HUD metrics.")
+
+    def test_fracture_somatic_unity(self):
+        print("\n--- FRACTURE 10: Somatic Unity (The Orphan Limb) ---")
+        from bone_cycle import SensationPhase, CycleContext
+        has_unified_cortex = hasattr(self.engine.bio, "synesthesia") or hasattr(self.engine.soma, "synesthesia")
+        self.assertTrue(has_unified_cortex, "[FAIL] SynestheticCortex is not centralized in the Somatic Loop.")
+        ctx = CycleContext(input_text="Testing unity.")
+        phase = SensationPhase(self.engine.cycle_controller.eng)
+        try:
+            phase.run(ctx)
+            print("  [SUCCESS] SensationPhase ran using the centralized biological timeline without crashing.")
+        except AttributeError as e:
+            self.fail(f"[FAIL] Somatic unity fractured during execution: {e}")
+
 if __name__ == "__main__":
     unittest.main()

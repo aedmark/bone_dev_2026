@@ -586,7 +586,7 @@ class ResponseValidator:
             content = match.group(2).strip()
             safe_content = content.replace("\n", "|||NEWLINE|||")
             extracted_meta_logs.append(f"[SUBSTRATE_QUEUE] {path}:::{safe_content}")
-        clean_text = file_pattern.sub("", clean_text)
+        clean_text = self._file_pattern.sub("", clean_text)
         for pattern, replacement in self.scrub_patterns:
             clean_text = pattern.sub(replacement, clean_text)
         clean_lines = []

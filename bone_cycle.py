@@ -6,16 +6,17 @@ import time
 import traceback
 import uuid
 from typing import Dict, Any, List
-from bone_body import SynestheticCortex
-from bone_presets import BoneConfig, BonePresets
+
 from bone_core import ArchetypeArbiter, LoreManifest, ux, safe_get, safe_set
 from bone_drivers import CongruenceValidator
 from bone_gui import SoulDashboard, CycleReporter
 from bone_machine import PanicRoom
 from bone_physics import TheGatekeeper, apply_somatic_feedback, CycleStabilizer
+from bone_presets import BoneConfig, BonePresets
 from bone_symbiosis import SymbiosisManager
 from bone_types import Prisma, CycleContext
 from bone_utils import TheTclWeaver
+
 
 def _deep_update(obj, d):
     for k, v in d.items():
@@ -413,7 +414,7 @@ class MetabolismPhase(SimulationPhase):
                     self.eng.bio.biometrics.health = max(0.0, self.eng.bio.biometrics.health - damage)
 
     def _apply_healing(self, ctx):
-        qualia = self.eng.somatic.get_current_qualia(getattr(ctx, "last_impulse", None))
+        qualia = self.eng.soma.synesthesia.get_current_qualia(getattr(ctx, "last_impulse", None))
         current_stamina = getattr(self.eng, "stamina", 100.0)
         if getattr(self.eng, "bio", None) and self.eng.bio.biometrics:
             current_stamina = self.eng.bio.biometrics.stamina
@@ -1042,11 +1043,7 @@ class SensationPhase(SimulationPhase):
     def __init__(self, engine_ref):
         super().__init__(engine_ref)
         self.name = "SENSATION"
-        if hasattr(self.eng, "somatic"):
-            self.synesthesia = self.eng.somatic
-        else:
-            self.synesthesia = SynestheticCortex(self.eng.bio)
-            self.eng.somatic = self.synesthesia
+        self.synesthesia = self.eng.soma.synesthesia
 
     def run(self, ctx: CycleContext):
         phys_data = _safe_dict(ctx.physics)
@@ -1094,9 +1091,9 @@ class PhaseExecutor:
                 ctx = phase.run(ctx)
             except Exception as e:
                 simulator.handle_phase_crash(ctx, phase.name, e)
-                self._audit_flux(ctx, phase.name, snapshot_before, ctx.physics)
                 break
-            self._audit_flux(ctx, phase.name, snapshot_before, ctx.physics)
+            finally:
+                self._audit_flux(ctx, phase.name, snapshot_before, ctx.physics)
         return ctx
 
     @staticmethod
@@ -1220,7 +1217,8 @@ class GeodesicOrchestrator:
                 self.eng.telemetry.finalize_cycle()
             return ctx
         except Exception as e:
-            self.eng.events.log(f"CYCLE CRASH: {e}", "CRIT")
+            full_trace = traceback.format_exc()
+            self.eng.events.log(f"CYCLE CRASH: {e}\n{full_trace}", "CRIT")
             ctx = CycleContext(input_text=user_message)
             ctx.physics = PanicRoom.get_safe_physics()
             ctx.is_alive = False

@@ -373,6 +373,8 @@ class BoneAmanita:
                 self.bio.mito.state.ros_buildup = 0.0
             if getattr(self, "cortex", None) and getattr(self.cortex, "last_physics", None):
                 safe_set(self.cortex.last_physics, "narrative_drag", 0.0)
+            if getattr(self, "observer", None) and getattr(self.observer, "last_physics_packet", None):
+                safe_set(self.observer.last_physics_packet, "narrative_drag", 0.0)
             msg = "[ZEN FLUSH] Context severed. Narrative Drag (F) dropped to 0. Stamina restored. The mind is clear."
             self.events.log(msg, "SYS")
             return {"type": "COMMAND", "ui": f"\n{Prisma.CYN}{msg}{Prisma.RST}", "logs": [msg], "metrics": self.get_metrics()}

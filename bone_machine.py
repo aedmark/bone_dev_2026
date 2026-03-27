@@ -79,7 +79,7 @@ class TheCrucible:
             dir_tight = ux("machine_strings", "crucible_tightening") or "TIGHTENING"
             dir_relax = ux("machine_strings", "crucible_relaxing") or "RELAXING"
             direction = dir_tight if adjustment > 0 else dir_relax
-            msg = self.logs.get("REGULATOR", "").format(direction=direction, current=current_drag, new=new_drag)
+            msg = self.logs.get("REGULATOR", "").format(direction=direction, current=current_drag, new=final_drag)
         surge = safe_get(physics, "system_surge_event", False)
         if surge:
             self.active_state = "SURGE"

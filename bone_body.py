@@ -549,6 +549,7 @@ class SomaticLoop:
         self.regulator = EndocrineRegulator(self.bio)
         self.feedback = BioFeedback(self.bio, config_ref=self.cfg)
         self.semantic_doctor = SemanticEndocrinologist(memory_ref, lexicon_ref)
+        self.synesthesia = SynestheticCortex(self.bio, config_ref=self.cfg)
         self.narrative_data = LoreManifest.get_instance(config_ref=self.cfg).get("BIO_NARRATIVE") or {}
         if not self.narrative_data:
             if hasattr(self.events, "log"):

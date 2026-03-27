@@ -8,9 +8,10 @@ from collections import Counter, deque
 from dataclasses import dataclass
 from typing import Dict, List, Any, Tuple, Optional, Deque
 
-from bone_core import LoreManifest, ux, safe_get, safe_set
+from bone_core import LoreManifest, ux, safe_get
 from bone_presets import BoneConfig
 from bone_types import Prisma, PhysicsPacket, CycleContext, SpatialState, MaterialState, EnergyState
+
 
 @dataclass
 class PhysicsDelta:
@@ -76,10 +77,8 @@ class GeodesicEngine:
         lift_density = lift / safe_volume
         raw_compression = (viscosity_density - lift_density) * gc_dict.get("COMPRESSION_SCALAR", 2.0)
         raw_compression *= getattr(target_cfg, "SIGNAL_DRAG_MULTIPLIER", 1.0)
-        drag_floor = getattr(cfg, "DRAG_FLOOR", 1.0)
         drag_halt = getattr(cfg, "DRAG_HALT", 10.0)
-        adjusted_compression = max(drag_floor * 0.5, raw_compression)
-        compression = round(max(-5.0, min(drag_halt, adjusted_compression * mass_scalar)), 2)
+        compression = round(max(-5.0, min(drag_halt, raw_compression * mass_scalar)), 2)
         structural_mass = masses["heavy"] + masses["constructive"] + masses["harvest"]
         structural_mass -= masses["void"] * 0.5
         structural_mass = max(0.0, structural_mass)
@@ -132,7 +131,7 @@ class HLA_Stabilizer:
             try:
                 from bone_utils import TheTclWeaver
                 weaver = TheTclWeaver.get_instance()
-                glitched_output = weaver.deform_reality(model_output, chi=0.95, voltage=150.0)
+                glitched_output = weaver.deform_reality(model_output, chi=max(0.95, current_psi), voltage=150.0 * max(1.0, current_psi))
                 return msg + f"{Prisma.GRY}{glitched_output}{Prisma.RST}"
             except ImportError:
                 return msg + model_output
@@ -181,7 +180,7 @@ class TheGatekeeper:
 
     @staticmethod
     def _pack_refusal(ctx, type_str, ui_msg):
-        return {"type": type_str, "ui": ui_msg, "logs": ctx.logs + [ui_msg]}
+        return {"type": type_str, "ui": ui_msg, "logs": ctx.logs + [ui_msg], "metrics": {"health": 0.0, "stamina": 0.0, "atp": 0.0, "efficiency": 1.0}}
 
     def audit_generation(self, generated_text: str, mito_state: Any) -> Tuple[bool, str]:
         generated_text = self.hla.mitigate_rejection(generated_text, current_psi=1.0, mito_state=mito_state)
