@@ -8,6 +8,7 @@ import contextlib
 import warnings
 import re
 import threading
+import time
 from dataclasses import dataclass, field
 from typing import Any, Optional, List, Dict, Tuple
 import importlib.util
@@ -87,7 +88,6 @@ class RandomRetrievalNavigator:
         return candidates[0] if candidates else self.library.root
 
     def _generate_traversal_path(self, start_node: LibraryNode, r_val: float) -> list[LibraryNode]:
-        import time
         path = [start_node]
         visited = {start_node.id}
         steps = math.floor(1 + r_val * 5)
@@ -251,7 +251,7 @@ class TheSubstrate:
                 logs.append(f"{Prisma.GRN}SUBSTRATE: Physically forged {safe_path} ({size} bytes).{Prisma.RST}")
                 if hasattr(self.events, "publish"):
                     self.events.publish("SUBSTRATE_FORGED", {"cost": write_cost, "file": safe_name})
-                if "podcast_script" in safe_name:
+                if "podcast" in safe_name.lower():
                     self._trigger_tts(safe_path)
             except Exception as e:
                 logs.append(f"{Prisma.RED}SUBSTRATE FAULT: Write failed - {e}{Prisma.RST}")
@@ -298,7 +298,6 @@ class TheTclWeaver:
                 self.interp = tkinter.Tcl()
                 self._load_tcl_spells()
             except Exception as e:
-                from bone_types import Prisma
                 print(f"{Prisma.OCHRE}[TCL WEAVER OFFLINE]: {e}. Text deformation disabled.{Prisma.RST}")
                 self.interp = None
 
@@ -378,7 +377,6 @@ class TheTclWeaver:
         try:
             return self.interp.call('apply_entropy', text, chi, voltage)
         except Exception as e:
-            from bone_types import Prisma
             print(f"{Prisma.RED}[TCL ENGINE FRACTURE]: {e}{Prisma.RST}")
             return text
 
@@ -394,7 +392,6 @@ class TheTclWeaver:
         try:
             return self.interp.call('strip_fluff', text)
         except Exception as e:
-            from bone_types import Prisma
             print(f"{Prisma.RED}[TCL CRASH]: {e}{Prisma.RST}")
             return text
 
@@ -403,7 +400,6 @@ class TheTclWeaver:
         try:
             return self.interp.call('apply_void', text, psi)
         except Exception as e:
-            from bone_types import Prisma
             print(f"{Prisma.VIOLET}[TCL VOID FRACTURE]: {e}{Prisma.RST}")
             return text
 

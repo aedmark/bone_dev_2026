@@ -5,6 +5,7 @@ from typing import Dict, Callable, List, Optional
 
 from bone_presets import BonePresets, BoneConfig
 from bone_core import LoreManifest, Prisma, ux
+from bone_types import RealityLayer
 
 class CommandStateInterface:
     def __init__(self, engine_ref, prisma_ref, config_ref):
@@ -182,6 +183,7 @@ class CommandProcessor:
         self.registry.register("/layer", self._cmd_layer, _cd("layer") or "Manipulates the Reality Stack depth")
         self.registry.register("/inject", self._cmd_inject, _cd("inject") or "Forces payload into the EventBus")
         self.registry.register("/trauma", self._cmd_trauma, "DEV: Spikes trauma and drops health to test The Therapist.")
+        self.registry.register("/podcast", self._cmd_podcast, _cd("podcast") or "Assembles the Parliament to generate a podcast script")
 
     def execute(self, text: str):
         if hasattr(self.interface.eng, "reality_stack"):
@@ -402,21 +404,17 @@ class CommandProcessor:
             self.interface.log("Usage: /hud [warm|lite|core|deep]")
             return True
         mode = parts[1].upper()
-        if mode == "WARM":
-            self.interface.eng.mode_settings["default_ui_depth"] = "WARM"
-            self.interface.log(f"{self.P.GRY}[SYSTEM] The veil falls. HUD muted.{self.P.RST}")
-        elif mode == "LITE":
-            self.interface.eng.mode_settings["default_ui_depth"] = "LITE"
-            self.interface.eng.ui_mode = "LITE"
-            self.interface.log(f"{self.P.CYN}[SYSTEM] LITE HUD engaged.{self.P.RST}")
-        elif mode == "CORE":
-            self.interface.eng.mode_settings["default_ui_depth"] = "CORE"
-            self.interface.eng.ui_mode = "CORE"
-            self.interface.log(f"{self.P.CYN}[SYSTEM] CORE HUD engaged.{self.P.RST}")
-        elif mode == "DEEP":
-            self.interface.eng.mode_settings["default_ui_depth"] = "DEEP"
-            self.interface.eng.ui_mode = "DEEP"
-            self.interface.log(f"{self.P.VIOLET}[SYSTEM] DEEP HUD engaged. Full lattice visible.{self.P.RST}")
+        hud_configs = {
+            "WARM": f"{self.P.GRY}[SYSTEM] The veil falls. HUD muted.{self.P.RST}",
+            "LITE": f"{self.P.CYN}[SYSTEM] LITE HUD engaged.{self.P.RST}",
+            "CORE": f"{self.P.CYN}[SYSTEM] CORE HUD engaged.{self.P.RST}",
+            "DEEP": f"{self.P.VIOLET}[SYSTEM] DEEP HUD engaged. Full lattice visible.{self.P.RST}"
+        }
+        if mode in hud_configs:
+            self.interface.eng.mode_settings["default_ui_depth"] = mode
+            if mode != "WARM":
+                self.interface.eng.ui_mode = mode
+            self.interface.log(hud_configs[mode])
         else:
             self.interface.log(f"{self.P.RED}Unknown HUD mode: {mode}{self.P.RST}")
         return True
@@ -518,9 +516,21 @@ class CommandProcessor:
             self.interface.log(f"{self.P.RED}Error: Cortex LLM or Council 'host_podcast' method unavailable.{self.P.RST}")
             return True
         try:
+            import time
             script = council.host_podcast(topic, llm)
             self.interface.log(f"\n{script}\n")
-            self.interface.log(f"{self.P.GRN}Podcast script generated. Ready for Kokoro ingestion.{self.P.RST}")
+            safe_topic = "".join(c if c.isalnum() else "_" for c in topic)[:25].strip("_")
+            file_name = f"podcast_{safe_topic}_{int(time.time())}.txt"
+            from bone_utils import TheSubstrate
+            if not hasattr(self.interface.eng, "substrate"):
+                self.interface.eng.substrate = TheSubstrate(getattr(self.interface.eng, "events", None))
+            substrate = self.interface.eng.substrate
+            substrate.queue_write(file_name, self.P.strip(script))
+            stamina = self.interface.get_resource("stamina")
+            write_logs, cost = substrate.execute_writes(stamina)
+            self.interface.modify_resource("stamina", -cost)
+            for log in write_logs:
+                self.interface.log(log)
         except Exception as e:
             self.interface.log(f"{self.P.RED}Podcast generation failed: {e}{self.P.RST}")
         return True

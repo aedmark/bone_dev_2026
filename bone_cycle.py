@@ -20,8 +20,9 @@ from bone_utils import TheTclWeaver
 
 def _deep_update(obj, d):
     for k, v in d.items():
-        if isinstance(v, dict) and hasattr(obj, k) and not isinstance(getattr(obj, k), dict):
-            _deep_update(getattr(obj, k), v)
+        target = obj.get(k) if isinstance(obj, dict) else getattr(obj, k, None)
+        if isinstance(v, dict) and target is not None and (isinstance(target, dict) or hasattr(target, "__dict__")):
+            _deep_update(target, v)
         else:
             try:
                 obj[k] = v
@@ -49,14 +50,6 @@ class ObservationPhase(SimulationPhase):
         self.name = "OBSERVE"
 
     def run(self, ctx: CycleContext):
-        if hasattr(self.eng, "mind") and hasattr(self.eng.mind, "mem") and not getattr(self.eng.mind.mem, "lex", None):
-            self.eng.mind.mem.lex = getattr(self.eng, "lex", None)
-            if hasattr(self.eng.mind.mem, "parasite"):
-                self.eng.mind.mem.parasite.lex = getattr(self.eng, "lex", None)
-            if hasattr(self.eng.mind.mem, "memory_core"):
-                self.eng.mind.mem.memory_core.lex = getattr(self.eng, "lex", None)
-            if hasattr(self.eng.mind.mem, "lichen"):
-                self.eng.mind.mem.lichen.lex = getattr(self.eng, "lex", None)
         if ctx.time_delta > 10.0 and not ctx.is_system_event and ctx.physics:
             from bone_physics import QuantumObserver
             nabla_msg = QuantumObserver.evaluate_silence(ctx.time_delta, ctx.physics)
@@ -1209,7 +1202,6 @@ class GeodesicOrchestrator:
             ctx.timestamp = time.time()
             pre_logs = [e["text"] for e in self.eng.events.flush()]
             ctx.logs.extend(pre_logs)
-            self.eng.telemetry.start_cycle(cycle_id)
             ctx = self.simulator.run_simulation(ctx)
             if hasattr(self.eng, "observer") and self.eng.observer:
                 self.eng.observer.last_physics_packet = ctx.physics.snapshot()

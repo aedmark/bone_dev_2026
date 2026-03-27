@@ -524,7 +524,7 @@ class ZoneInertia:
             old, self.current_zone = self.current_zone, proposed_zone
             self.dwell_counter = 0
             msg = ux("physics_strings", "zone_migration")
-            return self.current_zone, f"{Prisma.CYN}{msg.format(old=old, proposed_zone=proposed_zone)}{Prisma.RST}",
+            return self.current_zone, f"{Prisma.CYN}{msg.format(old=old, proposed_zone=proposed_zone)}{Prisma.RST}"
         return self.current_zone, None
 
     @staticmethod

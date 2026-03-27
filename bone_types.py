@@ -449,9 +449,10 @@ class PhysicsPacket:
         def _safe_init(cls, data):
             if isinstance(data, cls): return data
             if data is None: return cls()
-            from bone_core import safe_get
             valid_keys = {f.name for f in fields(cls)}
-            return cls(**{k: safe_get(data, k) for k in valid_keys if safe_get(data, k) is not None})
+            if isinstance(data, dict):
+                return cls(**{k: data.get(k) for k in valid_keys if data.get(k) is not None})
+            return cls(**{k: getattr(data, k) for k in valid_keys if getattr(data, k, None) is not None})
         self.energy = _safe_init(EnergyState, energy)
         self.matter = _safe_init(MaterialState, matter)
         self.space = _safe_init(SpatialState, space)
@@ -488,42 +489,52 @@ class PhysicsPacket:
 
     def __getitem__(self, key):
         if hasattr(self, key): return getattr(self, key)
-        if hasattr(self.energy, key): return getattr(self.energy, key)
-        if hasattr(self.space, key): return getattr(self.space, key)
-        if hasattr(self.matter, key): return getattr(self.matter, key)
+        d = self.__dict__
+        if "energy" in d and hasattr(d["energy"], key): return getattr(d["energy"], key)
+        if "space" in d and hasattr(d["space"], key): return getattr(d["space"], key)
+        if "matter" in d and hasattr(d["matter"], key): return getattr(d["matter"], key)
         raise KeyError(f"'{key}' not found in PhysicsPacket or its sub-states.")
 
     def __setitem__(self, key, value):
         if hasattr(self.__class__, key) and isinstance(getattr(self.__class__, key), property):
             setattr(self, key, value)
-        elif hasattr(self.energy, key): setattr(self.energy, key, value)
-        elif hasattr(self.space, key): setattr(self.space, key, value)
-        elif hasattr(self.matter, key): setattr(self.matter, key, value)
+            return
+        d = self.__dict__
+        if "energy" in d and hasattr(d["energy"], key): setattr(d["energy"], key, value)
+        elif "space" in d and hasattr(d["space"], key): setattr(d["space"], key, value)
+        elif "matter" in d and hasattr(d["matter"], key): setattr(d["matter"], key, value)
         else: setattr(self, key, value)
 
     def __contains__(self, key):
-        return (hasattr(self, key) or hasattr(self.energy, key) or
-                hasattr(self.space, key) or hasattr(self.matter, key))
+        if hasattr(self, key): return True
+        d = self.__dict__
+        return (("energy" in d and hasattr(d["energy"], key)) or
+                ("space" in d and hasattr(d["space"], key)) or
+                ("matter" in d and hasattr(d["matter"], key)))
 
     def __getattr__(self, key):
         if key.startswith("_"):
             raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{key}'")
-        if hasattr(self, "energy") and hasattr(self.energy, key): return getattr(self.energy, key)
-        if hasattr(self, "space") and hasattr(self.space, key): return getattr(self.space, key)
-        if hasattr(self, "matter") and hasattr(self.matter, key): return getattr(self.matter, key)
+        d = self.__dict__
+        if "energy" in d and hasattr(d["energy"], key): return getattr(d["energy"], key)
+        if "space" in d and hasattr(d["space"], key): return getattr(d["space"], key)
+        if "matter" in d and hasattr(d["matter"], key): return getattr(d["matter"], key)
         raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{key}'")
 
     def __setattr__(self, key, value):
         if key in ["energy", "matter", "space", "drag_profile"]:
             super().__setattr__(key, value)
-        elif hasattr(self.__class__, key) and isinstance(getattr(self.__class__, key), property):
+            return
+        if hasattr(self.__class__, key) and isinstance(getattr(self.__class__, key), property):
             super().__setattr__(key, value)
-        elif hasattr(self, "energy") and hasattr(self.energy, key):
-            setattr(self.energy, key, value)
-        elif hasattr(self, "space") and hasattr(self.space, key):
-            setattr(self.space, key, value)
-        elif hasattr(self, "matter") and hasattr(self.matter, key):
-            setattr(self.matter, key, value)
+            return
+        d = self.__dict__
+        if "energy" in d and hasattr(d["energy"], key):
+            setattr(d["energy"], key, value)
+        elif "space" in d and hasattr(d["space"], key):
+            setattr(d["space"], key, value)
+        elif "matter" in d and hasattr(d["matter"], key):
+            setattr(d["matter"], key, value)
         else:
             super().__setattr__(key, value)
 

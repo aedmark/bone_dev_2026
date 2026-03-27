@@ -257,6 +257,11 @@ class BoneAmanita:
                     if k in ["provider", "base_url", "api_key", "model"]}
         client = LLMInterface(events_ref=self.events, **llm_args)
         self.cortex = TheCortex.from_engine(self, llm_client=client)
+        if hasattr(self, "mind") and hasattr(self.mind, "mem"):
+            self.mind.mem.lex = getattr(self, "lex", None)
+            for sub_comp in ["parasite", "memory_core", "lichen"]:
+                if hasattr(self.mind.mem, sub_comp):
+                    setattr(getattr(self.mind.mem, sub_comp), "lex", getattr(self, "lex", None))
 
     def _validate_state(self):
         tuning_key = self.mode_settings.get("tuning", "STANDARD")

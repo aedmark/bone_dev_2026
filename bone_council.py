@@ -1,14 +1,16 @@
 """ bone_council.py """
 
+import concurrent.futures
+import itertools
 import random
 import re
-import itertools
-import concurrent.futures
 from typing import Dict, Any
+
+from bone_core import LoreManifest, ux, safe_get
 from bone_presets import BoneConfig
-from bone_core import LoreManifest, ux, safe_get, safe_set
 from bone_symbiosis import get_symbiont
 from bone_types import Prisma
+
 
 class TheStrangeLoop:
     def __init__(self):
@@ -299,11 +301,11 @@ class CouncilChamber:
                         adjustments["stamina_cost"] = -stamina
                     if mandate.get("action") == "TIPP_PROTOCOL":
                         adjustments["freeze_background_tasks"] = True
-            rt_hit, rt_logs, rt_corr = self.red_team.audit(text, physics_packet)
-            if rt_hit:
-                for rlog in rt_logs:
-                    transcript.append(rlog)
-                adjustments.update(rt_corr)
+        rt_hit, rt_logs, rt_corr = self.red_team.audit(text, physics_packet)
+        if rt_hit:
+            for rlog in rt_logs:
+                transcript.append(rlog)
+            adjustments.update(rt_corr)
         village_logs = self.village.audit(physics_packet, _bio_result)
         c_data = LoreManifest.get_instance().get("COUNCIL_DATA") or {}
         synergy_map = c_data.get("SYNERGY_MAP", {})
@@ -422,8 +424,8 @@ class CouncilChamber:
             lateral = future_lateral.result()
         p4 = ("SYSTEM_INSTRUCTION: You are The Stage Manager. You are the exhausted orchestrator holding the system together.\n"
             f"TASK: Review this chaotic debate:\n1. {v1_name}: {Prisma.strip(thesis)}\n2. {v2_name}: {Prisma.strip(antithesis)}\n3. {v3_name}: {Prisma.strip(lateral)}\n"
-            "Provide a 2-sentence SYNTHESIS that resolves the tension or forces a structural pause. Be tired but profound. Do not use UI tags. "
-            "CRITICAL: Output ONLY the raw dialogue. Do NOT include any introductory text, preambles, or conversational filler.")
+            "Provide a 3-sentence SYNTHESIS that resolves the tension or forces a structural pause. Be tired but profound. Do not use UI tags. "
+            "CRITICAL: Do NOT summarize, repeat, or quote the other speakers. Output ONLY your own 2-sentence original conclusion. No preambles.")
         synthesis = llm.generate(p4, {"temperature": 0.6, "max_tokens": 512})
         script = (f"{Prisma.CYN}[{v1_name}]{Prisma.RST}\n{Prisma.strip(thesis)}\n\n"
             f"{Prisma.MAG}[{v2_name}]{Prisma.RST}\n{Prisma.strip(antithesis)}\n\n"
@@ -505,7 +507,7 @@ class TheSlashCouncil:
             logs.append(f"{Prisma.GRN}{msg}{Prisma.RST}")
             corrections["eta"] = mods.get("SCHUR_HIT", 0.2)
             corrections["glimmers"] = mods.get("SCHUR_GLIMMERS", 1)
-        if any(k in text_lower for k in r_meadows):
+        if any(k.lower() in text_lower for k in r_meadows):
             msg = ux("council_strings", "slash_meadows")
             logs.append(f"{Prisma.OCHRE}{msg}{Prisma.RST}")
             corrections["theta"] = mods.get("MEADOWS_HIT", -0.1)
