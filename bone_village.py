@@ -17,8 +17,7 @@ def _hydrate_packet(p: Any) -> PhysicsPacket:
 
     def _get(k, default=None):
         if isinstance(p, dict):
-            return p.get(k, p.get("energy", {}).get(k, p.get("space", {}).get(k, p.get("matter", {}).get(k, default))))
-
+            return p.get(k, (p.get("energy") or {}).get(k, (p.get("space") or {}).get(k, (p.get("matter") or {}).get(k, default))))
         if hasattr(p, k): return getattr(p, k)
         if hasattr(p, "energy") and hasattr(p.energy, k): return getattr(p.energy, k)
         if hasattr(p, "space") and hasattr(p.space, k): return getattr(p.space, k)
@@ -330,8 +329,8 @@ class TheCartographer:
         random.seed(node_id)
         manifest = LoreManifest.get_instance()
         scenarios = manifest.get("SCENARIOS") or {}
-        prefixes = scenarios.get("PREFIXES", ["The", "Zone", "Sector"]) or {}
-        roots = scenarios.get("ROOTS", ["Construct", "Forge", "Garden"]) or {}
+        prefixes = scenarios.get("PREFIXES") or ["The", "Zone", "Sector"]
+        roots = scenarios.get("ROOTS") or ["Construct", "Forge", "Garden"]
         name = f"{random.choice(prefixes)} {random.choice(roots)}"
         target_cfg = config_ref or BoneConfig
         council_cfg = getattr(target_cfg, "COUNCIL", None)
@@ -592,7 +591,7 @@ class DeathGen:
             return "GLUTTONY"
         if drag > drag_halt:
             return "BOREDOM"
-        counts = safe_get(p, "counts", safe_get(safe_get(p, "matter", p), "counts", {}))
+        counts = safe_get(p, "counts", safe_get(safe_get(p, "matter", p), "counts", {})) or {}
         if counts.get("antigen", 0) > tox_crit:
             return "TOXICITY"
         return "STARVATION"

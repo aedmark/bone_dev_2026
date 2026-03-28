@@ -193,7 +193,7 @@ class TheAkashicRecord:
         for force, threshold_data in hazard_thresholds.items():
             if vector.get(force, 0) > threshold_data.get("threshold", 0.5):
                 hazards.append(threshold_data.get("hazard_name"))
-        desc_template = ux("akashic_strings", "artifact_desc")
+        desc_template = ux("akashic_strings", "artifact_desc") or "A coalesced artifact of {dominant_force}."
         cfg = getattr(BoneConfig, "AKASHIC", None)
         artifact_val = getattr(cfg, "ARTIFACT_VALUE", 50.0) if cfg else 50.0
         new_data = {"name": new_name, "description": desc_template.format(dominant_force=dominant_force),
@@ -257,7 +257,7 @@ class TheAkashicRecord:
         save_path = os.path.join(save_dir, state_file)
         if os.path.exists(save_path):
             try:
-                with open(save_path, "r") as f:
+                with open(save_path, "r", encoding="utf-8") as f:
                     data = json.load(f)
             except Exception as e:
                 msg = ux("akashic_strings", "state_load_failed")
@@ -328,7 +328,7 @@ class TheAkashicRecord:
             return
         roots = sorted([lens_a.replace("THE ", ""), lens_b.replace("THE ", "")])
         new_name = f"THE {roots[0]}-{roots[1]}"
-        existing_lenses = self.lore.get("NARRATIVE_DATA") or {}
+        existing_lenses = self.lore.get("LENSES") or {}
         if new_name in existing_lenses:
             return
 
@@ -355,7 +355,7 @@ class TheAkashicRecord:
 
     def _crystallize_recipe(self, ingredient, catalyst, result_item):
         self.known_recipes.add((ingredient, catalyst))
-        msg_template = ux("akashic_strings", "recipe_msg")
+        msg_template = ux("akashic_strings", "recipe_msg") or "Forged {result_item} from {ingredient}."
         new_recipe = {"ingredient": ingredient, "catalyst_category": catalyst, "result": result_item,
                       "msg": msg_template.format(ingredient=ingredient, catalyst=catalyst, result_item=result_item), }
         gordon_data = self.lore.get("GORDON") or {}

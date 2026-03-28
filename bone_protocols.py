@@ -34,13 +34,18 @@ class ZenGarden:
     def raking_the_sand(self, physics: Any, _bio: Dict) -> Tuple[float, Optional[str]]:
         vol = float(safe_get(physics, "voltage", 0.0))
         drag = float(safe_get(physics, "narrative_drag", 0.0))
-        is_stable = (self.cfg.ZEN.VOLTAGE_MIN <= vol <= self.cfg.ZEN.VOLTAGE_MAX) and (drag <= self.cfg.ZEN.DRAG_MAX)
+        cfg = getattr(self.cfg, "ZEN", None)
+        v_min = getattr(cfg, "VOLTAGE_MIN", 5.0) if cfg else 5.0
+        v_max = getattr(cfg, "VOLTAGE_MAX", 12.0) if cfg else 12.0
+        d_max = getattr(cfg, "DRAG_MAX", 2.0) if cfg else 2.0
+        is_stable = (v_min <= vol <= v_max) and (drag <= d_max)
         if is_stable:
             self.stillness_streak += 1
             if self.stillness_streak > self.max_streak:
                 self.max_streak = self.stillness_streak
-            efficiency_boost = min(self.cfg.ZEN.EFFICIENCY_CAP, self.stillness_streak * self.cfg.ZEN.EFFICIENCY_SCALAR, )
-            cfg = getattr(self.cfg, "ZEN", None)
+            eff_cap = getattr(cfg, "EFFICIENCY_CAP", 0.5) if cfg else 0.5
+            eff_scalar = getattr(cfg, "EFFICIENCY_SCALAR", 0.05) if cfg else 0.05
+            efficiency_boost = min(eff_cap, self.stillness_streak * eff_scalar)
             first_tick = getattr(cfg, "ZEN_FIRST_TICK", 1) if cfg else 1
             ms_freq = getattr(cfg, "ZEN_MILESTONE_FREQ", 5) if cfg else 5
             msg = None
@@ -53,7 +58,8 @@ class ZenGarden:
                 raw_streak = ux("protocol_strings", "zen_streak")
                 msg = f"{Prisma.CYN}{raw_streak.format(streak=self.stillness_streak, koan=koan, boost=int(efficiency_boost * 100))}{Prisma.RST}"
             return efficiency_boost, msg
-        if self.stillness_streak > self.cfg.ZEN.STREAK_BREAK_THRESHOLD:
+        break_thresh = getattr(cfg, "STREAK_BREAK_THRESHOLD", 3) if cfg else 3
+        if self.stillness_streak > break_thresh:
             break_msg = ux("protocol_strings", "zen_break")
             self.events.log(f"{Prisma.GRY}{break_msg}{Prisma.RST}", "SYS", )
         self.stillness_streak = 0
@@ -454,12 +460,13 @@ class TheCriticsCircle:
             self.last_review_turn = turn_count
             crit_cd = getattr(cfg, "CRITIC_COOLDOWN_TICKS", 50) if cfg else 50
             self.active_cooldowns[key] = turn_count + crit_cd
-            reviews = critic["reviews"].get(review_type, ["Hrm."])
+            reviews = critic.get("reviews", {}).get(review_type, ["Hrm."])
             comment = random.choice(reviews)
             color = Prisma.GRN if review_type == "high" else Prisma.RED
             icon = "🌟" if review_type == "high" else "💢"
-            rev_msg = ux("protocol_strings", "critic_review")
-            return f"{color}{rev_msg.format(icon=icon, name=critic['name'], comment=comment)}{Prisma.RST}"
+            rev_msg = ux("protocol_strings", "critic_review") or "[{icon}] {name}: {comment}"
+            c_name = critic.get("name", key)
+            return f"{color}{rev_msg.format(icon=icon, name=c_name, comment=comment)}{Prisma.RST}"
         return None
 
 class LimboLayer:
@@ -543,11 +550,13 @@ class TheFolly:
                     if val is not None: break
             return d if val is None else val
         voltage = float(_get(physics, "voltage", 0.0))
-        if (voltage > self.cfg.FOLLY.MAUSOLEUM_VOLTAGE
-                and stamina > self.cfg.FOLLY.MAUSOLEUM_STAMINA):
+        cfg = getattr(self.cfg, "FOLLY", None)
+        m_volt = getattr(cfg, "MAUSOLEUM_VOLTAGE", 80.0) if cfg else 80.0
+        m_stam = getattr(cfg, "MAUSOLEUM_STAMINA", 20.0) if cfg else 20.0
+        if voltage > m_volt and stamina > m_stam:
             msg1 = ux("protocol_strings", "folly_mausoleum")
             msg2 = ux("protocol_strings", "folly_dilation")
-            return "MAUSOLEUM_CLAMP", f"{Prisma.GRY}{msg1}{Prisma.RST}\n   {Prisma.CYN}{msg2}{Prisma.RST}", 0.0, None,
+            return "MAUSOLEUM_CLAMP", f"{Prisma.GRY}{msg1}{Prisma.RST}\n   {Prisma.CYN}{msg2}{Prisma.RST}", 0.0, None
         return None, None, 0.0, None
 
     def grind_the_machine(

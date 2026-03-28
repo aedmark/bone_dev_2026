@@ -109,11 +109,13 @@ class HumanityAnchor:
         if atp >= atp_min or volt >= volt_min:
             return 0.0
         if isinstance(physics, dict):
-            vector = physics.get("vector", physics.get("matter", {}).get("vector", {}))
-            counts = physics.get("counts", physics.get("matter", {}).get("counts", {}))
+            vector = physics.get("vector") or (physics.get("matter") or {}).get("vector") or {}
+            counts = physics.get("counts") or (physics.get("matter") or {}).get("counts") or {}
         else:
-            vector = getattr(physics, "vector", getattr(physics.matter, "vector", {}) if hasattr(physics, "matter") else {})
-            counts = getattr(physics, "counts", getattr(physics.matter, "counts", {}) if hasattr(physics, "matter") else {})
+            vector = getattr(physics, "vector", None) or (
+                getattr(physics.matter, "vector", {}) if hasattr(physics, "matter") else {}) or {}
+            counts = getattr(physics, "counts", None) or (
+                getattr(physics.matter, "counts", {}) if hasattr(physics, "matter") else {}) or {}
         dim_resonance = sum(vector.get(k, 0.0) for k in self._VECTOR_ANCHORS)
         lex_resonance = sum(counts.get(k, 0) for k in self._LEXICAL_ANCHORS)
         lex_mult = getattr(cfg, "AUDIT_LEXICAL_MULT", 0.5)
@@ -254,11 +256,14 @@ class NarrativeSelf:
         self.archetype = data.get("archetype", "THE OBSERVER")
         self.paradox_accum = data.get("paradox_accum", 0.0)
         self.chapters = data.get("chapters", [])
+        import dataclasses
         mem_data = data.get("core_memories", [])
         self.core_memories = []
+        valid_keys = {f.name for f in dataclasses.fields(CoreMemory)}
         for m in mem_data:
+            filtered_m = {k: v for k, v in m.items() if k in valid_keys}
             try:
-                self.core_memories.append(CoreMemory(**m))
+                self.core_memories.append(CoreMemory(**filtered_m))
             except TypeError:
                 continue
         obs_data = data.get("obsession", {})
@@ -481,7 +486,7 @@ class NarrativeSelf:
 
     def _seek_organic_focus(self, lex) -> Tuple[Optional[str], Optional[str]]:
         packet = self._safe_get_packet()
-        if not packet:
+        if not packet or not lex or not hasattr(lex, "measure_viscosity"):
             return None, None
         clean_words = safe_get(packet, "clean_words", safe_get(safe_get(packet, "matter"), "clean_words", []))
         if not clean_words:
@@ -510,7 +515,7 @@ class NarrativeSelf:
     def _synthesize_obsession(lex) -> Tuple[str, str, str]:
         negate_map = {"heavy": "aerobic", "kinetic": "heavy", "abstract": "meat"}
         target_cat, negate_cat = random.choice(list(negate_map.items()))
-        random_word = lex.get_random(target_cat)
+        random_word = lex.get_random(target_cat) if lex and hasattr(lex, "get_random") else None
         word = random_word.title() if random_word else target_cat.title()
         return word, target_cat, negate_cat
 
@@ -703,10 +708,11 @@ class TheOroboros:
                 safe_set(physics, "voltage", max(0, curr_volt - v_penalty))
                 msg = ux("soul_strings", "scar_voltage")
                 log.append(msg.format(name=scar.name))
-            elif scar.stat_affected == "trauma_baseline":
-                trauma_vec = safe_get(bio, "trauma_vector", {})
+                elif scar.stat_affected == "trauma_baseline":
+                trauma_vec = safe_get(bio, "trauma_vector") or {}
                 curr_existential = safe_get(trauma_vec, "EXISTENTIAL", 0.0)
                 safe_set(trauma_vec, "EXISTENTIAL", curr_existential + scar.value)
+                safe_set(bio, "trauma_vector", trauma_vec)
                 curr_t = safe_get(physics, "T", 0.0)
                 safe_set(physics, "T", curr_t + scar.value)
                 msg = ux("soul_strings", "scar_frailty")

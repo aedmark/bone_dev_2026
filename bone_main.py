@@ -58,7 +58,7 @@ class SessionGuardian:
     def __enter__(self):
         subprocess.run("cls" if os.name == "nt" else "clear", shell=True)
         top_bar = ux("main_strings", "term_header_top", "┌──────────────────────────────────────────┐")
-        mid_bar = ux("main_strings", "term_header_mid", "│ BONEAMANITA TERMINAL // VERSION 18.1.0   │")
+        mid_bar = ux("main_strings", "term_header_mid", "│ BONEAMANITA TERMINAL // VERSION 18.2.0   │")
         bot_bar = ux("main_strings", "term_header_bot", "└──────────────────────────────────────────┘")
         print(f"{Prisma.paint(top_bar, 'M')}")
         print(f"{Prisma.paint(mid_bar, 'M')}")
@@ -69,7 +69,7 @@ class SessionGuardian:
         for log in boot_logs:
             print(f"{Prisma.GRY}   >>> {log['text']}{Prisma.RST}")
             time.sleep(boot_delay)
-        init_msg = ux("main_strings", "init_hash")
+        init_msg = ux("main_strings", "init_hash") or "Kernel initialized. [HASH: {hash}]"
         typewriter(f"{Prisma.GRY}{init_msg.format(hash=self.engine_instance.kernel_hash)}{Prisma.RST}")
         sys_msg = ux("main_strings", "sys_listening")
         typewriter(f"{Prisma.paint(sys_msg, 'G')}")
@@ -390,8 +390,8 @@ class BoneAmanita:
             if any(p in clean_in for p in destructive_patterns):
                 msg = "[MOOG & RHODES]: Trust Boundary Violation detected. I am applying absolute friction (F -> ∞). The thread is frozen."
                 self.events.log(msg, "CRIT")
-                if getattr(self, "cortex", None) and hasattr(self.cortex, "last_physics") and self.cortex.last_physics:
-                    self.cortex.last_physics.narrative_drag = float('inf')
+                if getattr(self, "cortex", None) and getattr(self.cortex, "last_physics", None):
+                    safe_set(self.cortex.last_physics, "narrative_drag", 999.0)
                 return {"type": "SYSTEM_HALT", "ui": f"\n{Prisma.RED}{msg}{Prisma.RST}", "logs": [msg], "metrics": self.get_metrics()}
         if not is_system and "[GRIEF]" in user_message.upper():
             if hasattr(self, "grief") and self.grief:
@@ -631,7 +631,7 @@ class BoneAmanita:
         scenarios = LoreManifest.get_instance().get("SCENARIOS", {})
         archetypes = scenarios.get("ARCHETYPES", ["A quiet room", "The edge of a forest", "A terminal screen"])
         seed = random.choice(archetypes)
-        msg_seed = ux("main_strings", "seed_loaded")
+        msg_seed = ux("main_strings", "seed_loaded") or "Manifest Seed: {seed}"
         print(f"{Prisma.CYN}{msg_seed.format(seed=seed)}{Prisma.RST}")
         boot_prompt = f"SYSTEM_BOOT DETECTED. The system is waking up. The user provided the thought seed: '{seed}'. Greet the user casually using this seed. DO NOT describe physical environments."
         cold_result = self.process_turn(boot_prompt, is_system=True)

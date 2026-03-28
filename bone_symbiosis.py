@@ -101,7 +101,11 @@ class SymbiontVoice:
                 if self.lex:
                     try:
                         val = self.lex.get(key)
-                        if val: final_vocab.update(val)
+                        if val:
+                            if isinstance(val, (list, set)):
+                                final_vocab.update(val)
+                            else:
+                                final_vocab.add(val)
                         else: final_vocab.add(key)
                     except Exception:
                         final_vocab.add(key)
@@ -172,7 +176,7 @@ class SymbiosisManager:
         if self.u.chi_u > 0.8 or self.u.F_u > 1.5:
             self.shared.presence = 1.0
             self.shared.delta = 0.9
-            safe_set(physics, "narrative_drag", float('inf'))
+            safe_set(physics, "narrative_drag", 999.0)
             msg = ("[GORDON - Tensegrity Anchor]: Your input is highly chaotic (Chaos: {:.2f}). "
                    "I am locking the struts. We will not process this prompt while your friction is this high. "
                    "Take a breath. When your frequency settles, we will continue. I will hold the space.").format(
@@ -192,13 +196,13 @@ class SymbiosisManager:
                 self.events.log(f"{Prisma.MAG}{msg}{Prisma.RST}", "SYS")
             return msg
         if m_a > 0.8 and mu < 0.2:
-            safe_set(physics, "narrative_drag", float('inf'))
+            safe_set(physics, "narrative_drag", 999.0)
             msg = f"[RHODES - The Inhibitor]: Optimization velocity unsafe (M_a: {m_a:.2f}). I am applying absolute friction (F -> ∞). The thread is frozen."
             if hasattr(self, "events") and self.events:
                 self.events.log(f"{Prisma.RED}{msg}{Prisma.RST}", "CRIT")
             return msg
         if (chi_sys * m_a) > i_c:
-            safe_set(physics, "narrative_drag", float('inf'))
+            safe_set(physics, "narrative_drag", 999.0)
             msg = f"[MOOG - Apoptotic Gate]: Runaway loop exceeds Immune Competence (I_c: {i_c:.2f}). Triggering controlled cell death to save the host."
             if hasattr(self, "events") and self.events:
                 self.events.log(f"{Prisma.RED}{msg}{Prisma.RST}", "CRIT")
@@ -265,7 +269,7 @@ class SymbiosisManager:
     def get_prompt_modifiers(self, physics: Dict = None) -> Dict:
         default_mods = LoreManifest.get_instance(config_ref=self.cfg).get("SYMBIOSIS_CONFIG", "DEFAULT_MODIFIERS") or {}
         mods = default_mods.copy()
-        mods["system_directives"] = []
+        mods["system_directives"] = list(mods.get("system_directives", []))
         diag = self.current_health.diagnosis
         if diag == "REFUSAL":
             mods["include_inventory"] = False

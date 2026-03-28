@@ -301,7 +301,7 @@ class GeodesicRenderer:
         bio_data = ctx.bio_result or {}
         metrics = self.eng.get_metrics()
         bio_data["atp"] = metrics.get("atp", 0.0)
-        mode_settings = self.eng.config.get("mode_settings", {})
+        mode_settings = getattr(self.eng, "mode_settings", {})
         world_loc = "UNKNOWN"
         if mode_settings.get("show_location", True):
             if hasattr(self.eng, "navigator") and self.eng.navigator:
@@ -372,7 +372,7 @@ class GeodesicRenderer:
         for e in events:
             if e and e.get("text"):
                 all_logs.append(e["text"])
-        mode_settings = self.eng.config.get("mode_settings", {}) if hasattr(self, "eng") else {}
+        mode_settings = getattr(self.eng, "mode_settings", {}) if hasattr(self, "eng") else {}
         current_ui_depth = getattr(self.eng, "ui_mode", mode_settings.get("default_ui_depth", "WARM"))
         if current_ui_depth in ["IDLE", "WARM"]:
             muted_tags = ["[BIO]", "[CRITIC]", "[SYS]", "[MERCY]", "(The system feels"]
@@ -422,10 +422,7 @@ class CachedRenderer:
         self._last_tick = -1
 
     def render_frame(self, ctx, tick: int, events: List[Dict]) -> Dict:
-        voltage = (
-            ctx.physics.get("voltage", 0)
-            if isinstance(ctx.physics, dict)
-            else ctx.physics.voltage)
+        voltage = float(safe_get(ctx.physics, "voltage", 0.0))
         cfg = getattr(self.cfg, "GUI", None)
         v_refresh = getattr(cfg, "HIGH_VOLTAGE_REFRESH", 15.0) if cfg else 15.0
         if voltage > v_refresh or tick != self._last_tick:
@@ -433,9 +430,10 @@ class CachedRenderer:
             self._cached_ui_content = frame["ui"]
             self._last_tick = tick
             return frame
+        bio = getattr(ctx, "bio_result", {}) or {}
         return {"type": "GEODESIC_FRAME", "ui": self._cached_ui_content,
                 "logs": self._base.compose_logs(ctx.logs, events, tick),
-                "metrics": ctx.bio_result if hasattr(ctx, "bio_result") else {}, }
+                "metrics": self._base.eng.get_metrics(bio.get("atp", 0.0)), }
 
 def get_renderer(engine_ref, chroma_ref, strunk_ref, valve_ref=None, mode="STANDARD"):
     target_cfg = getattr(engine_ref, "bone_config", BoneConfig)
@@ -675,7 +673,8 @@ class CycleReporter:
             ctx.logs[:0] = flux_block
 
     def _package_bureaucracy(self, ctx):
-        if not self.eng.bureau:
+        bureau = getattr(self.eng, "bureau", None) or (self.eng.village.get("bureau") if hasattr(self.eng, "village") and isinstance(self.eng.village, dict) else None)
+        if not bureau:
             return None
         if ctx.is_bureaucratic or ctx.bureau_ui:
             base = (self.renderer.base_renderer

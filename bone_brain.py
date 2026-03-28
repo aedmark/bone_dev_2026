@@ -351,9 +351,9 @@ class TheCortex:
                         eng = self.svc.cycle_controller.eng
                         obs_packet = getattr(getattr(getattr(eng, "phys", None), "observer", None), "last_physics_packet", None)
                         if obs_packet:
-                            safe_set(obs_packet, "narrative_drag", float('inf'))
+                            safe_set(obs_packet, "narrative_drag", 999.0)
                     if self.last_physics:
-                        safe_set(self.last_physics, "narrative_drag", float('inf'))
+                        safe_set(self.last_physics, "narrative_drag", 999.0)
                     break
                 if self.svc.bio:
                     self.svc.bio.mito.adjust_atp(-5.0, "Immune System Rejection Penalty")
@@ -538,8 +538,9 @@ class TheCortex:
         phys = sim_result.get("physics", {})
         bio = sim_result.get("bio", {})
         if bio:
-            safe_set(phys, "p", safe_get(safe_get(bio, "mito"), "atp_pool", 100.0))
-            safe_set(phys, "ros", safe_get(safe_get(bio, "mito"), "ros_buildup", 0.0))
+            mito_state = safe_get(safe_get(bio, "mito"), "state") or {}
+            safe_set(phys, "p", safe_get(mito_state, "atp_pool", 100.0))
+            safe_set(phys, "ros", safe_get(mito_state, "ros_buildup", 0.0))
             safe_set(phys, "h", safe_get(safe_get(bio, "biometrics"), "health", 100.0))
             safe_set(phys, "stamina", safe_get(phys, "p"))
         mind = sim_result.get("mind", {})
@@ -688,7 +689,7 @@ class DreamEngine:
                 current_state_str = f"Archetype: {soul_snapshot.get('archetype', 'UNKNOWN')}"
                 new_axiom = self.dspy_critic.evolve_prompt(current_state_str, trauma)
                 if new_axiom:
-                    active_mode = self.eng.boot_mode if hasattr(self.eng, "boot_mode") else "CONVERSATION"
+                    active_mode = self.eng.config.get("boot_mode", "CONVERSATION").upper() if hasattr(self.eng, "config") else "CONVERSATION"
                     try:
                         disk_prompts = getattr(self.eng, "prompt_library", {})
                         if not disk_prompts:

@@ -69,8 +69,8 @@ class GordonKnot:
         for action, required_objects in self.action_coupling.items():
             verb_pattern = rf"\b(?:i\s+(?:will\s+)?{action}|to\s+{action}|{action}\s+(?:the|a|an|my|some|it|this|that)|{action}ing)\b|^{action}\b"
             if re.search(verb_pattern, text):
-                has_item = any(obj in inventory_items for obj in required_objects)
-                mentions_item = any(obj in text for obj in required_objects)
+                has_item = any(re.search(rf"\b{re.escape(obj)}\b", inventory_items) for obj in required_objects)
+                mentions_item = any(re.search(rf"\b{re.escape(obj)}\b", text) for obj in required_objects)
                 if not has_item and not mentions_item:
                     req_str = ", ".join(required_objects)
                     msg = ux("gordon_strings", "premise_req")
@@ -80,7 +80,7 @@ class GordonKnot:
             all_known = set(self.registry.keys()) | set(self.ITEM_REGISTRY.keys())
             for item_name in all_known:
                 item_lower = item_name.lower().replace("_", " ")
-                if item_lower in text and item_name.upper() not in self.inventory:
+                if re.search(rf"\b{re.escape(item_lower)}\b", text) and item_name.upper() not in self.inventory:
                     msg = ux("gordon_strings", "premise_inv")
                     return f"{Prisma.SLATE}{msg.format(item=item_lower)}{Prisma.RST}"
         return None
@@ -280,7 +280,7 @@ class GordonKnot:
             if self.mode == "ADVENTURE"
             else f"{prefix} {base} {suffix}")
         clean_id = full_name.upper().replace(" ", "_")
-        desc_template = ux("gordon_strings", "synthesis_desc")
+        desc_template = ux("gordon_strings", "synthesis_desc") or "A {base} forged of {archetype} energy."
         item_data = {"description": desc_template.format(base=base.lower(), archetype=archetype),
                      "function": "ARTIFACT", "passive_traits": ["DYNAMIC"],
                      "value": round(physics_vector.get(dom_dim, 0.0) * 10, 1), "spawn_context": "FORGED", }
@@ -300,8 +300,11 @@ class GordonKnot:
             if t in combined_text:
                 for name in all_known_items:
                     clean_name = name.lower().replace("_", " ")
+                    if clean_name not in combined_text:
+                        continue
                     if name.upper() not in self.inventory:
-                        if re.search(rf"\b{re.escape(t)}\b.*?\b{re.escape(clean_name)}\b", combined_text, re.IGNORECASE):
+                        if re.search(rf"\b{re.escape(t)}\b.*?\b{re.escape(clean_name)}\b", combined_text,
+                                     re.IGNORECASE):
                             return name
         return None
 

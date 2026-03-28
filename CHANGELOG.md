@@ -1,5 +1,35 @@
 # BONEAMANITA CHANGELOG
 
+### **BONEAMANITA v18.2.0 "The Silent Killer Purge"**
+
+_A comprehensive, codebase-wide surgical audit prioritizing the eradication of silent logic failures, unhandled type-casting explosions, and deep mathematical detachments. This update hardens the Hypervisor against JSON corruption, secures the boundary between object and dictionary states, and ensures the biological systems accurately perceive the physical lattice._
+
+#### **🛡️ SYSTEMIC CRASH & INFINITY BOMB PREVENTION (`bone_symbiosis.py`, `bone_brain.py`, `bone_main.py`)**
+
+- **The Infinity Purge:** Intercepted and clamped `float('inf')` assignments used during security lockdowns (The Runaway Ramp). Absolute friction is now mathematically capped at `999.0` to prevent catastrophic `OverflowError` cascades and un-serializable JSON save-state corruption.
+- **Dictionary/Object Schism Sealed:** Fixed critical blindness in the `MetabolicGovernor`, `SomaticLoop`, and `GatekeeperPhase` where biological systems were using `getattr()` on raw JSON dictionaries. The body can now successfully "feel" voltage and drag during cached states and headless boots.
+- **FAISS Memory Alignment (`bone_ann.py`):** Wrapped incoming index arrays in `np.ascontiguousarray` and enforced strict dimension-matching. The C++ FAISS backend will no longer hard-crash the Python process when fed malformed thought vectors.
+
+#### **🧠 COGNITIVE & METABOLIC LOGIC REPAIRS (`bone_lexicon.py`, `bone_genesis.py`, `bone_ann.py`)**
+
+- **First-Turn Amnesia Cured:** Fixed the `SemanticField` momentum blender. The engine no longer accidentally reduces the user's opening prompt to a 0.4 weight, ensuring 100% semantic capture on the first turn.
+- **The Deaf Consultant:** Properly injected the Lexicon reference down through the `BoneGenesis` bootloader. `BoneConsultant` can now successfully "hear" liminal vocabulary and dark matter sparks to trigger VSL overlays.
+- **Metabolic Overdraft:** The REM `MemoryConsolidator` now strictly calculates its maximum affordable transfers based on available ATP. It will no longer plunge the host into massive metabolic debt if the Hippocampus overfills.
+
+#### **🕸️ LATTICE & EPIGENETIC REINFORCEMENTS (`bone_akashic.py`, `bone_spores.py`, `bone_brain.py`)**
+
+- **Schizophrenic Epigenetics Fixed:** When the DSPy Critic formulates a new trauma-survival axiom, the mutation is now correctly routed and saved to the _active_ game mode (Adventure/Technical) rather than blindly defaulting to Conversation mode.
+- **Matrix Detachment Reconnected:** Fixed an orphaned local variable in `SubconsciousStrata.bury()`. Householder reflections are now properly assigned back to the `M_t` matrix, allowing the subconscious to actually learn and accumulate mass over time.
+- **Zero-Weight Hybrids:** Re-routed Lens hybridization to pull parent archetypes from the correct `"LENSES"` dictionary, ensuring that dynamically generated Gestalt personalities spawn with active physical drag and voltage weights instead of dead zeros.
+
+#### **⚙️ PARSERS & I/O HARDENING (`bone_inventory.py`, `bone_composer.py`, `bone_protocols.py`)**
+
+- **The Scunthorpe Bypass:** Hardened Gordon's object-action coupling parser. It now enforces strict regex word boundaries (`\b`), preventing users from cheating puzzles via substring matches (e.g., using a "MONKEY WRENCH" to bypass a lock requiring a "KEY").
+- **O(N\*T) Regex Bottleneck:** Inserted fast-fail native string checks ahead of implicit loot compiling, drastically reducing the CPU cycles burned by the inventory manager on every turn.
+- **UI String & Format Traps:** Purged dozens of fatal `AttributeError` and `KeyError` traps across the engine. Missing JSON strings will no longer swallow crash traces, and curly braces `{}` inside prompt style-guides will no longer crash the `PromptComposer`.
+
+---
+
 ### **BONEAMANITA v18.1.0 "The Frictionless Lattice"**
 
 *A deep-tissue architectural optimization pass executed by the SLASH Council. This update surgically removes inline imports, repetitive regex compilations, dynamic metaclass generation, and $O(N^2)$ list traversals, drastically dropping the baseline ATP burn (compute latency) across the entire engine.*

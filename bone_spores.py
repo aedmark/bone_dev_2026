@@ -218,9 +218,11 @@ class SubconsciousStrata:
             K = _word_to_vector(word)
             V = _word_to_vector(word + "_val")
             scale = min(1.0, mass / 10.0)
+            new_M = [[0.0] * 8 for _ in range(8)]
             for i in range(8):
                 for j in range(8):
-                    self.M_t[i][j] += (K[i] * V[j]) * scale
+                    new_M[i][j] = self.M_t[i][j] + (K[i] * V[j]) * scale
+            self.M_t = new_M
             H = _householder(K)
             self.Q_n = _mat_mul(H, self.Q_n)
             self.Q_n = _reorthogonalize(self.Q_n)
@@ -525,13 +527,15 @@ class MycelialNetwork:
                 total_v_shift += v_shift
                 total_d_shift += d_shift
                 haunted_words.append(w)
-        total_v_shift = min(15.0, total_v_shift)
-        total_d_shift = min(5.0, total_d_shift)
+        total_v_shift = max(-15.0, min(15.0, total_v_shift))
+        total_d_shift = max(-5.0, min(5.0, total_d_shift))
         if haunted_words:
-            v_targ = safe_get(physics, "energy", physics)
-            d_targ = safe_get(physics, "space", physics)
-            safe_set(v_targ, "voltage", max(0.0, safe_get(v_targ, "voltage", safe_get(physics, "voltage", 0.0)) + total_v_shift))
-            safe_set(d_targ, "narrative_drag", max(0.0, safe_get(d_targ, "narrative_drag", safe_get(physics, "narrative_drag", 0.0)) + total_d_shift))
+            v_targ = safe_get(physics, "energy") or physics
+            d_targ = safe_get(physics, "space") or physics
+            curr_v = float(safe_get(v_targ, "voltage", safe_get(physics, "voltage", 0.0)))
+            curr_d = float(safe_get(d_targ, "narrative_drag", safe_get(physics, "narrative_drag", 0.0)))
+            safe_set(v_targ, "voltage", max(0.0, curr_v + total_v_shift))
+            safe_set(d_targ, "narrative_drag", max(0.0, curr_d + total_d_shift))
             msg = ux("spore_strings", "net_ghost_haunt") or "The ghosts of [{words}] alter the atmosphere (V:{v:+.2f}, D:{d:+.2f})."
             return f"{Prisma.VIOLET}{msg.format(words=', '.join(haunted_words).upper(), v=total_v_shift, d=total_d_shift)}{Prisma.RST}"
         return None
@@ -792,7 +796,7 @@ class MycelialNetwork:
                      for s in self.seeds
                      if not s.bloomed]
         seed_list.append({"q": future_seed_q, "m": 0.0, "b": False})
-        data = {"genome": "BONEAMANITA_18.1.0", "session_id": self.session_id, "parent_id": self.session_id, "meta": {
+        data = {"genome": "BONEAMANITA_18.2.0", "session_id": self.session_id, "parent_id": self.session_id, "meta": {
             "timestamp": time.time(), "final_health": health, "final_stamina": stamina, },
                 "trauma_vector": final_vector, "joy_vectors": top_joy or [], "joy_legacy": joy_legacy_data,
                 "core_graph": core_graph, "mutations": mutations or {},
@@ -823,7 +827,7 @@ class MycelialNetwork:
         current_time = time.time()
         for i, (path, age, fname) in enumerate(files):
             file_age = current_time - age
-            if i >= max_files or file_age > max_age:
+            if i >= max_files and file_age > max_age:
                 try:
                     if limbo_layer:
                         limbo_layer.absorb_dead_timeline(path)

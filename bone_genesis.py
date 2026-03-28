@@ -34,7 +34,7 @@ class BoneGenesis:
         mode_settings = config.get("mode_settings", {})
         suppressed = set(mode_settings.get("village_suppression", []))
         boot_mode = config.get("boot_mode", "ADVENTURE")
-        village_bundle = BoneGenesis._summon_village(events, embryo, akashic, suppressed, boot_mode, target_cfg)
+        village_bundle = BoneGenesis._summon_village(events, embryo, akashic, suppressed, boot_mode, target_cfg, lexicon_ref)
         soul = NarrativeSelf(engine_ref=None, events_ref=events, memory_ref=embryo.mind.mem, akashic_ref=akashic, config_ref=target_cfg)
         if embryo.soul_legacy:
             soul.load_from_dict(embryo.soul_legacy)
@@ -51,9 +51,10 @@ class BoneGenesis:
             safe_bio_proxy = {"trauma_vector": trauma_proxy}
             logs = oroboros.apply_legacy(dummy_phys, safe_bio_proxy)
             if logs:
-                msg_scars = ux("genesis_strings", "legacy_scars")
+                msg_scars = ux("genesis_strings", "legacy_scars") or "Legacy scars applied: {logs}"
                 events.log(msg_scars.format(logs=", ".join(logs)), "OROBOROS")
-                applied_drag = dummy_phys.get("narrative_drag", 0.0)
+                applied_drag = dummy_phys.get("narrative_drag", 0.0) - dummy_d
+                volt_penalty = dummy_v - dummy_phys.get("voltage", dummy_v)
                 if getattr(embryo.physics, "dynamics", None):
                     if hasattr(embryo.physics.dynamics, "base_drag"):
                         embryo.physics.dynamics.base_drag += applied_drag
@@ -62,6 +63,9 @@ class BoneGenesis:
                 else:
                     curr_drag = float(safe_get(embryo.physics, "narrative_drag", 0.0))
                     safe_set(embryo.physics, "narrative_drag", curr_drag + applied_drag)
+                if volt_penalty > 0:
+                    curr_volt = float(safe_get(embryo.physics, "voltage", 0.0))
+                    safe_set(embryo.physics, "voltage", max(0.0, curr_volt - volt_penalty))
                 if hasattr(embryo.mind, "mem"):
                     embryo.mind.mem.session_trauma_vector = safe_bio_proxy.get("trauma_vector", {})
         drivers = DriverRegistry(events, config_ref=target_cfg)
@@ -71,7 +75,7 @@ class BoneGenesis:
 
     @staticmethod
     def _summon_village(
-            events, embryo, akashic, suppressed: Set[str], boot_mode: str = "ADVENTURE", config_ref=None) -> Dict[
+            events, embryo, akashic, suppressed: Set[str], boot_mode: str = "ADVENTURE", config_ref=None, lexicon_ref=None) -> Dict[
         str, Any]:
         gordon = (GordonKnot(events=events, mode=boot_mode, config_ref=config_ref)
                   if "GORDON" not in suppressed
@@ -95,7 +99,7 @@ class BoneGenesis:
         therapy = TherapyProtocol(config_ref=config_ref)
         limbo = LimboLayer(config_ref=config_ref)
         kintsugi = KintsugiProtocol(config_ref=config_ref)
-        consultant = BoneConsultant()
+        consultant = BoneConsultant(config_ref=config_ref, lexicon_ref=lexicon_ref)
         therapist = TheTherapist(events, config_ref=config_ref) if "THERAPIST" not in suppressed else None
         gravedigger = TheGraveDigger(gordon, events, config_ref=config_ref) if "GRAVEDIGGER" not in suppressed else None
         return {"gordon": gordon, "navigator": navigator, "tinkerer": tinkerer, "death_gen": death_gen,

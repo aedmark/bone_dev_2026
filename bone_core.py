@@ -6,10 +6,10 @@ import os
 import random
 import time
 import traceback
-from collections import deque
+from collections import deque, Counter
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
-from typing import List, Dict, Any, Optional, Counter, Tuple, Deque
+from typing import List, Dict, Any, Optional, Tuple, Deque
 
 from bone_presets import BoneConfig
 from bone_types import Prisma, RealityLayer, ErrorLog, DecisionTrace, DecisionCrystal
@@ -107,10 +107,11 @@ class LoreManifest:
         return cls._instance
 
     def get(self, category: str, sub_key: str = None) -> Any:
-        if category not in self._cache:
-            data = self._load_from_disk(category)
-            self._cache[category] = data if data is not None else {}
-        data = self._cache[category]
+        cat_key = category.lower()
+        if cat_key not in self._cache:
+            data = self._load_from_disk(cat_key)
+            self._cache[cat_key] = data if data is not None else {}
+        data = self._cache[cat_key]
         if sub_key and isinstance(data, dict):
             return data.get(sub_key)
         return data
@@ -136,20 +137,22 @@ class LoreManifest:
             return None
 
     def inject(self, category: str, data: Any):
-        if category not in self._cache:
-            self._cache[category] = {}
-        if isinstance(self._cache[category], dict) and isinstance(data, dict):
-            self._cache[category].update(data)
+        cat_key = category.lower()
+        if cat_key not in self._cache:
+            self._cache[cat_key] = {}
+        if isinstance(self._cache[cat_key], dict) and isinstance(data, dict):
+            self._cache[cat_key].update(data)
         else:
-            self._cache[category] = data
+            self._cache[cat_key] = data
 
     def flush_cache(self, category: str = None):
         if category:
-            if category in self._cache:
-                del self._cache[category]
-                print(f"{Prisma.CYN}[LORE]: Flushed '{category}'.{Prisma.RST}")
+            cat_key = category.lower()
+            if cat_key in self._cache:
+                del self._cache[cat_key]
+                print(f"{Prisma.CYN}[LORE]: Flushed '{cat_key}'.{Prisma.RST}")
             else:
-                print(f"{Prisma.GRY}[LORE]: Category '{category}' not in cache.{Prisma.RST}")
+                print(f"{Prisma.GRY}[LORE]: Category '{cat_key}' not in cache.{Prisma.RST}")
         else:
             self._cache = {}
             print(f"{Prisma.CYN}[LORE]: Flushed Lore cache.{Prisma.RST}")

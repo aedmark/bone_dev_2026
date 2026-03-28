@@ -404,12 +404,10 @@ class CommandProcessor:
             self.interface.log("Usage: /hud [warm|lite|core|deep]")
             return True
         mode = parts[1].upper()
-        hud_configs = {
-            "WARM": f"{self.P.GRY}[SYSTEM] The veil falls. HUD muted.{self.P.RST}",
-            "LITE": f"{self.P.CYN}[SYSTEM] LITE HUD engaged.{self.P.RST}",
-            "CORE": f"{self.P.CYN}[SYSTEM] CORE HUD engaged.{self.P.RST}",
-            "DEEP": f"{self.P.VIOLET}[SYSTEM] DEEP HUD engaged. Full lattice visible.{self.P.RST}"
-        }
+        hud_configs = {"WARM": f"{self.P.GRY}[SYSTEM] The veil falls. HUD muted.{self.P.RST}",
+                       "LITE": f"{self.P.CYN}[SYSTEM] LITE HUD engaged.{self.P.RST}",
+                       "CORE": f"{self.P.CYN}[SYSTEM] CORE HUD engaged.{self.P.RST}",
+                       "DEEP": f"{self.P.VIOLET}[SYSTEM] DEEP HUD engaged. Full lattice visible.{self.P.RST}"}
         if mode in hud_configs:
             self.interface.eng.mode_settings["default_ui_depth"] = mode
             if mode != "WARM":

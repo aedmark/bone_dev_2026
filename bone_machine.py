@@ -58,6 +58,9 @@ class TheCrucible:
         return False, self.logs.get("HOLDING", ""), 0.0
 
     def audit_fire(self, physics: Any) -> Tuple[str, float, Optional[str]]:
+        current_drag = float(safe_get(physics, "narrative_drag", 0.0))
+        if math.isinf(current_drag) or current_drag > 900.0:
+            return "LOCKED", 0.0, self.logs.get("HOLDING", "")
         voltage = float(safe_get(physics, "voltage", 0.0))
         structure = float(safe_get(physics, "kappa", 0.0))
         ideal_voltage = structure * 20.0
@@ -65,14 +68,10 @@ class TheCrucible:
         self.instability_index = (self.instability_index * 0.7) + (delta * 0.3)
         if abs(self.instability_index) < 0.1:
             self.instability_index = 0.0
-        current_drag = float(safe_get(physics, "narrative_drag", 0.0))
         adjustment = self.instability_index * 0.5
         if current_drag < 1.0 and adjustment < 0:
             adjustment *= 0.1
-        if math.isinf(current_drag):
-            final_drag = current_drag
-        else:
-            final_drag = round(max(0.0, min(10.0, current_drag + adjustment)), 2)
+        final_drag = round(max(0.0, min(10.0, current_drag + adjustment)), 2)
         safe_set(physics, "narrative_drag", final_drag)
         msg = None
         if abs(adjustment) > 0.1:
@@ -172,8 +171,9 @@ class TheForge:
         for item in inventory_list:
             if item in self.recipe_map:
                 for recipe in self.recipe_map[item]:
-                    cat_words = self.lex.get(recipe["catalyst_category"]) if self.lex else LexiconService().get(
+                    raw_cat_words = self.lex.get(recipe["catalyst_category"]) if self.lex else LexiconService().get(
                         recipe["catalyst_category"])
+                    cat_words = set(raw_cat_words) if raw_cat_words else set()
                     if not cat_words or clean_set.isdisjoint(cat_words):
                         continue
                     hits = len(clean_set.intersection(cat_words))
@@ -452,9 +452,12 @@ class BoneArchitect:
         embryo.soul_legacy = {}
         embryo.continuity = None
         recovered_atlas = {}
-        if isinstance(load_result, (list, tuple)) and load_result:
-            padded_result = list(load_result) + [None] * (5 - len(load_result))
+        if isinstance(load_result, (list, tuple)):
+            padded_result = list(load_result) + [None] * max(0, 5 - len(load_result))
             mito_legacy, immune_legacy, soul_legacy, continuity, atlas = padded_result[:5]
+        else:
+            mito_legacy, immune_legacy, soul_legacy, continuity, atlas = None, None, None, None, None
+        if True:
             if mito_legacy and hasattr(embryo.bio.mito, "apply_inheritance"):
                 embryo.bio.mito.apply_inheritance(mito_legacy)
             if immune_legacy and isinstance(immune_legacy, (list, set)):

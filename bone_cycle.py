@@ -228,7 +228,7 @@ class MaintenancePhase(SimulationPhase):
                 "meta": {"final_health": self.eng.health},}
             status, advice = self.eng.town_hall.diagnose_condition(session_data=session_snapshot, _host_health=self.eng.bio.biometrics if self.eng.bio else None, soul=self.eng.soul, )
             if status != "BALANCED":
-                msg = ux("cycle_strings", "town_hall_vitals")
+                msg = ux("cycle_strings", "town_hall_vitals") or "[TOWN HALL] {status}: {advice}"
                 ctx.log(f"{Prisma.OCHRE}{msg.format(status=status, advice=advice)}{Prisma.RST}")
         if self.eng.mind and hasattr(self.eng.mind, "mem"):
             if hasattr(self.eng.mind.mem, "run_ecosystem"):
@@ -275,7 +275,7 @@ class GatekeeperPhase(SimulationPhase):
             return ctx
         if self.eng.bureau:
             current_bio = self.eng.get_metrics()
-            audit_result = self.eng.bureau.audit(ctx.physics.to_dict(), current_bio, origin="USER")
+            audit_result = self.eng.bureau.audit(_safe_dict(ctx.physics), current_bio, origin="USER")
             if audit_result:
                 if audit_result.get("block", False):
                     ctx.refusal_triggered = True
@@ -1093,10 +1093,9 @@ class PhaseExecutor:
     def _audit_flux(ctx, phase, before, after):
         def _safe_get(obj, key):
             try:
-                if isinstance(obj, dict):
-                    return obj.get(key, 0.0)
-                return getattr(obj, key, 0.0)
-            except Exception:
+                val = obj.get(key) if isinstance(obj, dict) else getattr(obj, key, 0.0)
+                return float(val) if val is not None else 0.0
+            except (TypeError, ValueError, AttributeError):
                 return 0.0
         b_v = _safe_get(before, "voltage")
         a_v = _safe_get(after, "voltage")
@@ -1115,13 +1114,10 @@ class CycleSimulator:
         self.stabilizer = CycleStabilizer(self.eng.events, self.shared_governor, config_ref=target_cfg)
         self.executor = PhaseExecutor()
         self.full_pipeline: List[SimulationPhase] = [ObservationPhase(engine_ref), MaintenancePhase(engine_ref),
-                                                     SensationPhase(engine_ref), GatekeeperPhase(engine_ref),
-                                                     SanctuaryPhase(engine_ref, self.shared_governor),
-                                                     MetabolismPhase(engine_ref), NavigationPhase(engine_ref),
-                                                     MachineryPhase(engine_ref), RealityFilterPhase(engine_ref),
-                                                     IntrusionPhase(engine_ref), SoulPhase(engine_ref),
-                                                     ArbitrationPhase(engine_ref), SimulationPreflightPhase(engine_ref),
-                                                     CognitionPhase(engine_ref), StabilizationPhase(engine_ref, self.stabilizer), ]
+            SensationPhase(engine_ref), GatekeeperPhase(engine_ref), SanctuaryPhase(engine_ref, self.shared_governor),
+            MetabolismPhase(engine_ref), NavigationPhase(engine_ref), MachineryPhase(engine_ref), RealityFilterPhase(engine_ref),
+            IntrusionPhase(engine_ref), SoulPhase(engine_ref), ArbitrationPhase(engine_ref), SimulationPreflightPhase(engine_ref),
+            CognitionPhase(engine_ref), StabilizationPhase(engine_ref, self.stabilizer), ]
         self.system_pipeline = [p for p in self.full_pipeline if p.name in ["OBSERVE", "GATEKEEP", "STABILIZATION"]]
 
     def run_simulation(self, ctx: CycleContext) -> CycleContext:

@@ -83,7 +83,7 @@ class LLMInterface:
                 raise SynapseError(f"Unexpected Protocol Failure: {e}")
             self._log_flicker(attempt, err)
             time.sleep(2**attempt)
-        raise TransientError(f"Max retries ({max_retries}) exhausted.")
+        raise TransientError(f"Max retries ({max_retries}) exhausted. Last error: {err}")
 
     @staticmethod
     def _parse_response(body: str) -> str:
@@ -226,7 +226,7 @@ class PromptComposer:
             active_style_guide = high_voltage_data.get("style_guide", [])
         else:
             active_style_guide = mode_data.get("style_guide", [])
-        style_notes.extend([line.format(ban_string=ban_string) if "{ban_string}" in line else line
+        style_notes.extend([line.replace("{ban_string}", ban_string) if "{ban_string}" in line else line
                             for line in active_style_guide])
         if modifiers["include_inventory"]:
             style_notes.extend(mode_data.get("inventory_rules", []))
@@ -392,9 +392,9 @@ class PromptComposer:
             "Role: {role}.",
             "ANTI-AI DIRECTIVE: Have opinions. Do not just report facts—react to them. Acknowledge uncertainty and mixed feelings.",
             "ANTI-AI DIRECTIVE: Vary your rhythm. Use short, punchy sentences. Then longer ones that take their time.",
-            "ANTI-AI DIRECTIVE: Let some mess in. Perfect structure feels algorithmic. Tangents, asides, and half-formed thoughts are human."],)
-        persona_block = [line.format(role=role) if "{role}" in line else line
-            for line in baseline_blocks]
+            "ANTI-AI DIRECTIVE: Let some mess in. Perfect structure feels algorithmic. Tangents, asides, and half-formed thoughts are human."], )
+        persona_block = [line.replace("{role}", role) if "{role}" in line else line
+                         for line in baseline_blocks]
         if phase_shift_note:
             persona_block.append(phase_shift_note)
         voltage = 30.0
@@ -655,8 +655,11 @@ class ResponseValidator:
                 if match:
                     action = p.get("action")
                     if action == "KEEP_TAIL":
-                        sanitized_response = match.group(1).strip()
-                        sanitized_response = sanitized_response[0].upper() + sanitized_response[1:] if sanitized_response else ""
+                        idx = match.lastindex
+                        if idx is not None:
+                            sanitized_response = match.group(idx).strip()
+                            sanitized_response = sanitized_response[0].upper() + sanitized_response[
+                                1:] if sanitized_response else ""
                         continue
                     elif action == "STRIP_PREFIX":
                         if len(match.groups()) >= 3:

@@ -124,8 +124,8 @@ class EnneagramDriver:
         p_coh = safe_float(self._get_phys_attr(physics, "kappa", 0.0))
         p_zone = str(self._get_phys_attr(physics, "zone", ""))
         weights_cfg = self.weights
-        if not isinstance(weights_cfg, dict):
-            return "NARRATOR", "ACTIVE", "Config Error"
+        if not isinstance(weights_cfg, dict) or len(weights_cfg) < 2:
+            return "NARRATOR", "ACTIVE", "Config Error or Insufficient Personas"
         scores = {k: 0.0 for k in weights_cfg.keys()}
         if "NARRATOR" in scores:
             scores["NARRATOR"] += 2.0
@@ -192,7 +192,7 @@ class EnneagramDriver:
         else:
             self.pending_persona = candidate
             self.stability_counter = 1
-        msg_shift = ux("driver_strings", "ennea_shift") 
+        msg_shift = ux("driver_strings", "ennea_shift") or "Shifted persona. Reason: {reason}"
         if "HYBRID" in candidate:
             self.current_persona = candidate
             self.stability_counter = 0
@@ -203,9 +203,9 @@ class EnneagramDriver:
             self.stability_counter = 0
             self.pending_persona = None
             return self.current_persona, state_desc, msg_shift.format(reason=reason)
-        msg_resisting = ux("driver_strings", "ennea_resisting") 
+        msg_resisting = ux("driver_strings", "ennea_resisting") or "Resisting shift to {candidate} ({count}/{thresh})"
         return (self.current_persona, "STABLE",
- msg_resisting.format(candidate=candidate, count=self.stability_counter, thresh=self.HYSTERESIS_THRESHOLD, ),)
+                msg_resisting.format(candidate=candidate, count=self.stability_counter, thresh=self.HYSTERESIS_THRESHOLD))
 
 @dataclass
 class VSLState:
@@ -243,15 +243,18 @@ class LiminalModule:
         void_hits = sum(1 for w in words if w in liminal_vocab)
         lexical_lambda = min(1.0, void_hits * lex_weight)
         dark_matter_sparks = 0
-        if len(words) > 1 and self.lex:
-            categories = [self.lex.get_current_category(w) for w in words]
+        if len(words) > 1 and hasattr(self.lex, "get_categories_for_word"):
+            categories = [set(self.lex.get_categories_for_word(w) or []) for w in words]
             for i in range(len(categories) - 1):
-                c1, c2 = categories[i], categories[i + 1]
-                if c1 and c2 and c1 != c2:
-                    if (c1 in ["heavy", "kinetic"]
-                            and c2 in ["abstract", "liminal", "void"]
-                    ) or (c1 in ["abstract", "liminal", "void"] and c2 in ["heavy"]):
-                        dark_matter_sparks += 1
+                c1_set, c2_set = categories[i], categories[i + 1]
+                if not c1_set or not c2_set:
+                    continue
+                c1_is_physical = bool(c1_set.intersection({"heavy", "kinetic"}))
+                c1_is_void = bool(c1_set.intersection({"abstract", "liminal", "void"}))
+                c2_is_physical = bool(c2_set.intersection({"heavy", "kinetic"}))
+                c2_is_void = bool(c2_set.intersection({"abstract", "liminal", "void"}))
+                if (c1_is_physical and c2_is_void) or (c1_is_void and c2_is_physical):
+                    dark_matter_sparks += 1
         dark_matter_lambda = min(1.0, dark_matter_sparks * dm_weight)
         vector_lambda = 0.0
         if physics_vector:

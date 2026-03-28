@@ -117,12 +117,17 @@ class TheVillageCouncil:
     def audit(p: Any, _bio_state: dict) -> list[str]:
         logs = []
         def get_val(key: str, attr: str, default: float) -> float:
-            val = safe_get(p, key, safe_get(p, attr))
+            val = safe_get(p, key)
+            if val is None:
+                val = safe_get(p, attr)
             if val is None:
                 for sub in ["energy", "space", "matter"]:
                     sub_obj = safe_get(p, sub)
-                    val = safe_get(sub_obj, key, safe_get(sub_obj, attr))
-                    if val is not None: break
+                    if sub_obj:
+                        val = safe_get(sub_obj, key)
+                        if val is None:
+                            val = safe_get(sub_obj, attr)
+                        if val is not None: break
             try:
                 return float(val) if val is not None else default
             except (ValueError, TypeError):
@@ -242,6 +247,7 @@ class CouncilChamber:
                 if not topic:
                     topic = "The current structural integrity of the system."
                 transcript.append(f"{Prisma.CYN}🎙️ The Parliament convenes to debate: '{topic}'...{Prisma.RST}")
+                script = ""
                 try:
                     script = self.host_podcast(topic, llm)
                     transcript.append(f"\n{script}\n")
@@ -272,9 +278,10 @@ class CouncilChamber:
         sl_hit, sl_log, sl_corr, sl_man = self.strange_loop.audit(text, physics_packet)
         if sl_hit:
             transcript.append(self.footnote.commentary(sl_log))
+            if sl_corr:
+                adjustments.update(sl_corr)
             if sl_man:
                 mandates.append(sl_man)
-            return transcript, sl_corr, mandates
         lp_hit, lp_log, lp_corr, lp_man = self.leverage.audit(physics_packet)
         if lp_hit:
             transcript.append(self.footnote.commentary(lp_log))

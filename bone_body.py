@@ -111,7 +111,7 @@ class BioSystem:
             self.mito.adjust_atp(manic_cfg.get("atp", -10.0), "Neural Overclock")
 
     def apply_environmental_entropy(self, physics_packet):
-        vector = getattr(physics_packet, "vector", {})
+        vector = safe_get(physics_packet, "vector", {}) or {}
         ent_val = vector.get("ENT", 0.0)
         phi_val = vector.get("PHI", 0.0)
         em_field = math.sqrt(ent_val**2 + phi_val**2)
@@ -469,7 +469,7 @@ class BioFeedback:
             msg = ux("bio_feedback", "interface_lost")
             if msg: logs.append(f"{Prisma.RED}{msg}{Prisma.RST}")
             return "MAUSOLEUM_CLAMP"
-        voltage = getattr(phys, "voltage", 0.0)
+        voltage = float(safe_get(phys, "voltage", 0.0))
         cfg = getattr(self.cfg, "BIO", None)
         min_health = getattr(cfg, "AUTOPHAGY_MIN_HEALTH", 10.0)
         burn_amount = getattr(cfg, "AUTOPHAGY_BURN", 5.0)
@@ -499,12 +499,11 @@ class BioFeedback:
         if len(text) > buf_limit:
             msg = ux("bio_feedback", "large_buffer")
             if msg: logs.append(f"{Prisma.GRY}{msg}{Prisma.RST}")
-        drag = getattr(phys, "narrative_drag", 0.0)
+        drag = float(safe_get(phys, "narrative_drag", 0.0))
         if drag > sludge_thresh and tick % sludge_mod == 0:
             msg = ux("bio_feedback", "clearing_sludge")
             if msg: logs.append(f"{Prisma.OCHRE}{msg.format(drag=drag)}{Prisma.RST}")
-            if hasattr(phys, "narrative_drag"):
-                phys.narrative_drag = max(1.0, drag - sludge_red)
+            safe_set(phys, "narrative_drag", max(1.0, drag - sludge_red))
 
 class SemanticEndocrinologist:
     def __init__(self, memory_ref, lexicon_ref):
@@ -576,10 +575,10 @@ class SomaticLoop:
         if hasattr(self.bio, "apply_environmental_entropy"):
             self.bio.apply_environmental_entropy(phys)
         modifier = self.regulator.get_metabolic_modifier(phys, logs)
-        delta_silence = getattr(phys, "silence", 0.0)
+        delta_silence = float(safe_get(phys, "silence", 0.0))
         if delta_silence > 0.6:
-            if hasattr(phys, "narrative_drag"):
-                phys.narrative_drag = max(1.0, phys.narrative_drag - (delta_silence * 2.0))
+            current_drag = float(safe_get(phys, "narrative_drag", 1.0))
+            safe_set(phys, "narrative_drag", max(1.0, current_drag - (delta_silence * 2.0)))
             b.stamina = min(max_s, b.stamina + (delta_silence * 5.0))
             msg = ux("somatic_loop", "silence_heals")
             logs.append(f"{Prisma.CYN}{msg.format(recovery=delta_silence * 5.0)}{Prisma.RST}")
@@ -882,8 +881,8 @@ class MetabolicGovernor:
         return v_force, d_force
 
     def assess(self, physics_packet) -> Tuple[bool, float]:
-        curr_v = getattr(physics_packet, "voltage")
-        curr_d = getattr(physics_packet, "narrative_drag")
+        curr_v = float(safe_get(physics_packet, "voltage", 0.0))
+        curr_d = float(safe_get(physics_packet, "narrative_drag", 0.0))
         dist_v = abs(curr_v - self.voltage_pid.setpoint)
         dist_d = abs(curr_d - self.drag_pid.setpoint)
         is_safe = (dist_v < 3.0) and (dist_d < 1.5)
@@ -938,10 +937,10 @@ class MetabolicGovernor:
         return None
 
     def _evaluate_state(self, physics: Dict, v_history: List[float]) -> str:
-        volts = getattr(physics, "voltage", 0.0)
-        drag = getattr(physics, "narrative_drag", 0.0)
+        volts = float(safe_get(physics, "voltage", 0.0))
+        drag = float(safe_get(physics, "narrative_drag", 0.0))
         gov_high = getattr(self.cfg.BIO, "GOV_VOLTAGE_HIGH", 18.0)
-        if volts > gov_high and getattr(physics, "beta_index", 0.0) > 1.5:
+        if volts > gov_high and float(safe_get(physics, "beta_index", 0.0)) > 1.5:
             return "SANCTUARY"
         v_velocity = (v_history[-1] - v_history[-2]) if len(v_history) >= 2 else 0.0
         if volts > 8.0 and v_velocity > 1.0:

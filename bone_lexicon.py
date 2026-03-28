@@ -54,6 +54,8 @@ class LexiconStore:
         try:
             with open(self.HIVE_FILENAME, "r", encoding="utf-8") as f:
                 hive_data = json.load(f)
+            if not isinstance(hive_data, dict):
+                return
             count = 0
             for cat, entries in hive_data.items():
                 if cat not in self.LEARNED_VOCAB:
@@ -143,10 +145,13 @@ class LinguisticAnalyzer:
             return 0.1
         length_score = min(1.0, len(w) / 12.0)
         stops, flow = 0, 0
+        plosives = self.PHONETICS.get("PLOSIVE", set())
+        liquids = self.PHONETICS.get("LIQUID", set())
+        vowels = self.PHONETICS.get("VOWELS", set())
         for c in w:
-            if c in self.PHONETICS["PLOSIVE"]:
+            if c in plosives:
                 stops += 1
-            elif c in self.PHONETICS["LIQUID"] or c in self.PHONETICS["VOWELS"]:
+            elif c in liquids or c in vowels:
                 flow += 1
         stop_score = min(1.0, stops / 3.0)
         flow_score = min(1.0, flow / 4.0)
@@ -289,6 +294,10 @@ class SemanticField:
     def update(self, text: str) -> Dict[str, float]:
         new_vector = self.analyzer.vectorize(text)
         if not new_vector:
+            return self.current_vector
+        if not self.current_vector:
+            self.current_vector = new_vector
+            self.history.append((time.time(), 0.0))
             return self.current_vector
         flux = self.analyzer.calculate_flux(self.current_vector, new_vector)
         self.momentum = (self.momentum * 0.7) + (flux * 0.3)
