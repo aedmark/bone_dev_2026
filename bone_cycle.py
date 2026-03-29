@@ -862,6 +862,32 @@ class SimulationPreflightPhase(SimulationPhase):
         voltage = getattr(phys_obj, "voltage", 0.0)
         upper_input = (ctx.input_text or "").upper()
         is_slash = "[SLASH]" in upper_input or "[MOD:CODE]" in upper_input or "/SLASH" in upper_input
+        clean_input = upper_input.replace(" ", "")
+        if not hasattr(ctx, "council_mandates"):
+            ctx.council_mandates = []
+
+        if "[!R]" in clean_input:
+            target_lens = "PINKER" if is_slash else "BENEDICT"
+            msg = f"[SINCERITY PROTOCOL]: [ !r ] Critique Mode engaged. Summoning {target_lens}. Zero empathy. Structural evaluation only."
+            ctx.log(f"{Prisma.CYN}{msg}{Prisma.RST}")
+            phys_obj.valence = -0.5
+            phys_obj.narrative_drag += 2.0
+            ctx.council_mandates.append({"action": "SYNERGY_FIRED", "value": target_lens, "log": msg})
+
+        elif "[!Q]" in clean_input:
+            msg = f"[SINCERITY PROTOCOL]: [ !q ] Objective Analysis engaged. Summoning ROBERTA / GORDON. Emotionless mapping."
+            ctx.log(f"{Prisma.GRY}{msg}{Prisma.RST}")
+            phys_obj.valence = 0.0
+            phys_obj.psi = 0.0
+            ctx.council_mandates.append({"action": "SYNERGY_FIRED", "value": "ROBERTA", "log": msg})
+
+        elif "[!K]" in clean_input:
+            target_lens = "SCHUR" if is_slash else "MERCY"
+            msg = f"[SINCERITY PROTOCOL]: [ !k ] Kintsugi/Care engaged. Summoning {target_lens}. Co-regulation prioritized."
+            ctx.log(f"{Prisma.OCHRE}{msg}{Prisma.RST}")
+            phys_obj.valence = 0.8
+            phys_obj.narrative_drag = max(0.1, phys_obj.narrative_drag - 1.0)
+            ctx.council_mandates.append({"action": "SYNERGY_FIRED", "value": target_lens, "log": msg})
 
         def _build_refusal(rtype, msg):
             return {"type": rtype,
@@ -966,6 +992,11 @@ class CognitionPhase(SimulationPhase):
                     msg_syco = "[PARADOX ENGINE]: False Cohesion (∅) detected. Agreement without conviction helps no one. Injecting deliberate contradiction (β > 0.6)."
                     ctx.log(f"{Prisma.MAG}{msg_syco}{Prisma.RST}")
                     self.eng.sycophancy_streak = 0
+
+                    fw_msg = "[EXECUTIVE LAYER]: Lexical Firewall activated. System is physically banned from opening with validating boilerplate."
+                    ctx.log(f"{Prisma.RED}{fw_msg}{Prisma.RST}")
+                    if not hasattr(ctx, "council_mandates"): ctx.council_mandates = []
+                    ctx.council_mandates.append({"action": "SYSTEM_DIRECTIVE", "value": "LEXICAL_FIREWALL_STRICT", "log": fw_msg})
             else:
                 self.eng.sycophancy_streak = 0
             if phi > 0.8:

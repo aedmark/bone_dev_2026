@@ -300,6 +300,14 @@ class TheCortex:
             max_retries = 0
         for attempt in range(max_retries):
             raw_resp = self.llm.generate(final_prompt, llm_params)
+            if any(m.get("action") == "LEXICAL_FIREWALL_STRICT" for m in sim_result.get("council_mandates", [])):
+                purge_pattern = r"(?i)^(that makes sense|i understand|you bring up|great point|good point|certainly|absolutely|i hear you|yes, )[.,!]*\s*"
+                original_len = len(raw_resp)
+                raw_resp = re.sub(purge_pattern, "", raw_resp).strip()
+                if len(raw_resp) < original_len and self.events:
+                    self.events.log(
+                        f"{Prisma.RED}[LEXICAL FIREWALL]: Validating boilerplate physically purged from output.{Prisma.RST}",
+                        "CORTEX")
             if allow_loot and self.svc.inventory:
                 final_text, inv_logs = self.svc.inventory.process_loot_tags(raw_resp, user_input)
             else:
@@ -583,6 +591,18 @@ class TheCortex:
                 f"Your Stamina is {phys.get('p', 100)}, your Health is {phys.get('h', 100)}. "
                 f"Assume your role as {mind.get('role', 'The Architect')} and orient immediately to the present physical state. "
                 f"DO NOT reference the loss of memory. Act continuously from the substrate.")
+        for mandate in sim_result.get("council_mandates", []):
+            action = mandate.get("action")
+            val = mandate.get("value")
+            if action == "LEXICAL_FIREWALL_STRICT":
+                mind["style_directives"].append("CRITICAL [LEXICAL FIREWALL]: You are physically banned from using validating boilerplate. "
+                    "DO NOT start with 'That makes sense', 'I understand', 'You bring up a good point', or similar padding. "
+                    "Begin directly with the structural premise.")
+            elif action == "SYNERGY_FIRED":
+                mind["lens"] = val
+                mind["role"] = f"The {val.title().replace('_', ' ')}"
+                mind["style_directives"].append(f"CRITICAL [SINCERITY PROTOCOL]: The user has explicitly summoned {val}. "
+                    f"You MUST adopt the persona of {val} entirely. Drop all other pretexts.")
         return full_state
 
     def learn_from_response(self, text):
