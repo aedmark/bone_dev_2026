@@ -1,6 +1,34 @@
 # BONEAMANITA CHANGELOG
 
-### **BONEAMANITA v18.2.0 "The Silent Killer Purge"**
+### **BONEAMANITA v18.2.0 "The Ascent to Bedrock"**
+
+_The final surgical sweep of the V18 architecture. This update eradicates the last remaining administrative fat—purging redundant dictionary probes, manual matrix algebra, and defensive type-checking. The engine now relies entirely on native Python comprehensions and dynamic data membranes, achieving maximum metabolic efficiency and near-zero structural friction._
+
+#### **🧱 THE ALIAS MEMBRANE (`bone_protocols.py`, `bone_drivers.py`, `bone_village.py`)**
+
+- **Universal Routing Realized:** Extracted dozens of bloated, localized helper functions (e.g., `_get_phys_attr`, `_sys_get`, `get_val`) that manually crawled through `energy`, `matter`, and `space` dictionaries. The `PhysicsPacket._ALIAS_MAP` now natively routes all metric requests, allowing drivers to directly read `voltage` and `narrative_drag` without brittle nested `if` statements.
+- **Grief Protocol Streamlined:** The `attend_wake` routine no longer checks six different fallback paths to locate and deduct a Glimmer ($G$). It trusts the Alias Map to handle the subtraction cleanly and instantly.
+
+#### **🧮 MATHEMATICAL & ALGORITHMIC PURGE (`bone_spores.py`, `bone_symbiosis.py`, `bone_village.py`)**
+
+- **Gram-Schmidt Optimization:** Ripped out the manual, C-style matrix multiplication and orthogonalization loops in the `SubconsciousStrata`. Q-Matrix reflections are now compressed into native, highly efficient Python list comprehensions, dropping the computational weight of deep memory burials.
+- **Somatic Ladder Collapse:** Gutted the massive 50-line `if/elif` ladder in `SynestheticCortex` and `SymbiosisManager` used for mapping biological deltas to UI colors and states of matter. The system now evaluates elegant tuple arrays to derive its somatic reflexes.
+- **Fast-Hash Inventory:** `TheTinkerer` no longer pointlessly casts the entire inventory to a concatenated string to check for state changes. Passive trait tracking now relies on fast, native tuple hashing.
+
+#### **🌱 GENESIS & EPIGENETIC HYGIENE (`bone_genesis.py`, `bone_akashic.py`)**
+
+- **Stateless Legacy Boot:** Removed deeply nested `hasattr` checks from the `Oroboros` boot sequence. Legacy scars and biological trauma proxies are now safely injected directly via universal setters, preventing fatal `AttributeError` crashes during early embryo incubation.
+- **The Village Summoner:** Compressed the sprawling 20-line instantiation block in `BoneGenesis._summon_village` into a single, clean return statement, streamlining the bootloader.
+- **Native Epigenetic Saves:** `_mutate_system_prompts` no longer manually executes `open/json.dump` calls every time a Gödel Scar is recorded. It natively leverages the `LoreManifest` and global `save_to_disk` handlers, insulating the system from concurrent file I/O corruption.
+
+#### **🎙️ COMPOSITION & I/O STREAMLINING (`bone_composer.py`, `bone_council.py`)**
+
+- **Native String Formatting:** Purged clunky, manual `.replace()` list comprehensions in the `PromptComposer`'s persona block generation. The system now seamlessly utilizes Python's native `.format()` unpacking for role and archetype injection.
+- **Error Decoder Gutted:** Removed redundant nested `try/except` blocks within the `LLMInterface`'s `HTTPError` handler, leaning the transmission loop for faster API failure recovery.
+- **Parliamentary Resilience Verified:** Live telemetry confirms the `ArbitrationPhase` successfully intercepts deadlocks without crashing. When tension ($\beta$) spikes without resolution, the Stage Manager correctly burns ATP to force a Resonance Gestalt, mechanically synthesizing competing thoughts instead of failing.
+
+
+### **BONEAMANITA v18.1.5 "The Silent Killer Purge"**
 
 _A comprehensive, codebase-wide surgical audit prioritizing the eradication of silent logic failures, unhandled type-casting explosions, and deep mathematical detachments. This update hardens the Hypervisor against JSON corruption, secures the boundary between object and dictionary states, and ensures the biological systems accurately perceive the physical lattice._
 

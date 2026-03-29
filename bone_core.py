@@ -16,7 +16,8 @@ from bone_types import Prisma, RealityLayer, ErrorLog, DecisionTrace, DecisionCr
 
 
 def ux(section: str, key: str, default: Any = "") -> Any:
-    return LoreManifest.get_instance().get_ux(section, key, default)
+    data = LoreManifest.get_instance().get("ux_strings", section)
+    return data.get(key, default) if isinstance(data, dict) else default
 
 def safe_get(obj: Any, key: str, default: Any = None) -> Any:
     if obj is None: return default
@@ -116,12 +117,6 @@ class LoreManifest:
             return data.get(sub_key)
         return data
 
-    def get_ux(self, section: str, key: str, default: Any = "") -> Any:
-        section_data = self.get("ux_strings", section)
-        if isinstance(section_data, dict):
-            return section_data.get(key, default)
-        return default
-
     def _load_from_disk(self, category: str) -> Optional[Dict]:
         filename = f"{category.lower()}.json"
         filepath = os.path.join(self.DATA_DIR, filename)
@@ -202,23 +197,15 @@ class TheObserver:
         self.memory_snapshots.append(node_count)
 
     def pass_judgment(self, avg_cycle, avg_llm):
-        if avg_cycle == 0.0 and avg_llm == 0.0:
-            return ux("core_strings", "obs_asleep")
-        cfg_core = getattr(self.cfg, "CORE", None)
-        cycle_eff = getattr(cfg_core, "OBSERVER_CYCLE_EFFICIENT", 0.1) if cfg_core else 0.1
-        llm_eff = getattr(cfg_core, "OBSERVER_LLM_EFFICIENT", 0.5) if cfg_core else 0.5
-        if avg_cycle < cycle_eff and avg_llm < llm_eff:
-            return ux("core_strings", "obs_efficient")
+        if avg_cycle == 0.0 and avg_llm == 0.0: return ux("core_strings", "obs_asleep")
+        c_eff = safe_get(getattr(self.cfg, "CORE", None), "OBSERVER_CYCLE_EFFICIENT", 0.1)
+        l_eff = safe_get(getattr(self.cfg, "CORE", None), "OBSERVER_LLM_EFFICIENT", 0.5)
+        if avg_cycle < c_eff and avg_llm < l_eff: return ux("core_strings", "obs_efficient")
         if avg_llm > self.LATENCY_WARNING:
-            jokes = [ux("core_strings", "obs_fog") ,
-                     ux("core_strings", "obs_degraded") ,
-                     ux("core_strings", "obs_ponderous") ,]
-            valid_jokes = [j for j in jokes if j]
-            return random.choice(valid_jokes) if valid_jokes else ""
-        if avg_cycle > self.CYCLE_WARNING:
-            return ux("core_strings", "obs_sluggish")
-        if self.cyber_gov.order == 2:
-            return ux("core_strings", "obs_coupled") or "Harmonic Resonance: Presence Active."
+            valid = [j for j in (ux("core_strings", k) for k in ("obs_fog", "obs_degraded", "obs_ponderous")) if j]
+            return random.choice(valid) if valid else ""
+        if avg_cycle > self.CYCLE_WARNING: return ux("core_strings", "obs_sluggish")
+        if self.cyber_gov.order == 2: return ux("core_strings", "obs_coupled") or "Harmonic Resonance: Presence Active."
         return ux("core_strings", "obs_nominal")
 
     def get_report(self):
@@ -498,23 +485,15 @@ class TelemetryService:
         return [h.split("System: ")[-1] for h in history if "System: " in h]
 
     def get_last_fatal_error(self) -> Optional[str]:
-        pattern = os.path.join(self.log_dir, "trace_*.jsonl")
-        files = sorted(glob.glob(pattern), key=os.path.getmtime, reverse=True)
-        if len(files) < 2:
-            return None
-        prev_file = files[1]
-        try:
-            with open(prev_file, "r", encoding="utf-8") as f:
-                lines = deque(f, maxlen=1)
-                if not lines:
-                    return None
-                last_line = json.loads(lines[0])
-                if "outcome" in last_line and "CRITICAL" in str(last_line["outcome"]):
-                    reason = last_line.get("reasoning", "Unknown")
-                    msg = ux("core_strings", "tel_prev_crash")
-                    return msg.format(reason=reason) if msg else ""
-        except Exception:
-            return None
+        files = sorted(glob.glob(os.path.join(self.log_dir, "trace_*.jsonl")), key=os.path.getmtime, reverse=True)
+        if len(files) > 1:
+            try:
+                last_line = json.loads(deque(open(files[1], "r", encoding="utf-8"), maxlen=1)[0])
+                if "CRITICAL" in str(last_line.get("outcome", "")):
+                    msg = ux("core_strings", "tel_prev_crash") or "Crash: {reason}"
+                    return msg.format(reason=last_line.get("reasoning", "Unknown"))
+            except Exception: pass
+        return None
 
     def generate_session_summary(self, _uptime: float = 0.0) -> str:
         self.flush_to_disk()

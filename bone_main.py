@@ -228,24 +228,16 @@ class BoneAmanita:
         self._apply_boot_mode()
 
     def _load_system_prompts(self):
+        p = "lore/system_prompts.json"
         try:
-            paths = ["lore/system_prompts.json"]
-            loaded = False
-            for p in paths:
-                if os.path.exists(p):
-                    with open(p, encoding="utf-8") as f:
-                        self.prompt_library = json.load(f)
-                    msg = ux("main_strings", "prompt_lib_loaded")
-                    print(f"{Prisma.GRY}{msg.format(p=p)}{Prisma.RST}")
-                    loaded = True
-                    break
-            if not loaded:
-                warn_msg = ux("main_strings", "prompt_lib_warn")
-                print(f"{Prisma.YEL}{warn_msg}{Prisma.RST}")
+            if os.path.exists(p):
+                self.prompt_library = json.load(open(p, encoding="utf-8"))
+                print(f"{Prisma.GRY}{ux('main_strings', 'prompt_lib_loaded').format(p=p)}{Prisma.RST}")
+            else:
+                print(f"{Prisma.YEL}{ux('main_strings', 'prompt_lib_warn')}{Prisma.RST}")
                 self.prompt_library = {}
         except Exception as e:
-            crit_msg = ux("main_strings", "prompt_lib_crit")
-            print(f"{Prisma.RED}{crit_msg.format(e=e)}{Prisma.RST}")
+            print(f"{Prisma.RED}{ux('main_strings', 'prompt_lib_crit').format(e=e)}{Prisma.RST}")
             self.prompt_library = {}
 
     def _initialize_cognition(self):
@@ -328,26 +320,16 @@ class BoneAmanita:
         self.shimmer = self.embryo.shimmer
         self.bio.setup_listeners()
         v = anatomy.get("village", {})
-        self.gordon = v.get("gordon")
-        self.navigator = v.get("navigator")
-        self.tinkerer = v.get("tinkerer")
-        self.death_gen = v.get("death_gen")
-        self.bureau = v.get("bureau")
-        self.town_hall = v.get("town_hall")
-        self.repro = v.get("repro")
-        self.zen = v.get("zen")
-        self.critics = v.get("critics")
-        self.therapy = v.get("therapy")
-        self.limbo = v.get("limbo")
-        self.kintsugi = v.get("kintsugi")
+        for k in ["gordon", "navigator", "tinkerer", "death_gen", "bureau", "town_hall", "repro",
+                  "zen", "critics", "therapy", "limbo", "kintsugi", "therapist", "gravedigger"]:
+            setattr(self, k, v.get(k))
+
         from bone_protocols import GriefProtocol
-        self.grief = GriefProtocol(self.events, engine_ref=self)
         from bone_utils import TheSubstrate
+        self.grief = GriefProtocol(self.events, engine_ref=self)
         self.substrate = TheSubstrate(self.events)
         self.soul.engine = self
         self.council = CouncilChamber(self)
-        self.therapist = v.get("therapist")
-        self.gravedigger = v.get("gravedigger")
         self.village = {"town_hall": self.town_hall, "bureau": self.bureau, "zen": self.zen, "tinkerer": self.tinkerer,
                         "critics": self.critics, "navigator": self.navigator, "limbo": self.limbo,
                         "council": self.council, "therapy": self.therapy, "enneagram": self.drivers.enneagram,
@@ -555,14 +537,9 @@ class BoneAmanita:
         return {"type": "DEATH", "ui": "\n".join(death_log), "logs": death_log, "metrics": self.get_metrics(), }
 
     def get_metrics(self, atp=0.0):
-        real_atp = atp
-        if real_atp <= 0.0 and getattr(self, "bio", None) and getattr(self.bio, "mito", None):
-            real_atp = getattr(self.bio.mito.state, "atp_pool", 0.0)
-        real_atp = max(0.0, float(real_atp))
-        clamped_health = max(0.0, float(self.health))
-        clamped_stamina = max(0.0, float(self.stamina))
-        return {"health": clamped_health, "stamina": clamped_stamina, "atp": real_atp, "tick": self.tick_count,
-                "efficiency": getattr(self.host_stats, "efficiency_index", 1.0), }
+        if atp <= 0.0 and getattr(self, "bio", None) and getattr(self.bio, "mito", None):
+            atp = getattr(self.bio.mito.state, "atp_pool", 0.0)
+        return {"health": max(0.0, float(self.health)), "stamina": max(0.0, float(self.stamina)), "atp": max(0.0, float(atp)), "tick": self.tick_count, "efficiency": getattr(self.host_stats, "efficiency_index", 1.0)}
 
     def emergency_dump(self, exit_cause="UNKNOWN"):
         return self.chronos.emergency_dump(exit_cause)

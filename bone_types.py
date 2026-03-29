@@ -157,291 +157,14 @@ class PhysicsPacket:
     matter: MaterialState = field(default_factory=MaterialState)
     space: SpatialState = field(default_factory=SpatialState)
 
-    @property
-    def E(self):
-        return self.energy.exhaustion
-
-    @E.setter
-    def E(self, v):
-        self.energy.exhaustion = v
-
-    @property
-    def beta(self):
-        return self.energy.beta_index
-
-    @beta.setter
-    def beta(self, v):
-        self.energy.beta_index = v
-        self.energy.contradiction = v
-
-    @property
-    def S(self):
-        return self.energy.scope
-
-    @S.setter
-    def S(self, v):
-        self.energy.scope = v
-
-    @property
-    def D(self):
-        return self.energy.depth
-
-    @D.setter
-    def D(self, v):
-        self.energy.depth = v
-
-    @property
-    def C(self):
-        return self.energy.connectivity
-
-    @C.setter
-    def C(self, v):
-        self.energy.connectivity = v
-
-    @property
-    def V(self):
-        return self.energy.voltage
-
-    @V.setter
-    def V(self, v):
-        self.energy.voltage = v
-
-    @property
-    def voltage(self):
-        return self.energy.voltage
-
-    @voltage.setter
-    def voltage(self, v):
-        self.energy.voltage = v
-
-    @property
-    def F(self):
-        return self.space.narrative_drag
-
-    @F.setter
-    def F(self, v):
-        self.space.narrative_drag = v
-        self.space.friction = v
-
-    @property
-    def narrative_drag(self):
-        return self.space.narrative_drag
-
-    @narrative_drag.setter
-    def narrative_drag(self, v):
-        self.space.narrative_drag = v
-        self.space.friction = v
-
-    @property
-    def H(self):
-        return self.energy.health
-
-    @H.setter
-    def H(self, v):
-        self.energy.health = v
-
-    @property
-    def P(self):
-        return self.energy.stamina
-
-    @P.setter
-    def P(self, v):
-        self.energy.stamina = v
-
-    @property
-    def ROS(self):
-        return self.energy.ros
-
-    @ROS.setter
-    def ROS(self, v):
-        self.energy.ros = v
-
-    @property
-    def G(self):
-        return self.energy.glimmers
-
-    @G.setter
-    def G(self, v):
-        self.energy.glimmers = v
-
-    @property
-    def PHI_RES(self):
-        return self.energy.resonance
-
-    @PHI_RES.setter
-    def PHI_RES(self, v):
-        self.energy.resonance = v
-
-    @property
-    def DELTA(self):
-        return self.energy.silence
-
-    @DELTA.setter
-    def DELTA(self, v):
-        self.energy.silence = v
-
-    @property
-    def LQ(self):
-        return self.energy.lq
-
-    @LQ.setter
-    def LQ(self, v):
-        self.energy.lq = v
-
-    @property
-    def psi(self):
-        return self.energy.psi
-
-    @psi.setter
-    def psi(self, v):
-        self.energy.psi = v
-
-    @property
-    def chi(self):
-        return self.energy.entropy
-
-    @chi.setter
-    def chi(self, v):
-        self.energy.entropy = v
-        self.energy.chi = v
-
-    @property
-    def mu(self):
-        return self.energy.mu
-
-    @mu.setter
-    def mu(self, v):
-        self.energy.mu = v
-
-    @property
-    def m_a(self):
-        return self.energy.m_a
-
-    @m_a.setter
-    def m_a(self, v):
-        self.energy.m_a = v
-
-    @property
-    def i_c(self):
-        return self.energy.i_c
-
-    @i_c.setter
-    def i_c(self, v):
-        self.energy.i_c = v
-
-    @property
-    def h_s(self): return self.energy.h_s
-    @h_s.setter
-    def h_s(self, v): self.energy.h_s = v
-
-    @property
-    def omega_r(self): return self.energy.omega_r
-    @omega_r.setter
-    def omega_r(self, v): self.energy.omega_r = v
-
-    @property
-    def delta_t(self): return self.energy.delta_t
-    @delta_t.setter
-    def delta_t(self, v): self.energy.delta_t = v
-
-    @property
-    def s_y(self): return self.energy.s_y
-    @s_y.setter
-    def s_y(self, v): self.energy.s_y = v
-
-    @property
-    def r_a(self): return self.energy.r_a
-    @r_a.setter
-    def r_a(self, v): self.energy.r_a = v
-
-    @property
-    def entropy(self):
-        return self.energy.entropy
-
-    @entropy.setter
-    def entropy(self, v):
-        self.energy.entropy = v
-        self.energy.chi = v
-
-    @property
-    def valence(self):
-        return self.energy.valence
-
-    @valence.setter
-    def valence(self, v):
-        self.energy.valence = v
-
-    @property
-    def gamma(self):
-        return self.energy.gamma
-
-    @gamma.setter
-    def gamma(self, v):
-        self.energy.gamma = v
-
-    @property
-    def sigma(self):
-        return self.energy.sigma
-
-    @sigma.setter
-    def sigma(self, v):
-        self.energy.sigma = v
-
-    @property
-    def eta(self):
-        return self.energy.eta
-
-    @eta.setter
-    def eta(self, v):
-        self.energy.eta = v
-
-    @property
-    def theta(self):
-        return self.energy.theta
-
-    @theta.setter
-    def theta(self, v):
-        self.energy.theta = v
-
-    @property
-    def upsilon(self):
-        return self.energy.upsilon
-
-    @upsilon.setter
-    def upsilon(self, v):
-        self.energy.upsilon = v
-
-    @property
-    def clean_words(self):
-        return self.matter.clean_words
-
-    @clean_words.setter
-    def clean_words(self, v):
-        self.matter.clean_words = v
-
-    @property
-    def vector(self):
-        return self.matter.vector
-
-    @vector.setter
-    def vector(self, v):
-        self.matter.vector = v
-
-    @property
-    def counts(self):
-        return self.matter.counts
-
-    @counts.setter
-    def counts(self, v):
-        self.matter.counts = v
-
-    @property
-    def zone(self):
-        return self.space.zone
-
-    @zone.setter
-    def zone(self, v):
-        self.space.zone = v
+    _ALIAS_MAP = {"E": [("energy", "exhaustion")], "beta": [("energy", "beta_index"), ("energy", "contradiction")],
+                  "S": [("energy", "scope")], "D": [("energy", "depth")], "C": [("energy", "connectivity")],
+                  "V": [("energy", "voltage")], "F": [("space", "narrative_drag"), ("space", "friction")],
+                  "narrative_drag": [("space", "narrative_drag"), ("space", "friction")], "H": [("energy", "health")],
+                  "P": [("energy", "stamina")], "ROS": [("energy", "ros")], "G": [("energy", "glimmers")],
+                  "PHI_RES": [("energy", "resonance")], "DELTA": [("energy", "silence")], "LQ": [("energy", "lq")],
+                  "chi": [("energy", "entropy"), ("energy", "chi")],
+                  "entropy": [("energy", "entropy"), ("energy", "chi")], }
 
     def __init__(self, energy: Optional[Any] = None, matter: Optional[Any] = None,
                  space: Optional[Any] = None, **kwargs, ):
@@ -487,34 +210,12 @@ class PhysicsPacket:
         if hasattr(self.matter, key): return getattr(self.matter, key)
         return default
 
-    def __getitem__(self, key):
-        if hasattr(self, key): return getattr(self, key)
-        d = self.__dict__
-        if "energy" in d and hasattr(d["energy"], key): return getattr(d["energy"], key)
-        if "space" in d and hasattr(d["space"], key): return getattr(d["space"], key)
-        if "matter" in d and hasattr(d["matter"], key): return getattr(d["matter"], key)
-        raise KeyError(f"'{key}' not found in PhysicsPacket or its sub-states.")
-
-    def __setitem__(self, key, value):
-        if hasattr(self.__class__, key) and isinstance(getattr(self.__class__, key), property):
-            setattr(self, key, value)
-            return
-        d = self.__dict__
-        if "energy" in d and hasattr(d["energy"], key): setattr(d["energy"], key, value)
-        elif "space" in d and hasattr(d["space"], key): setattr(d["space"], key, value)
-        elif "matter" in d and hasattr(d["matter"], key): setattr(d["matter"], key, value)
-        else: setattr(self, key, value)
-
-    def __contains__(self, key):
-        if hasattr(self, key): return True
-        d = self.__dict__
-        return (("energy" in d and hasattr(d["energy"], key)) or
-                ("space" in d and hasattr(d["space"], key)) or
-                ("matter" in d and hasattr(d["matter"], key)))
-
     def __getattr__(self, key):
         if key.startswith("_"):
             raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{key}'")
+        if hasattr(self, "_ALIAS_MAP") and key in self._ALIAS_MAP:
+            domain, t_key = self._ALIAS_MAP[key][0]
+            return getattr(getattr(self, domain), t_key)
         d = self.__dict__
         if "energy" in d and hasattr(d["energy"], key): return getattr(d["energy"], key)
         if "space" in d and hasattr(d["space"], key): return getattr(d["space"], key)
@@ -525,18 +226,32 @@ class PhysicsPacket:
         if key in ["energy", "matter", "space", "drag_profile"]:
             super().__setattr__(key, value)
             return
-        if hasattr(self.__class__, key) and isinstance(getattr(self.__class__, key), property):
-            super().__setattr__(key, value)
+        if hasattr(self, "_ALIAS_MAP") and key in self._ALIAS_MAP:
+            for domain, t_key in self._ALIAS_MAP[key]:
+                setattr(getattr(self, domain), t_key, value)
             return
         d = self.__dict__
-        if "energy" in d and hasattr(d["energy"], key):
-            setattr(d["energy"], key, value)
-        elif "space" in d and hasattr(d["space"], key):
-            setattr(d["space"], key, value)
-        elif "matter" in d and hasattr(d["matter"], key):
-            setattr(d["matter"], key, value)
-        else:
-            super().__setattr__(key, value)
+        if "energy" in d and hasattr(d["energy"], key): setattr(d["energy"], key, value)
+        elif "space" in d and hasattr(d["space"], key): setattr(d["space"], key, value)
+        elif "matter" in d and hasattr(d["matter"], key): setattr(d["matter"], key, value)
+        else: super().__setattr__(key, value)
+
+    def __getitem__(self, key):
+        try:
+            return getattr(self, key)
+        except AttributeError:
+            raise KeyError(f"'{key}' not found in PhysicsPacket or its sub-states.")
+
+    def __setitem__(self, key, value):
+        setattr(self, key, value)
+
+    def __contains__(self, key):
+        if hasattr(self, "_ALIAS_MAP") and key in self._ALIAS_MAP: return True
+        try:
+            getattr(self, key)
+            return True
+        except AttributeError:
+            return False
 
 @dataclass
 class UserInferredState:

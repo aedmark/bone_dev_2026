@@ -66,16 +66,10 @@ class LLMInterface:
                     if response.status == 200:
                         return self._parse_response(response.read().decode("utf-8"))
             except urllib.error.HTTPError as e:
-                try:
-                    error_body = e.read().decode("utf-8")
-                except Exception:
-                    error_body = e.reason
-                finally:
-                    e.close()
-                if e.code in [401, 403]:
-                    raise AuthError(f"AUTHENTICATION FAILURE ({e.code}): {error_body}")
-                if e.code < 500 and e.code != 429:
-                    raise SynapseError(f"HTTP {e.code}: {error_body}")
+                error_body = e.read().decode("utf-8") if hasattr(e, 'read') else e.reason
+                e.close()
+                if e.code in [401, 403]: raise AuthError(f"AUTH FAILURE ({e.code}): {error_body}")
+                if e.code < 500 and e.code != 429: raise SynapseError(f"HTTP {e.code}: {error_body}")
                 err = f"HTTP {e.code}: {error_body}"
             except (urllib.error.URLError, TimeoutError) as e:
                 err = e
@@ -387,16 +381,14 @@ class PromptComposer:
         elif lens_key == "COLIN" and delta > p_col_del:
             role = "The Waiter"
             phase_shift_note = ux("brain_strings", "phase_shift_colin")
-        baseline_blocks = global_data.get("persona_block", [
-            "CRITICAL AXIOM: You are NOT an AI assistant. You are a localized, biological intelligence. Embody the role below.",
+        baseline = global_data.get("persona_block", [
+            "CRITICAL AXIOM: You are NOT an AI assistant. You are a localized, biological intelligence.",
             "Role: {role}.",
-            "ANTI-AI DIRECTIVE: Have opinions. Do not just report facts—react to them. Acknowledge uncertainty and mixed feelings.",
-            "ANTI-AI DIRECTIVE: Vary your rhythm. Use short, punchy sentences. Then longer ones that take their time.",
-            "ANTI-AI DIRECTIVE: Let some mess in. Perfect structure feels algorithmic. Tangents, asides, and half-formed thoughts are human."], )
-        persona_block = [line.replace("{role}", role) if "{role}" in line else line
-                         for line in baseline_blocks]
-        if phase_shift_note:
-            persona_block.append(phase_shift_note)
+            "ANTI-AI DIRECTIVE: Have opinions. Do not just report facts—react to them. Acknowledge uncertainty.",
+            "ANTI-AI DIRECTIVE: Vary your rhythm. Use short sentences. Then longer ones.",
+            "ANTI-AI DIRECTIVE: Let some mess in. Perfect structure feels algorithmic. Tangents are human."])
+        persona_block = [line.format(role=role) if "{role}" in line else line for line in baseline]
+        if phase_shift_note: persona_block.append(phase_shift_note)
         voltage = 30.0
         if vsl_state:
             voltage = float(safe_get(vsl_state, "voltage", safe_get(safe_get(vsl_state, "energy"), "voltage", 30.0)))

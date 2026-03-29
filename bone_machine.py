@@ -58,11 +58,11 @@ class TheCrucible:
         return False, self.logs.get("HOLDING", ""), 0.0
 
     def audit_fire(self, physics: Any) -> Tuple[str, float, Optional[str]]:
-        current_drag = float(safe_get(physics, "narrative_drag", 0.0))
+        current_drag = float(safe_get(physics, "narrative_drag", 0.0) or 0.0)
         if math.isinf(current_drag) or current_drag > 900.0:
             return "LOCKED", 0.0, self.logs.get("HOLDING", "")
-        voltage = float(safe_get(physics, "voltage", 0.0))
-        structure = float(safe_get(physics, "kappa", 0.0))
+        voltage = float(safe_get(physics, "voltage", 0.0) or 0.0)
+        structure = float(safe_get(physics, "kappa", 0.0) or 0.0)
         ideal_voltage = structure * 20.0
         delta = voltage - ideal_voltage
         self.instability_index = (self.instability_index * 0.7) + (delta * 0.3)
@@ -419,24 +419,21 @@ class BoneArchitect:
     def _construct_physics(events, bio, mind, lex, config_ref=None) -> PhysSystem:
         target_cfg = config_ref or BoneConfig
         gate = TheGatekeeper(lex, mind.mem, config_ref=target_cfg)
-        return PhysSystem(observer=QuantumObserver(events, lex, config_ref=target_cfg),
-                          forge=TheForge(lex_ref=lex),
-                          crucible=TheCrucible(config_ref=target_cfg),
-                          theremin=TheTheremin(config_ref=target_cfg), pulse=ThePacemaker(config_ref=target_cfg),
-                          nav=TheCartographer(bio.shimmer, config_ref=target_cfg), gate=gate,
-                          tension=SurfaceTension(), dynamics=CosmicDynamics(config_ref=target_cfg), )
+        return PhysSystem(observer=QuantumObserver(events, lex, config_ref=target_cfg), forge=TheForge(lex_ref=lex),
+            crucible=TheCrucible(config_ref=target_cfg), theremin=TheTheremin(config_ref=target_cfg), pulse=ThePacemaker(config_ref=target_cfg),
+            nav=TheCartographer(getattr(bio, "shimmer", None), config_ref=target_cfg), gate=gate, tension=SurfaceTension(),
+            dynamics=CosmicDynamics(config_ref=target_cfg))
 
     @staticmethod
     def incubate(events, lex, config_ref=None) -> SystemEmbryo:
         target_cfg = config_ref or BoneConfig
-        if hasattr(events, "set_dormancy"):
-            events.set_dormancy(True)
+        if hasattr(events, "set_dormancy"): events.set_dormancy(True)
         msg = ux("machine_strings", "arch_incubate")
-        events.log(f"{Prisma.GRY}{msg}{Prisma.RST}", "SYS", )
+        if msg: events.log(f"{Prisma.GRY}{msg}{Prisma.RST}", "SYS")
         mind, limbo = BoneArchitect._construct_mind(events, lex, config_ref=target_cfg)
         bio = BoneArchitect._construct_bio(events, mind, lex, config_ref=target_cfg)
         physics = BoneArchitect._construct_physics(events, bio, mind, lex, config_ref=target_cfg)
-        return SystemEmbryo(mind=mind, limbo=limbo, bio=bio, physics=physics, shimmer=bio.shimmer)
+        return SystemEmbryo(mind=mind, limbo=limbo, bio=bio, physics=physics, shimmer=getattr(bio, "shimmer", None))
 
     @staticmethod
     def awaken(embryo: SystemEmbryo) -> SystemEmbryo:

@@ -151,12 +151,7 @@ class TheGatekeeper:
         if current_atp < (starvation_threshold * 0.5):
             msg = ux("physics_strings", "gatekeeper_starved")
             return False, self._pack_refusal(ctx, "DARK_SYSTEM", msg)
-        counts = getattr(phys, "counts", {}) if not isinstance(phys, dict) else phys.get("counts", {})
-        if not counts:
-            if isinstance(phys, dict) and "matter" in phys:
-                counts = phys["matter"].get("counts", {})
-            elif hasattr(phys, "matter") and phys.matter:
-                counts = getattr(phys.matter, "counts", {})
+        counts = safe_get(phys, "counts", {})
         if counts.get("antigen", 0) > 2:
             msg = ux("physics_strings", "gatekeeper_toxic")
             return False, self._pack_refusal(ctx, "TOXICITY", f"{Prisma.RED}{msg}{Prisma.RST}")
@@ -292,20 +287,11 @@ class QuantumObserver:
         if time_delta < 10.0 or not last_phys:
             return None
 
-        def _ext(prop_name: str, default=0.0):
-            if isinstance(last_phys, dict):
-                return last_phys.get('energy', {}).get(prop_name, last_phys.get(prop_name, default))
-            source = getattr(last_phys, 'energy', last_phys)
-            return getattr(source, prop_name, default)
-        psi = _ext('psi', 0.0)
-        beta = _ext('beta', 0.0)
-        lq = _ext('LQ', 0.0)
-        valence = _ext('valence', 0.0)
-        atp = 50.0
-        if hasattr(last_phys, 'energy') and hasattr(last_phys.energy, 'stamina'):
-            atp = last_phys.energy.stamina
-        elif isinstance(last_phys, dict):
-            atp = last_phys.get('stamina', 50.0)
+        psi = safe_get(last_phys, 'psi', 0.0)
+        beta = safe_get(last_phys, 'beta', 0.0)
+        lq = safe_get(last_phys, 'LQ', 0.0)
+        valence = safe_get(last_phys, 'valence', 0.0)
+        atp = safe_get(last_phys, 'stamina', 50.0)
         sigma = 0
         msg = ""
         if atp < 30.0:
@@ -663,45 +649,29 @@ class CosmicDynamics:
         return "ORBITAL", 0.0, msg
 
 def apply_somatic_feedback(physics_packet: PhysicsPacket, qualia: Any, config_ref=None) -> PhysicsPacket:
+    from bone_core import safe_get, safe_set
     target_cfg = config_ref or BoneConfig
     feedback = physics_packet.snapshot() if hasattr(physics_packet, "snapshot") else physics_packet
     tone_effects = LoreManifest.get_instance().get("PHYSICS_CONSTANTS", "TONE_EFFECTS") or {}
-    effects = tone_effects.get(qualia.tone, {})
-
-    def _add(f, k, d):
-        if hasattr(f, "energy") and hasattr(f.energy, k):
-            setattr(f.energy, k, getattr(f.energy, k) + d)
-        elif hasattr(f, "space") and hasattr(f.space, k):
-            setattr(f.space, k, getattr(f.space, k) + d)
-        elif hasattr(f, "matter") and hasattr(f.matter, k):
-            setattr(f.matter, k, getattr(f.matter, k) + d)
-        elif hasattr(f, k):
-            setattr(f, k, getattr(f, k) + d)
-
-    for key, delta in effects.items():
-        _add(feedback, key, delta)
     cfg_deep = getattr(target_cfg, "PHYSICS_DEEP", None)
+
+    def _add(k, d):
+        val = safe_get(feedback, k, 0.0)
+        safe_set(feedback, k, val + d)
+
+    for key, delta in tone_effects.get(qualia.tone, {}).items():
+        _add(key, delta)
     if "Gut Tightening" in qualia.somatic_sensation:
-        gut_d = getattr(cfg_deep, "SOMATIC_GUT_DRAG", 0.7) if cfg_deep else 0.7
-        _add(feedback, "narrative_drag", gut_d)
+        _add("narrative_drag", getattr(cfg_deep, "SOMATIC_GUT_DRAG", 0.7) if cfg_deep else 0.7)
     if "Electric Vibration" in qualia.somatic_sensation:
-        elec_v = getattr(cfg_deep, "SOMATIC_ELEC_VOLT", 0.8) if cfg_deep else 0.8
-        _add(feedback, "voltage", elec_v)
+        _add("voltage", getattr(cfg_deep, "SOMATIC_ELEC_VOLT", 0.8) if cfg_deep else 0.8)
     if "Golden Glow" in qualia.somatic_sensation:
-        glow_v = getattr(cfg_deep, "SOMATIC_GLOW_VALENCE", 0.5) if cfg_deep else 0.5
-        glow_p = getattr(cfg_deep, "SOMATIC_GLOW_PSI", 0.2) if cfg_deep else 0.2
-        _add(feedback, "valence", glow_v)
-        _add(feedback, "psi", glow_p)
+        _add("valence", getattr(cfg_deep, "SOMATIC_GLOW_VALENCE", 0.5) if cfg_deep else 0.5)
+        _add("psi", getattr(cfg_deep, "SOMATIC_GLOW_PSI", 0.2) if cfg_deep else 0.2)
     drag_floor = getattr(target_cfg.PHYSICS, "DRAG_FLOOR", 1.0)
     drag_halt = getattr(target_cfg.PHYSICS, "DRAG_HALT", 10.0)
-    if hasattr(feedback, "energy") and hasattr(feedback.energy, "voltage"):
-        feedback.energy.voltage = max(0.0, min(feedback.energy.voltage, 150.0))
-    elif hasattr(feedback, "voltage"):
-        feedback.voltage = max(0.0, min(feedback.voltage, 150.0))
-    if hasattr(feedback, "space") and hasattr(feedback.space, "narrative_drag"):
-        feedback.space.narrative_drag = max(drag_floor, min(feedback.space.narrative_drag, drag_halt))
-    elif hasattr(feedback, "narrative_drag"):
-        feedback.narrative_drag = max(drag_floor, min(feedback.narrative_drag, drag_halt))
+    safe_set(feedback, "voltage", max(0.0, min(safe_get(feedback, "voltage", 0.0), 150.0)))
+    safe_set(feedback, "narrative_drag", max(drag_floor, min(safe_get(feedback, "narrative_drag", 0.0), drag_halt)))
     return feedback
 
 class CycleStabilizer:
@@ -719,16 +689,12 @@ class CycleStabilizer:
 
     @staticmethod
     def _get(obj, f, default=0.0):
-        if isinstance(obj, dict): return obj.get(f, default)
-        return getattr(obj, f, getattr(getattr(obj, "energy", None), f, getattr(getattr(obj, "space", None), f, default)))
+        return safe_get(obj, f, default)
 
     @staticmethod
     def _set(obj, f, val):
-        if isinstance(obj, dict): obj[f] = val
-        else:
-            if hasattr(obj, "energy") and hasattr(obj.energy, f): setattr(obj.energy, f, val)
-            elif hasattr(obj, "space") and hasattr(obj.space, f): setattr(obj.space, f, val)
-            else: setattr(obj, f, val)
+        from bone_core import safe_set
+        safe_set(obj, f, val)
 
     def _on_domestication_penalty(self, payload):
         amount = payload.get("drag_penalty", 0.0)

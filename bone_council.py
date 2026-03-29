@@ -116,39 +116,15 @@ class TheVillageCouncil:
     @staticmethod
     def audit(p: Any, _bio_state: dict) -> list[str]:
         logs = []
-        def get_val(key: str, attr: str, default: float) -> float:
-            val = safe_get(p, key)
-            if val is None:
-                val = safe_get(p, attr)
-            if val is None:
-                for sub in ["energy", "space", "matter"]:
-                    sub_obj = safe_get(p, sub)
-                    if sub_obj:
-                        val = safe_get(sub_obj, key)
-                        if val is None:
-                            val = safe_get(sub_obj, attr)
-                        if val is not None: break
-            try:
-                return float(val) if val is not None else default
-            except (ValueError, TypeError):
-                return default
-        V = get_val("voltage", "V", 30.0)
-        F = get_val("narrative_drag", "F", 0.6)
-        P = get_val("stamina", "P", 100.0)
-        T = get_val("trauma", "T", 0.0)
-        beta = get_val("beta_index", "beta", 0.4)
-        S = get_val("S", "S", 0.3)
-        D = get_val("D", "D", 0.3)
-        C = get_val("C", "C", 0.2)
-        psi = get_val("psi", "psi", 0.2)
-        chi = get_val("chi", "chi", 0.2)
-        valence = get_val("valence", "valence", 0.0)
+
+        def gv(k, d=0.0): return float(safe_get(p, k, d) or d)
+        V, F, P, T = gv("V", 30.0), gv("F", 0.6), gv("P", 100.0), gv("T", 0.0)
+        beta, S, D, C = gv("beta", 0.4), gv("S", 0.3), gv("D", 0.3), gv("C", 0.2)
+        psi, chi, valence = gv("psi", 0.2), gv("chi", 0.2), gv("valence", 0.0)
+        phi, delta, lq, ros = gv("PHI_RES", 0.0), gv("DELTA", 0.0), gv("LQ", 0.0), gv("ROS", 0.0)
         vec = safe_get(p, "vector", {})
-        lam = float(safe_get(vec, "LAMBDA", 0.0)) if vec else 0.0
-        phi = get_val("resonance", "PHI_RES", 0.0)
-        delta = get_val("silence", "DELTA", 0.0)
-        lq = get_val("lq", "LQ", 0.0)
-        ros = get_val("ros", "ROS", 0.0)
+        lam = float(safe_get(vec, "LAMBDA", 0.0) or 0.0) if isinstance(vec, dict) else 0.0
+
         cfg = getattr(BoneConfig, "COUNCIL", None)
         if not cfg:
             return []
@@ -323,14 +299,12 @@ class CouncilChamber:
                 if actor in log and actor not in active_present:
                     active_present.append(actor)
         synergy_fired = False
-        for pair in itertools.combinations(sorted(active_present), 2):
-            chord_key = f"{pair[0]}|{pair[1]}"
-            if chord_key in synergy_map:
+        for a, b in itertools.combinations(sorted(active_present), 2):
+            if (chord_key := f"{a}|{b}") in synergy_map:
                 syn = synergy_map[chord_key]
                 transcript.append(f"\n{Prisma.WHT}{syn['log']}{Prisma.RST}")
-                if "adjustments" in syn:
-                    for k, v in syn["adjustments"].items():
-                        adjustments[k] = adjustments.get(k, 0) + v
+                for k, v in syn.get("adjustments", {}).items():
+                    adjustments[k] = adjustments.get(k, 0) + v
                 synergy_fired = True
                 mandates.append({"action": "SYNERGY_FIRED", "value": syn.get("name", chord_key)})
                 break

@@ -708,7 +708,7 @@ class TheOroboros:
                 safe_set(physics, "voltage", max(0, curr_volt - v_penalty))
                 msg = ux("soul_strings", "scar_voltage")
                 log.append(msg.format(name=scar.name))
-                elif scar.stat_affected == "trauma_baseline":
+            elif scar.stat_affected == "trauma_baseline":
                 trauma_vec = safe_get(bio, "trauma_vector") or {}
                 curr_existential = safe_get(trauma_vec, "EXISTENTIAL", 0.0)
                 safe_set(trauma_vec, "EXISTENTIAL", curr_existential + scar.value)
@@ -717,5 +717,4 @@ class TheOroboros:
                 safe_set(physics, "T", curr_t + scar.value)
                 msg = ux("soul_strings", "scar_frailty")
                 log.append(msg.format(name=scar.name))
-
         return log

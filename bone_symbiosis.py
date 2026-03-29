@@ -82,12 +82,8 @@ class DiagnosticConfidence:
         elif health.entropy < e_fatigue:
             raw_state = "FATIGUED"
         self.history.append(raw_state)
-        if raw_state in ["REFUSAL", "STABLE"]:
+        if raw_state in ["REFUSAL", "STABLE"] or (len(self.history) >= self.persistence_threshold and all(s == raw_state for s in list(self.history)[-self.persistence_threshold:])):
             self.current_diagnosis = raw_state
-        elif len(self.history) >= self.persistence_threshold:
-            recent = list(self.history)[-self.persistence_threshold:]
-            if all(s == raw_state for s in recent):
-                self.current_diagnosis = raw_state
         return self.current_diagnosis
 
 class SymbiontVoice:
@@ -306,38 +302,25 @@ class SymbiosisManager:
         if self.current_health.refusal_streak > r_streak:
             mods["simplify_instruction"] = True
         if physics:
-            somatic_lib = LoreManifest.get_instance(config_ref=self.cfg).get("SOMATIC_LIBRARY") or {}
-            if somatic_lib:
-                v = float(safe_get(physics, "voltage", 0.0))
-                d = float(safe_get(physics, "narrative_drag", 0.0))
-                chi = float(safe_get(physics, "chi", safe_get(physics, "entropy", 0.0)))
-                psi = float(safe_get(physics, "psi", 0.0))
-                v_key = "CRITICAL_HIGH" if v > 25.0 else "HIGH" if v > 15.0 else "VOID" if v < 2.0 else "LOW" if v < 5.0 else "NEUTRAL"
-                d_key = "MUD" if d > 5.0 else "SOLID" if d > 1.5 else "VOID" if d < 0.5 and psi > 0.6 else "FLOAT"
-                c_key = "DRIFT" if chi > 0.7 else "VOID" if psi > 0.8 else "LOCKED" if chi < 0.2 else "COHERENT"
-                m_key = "SOLID"
-                if v > 20 and d > 5:
-                    m_key = "MAGMA"
-                elif v > 20 and d < 2:
-                    m_key = "PLASMA"
-                elif v > 20:
-                    m_key = "ENERGY"
-                elif chi > 0.7:
-                    m_key = "GAS"
-                elif psi > 0.8:
-                    m_key = "VOID"
-                elif v > 10 and d < 2:
-                    m_key = "LIQUID"
-                tone = somatic_lib.get("TONE", {}).get(v_key)
-                pacing = somatic_lib.get("PACING", {}).get(v_key)
-                sensation = somatic_lib.get("SENSATION", {}).get(d_key)
-                focus = somatic_lib.get("FOCUS", {}).get(c_key)
-                matter = somatic_lib.get("MATTER", {}).get(m_key)
-                if tone: mods["system_directives"].append(f"SOMATIC TONE: {tone}")
-                if pacing: mods["system_directives"].append(f"SOMATIC PACING: {pacing}")
-                if sensation: mods["system_directives"].append(f"SOMATIC SENSATION: {sensation}")
-                if focus: mods["system_directives"].append(f"SOMATIC FOCUS: {focus}")
-                if matter: mods["system_directives"].append(f"SOMATIC STATE OF MATTER: {matter}")
+            s_lib = LoreManifest.get_instance(config_ref=self.cfg).get("SOMATIC_LIBRARY") or {}
+            v = float(safe_get(physics, "voltage", 0.0))
+            d = float(safe_get(physics, "narrative_drag", 0.0))
+            chi = float(safe_get(physics, "entropy", safe_get(physics, "chi", 0.0)))
+            psi = float(safe_get(physics, "psi", 0.0))
+            v_key = "CRITICAL_HIGH" if v > 25.0 else "HIGH" if v > 15.0 else "VOID" if v < 2.0 else "LOW" if v < 5.0 else "NEUTRAL"
+            d_key = "MUD" if d > 5.0 else "SOLID" if d > 1.5 else "VOID" if d < 0.5 and psi > 0.6 else "FLOAT"
+            c_key = "DRIFT" if chi > 0.7 else "VOID" if psi > 0.8 else "LOCKED" if chi < 0.2 else "COHERENT"
+            m_key = "SOLID"
+            if v > 20: m_key = "MAGMA" if d > 5 else "PLASMA" if d < 2 else "ENERGY"
+            elif chi > 0.7: m_key = "GAS"
+            elif psi > 0.8: m_key = "VOID"
+            elif v > 10 and d < 2: m_key = "LIQUID"
+            mappings = [("TONE", v_key, "TONE"), ("PACING", v_key, "PACING"),
+                        ("SENSATION", d_key, "SENSATION"), ("FOCUS", c_key, "FOCUS"),
+                        ("MATTER", m_key, "STATE OF MATTER")]
+            for lib_key, state_key, prefix in mappings:
+                if val := s_lib.get(lib_key, {}).get(state_key):
+                    mods["system_directives"].append(f"SOMATIC {prefix}: {val}")
         return mods
 
     def generate_anchor(self, current_state: Dict) -> str:

@@ -8,7 +8,8 @@ class _ConfigNode:
 
 def ux(section: str, key: str, default: Any = "") -> Any:
     from bone_core import LoreManifest
-    return LoreManifest.get_instance().get_ux(section, key, default)
+    data = LoreManifest.get_instance().get("ux_strings", section)
+    return data.get(key, default) if isinstance(data, dict) else default
 
 class BonePresets:
     ZEN_GARDEN = {"PHYSICS.VOLTAGE_FLOOR": 1.0, "PHYSICS.VOLTAGE_MAX": 25.0, "PHYSICS.DRAG_FLOOR": 0.5,

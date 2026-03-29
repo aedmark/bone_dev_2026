@@ -101,28 +101,13 @@ class EnneagramDriver:
     def weights(self):
         return LoreManifest.get_instance(config_ref=self.cfg).get("DRIVER_CONFIG", "ENNEAGRAM_WEIGHTS") or {}
 
-    @staticmethod
-    def _get_phys_attr(physics, key, default=None):
-        val = safe_get(physics, key)
-        if val is None:
-            for sub in ["energy", "space", "matter"]:
-                sub_obj = safe_get(physics, sub)
-                val = safe_get(sub_obj, key)
-                if val is not None: return val
-        return default if val is None else val
-
     def _calculate_raw_persona(self, physics, soul_ref=None) -> Tuple[str, str, str]:
-        raw_vec = self._get_phys_attr(physics, "vector", {})
+        raw_vec = safe_get(physics, "vector", {})
         p_vec = raw_vec if isinstance(raw_vec, dict) else {}
-        def safe_float(val, default=0.0):
-            try:
-                return float(val)
-            except (ValueError, TypeError):
-                return default
-        p_vol = safe_float(self._get_phys_attr(physics, "voltage", 0.0))
-        p_drag = safe_float(self._get_phys_attr(physics, "narrative_drag", 0.0))
-        p_coh = safe_float(self._get_phys_attr(physics, "kappa", 0.0))
-        p_zone = str(self._get_phys_attr(physics, "zone", ""))
+        p_vol = float(safe_get(physics, "voltage", 0.0) or 0.0)
+        p_drag = float(safe_get(physics, "narrative_drag", 0.0) or 0.0)
+        p_coh = float(safe_get(physics, "kappa", 0.0) or 0.0)
+        p_zone = str(safe_get(physics, "zone", ""))
         weights_cfg = self.weights
         if not isinstance(weights_cfg, dict) or len(weights_cfg) < 2:
             return "NARRATOR", "ACTIVE", "Config Error or Insufficient Personas"
@@ -381,9 +366,9 @@ class BoneConsultant:
         phys_vec = {}
         drag = 0.0
         if physics:
-            phys_beta = safe_get(physics, "beta_index", safe_get(safe_get(physics, "energy"), "beta_index", 0.0))
-            phys_vec = safe_get(physics, "vector", safe_get(safe_get(physics, "matter"), "vector", {}))
-            drag = safe_get(physics, "narrative_drag", safe_get(safe_get(physics, "space"), "narrative_drag", 0.0))
+            phys_beta = float(safe_get(physics, "beta", 0.0) or 0.0)
+            phys_vec = safe_get(physics, "vector", {})
+            drag = float(safe_get(physics, "narrative_drag", 0.0) or 0.0)
         self.state.B = (self.state.B * b_decay) + (phys_beta * b_growth)
         self.state.L = self.liminal_mod.analyze(user_text, phys_vec)
         self.state.O = self.syntax_mod.analyze(user_text, drag)
@@ -448,26 +433,15 @@ class SharedLatticeDriver:
             self.u.E_u = min(1.0, self.u.E_u + 0.1)
         else:
             self.u.E_u = max(0.0, self.u.E_u - 0.05)
-        def _in_get(k, sub, default):
-            val = safe_get(input_phys, k)
-            if val is None:
-                val = safe_get(safe_get(input_phys, sub), k)
-            return default if val is None else val
-        self.u.V_u = _in_get("voltage", "energy", self.u.V_u)
-        self.u.psi_u = _in_get("psi", "energy", self.u.psi_u)
-        self.u.chi_u = _in_get("entropy", "energy", self.u.chi_u)
-        self.u.F_u = _in_get("narrative_drag", "space", self.u.F_u)
-        def _sys_get(k, sub, default=0.0):
-            val = safe_get(sys_phys, k)
-            if val is None:
-                val = safe_get(safe_get(sys_phys, sub), k)
-            return default if val is None else val
-
-        sys_beta = _sys_get("beta_index", "energy", _sys_get("beta", "energy", 0.0))
-        sys_chi = _sys_get("chi", "energy", _sys_get("entropy", "energy", 0.0))
-        sys_val = _sys_get("valence", "energy", 0.0)
-        sys_psi = _sys_get("psi", "energy", 0.0)
-        sys_drag = _sys_get("narrative_drag", "space", 1.0)
+        self.u.V_u = float(safe_get(input_phys, "voltage", self.u.V_u) or self.u.V_u)
+        self.u.psi_u = float(safe_get(input_phys, "psi", self.u.psi_u) or self.u.psi_u)
+        self.u.chi_u = float(safe_get(input_phys, "chi", safe_get(input_phys, "entropy", self.u.chi_u)) or self.u.chi_u)
+        self.u.F_u = float(safe_get(input_phys, "narrative_drag", self.u.F_u) or self.u.F_u)
+        sys_beta = float(safe_get(sys_phys, "beta", 0.0) or 0.0)
+        sys_chi = float(safe_get(sys_phys, "chi", safe_get(sys_phys, "entropy", 0.0)) or 0.0)
+        sys_val = float(safe_get(sys_phys, "valence", 0.0) or 0.0)
+        sys_psi = float(safe_get(sys_phys, "psi", 0.0) or 0.0)
+        sys_drag = float(safe_get(sys_phys, "narrative_drag", 1.0) or 1.0)
         dp = safe_get(sys_phys, "drag_profile")
         dp_trauma = 0.0
         if dp is not None:
@@ -483,11 +457,7 @@ class SharedLatticeDriver:
         drag_diff = abs(sys_drag - self.u.F_u) / max(1.0, sys_drag)
         raw_phi = 1.0 - ((psi_diff + chi_diff + min(1.0, drag_diff)) / 3.0)
         self.shared.phi = (self.shared.phi * 0.7) + (raw_phi * 0.3)
-        energy_obj = safe_get(sys_phys, "energy")
-        if energy_obj is not None:
-            safe_set(energy_obj, "PHI_RES", self.shared.phi)
-        else:
-            safe_set(sys_phys, "PHI_RES", self.shared.phi)
+        safe_set(sys_phys, "PHI_RES", self.shared.phi)
         if time_delta > 15.0 and text.strip() and not text.startswith("["):
             self.shared.delta = min(1.0, time_delta / 300.0)
             if self.shared.phi > 0.7 and sys_beta > 0.6:

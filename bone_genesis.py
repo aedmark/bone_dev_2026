@@ -43,29 +43,17 @@ class BoneGenesis:
             cfg_gen = getattr(target_cfg, "GENESIS", None)
             dummy_v = getattr(cfg_gen, "DUMMY_VOLTAGE", 10.0) if cfg_gen else 10.0
             dummy_d = getattr(cfg_gen, "DUMMY_DRAG", 0.0) if cfg_gen else 0.0
-            strain_scalar = getattr(cfg_gen, "LEGACY_STRAIN_SCALAR", 0.1) if cfg_gen else 0.1
             dummy_phys = {"narrative_drag": dummy_d, "voltage": dummy_v}
-            trauma_proxy = {}
-            if hasattr(embryo.mind, "mem") and hasattr(embryo.mind.mem, "session_trauma_vector"):
-                trauma_proxy = embryo.mind.mem.session_trauma_vector or {}
+            trauma_proxy = getattr(getattr(embryo.mind, "mem", None), "session_trauma_vector", {}) or {}
             safe_bio_proxy = {"trauma_vector": trauma_proxy}
-            logs = oroboros.apply_legacy(dummy_phys, safe_bio_proxy)
-            if logs:
+            if logs := oroboros.apply_legacy(dummy_phys, safe_bio_proxy):
                 msg_scars = ux("genesis_strings", "legacy_scars") or "Legacy scars applied: {logs}"
                 events.log(msg_scars.format(logs=", ".join(logs)), "OROBOROS")
-                applied_drag = dummy_phys.get("narrative_drag", 0.0) - dummy_d
-                volt_penalty = dummy_v - dummy_phys.get("voltage", dummy_v)
-                if getattr(embryo.physics, "dynamics", None):
-                    if hasattr(embryo.physics.dynamics, "base_drag"):
-                        embryo.physics.dynamics.base_drag += applied_drag
-                    elif hasattr(embryo.physics.dynamics, "strain_gauge"):
-                        embryo.physics.dynamics.strain_gauge += (applied_drag * strain_scalar)
-                else:
-                    curr_drag = float(safe_get(embryo.physics, "narrative_drag", 0.0))
-                    safe_set(embryo.physics, "narrative_drag", curr_drag + applied_drag)
-                if volt_penalty > 0:
-                    curr_volt = float(safe_get(embryo.physics, "voltage", 0.0))
-                    safe_set(embryo.physics, "voltage", max(0.0, curr_volt - volt_penalty))
+                applied_drag = dummy_phys.get("narrative_drag", dummy_d) - dummy_d
+                if applied_drag != 0:
+                    safe_set(embryo.physics, "narrative_drag", float(safe_get(embryo.physics, "narrative_drag", 0.0) or 0.0) + applied_drag)
+                if (volt_penalty := dummy_v - dummy_phys.get("voltage", dummy_v)) > 0:
+                    safe_set(embryo.physics, "voltage", max(0.0, float(safe_get(embryo.physics, "voltage", 0.0) or 0.0) - volt_penalty))
                 if hasattr(embryo.mind, "mem"):
                     embryo.mind.mem.session_trauma_vector = safe_bio_proxy.get("trauma_vector", {})
         drivers = DriverRegistry(events, config_ref=target_cfg)
@@ -75,34 +63,22 @@ class BoneGenesis:
 
     @staticmethod
     def _summon_village(
-            events, embryo, akashic, suppressed: Set[str], boot_mode: str = "ADVENTURE", config_ref=None, lexicon_ref=None) -> Dict[
-        str, Any]:
-        gordon = (GordonKnot(events=events, mode=boot_mode, config_ref=config_ref)
-                  if "GORDON" not in suppressed
-                  else None)
-        navigator = (TheCartographer(embryo.shimmer, config_ref=config_ref)
-                     if {"CARTOGRAPHER", "NAVIGATOR"}.isdisjoint(suppressed)
-                     else None)
-        tinkerer = (TheTinkerer(gordon, events, akashic, config_ref=config_ref)
-                    if "TINKERER" not in suppressed
-                    else None)
-        bureau = TheBureau(config_ref=config_ref) if "BUREAU" not in suppressed else None
-        death_gen = None
-        if "DEATH" not in suppressed:
-            death_gen = DeathGen()
-            DeathGen.load_protocols()
-        town_hall = TownHall(gordon, events, embryo.shimmer, akashic, navigator, config_ref=config_ref)
-        repro = LiteraryReproduction(config_ref=config_ref)
-        LiteraryReproduction.load_genetics(config_ref=config_ref)
-        zen = ZenGarden(events, config_ref=config_ref)
-        critics = TheCriticsCircle(events, config_ref=config_ref)
-        therapy = TherapyProtocol(config_ref=config_ref)
-        limbo = LimboLayer(config_ref=config_ref)
-        kintsugi = KintsugiProtocol(config_ref=config_ref)
-        consultant = BoneConsultant(config_ref=config_ref, lexicon_ref=lexicon_ref)
-        therapist = TheTherapist(events, config_ref=config_ref) if "THERAPIST" not in suppressed else None
-        gravedigger = TheGraveDigger(gordon, events, config_ref=config_ref) if "GRAVEDIGGER" not in suppressed else None
-        return {"gordon": gordon, "navigator": navigator, "tinkerer": tinkerer, "death_gen": death_gen,
-                "bureau": bureau, "town_hall": town_hall, "repro": repro, "zen": zen, "critics": critics,
-                "therapy": therapy, "limbo": limbo, "kintsugi": kintsugi, "consultant": consultant,
-                "therapist": therapist, "gravedigger": gravedigger}
+            events, embryo, akashic, suppressed: Set[str], boot_mode: str = "ADVENTURE", config_ref=None, lexicon_ref=None) -> Dict[str, Any]:
+        c = config_ref
+        gordon = GordonKnot(events=events, mode=boot_mode, config_ref=c) if "GORDON" not in suppressed else None
+        navigator = TheCartographer(embryo.shimmer, config_ref=c) if {"CARTOGRAPHER", "NAVIGATOR"}.isdisjoint(suppressed) else None
+        tinkerer = TheTinkerer(gordon, events, akashic, config_ref=c) if "TINKERER" not in suppressed else None
+        bureau = TheBureau(config_ref=c) if "BUREAU" not in suppressed else None
+        death_gen = DeathGen() if "DEATH" not in suppressed else None
+        if death_gen: DeathGen.load_protocols()
+        LiteraryReproduction.load_genetics(config_ref=c)
+        return {
+            "gordon": gordon, "navigator": navigator, "tinkerer": tinkerer, "death_gen": death_gen, "bureau": bureau,
+            "town_hall": TownHall(gordon, events, embryo.shimmer, akashic, navigator, config_ref=c),
+            "repro": LiteraryReproduction(config_ref=c), "zen": ZenGarden(events, config_ref=c),
+            "critics": TheCriticsCircle(events, config_ref=c), "therapy": TherapyProtocol(config_ref=c),
+            "limbo": LimboLayer(config_ref=c), "kintsugi": KintsugiProtocol(config_ref=c),
+            "consultant": BoneConsultant(config_ref=c, lexicon_ref=lexicon_ref),
+            "therapist": TheTherapist(events, config_ref=c) if "THERAPIST" not in suppressed else None,
+            "gravedigger": TheGraveDigger(gordon, events, config_ref=c) if "GRAVEDIGGER" not in suppressed else None
+        }

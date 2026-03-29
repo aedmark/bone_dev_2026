@@ -751,17 +751,11 @@ class EndocrineSystem:
 
     def check_for_glimmer(self, feedback: Dict, harvest_hits: int) -> Optional[str]:
         glimmer_text = self.narrative_data.get("GLIMMER", {})
-        target_cfg = getattr(self, "cfg", BoneConfig)
-
-        def _safe_get(obj, key, default):
-            if isinstance(obj, dict): return obj.get(key, default)
-            return getattr(obj, key, default)
-
-        cfg = _safe_get(target_cfg, "BIO", None)
-        int_thresh = _safe_get(cfg, "GLIMMER_INTEGRITY_THRESH", 0.85) if cfg else 0.85
-        nov_thresh = _safe_get(cfg, "GLIMMER_NOVELTY_THRESH", 0.8) if cfg else 0.8
-        harv_min = _safe_get(cfg, "GLIMMER_HARVEST_MIN", 2) if cfg else 2
-        dop_min = _safe_get(cfg, "GLIMMER_DOPAMINE_MIN", 0.7) if cfg else 0.7
+        cfg = getattr(getattr(self, "cfg", BoneConfig), "BIO", None)
+        int_thresh = safe_get(cfg, "GLIMMER_INTEGRITY_THRESH", 0.85)
+        nov_thresh = safe_get(cfg, "GLIMMER_NOVELTY_THRESH", 0.8)
+        harv_min = safe_get(cfg, "GLIMMER_HARVEST_MIN", 2)
+        dop_min = safe_get(cfg, "GLIMMER_DOPAMINE_MIN", 0.7)
         if feedback.get("INTEGRITY", 0) > int_thresh:
             self.glimmers += 1
             self.serotonin += 0.2
@@ -1040,16 +1034,14 @@ class SynestheticCortex:
                 impulse.somatic_reflex = "Buzz (Excitement)"
         k_count = counts.get("kinetic", 0) + counts.get("explosive", 0)
         if k_count > 0:
-            adr_scalar = (
-                getattr(cortex_cfg, "ADRENALINE_KINETIC_SCALAR", 0.1)
+            adr_scalar = ( getattr(cortex_cfg, "ADRENALINE_KINETIC_SCALAR", 0.1)
                 if cortex_cfg
                 else 0.1)
             adr_boost = min(0.4, k_count * adr_scalar)
             impulse.adrenaline_delta += adr_boost
             impulse.cortisol_delta += 0.02
             impulse.stamina_impact -= 1.0
-        if voltage > (
-                getattr(cortex_cfg, "VOLTAGE_ARC_TRIGGER", 18.0) if cortex_cfg else 18.0):
+        if voltage > (getattr(cortex_cfg, "VOLTAGE_ARC_TRIGGER", 18.0) if cortex_cfg else 18.0):
             impulse.adrenaline_delta += 0.2
         if latency > (
                 getattr(cortex_cfg, "LATENCY_PENALTY_THRESHOLD", 5.0) if cortex_cfg else 5.0):
@@ -1068,73 +1060,31 @@ class SynestheticCortex:
         return impulse
 
     def _derive_reflex(self, physics: Dict, impulse: BiologicalImpulse) -> str:
-        strings = (LoreManifest.get_instance(config_ref=self.cfg).get("BODY_CONFIG", "QUALIA_STRINGS") or {}).get("reflexes", {})
-        if impulse.cortisol_delta > 0.1 and impulse.adrenaline_delta > 0.1:
-            return strings.get("fight_flight", "")
-        if impulse.dopamine_delta > 0.1 and impulse.adrenaline_delta > 0.1:
-            return strings.get("electric", "")
-        if impulse.adrenaline_delta > 0.1:
-            return strings.get("pupils", "")
-        if impulse.oxytocin_delta > 0.1 and impulse.dopamine_delta > 0.1:
-            return strings.get("glow", "")
-        if impulse.oxytocin_delta > 0.1:
-            return strings.get("chest", "")
-        if impulse.cortisol_delta > 0.1:
-            return strings.get("gut", "")
-        if impulse.dopamine_delta > 0.1:
-            return strings.get("spark", "")
-        if physics.get("psi", 0.0) > 0.6:
-            return strings.get("liminal", "")
-        if physics.get("entropy", 0.0) > 0.7:
-            return strings.get("static", "")
-        cortex_cfg = getattr(self.cfg, "CORTEX", None)
-        arc_trigger = getattr(cortex_cfg, "VOLTAGE_ARC_TRIGGER", 18.0) if cortex_cfg else 18.0
-        if physics.get("voltage", 0) > arc_trigger:
-            return strings.get("arcing", "")
-        if physics.get("voltage", 0) < 2.0:
-            return strings.get("dimming", "")
-        if physics.get("narrative_drag", 0) > 5.0:
-            return strings.get("sagging", "")
-        steady = strings.get("steady", "")
-        if self.last_reflex == steady:
-            return "..."
-        return steady
+        s = (LoreManifest.get_instance(config_ref=self.cfg).get("BODY_CONFIG", "QUALIA_STRINGS") or {}).get("reflexes", {})
+        arc_trigger = getattr(getattr(self.cfg, "CORTEX", None), "VOLTAGE_ARC_TRIGGER", 18.0)
+        checks = [(impulse.cortisol_delta > 0.1 and impulse.adrenaline_delta > 0.1, "fight_flight"),(impulse.dopamine_delta > 0.1 and impulse.adrenaline_delta > 0.1, "electric"),
+            (impulse.adrenaline_delta > 0.1, "pupils"), (impulse.oxytocin_delta > 0.1 and impulse.dopamine_delta > 0.1, "glow"),
+            (impulse.oxytocin_delta > 0.1, "chest"), (impulse.cortisol_delta > 0.1, "gut"), (impulse.dopamine_delta > 0.1, "spark"),
+            (physics.get("psi", 0.0) > 0.6, "liminal"), (physics.get("entropy", 0.0) > 0.7, "static"), (physics.get("voltage", 0) > arc_trigger, "arcing"),
+            (physics.get("voltage", 0) < 2.0, "dimming"), (physics.get("narrative_drag", 0) > 5.0, "sagging")]
+        for cond, key in checks:
+            if cond: return s.get(key, "")
+        steady = s.get("steady", "")
+        return "..." if self.last_reflex == steady else steady
 
     @staticmethod
     def get_current_qualia(impulse: Optional[BiologicalImpulse] = None, config_ref=None) -> Qualia:
-        target_cfg = config_ref or BoneConfig
-        strings = LoreManifest.get_instance(config_ref=target_cfg).get("BODY_CONFIG", "QUALIA_STRINGS") or {}
-        tones = strings.get("tones", {})
-        hints = strings.get("hints", {})
+        strings = LoreManifest.get_instance(config_ref=config_ref or BoneConfig).get("BODY_CONFIG", "QUALIA_STRINGS") or {}
         if not impulse:
-            return Qualia(Prisma.GRY, "...", tones.get("steady", ""), hints.get("observe", ""))
-        color = Prisma.GRY
-        if impulse.oxytocin_delta > 0.2:
-            color = Prisma.MAG
-        elif impulse.dopamine_delta > 0.2:
-            color = Prisma.CYN
-        elif impulse.cortisol_delta > 0.2:
-            color = Prisma.OCHRE
-        elif impulse.adrenaline_delta > 0.2:
-            color = Prisma.RED
-        tone = tones.get("steady", "")
-        deltas = {"urgent": impulse.adrenaline_delta, "vibrating": impulse.dopamine_delta,
-                  "strained": impulse.cortisol_delta, "resonant": impulse.oxytocin_delta}
-        dominant_key, max_delta = max(deltas.items(), key=lambda item: item[1])
-        if max_delta > 0.2:
-            tone = tones.get(dominant_key, "")
-        hint = hints.get("observe", "")
-        if impulse.cortisol_delta > 0.05:
-            hint = hints.get("guarded", "")
-        elif impulse.adrenaline_delta > 0.05:
-            hint = hints.get("fast", "")
-        elif impulse.oxytocin_delta > 0.05:
-            hint = hints.get("connect", "")
-        elif impulse.dopamine_delta > 0.05:
-            hint = hints.get("explore", "")
-        return Qualia(color_code=color,
-                      somatic_sensation=impulse.somatic_reflex or strings.get("reflexes", {}).get("steady", ""),
-                      tone=tone, internal_monologue_hint=hint, )
+            return Qualia(Prisma.GRY, "...", strings.get("tones", {}).get("steady", ""), strings.get("hints", {}).get("observe", ""))
+
+        profiles = [(impulse.oxytocin_delta, Prisma.MAG, "resonant", "connect"), (impulse.dopamine_delta, Prisma.CYN, "vibrating", "explore"),
+            (impulse.cortisol_delta, Prisma.OCHRE, "strained", "guarded"), (impulse.adrenaline_delta, Prisma.RED, "urgent", "fast")]
+        dom_val, color, t_key, h_key = max(profiles, key=lambda x: x[0])
+        tone = strings.get("tones", {}).get(t_key, "") if dom_val > 0.2 else strings.get("tones", {}).get("steady", "")
+        hint = strings.get("hints", {}).get(h_key, "") if dom_val > 0.05 else strings.get("hints", {}).get("observe", "")
+        color = color if dom_val > 0.2 else Prisma.GRY
+        return Qualia(color, impulse.somatic_reflex or strings.get("reflexes", {}).get("steady", ""), tone, hint)
 
     def apply_impulse(self, impulse: BiologicalImpulse) -> float:
         if not self.bio or not hasattr(self.bio, "endo") or not self.bio.endo:

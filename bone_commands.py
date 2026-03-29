@@ -184,6 +184,7 @@ class CommandProcessor:
         self.registry.register("/inject", self._cmd_inject, _cd("inject") or "Forces payload into the EventBus")
         self.registry.register("/trauma", self._cmd_trauma, "DEV: Spikes trauma and drops health to test The Therapist.")
         self.registry.register("/podcast", self._cmd_podcast, _cd("podcast") or "Assembles the Parliament to generate a podcast script")
+        self.registry.register("/journal", self._cmd_journal, _cd("journal") or "Generates a narrative diary entry of the session so far")
 
     def execute(self, text: str):
         if hasattr(self.interface.eng, "reality_stack"):
@@ -531,4 +532,36 @@ class CommandProcessor:
                 self.interface.log(log)
         except Exception as e:
             self.interface.log(f"{self.P.RED}Podcast generation failed: {e}{self.P.RST}")
+        return True
+
+    def _cmd_journal(self, _parts):
+        self.interface.log(f"{self.P.CYN}📖 Compiling narrative journal...{self.P.RST}")
+        cortex = getattr(self.interface.eng, "cortex", None)
+        llm = getattr(cortex, "llm", None) if cortex else None
+        if not llm or not cortex.dialogue_buffer:
+            self.interface.log(f"{self.P.RED}Error: Cortex LLM unavailable or memory buffer is empty.{self.P.RST}")
+            return True
+        try:
+            import time
+            history = "\n".join(cortex.dialogue_buffer)
+            prompt = ("SYSTEM_INSTRUCTION: You are the archivist of a surreal cybernetic journey. "
+                "Read the following recent dialogue history and write a whimsical, reflective, first-person diary entry (1-2 paragraphs) "
+                "summarizing the events and emotional undercurrents so far. Focus on the mood, the strange tension, and the overarching theme. "
+                "DO NOT use AI-isms. Write like a traveler recording a dream.\n\n"
+                f"DIALOGUE HISTORY:\n{history}")
+            journal_entry = llm.generate(prompt, {"temperature": 0.85, "max_tokens": 300})
+            self.interface.log(f"\n{self.P.WHT}{journal_entry}{self.P.RST}\n")
+            file_name = f"journal_entry_{int(time.time())}.txt"
+            from bone_utils import TheSubstrate
+            if not hasattr(self.interface.eng, "substrate"):
+                self.interface.eng.substrate = TheSubstrate(getattr(self.interface.eng, "events", None))
+            substrate = self.interface.eng.substrate
+            substrate.queue_write(file_name, self.P.strip(journal_entry))
+            stamina = self.interface.get_resource("stamina")
+            write_logs, cost = substrate.execute_writes(stamina)
+            self.interface.modify_resource("stamina", -cost)
+            for log in write_logs:
+                self.interface.log(log)
+        except Exception as e:
+            self.interface.log(f"{self.P.RED}Journal generation failed: {e}{self.P.RST}")
         return True

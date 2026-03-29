@@ -58,10 +58,10 @@ class ObservationPhase(SimulationPhase):
             if ctx.time_delta > 600.0 and hasattr(self.eng, "bio") and hasattr(self.eng.bio, "mito"):
                 hours_passed = min(24.0, ctx.time_delta / 3600.0)
                 if self.eng.bio.biometrics:
-                    target_cfg = self.eng.bone_config if hasattr(self.eng, "bone_config") else BoneConfig
+                    target_cfg = getattr(self.eng, "bone_config", BoneConfig)
                     max_h = getattr(target_cfg, "MAX_HEALTH", 100.0)
                     self.eng.bio.biometrics.health = min(max_h, self.eng.bio.biometrics.health + (hours_passed * 10.0))
-                target_cfg = self.eng.bone_config if hasattr(self.eng, "bone_config") else BoneConfig
+                target_cfg = getattr(self.eng, "bone_config", BoneConfig)
                 max_atp = getattr(target_cfg, "MAX_ATP", 100.0)
                 self.eng.bio.mito.state.atp_pool = min(max_atp, self.eng.bio.mito.state.atp_pool + (hours_passed * 25.0))
                 ctx.log(f"{Prisma.GRN}[BIO]: Retroactive metabolism applied for {hours_passed:.1f} hours of absence. ATP and Health restored.{Prisma.RST}")
@@ -241,7 +241,7 @@ class GatekeeperPhase(SimulationPhase):
     def __init__(self, engine_ref):
         super().__init__(engine_ref)
         self.name = "GATEKEEP"
-        target_cfg = self.eng.bone_config if hasattr(self.eng, "bone_config") else BoneConfig
+        target_cfg = getattr(self.eng, "bone_config", BoneConfig)
         self.gatekeeper = TheGatekeeper(self.eng.lex, config_ref=target_cfg)
 
     def run(self, ctx: CycleContext):
@@ -279,16 +279,12 @@ class GatekeeperPhase(SimulationPhase):
             if audit_result:
                 if audit_result.get("block", False):
                     ctx.refusal_triggered = True
-                    injunction_fb = ux("cycle_strings", "gatekeep_bureau_injunction")
+                    ui_msg = audit_result.get("ui", ux("cycle_strings", "gatekeep_bureau_injunction"))
                     log_msg = ux("cycle_strings", "gatekeep_log_bureau_block")
-                    ctx.refusal_packet = {"type": "BUREAU_BLOCK", "ui": audit_result.get("ui", injunction_fb), "logs": [log_msg]
-                    if log_msg else [], "metrics": (self.eng.get_metrics()
-                    if hasattr(self.eng, "get_metrics") else {}), }
+                    ctx.refusal_packet = {"type": "BUREAU_BLOCK", "ui": ui_msg, "logs": [log_msg] if log_msg else [], "metrics": getattr(self.eng, "get_metrics", lambda: {})()}
                     return ctx
                 if self.eng.bio and self.eng.bio.mito:
-                    fine_msg = ux("cycle_strings", "gatekeep_bureau_fine")
-                    self.eng.bio.mito.adjust_atp(
-                        audit_result.get("atp_gain", 0.0), fine_msg)
+                    self.eng.bio.mito.adjust_atp(audit_result.get("atp_gain", 0.0), ux("cycle_strings", "gatekeep_bureau_fine"))
                 if audit_result.get("log"):
                     ctx.log(audit_result["log"])
                 if audit_result.get("ui"):
@@ -323,7 +319,7 @@ class MetabolismPhase(SimulationPhase):
         if gov_msg:
             self.eng.events.log(gov_msg, "GOV")
         physics.manifold = self.eng.bio.governor.mode
-        target_cfg = self.eng.bone_config if hasattr(self.eng, "bone_config") else BoneConfig
+        target_cfg = getattr(self.eng, "bone_config", BoneConfig)
         max_v = getattr(target_cfg.PHYSICS, "VOLTAGE_MAX", 20.0)
         bio_feedback = {"INTEGRITY": getattr(physics, "truth_ratio", 1.0),
                         "STATIC": getattr(physics, "repetition", 0.0),
@@ -365,7 +361,7 @@ class MetabolismPhase(SimulationPhase):
 
     def _check_narcolepsy(self, ctx: CycleContext):
         atp = self.eng.bio.mito.state.atp_pool
-        target_cfg = self.eng.bone_config if hasattr(self.eng, "bone_config") else BoneConfig
+        target_cfg = getattr(self.eng, "bone_config", BoneConfig)
         starvation = getattr(target_cfg.BIO, "ATP_STARVATION", 5.0)
         trigger = (atp < (starvation * 0.5)) or (self.eng.tick_count > 0 and self.eng.tick_count % 100 == 0)
         if trigger and hasattr(self.eng.mind, "dreamer"):
@@ -376,7 +372,7 @@ class MetabolismPhase(SimulationPhase):
             defrag_msg = self.eng.mind.dreamer.run_defragmentation(self.eng.mind.mem)
             if defrag_msg:
                 ctx.log(f"{Prisma.CYN}🧹 {defrag_msg}{Prisma.RST}")
-            target_cfg = self.eng.bone_config if hasattr(self.eng, "bone_config") else BoneConfig
+            target_cfg = getattr(self.eng, "bone_config", BoneConfig)
             reboot_val = getattr(target_cfg, "MAX_ATP", 100.0) * 0.33
             self.eng.bio.mito.state.atp_pool = reboot_val
             ctx.bio_result["atp"] = reboot_val
@@ -423,7 +419,7 @@ class MetabolismPhase(SimulationPhase):
                 if hasattr(self.eng.mind.mem, "record_scar"):
                     self.eng.mind.mem.record_scar(self.eng.kintsugi.active_koan or "Healed Rupture", ctx.physics)
                 if self.eng.bio.biometrics:
-                    target_cfg = self.eng.bone_config if hasattr(self.eng, "bone_config") else BoneConfig
+                    target_cfg = getattr(self.eng, "bone_config", BoneConfig)
                     self.eng.bio.biometrics.stamina = min(target_cfg.MAX_STAMINA, self.eng.bio.biometrics.stamina + heal_amt, )
                 if self.eng.therapy.check_progress(
                         ctx.physics, current_stamina, self.eng.trauma_accum, qualia):
@@ -431,11 +427,11 @@ class MetabolismPhase(SimulationPhase):
                     ctx.log(f"{Prisma.GRN}{msg}{Prisma.RST}")
                     t_heal = ctx.limits.get("THERAPY_HEAL_AMT", 5.0)
                     if self.eng.bio.biometrics:
-                        target_cfg = self.eng.bone_config if hasattr(self.eng, "bone_config") else BoneConfig
+                        target_cfg = getattr(self.eng, "bone_config", BoneConfig)
                         self.eng.bio.biometrics.health = min(target_cfg.MAX_HEALTH, self.eng.bio.biometrics.health + t_heal)
 
     def _check_autophagy(self, ctx: CycleContext):
-        target_cfg = self.eng.bone_config if hasattr(self.eng, "bone_config") else BoneConfig
+        target_cfg = getattr(self.eng, "bone_config", BoneConfig)
         starvation_thresh = getattr(target_cfg.BIO, "ATP_STARVATION", 5.0)
         respiration = ctx.bio_result.get("respiration", "")
         if self.eng.bio.mito.state.atp_pool <= starvation_thresh or respiration == "NECROSIS":
@@ -611,7 +607,7 @@ class MachineryPhase(SimulationPhase):
             ctx.log(self.eng.gordon.acquire(new_item))
 
     def _handle_theremin_discharge(self, ctx):
-        target_cfg = self.eng.bone_config if hasattr(self.eng, "bone_config") else BoneConfig
+        target_cfg = getattr(self.eng, "bone_config", BoneConfig)
         max_hp = getattr(target_cfg, "MAX_HEALTH", 100.0)
         damage = max_hp * 0.25
         if self.eng.bio.biometrics:
@@ -720,7 +716,7 @@ class SoulPhase(SimulationPhase):
                     ctx.physics.voltage += 5.0
                     ctx.record_flux("SOUL", "VOLTAGE", old_volts, ctx.physics.voltage, "MYTH_BUFF")
                     if self.eng.bio.biometrics:
-                        target_cfg = self.eng.bone_config if hasattr(self.eng, "bone_config") else BoneConfig
+                        target_cfg = getattr(self.eng, "bone_config", BoneConfig)
                         max_s = getattr(target_cfg, "MAX_STAMINA", 100.0)
                         self.eng.bio.biometrics.stamina = min(max_s, self.eng.bio.biometrics.stamina + 5.0)
         if self.eng.gordon and self.eng.tinkerer:
@@ -762,10 +758,7 @@ class SoulPhase(SimulationPhase):
 
     @staticmethod
     def _consult_council(traits: Any) -> List[Dict]:
-        t_map = (
-            traits.to_dict()
-            if hasattr(traits, "to_dict")
-            else traits.__dict__ if hasattr(traits, "__dict__") else traits)
+        t_map = _safe_dict(traits)
         get_t = lambda k: t_map.get(k, t_map.get(k.lower(), 0.0))
         council_data = LoreManifest.get_instance().get("COUNCIL_DATA") or {}
         mandates_text = council_data.get("SOUL_MANDATES", {})
@@ -1008,7 +1001,7 @@ class CognitionPhase(SimulationPhase):
                     self.eng.stamina = max(0.0, self.eng.stamina - shock_cost)
         self.eng.mind.mem.encode(ctx.clean_words, ctx.physics.to_dict(), "GEODESIC")
         if ctx.is_alive and ctx.clean_words:
-            target_cfg = self.eng.bone_config if hasattr(self.eng, "bone_config") else BoneConfig
+            target_cfg = getattr(self.eng, "bone_config", BoneConfig)
             max_h = getattr(target_cfg, "MAX_HEALTH", 100.0)
             current_h = max(0.0, self.eng.health)
             if self.eng.bio.biometrics:
@@ -1050,7 +1043,7 @@ class SensationPhase(SimulationPhase):
         ctx.physics = apply_somatic_feedback(ctx.physics, qualia)
         self.synesthesia.apply_impulse(impulse)
         if impulse.stamina_impact != 0:
-            target_cfg = self.eng.bone_config if hasattr(self.eng, "bone_config") else BoneConfig
+            target_cfg = getattr(self.eng, "bone_config", BoneConfig)
             max_s = float(getattr(target_cfg, "MAX_STAMINA", 100.0))
             impact = float(impulse.stamina_impact)
             if getattr(self.eng, "bio", None) and getattr(self.eng.bio, "biometrics", None):
@@ -1091,26 +1084,18 @@ class PhaseExecutor:
 
     @staticmethod
     def _audit_flux(ctx, phase, before, after):
-        def _safe_get(obj, key):
-            try:
-                val = obj.get(key) if isinstance(obj, dict) else getattr(obj, key, 0.0)
-                return float(val) if val is not None else 0.0
-            except (TypeError, ValueError, AttributeError):
-                return 0.0
-        b_v = _safe_get(before, "voltage")
-        a_v = _safe_get(after, "voltage")
-        b_d = _safe_get(before, "narrative_drag")
-        a_d = _safe_get(after, "narrative_drag")
-        if abs(b_v - a_v) > 0.01:
-            ctx.record_flux(phase, "voltage", b_v, a_v, "PHASE_DELTA")
-        if abs(b_d - a_d) > 0.01:
-            ctx.record_flux(phase, "drag", b_d, a_d, "PHASE_DELTA")
+        b_v = float(safe_get(before, "voltage", 0.0) or 0.0)
+        a_v = float(safe_get(after, "voltage", 0.0) or 0.0)
+        b_d = float(safe_get(before, "narrative_drag", 0.0) or 0.0)
+        a_d = float(safe_get(after, "narrative_drag", 0.0) or 0.0)
+        if abs(b_v - a_v) > 0.01: ctx.record_flux(phase, "voltage", b_v, a_v, "PHASE_DELTA")
+        if abs(b_d - a_d) > 0.01: ctx.record_flux(phase, "drag", b_d, a_d, "PHASE_DELTA")
 
 class CycleSimulator:
     def __init__(self, engine_ref):
         self.eng = engine_ref
         self.shared_governor = self.eng.bio.governor
-        target_cfg = self.eng.bone_config if hasattr(self.eng, "bone_config") else BoneConfig
+        target_cfg = getattr(self.eng, "bone_config", BoneConfig)
         self.stabilizer = CycleStabilizer(self.eng.events, self.shared_governor, config_ref=target_cfg)
         self.executor = PhaseExecutor()
         self.full_pipeline: List[SimulationPhase] = [ObservationPhase(engine_ref), MaintenancePhase(engine_ref),
@@ -1180,7 +1165,7 @@ class GeodesicOrchestrator:
             ctx.time_delta = getattr(self.eng, "current_time_delta", 0.0)
             ctx.user_state = self.eng.shared_lattice.u
             ctx.shared_dyn = self.eng.shared_lattice.shared
-            target_cfg = self.eng.bone_config if hasattr(self.eng, "bone_config") else BoneConfig
+            target_cfg = getattr(self.eng, "bone_config", BoneConfig)
             cfg_obj = getattr(target_cfg, "CYCLE", None)
             ctx.limits = vars(cfg_obj) if hasattr(cfg_obj, "__dict__") else (cfg_obj or {})
             if (hasattr(self.eng, "observer")

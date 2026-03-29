@@ -389,23 +389,17 @@ class GeodesicRenderer:
                 unique_logs.append(l)
                 seen.add(l)
         structured = []
-        c_kws = ux("log_composer", "critical_keywords")
-        b_kws = ux("log_composer", "bio_keywords")
-        t_kws = ux("log_composer", "town_hall_keywords")
-        p_kws = ux("log_composer", "paradox_keywords")
-        i_kws = ux("log_composer", "item_keywords")
-        prefixes = ux("log_composer", "log_prefixes")
+        prefixes = ux("log_composer", "log_prefixes") or {}
+        mappings = [(ux("log_composer", "critical_keywords") or [], Prisma.RED, prefixes.get('critical', '► ')),
+            (ux("log_composer", "bio_keywords") or [], Prisma.CYN, prefixes.get('bio', '• ')),
+            (ux("log_composer", "town_hall_keywords") or [], Prisma.CYN, prefixes.get('town_hall', '📜 ')),
+            (ux("log_composer", "paradox_keywords") or [], Prisma.MAG, prefixes.get('paradox', '🌷 ')),
+            (ux("log_composer", "item_keywords") or [], Prisma.YEL, prefixes.get('item', '★ '))]
         for log in unique_logs:
-            if any(k in log for k in c_kws):
-                structured.append(f"{Prisma.RED}{prefixes.get('critical', '► ')}{log}{Prisma.RST}")
-            elif any(k in log for k in b_kws):
-                structured.append(f"{Prisma.CYN}{prefixes.get('bio', '• ')}{log}{Prisma.RST}")
-            elif any(k in log for k in t_kws):
-                structured.append(f"{Prisma.CYN}{prefixes.get('town_hall', '📜 ')}{log}{Prisma.RST}")
-            elif any(k in log for k in p_kws):
-                structured.append(f"{Prisma.MAG}{prefixes.get('paradox', '🌷 ')}{log}{Prisma.RST}")
-            elif any(k in log for k in i_kws):
-                structured.append(f"{Prisma.YEL}{prefixes.get('item', '★ ')}{log}{Prisma.RST}")
+            for kws, color, pref in mappings:
+                if any(k in log for k in kws):
+                    structured.append(f"{color}{pref}{log}{Prisma.RST}")
+                    break
             else:
                 structured.append(f"{Prisma.GRY}{prefixes.get('default', '• ')}{log}{Prisma.RST}")
         return structured
@@ -605,9 +599,7 @@ class CycleReporter:
             self.renderer = self.renderers[mode]
             self.current_mode = mode
             return
-        strunk_instance = None
-        if hasattr(self.eng, "village") and isinstance(self.eng.village, dict):
-            strunk_instance = self.eng.village.get("bureau")
+        strunk_instance = getattr(self.eng, "bureau", None)
         self.renderer = get_renderer(self.eng, self.vsl_chroma, strunk_instance, getattr(self, "valve", None), mode=mode)
         self.renderers[mode] = self.renderer
         self.current_mode = mode
@@ -673,15 +665,10 @@ class CycleReporter:
             ctx.logs[:0] = flux_block
 
     def _package_bureaucracy(self, ctx):
-        bureau = getattr(self.eng, "bureau", None) or (self.eng.village.get("bureau") if hasattr(self.eng, "village") and isinstance(self.eng.village, dict) else None)
-        if not bureau:
-            return None
+        if not getattr(self.eng, "bureau", None): return None
         if ctx.is_bureaucratic or ctx.bureau_ui:
-            base = (self.renderer.base_renderer
-                    if hasattr(self.renderer, "base_renderer")
-                    else self.renderer)
-            bio_res = ctx.bio_result or {}
+            base = getattr(self.renderer, "base_renderer", self.renderer)
             return {"type": "BUREAUCRACY", "ui": ctx.bureau_ui,
                     "logs": base.compose_logs(ctx.logs, self.eng.events.flush(), self.eng.tick_count),
-                    "metrics": self.eng.get_metrics(bio_res.get("atp", 0.0)), }
+                    "metrics": self.eng.get_metrics((ctx.bio_result or {}).get("atp", 0.0)), }
         return None

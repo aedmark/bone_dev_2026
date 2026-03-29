@@ -32,10 +32,9 @@ def _reorthogonalize(M):
         for k in range(j):
             u = [out[i][k] for i in range(n)]
             proj = sum(v[idx] * u[idx] for idx in range(n))
-            v = [v[idx] - proj * u[idx] for idx in range(n)]
+            v = [v[i] - proj * u[i] for i in range(n)]
         norm = max(1e-10, sum(x * x for x in v) ** 0.5)
-        for i in range(n):
-            out[i][j] = v[i] / norm
+        for i in range(n): out[i][j] = v[i] / norm
     return out
 
 def _householder(v):
@@ -158,23 +157,15 @@ class SubconsciousStrata:
         self.M_t = self._load_matrix()
         self.Q_n = self._load_q_matrix()
 
-    def _load_matrix(self):
-        if os.path.exists(self.matrix_filepath):
-            try:
-                with open(self.matrix_filepath, "r") as f:
-                    return json.load(f)
-            except Exception:
-                pass
-        return [[0.0 for _ in range(8)] for _ in range(8)]
+    def _load_json(self, path, default_factory):
+        if os.path.exists(path):
+            try: return json.load(open(path, "r"))
+            except Exception: pass
+        return default_factory()
 
-    def _load_q_matrix(self):
-        if os.path.exists(self.q_filepath):
-            try:
-                with open(self.q_filepath, "r") as f:
-                    return json.load(f)
-            except Exception:
-                pass
-        return _identity(8)
+    def _load_matrix(self): return self._load_json(self.matrix_filepath, lambda: [[0.0] * 8 for _ in range(8)])
+
+    def _load_q_matrix(self): return self._load_json(self.q_filepath, lambda: _identity(8))
 
     def save_matrix(self):
         try:
@@ -621,17 +612,12 @@ class MycelialNetwork:
         return log_msg, ([victim] if victim else []) + new_wells
 
     def _filter_valuable_matter(self, words: List[str]) -> List[str]:
-        valuable = []
-        for w in words:
-            if self.lex and hasattr(self.lex, "SOLVENTS"):
-                if len(w) <= 4 and w in self.lex.SOLVENTS:
-                    continue
+        solvents = self.lex.SOLVENTS if self.lex and hasattr(self.lex, "SOLVENTS") else set()
+        def is_valuable(w):
+            if len(w) <= 4 and w in solvents: return False
             cat = self.lex.get_current_category(w) if self.lex else None
-            if cat and cat != "void":
-                valuable.append(w)
-            elif len(w) > 4:
-                valuable.append(w)
-        return valuable
+            return (cat and cat != "void") or len(w) > 4
+        return [w for w in words if is_valuable(w)]
 
     def _detect_new_wells(self, words, tick):
         new_wells = []
@@ -1069,12 +1055,8 @@ class LiteraryReproduction:
         return child_id, child_genome
 
     def crossover(self, parent_a_id, parent_a_bio, parent_b_path):
-        try:
-            with open(parent_b_path, "r") as f:
-                parent_b_data = json.load(f)
-        except (IOError, json.JSONDecodeError):
-            err_msg = ux("spore_strings", "repro_corrupt_spore")
-            return None, err_msg
+        try: parent_b_data = json.load(open(parent_b_path, "r"))
+        except Exception: return None, ux("spore_strings", "repro_corrupt_spore")
         parent_b_id = parent_b_data.get("session_id", "UNKNOWN")
         trauma_a = parent_a_bio.get("trauma_vector", {})
         trauma_b = parent_b_data.get("trauma_vector", {})

@@ -11,30 +11,14 @@ from bone_physics import PhysicsDelta
 from bone_types import Prisma, PhysicsPacket
 
 def _hydrate_packet(p: Any) -> PhysicsPacket:
-    if isinstance(p, PhysicsPacket):
-        return p
+    if isinstance(p, PhysicsPacket): return p
     packet = PhysicsPacket.void_state()
-
-    def _get(k, default=None):
-        if isinstance(p, dict):
-            return p.get(k, (p.get("energy") or {}).get(k, (p.get("space") or {}).get(k, (p.get("matter") or {}).get(k, default))))
-        if hasattr(p, k): return getattr(p, k)
-        if hasattr(p, "energy") and hasattr(p.energy, k): return getattr(p.energy, k)
-        if hasattr(p, "space") and hasattr(p.space, k): return getattr(p.space, k)
-        if hasattr(p, "matter") and hasattr(p.matter, k): return getattr(p.matter, k)
-        return default
-
-    for k in ("voltage", "narrative_drag", "vector", "clean_words", "counts", "zone", "kappa", "raw_text"):
-        val = _get(k)
+    keys = {"voltage": "energy", "kappa": "energy", "narrative_drag": "space", "zone": "space",
+            "vector": "matter", "clean_words": "matter", "counts": "matter", "raw_text": "matter"}
+    for k, domain in keys.items():
+        val = safe_get(p, k)
         if val is not None:
-            if k in ["voltage", "kappa"] and hasattr(packet, "energy"):
-                setattr(packet.energy, k, val)
-            elif k in ["narrative_drag", "zone"] and hasattr(packet, "space"):
-                setattr(packet.space, k, val)
-            elif k in ["vector", "clean_words", "counts", "raw_text"] and hasattr(packet, "matter"):
-                setattr(packet.matter, k, val)
-            else:
-                setattr(packet, k, val)
+            safe_set(packet, k, val)
     return packet
 
 class TheTinkerer:
@@ -47,21 +31,13 @@ class TheTinkerer:
         self._delta_cache = None
         self._inventory_hash = 0
 
-    def calculate_passive_deltas(
-            self, inventory_data: List[Dict]) -> List[PhysicsDelta]:
-        state_tuple = tuple(
-            sorted(
-                f"{i.get('name', '')}:{','.join(sorted(i.get('passive_traits', [])))}"
-                for i in inventory_data))
-        current_hash = hash(state_tuple)
+    def calculate_passive_deltas(self, inventory_data: List[Dict]) -> List[PhysicsDelta]:
+        all_traits = [t for item in inventory_data for t in item.get("passive_traits", [])]
+        current_hash = hash(tuple(sorted(all_traits)))
         if self._delta_cache is not None and current_hash == self._inventory_hash:
             return self._delta_cache
         deltas = []
-        trait_counts = {"HEAVY_LOAD": 0, "TIME_DILATION": 0, "ENTROPY_BUFFER": 0}
-        for item_data in inventory_data:
-            for t in item_data.get("passive_traits", []):
-                if t in trait_counts:
-                    trait_counts[t] += 1
+        trait_counts = {t: all_traits.count(t) for t in ["HEAVY_LOAD", "TIME_DILATION", "ENTROPY_BUFFER"]}
         cfg = getattr(self.cfg, "VILLAGE", None)
         if trait_counts["HEAVY_LOAD"] > 0:
             h_mult = getattr(cfg, "TINKER_HEAVY_LOAD_MULT", 0.7) if cfg else 0.7
@@ -190,24 +166,18 @@ class MirrorGraph:
         cfg = getattr(self.cfg, "VILLAGE", None)
         step = getattr(cfg, "MIRROR_STAT_STEP", 0.1) if cfg else 0.1
         rot_ent = getattr(cfg, "MIRROR_ROT_ENTROPY_MIN", 0.5) if cfg else 0.5
-        if "!" in txt or volt > self.cfg.COUNCIL.MANIC_VOLTAGE_TRIGGER:
-            self.stats["WAR"] += step
-        if "?" in txt:
-            self.stats["ART"] += step
-        if packet.narrative_drag > self.cfg.PHYSICS.DRAG_HALT:
-            self.stats["LAW"] += step
-        if packet.vector and packet.vector.get("ENT", 0.0) > rot_ent:
-            self.stats["ROT"] += step
+        manic = getattr(getattr(self.cfg, "COUNCIL", None), "MANIC_VOLTAGE_TRIGGER", 18.0)
+        drag_halt = getattr(getattr(self.cfg, "PHYSICS", None), "DRAG_HALT", 10.0)
+        self.stats["WAR"] += step if "!" in txt or volt > manic else 0.0
+        self.stats["ART"] += step if "?" in txt else 0.0
+        self.stats["LAW"] += step if packet.narrative_drag > drag_halt else 0.0
+        self.stats["ROT"] += step if packet.vector and packet.vector.get("ENT", 0.0) > rot_ent else 0.0
         total = sum(self.stats.values())
         cap = getattr(cfg, "MIRROR_STAT_CAP", 5.0) if cfg else 5.0
-        decay = getattr(cfg, "MIRROR_DECAY", 0.8) if cfg else 0.8
-        floor = getattr(cfg, "MIRROR_DECAY_FLOOR", 0.1) if cfg else 0.1
         if total > cap:
-            compression_ratio = (cap / total) * decay
-            for k in self.stats:
-                self.stats[k] *= compression_ratio
-                if self.stats[k] < floor:
-                    self.stats[k] = 0.0
+            compression = (cap / total) * getattr(cfg, "MIRROR_DECAY", 0.8)
+            floor = getattr(cfg, "MIRROR_DECAY_FLOOR", 0.1)
+            self.stats = {k: (v * compression if (v * compression) >= floor else 0.0) for k, v in self.stats.items()}
 
     def get_reflection_modifiers(self) -> Dict:
         if not self.stats or sum(self.stats.values()) == 0:
@@ -288,10 +258,9 @@ class TheCartographer:
         return logs
 
     def _init_genesis(self):
-        manifest = LoreManifest.get_instance()
-        msg_name = manifest.get_ux("village_strings", "genesis_name")
-        msg_atmos = manifest.get_ux("village_strings", "genesis_atmos")
-        msg_smell = manifest.get_ux("village_strings", "genesis_smell")
+        msg_name = ux("village_strings", "genesis_name")
+        msg_atmos = ux("village_strings", "genesis_atmos")
+        msg_smell = ux("village_strings", "genesis_smell")
         self.world_graph["GENESIS_POINT"] = GeniusLoci(id="GENESIS_POINT", name=msg_name, atmosphere=msg_atmos, smell=msg_smell, )
 
     @staticmethod
@@ -339,17 +308,17 @@ class TheCartographer:
         d_halt = getattr(phys_cfg, "DRAG_HALT", 10.0) if phys_cfg else 10.0
 
         if packet.voltage > v_trig:
-            suffix = manifest.get_ux("village_strings", "loci_flux_suffix")
-            atmosphere = manifest.get_ux("village_strings", "loci_flux_atmos")
-            smell = manifest.get_ux("village_strings", "loci_flux_smell")
+            suffix = ux("village_strings", "loci_flux_suffix")
+            atmosphere = ux("village_strings", "loci_flux_atmos")
+            smell = ux("village_strings", "loci_flux_smell")
         elif packet.narrative_drag > d_halt:
-            suffix = manifest.get_ux("village_strings", "loci_deep_suffix")
-            atmosphere = manifest.get_ux("village_strings", "loci_deep_atmos")
-            smell = manifest.get_ux("village_strings", "loci_deep_smell")
+            suffix = ux("village_strings", "loci_deep_suffix")
+            atmosphere = ux("village_strings", "loci_deep_atmos")
+            smell = ux("village_strings", "loci_deep_smell")
         else:
-            suffix = manifest.get_ux("village_strings", "loci_prime_suffix")
-            atmosphere = manifest.get_ux("village_strings", "loci_prime_atmos")
-            smell = manifest.get_ux("village_strings", "loci_prime_smell")
+            suffix = ux("village_strings", "loci_prime_suffix")
+            atmosphere = ux("village_strings", "loci_prime_atmos")
+            smell = ux("village_strings", "loci_prime_smell")
         final_name = f"{name} {suffix}".upper()
         return GeniusLoci(id=node_id, name=final_name, atmosphere=atmosphere, smell=smell)
 

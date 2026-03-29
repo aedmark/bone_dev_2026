@@ -100,19 +100,10 @@ class TheBureau:
         if bio_state.get("health", 100.0) < self.cfg.BUREAU.MIN_HEALTH_TO_AUDIT:
             return None
 
-        def _get(p, k, d=0.0):
-            val = safe_get(p, k)
-            if val is None:
-                for sub in ["energy", "matter", "space"]:
-                    sub_obj = safe_get(p, sub)
-                    val = safe_get(sub_obj, k)
-                    if val is not None: break
-            return d if val is None else val
-
-        vol = float(_get(physics, "voltage", 0.0))
-        clean_words = _get(physics, "clean_words", [])
-        raw_text = str(_get(physics, "raw_text", ""))
-        truth = float(_get(physics, "truth_ratio", 0.0))
+        vol = float(safe_get(physics, "voltage", 0.0) or 0.0)
+        clean_words = safe_get(physics, "clean_words", [])
+        raw_text = str(safe_get(physics, "raw_text", ""))
+        truth = float(safe_get(physics, "truth_ratio", 0.0) or 0.0)
         word_count = len(raw_text.split())
         if raw_text.startswith("/") or word_count < self.cfg.BUREAU.MIN_WORD_COUNT:
             return None
@@ -369,20 +360,12 @@ class GriefProtocol:
 
     def attend_wake(self, shared_lattice, phys) -> str:
         g_pool = shared_lattice.shared.g_pool if shared_lattice else 0
-        sys_g = int(safe_get(phys, "G", safe_get(safe_get(phys, "energy"), "glimmers", 0)))
-
+        sys_g = int(safe_get(phys, "G", 0))
         if g_pool >= 1 or sys_g >= 1:
             if g_pool >= 1 and shared_lattice:
                 shared_lattice.shared.g_pool -= 1
             elif phys:
-                if safe_get(phys, "G") is not None and safe_get(phys, "G") >= 1:
-                    safe_set(phys, "G", safe_get(phys, "G") - 1)
-                else:
-                    energy = safe_get(phys, "energy")
-                    if safe_get(energy, "glimmers") is not None and safe_get(energy, "glimmers") >= 1:
-                        safe_set(energy, "glimmers", safe_get(energy, "glimmers") - 1)
-                    else:
-                        safe_set(phys, "glimmers", safe_get(phys, "glimmers", 1) - 1)
+                safe_set(phys, "G", max(0, sys_g - 1))
             if shared_lattice:
                 shared_lattice.u.T_u = max(0.0, shared_lattice.u.T_u - 2.0)
             if self.eng and hasattr(self.eng, "trauma_accum"):
@@ -541,15 +524,7 @@ class TheFolly:
         self.global_tastings = Counter(data.get("global_tastings", {}))
 
     def audit_desire(self, physics, stamina):
-        def _get(p, k, d=0.0):
-            val = safe_get(p, k)
-            if val is None:
-                for sub in ["energy", "space"]:
-                    sub_obj = safe_get(p, sub)
-                    val = safe_get(sub_obj, k)
-                    if val is not None: break
-            return d if val is None else val
-        voltage = float(_get(physics, "voltage", 0.0))
+        voltage = float(safe_get(physics, "voltage", 0.0) or 0.0)
         cfg = getattr(self.cfg, "FOLLY", None)
         m_volt = getattr(cfg, "MAUSOLEUM_VOLTAGE", 80.0) if cfg else 80.0
         m_stam = getattr(cfg, "MAUSOLEUM_STAMINA", 20.0) if cfg else 20.0
@@ -765,11 +740,7 @@ class ChronosKeeper:
                     print(f"{Prisma.RED}{msg.format(name=name, e=e)}{Prisma.RST}")
 
     def get_crash_path(self, prefix="crash"):
-        if not os.path.exists(self.CRASH_DIR):
-            try:
-                os.makedirs(self.CRASH_DIR)
-            except OSError:
-                pass
+        os.makedirs(self.CRASH_DIR, exist_ok=True)
         try:
             files = sorted([f for f in os.listdir(self.CRASH_DIR) if f.startswith(prefix)])
             target_cfg = self.eng.bone_config if self.eng and hasattr(self.eng, "bone_config") else BoneConfig

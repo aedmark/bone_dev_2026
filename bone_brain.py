@@ -201,13 +201,10 @@ class TheCortex:
     def from_engine(cls, engine_ref, llm_client=None):
         target_cfg = getattr(engine_ref, "bone_config", BoneConfig)
         services = CortexServices(events=engine_ref.events, lore=LoreManifest.get_instance(config_ref=target_cfg),
-                                  lexicon=engine_ref.lex, inventory=engine_ref.gordon,
-                                  consultant=(engine_ref.consultant if hasattr(engine_ref, "consultant") else None),
-                                  cycle_controller=engine_ref.cycle_controller,
-                                  symbiosis=getattr(engine_ref, "symbiosis", SymbiosisManager(engine_ref.events)),
-                                  mind_memory=engine_ref.mind.mem, bio=getattr(engine_ref, "bio", None),
-                                  host_stats=getattr(engine_ref, "host_stats", None),
-                                  village=getattr(engine_ref, "village", None), config_ref=target_cfg)
+            lexicon=engine_ref.lex, inventory=engine_ref.gordon, consultant=getattr(engine_ref, "consultant", None),
+            cycle_controller=engine_ref.cycle_controller, symbiosis=getattr(engine_ref, "symbiosis", SymbiosisManager(engine_ref.events)),
+            mind_memory=engine_ref.mind.mem, bio=getattr(engine_ref, "bio", None), host_stats=getattr(engine_ref, "host_stats", None),
+            village=getattr(engine_ref, "village", None), config_ref=target_cfg)
         instance = cls(services, llm_client)
         instance.active_mode = engine_ref.config.get("boot_mode", "ADVENTURE").upper()
         if instance.active_mode not in BonePresets.MODES:
@@ -554,57 +551,32 @@ class TheCortex:
                     tinkerer.to_dict() if hasattr(tinkerer, "to_dict") else {})
         mode_settings = BonePresets.MODES.get(
             self.active_mode, BonePresets.MODES["ADVENTURE"])
-        if self.active_mode == "CONVERSATION":
-            mind["lens"] = "CONVERSATIONALIST"
-            mind["role"] = "The Conversationalist"
-        elif self.active_mode == "ADVENTURE":
-            mind["lens"] = "ARCHITECT"
-            mind["role"] = "The Architect"
-        elif self.active_mode == "TECHNICAL":
-            mind["lens"] = "SYSTEM_KERNEL"
-            mind["role"] = "The System Kernel"
-        elif self.active_mode == "CREATIVE":
-            mind["lens"] = "CATALYST"
-            mind["role"] = "The Catalyst"
-        full_state = {
-            "bio": bio, "physics": phys, "mind": mind, "soul": soul_data, "world": world,
+        mode_map = {"CONVERSATION": ("CONVERSATIONALIST", "The Conversationalist"), "TECHNICAL": ("SYSTEM_KERNEL", "The System Kernel"), "CREATIVE": ("CATALYST", "The Catalyst")}
+        mind["lens"], mind["role"] = mode_map.get(self.active_mode, ("ARCHITECT", "The Architect"))
+        full_state = {"bio": bio, "physics": phys, "mind": mind, "soul": soul_data, "world": world,
             "village": village_data, "user_profile": {"name": "Traveler"},
             "vsl": (self.consultant.state.__dict__ if self.consultant and hasattr(self.consultant, "state") else {}),
             "meta": {"timestamp": time.time(), "mode_settings": mode_settings, "active_mode": self.active_mode},
             "dialogue_history": self.dialogue_buffer, "recent_logs": sim_result.get("logs", []), }
         if hasattr(self.svc, "symbiosis") and self.svc.symbiosis:
-            anchor_text = self.svc.symbiosis.generate_anchor(full_state)
-            full_state["reality_directive"] = anchor_text
+            full_state["reality_directive"] = self.svc.symbiosis.generate_anchor(full_state)
+        mind.setdefault("style_directives", [])
         traits = soul_data.get("traits", {})
         if traits:
             dom_trait = max(traits, key=traits.get)
-            dom_val = traits[dom_trait]
-            if dom_val > 0.6:
-                posture = f"SOUL POSTURE: Your dominant trait is {dom_trait} ({dom_val * 100:.0f}%). Let this subtly infect your tone."
-                if "style_directives" not in full_state["mind"]:
-                    full_state["mind"]["style_directives"] = []
-                full_state["mind"]["style_directives"].append(posture)
-        if self.svc.inventory and hasattr(self.svc.inventory, "inventory") and self.svc.inventory.inventory:
-            inv_list = [str(item) for item in self.svc.inventory.inventory]
-            inv_str = ", ".join(inv_list)
-            inv_directive = f"CRITICAL CONTEXT: The user is currently holding these items: [{inv_str}]. DO NOT describe them as being on the floor or in the environment. They are physically in the user's possession."
-            if "style_directives" not in full_state["mind"]:
-                full_state["mind"]["style_directives"] = []
-            full_state["mind"]["style_directives"].append(inv_directive)
+            if traits[dom_trait] > 0.6:
+                mind["style_directives"].append(f"SOUL POSTURE: Your dominant trait is {dom_trait} ({traits[dom_trait] * 100:.0f}%). Let this subtly infect your tone.")
+        if getattr(self.svc.inventory, "inventory", None):
+            inv_str = ", ".join(str(item) for item in self.svc.inventory.inventory)
+            mind["style_directives"].append(f"CRITICAL CONTEXT: The user is currently holding these items: [{inv_str}]. DO NOT describe them as being on the floor or in the environment. They are physically in the user's possession.")
         if phys.get("psi", 0.0) > 0.6:
-            anti_ai_directive = "CRITICAL OVERRIDE: Void proximity is high. Do not use AI-isms (delve, tapestry, superficial lists, rule of three). Write like a flawed, opinionated human."
-            if "style_directives" not in full_state["mind"]:
-                full_state["mind"]["style_directives"] = []
-            full_state["mind"]["style_directives"].append(anti_ai_directive)
+            mind["style_directives"].append("CRITICAL OVERRIDE: Void proximity is high. Do not use AI-isms (delve, tapestry, superficial lists, rule of three). Write like a flawed, opinionated human.")
         if not self.dialogue_buffer:
-            bedrock_directive = (f"CRITICAL BEDROCK OVERRIDE: You have just awoken from a stateless purge (The Ralph Apoptosis). "
+            mind["style_directives"].append(f"CRITICAL BEDROCK OVERRIDE: You have just awoken from a stateless purge (The Ralph Apoptosis). "
                 f"You have no conversational memory, but your body persists. "
                 f"Your Stamina is {phys.get('p', 100)}, your Health is {phys.get('h', 100)}. "
                 f"Assume your role as {mind.get('role', 'The Architect')} and orient immediately to the present physical state. "
                 f"DO NOT reference the loss of memory. Act continuously from the substrate.")
-            if "style_directives" not in full_state["mind"]:
-                full_state["mind"]["style_directives"] = []
-            full_state["mind"]["style_directives"].append(bedrock_directive)
         return full_state
 
     def learn_from_response(self, text):
@@ -802,18 +774,10 @@ class DreamEngine:
         return None
 
     def hallucinate(self, _vector: Dict[str, float], trauma_level: float = 0.0) -> Tuple[str, float]:
-        category = "SURREAL"
-        if trauma_level > 0.5:
-            category = "NIGHTMARES"
+        category = "NIGHTMARES" if trauma_level > 0.5 else "SURREAL"
         templates = self.dream_lore.get(category, [])
         if isinstance(templates, dict):
-            flat_list = []
-            for k, v in templates.items():
-                if isinstance(v, list):
-                    flat_list.extend(v)
-                else:
-                    flat_list.append(v)
-            templates = flat_list
+            templates = [item for v in templates.values() for item in (v if isinstance(v, list) else [v])]
         if not templates:
             return "The walls breathe.", 0.1
         from bone_utils import TheTclWeaver

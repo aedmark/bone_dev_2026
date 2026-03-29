@@ -82,25 +82,19 @@ class TheAkashicRecord:
             self.events.publish("SCAR_RECORDED", {"concept": concept, "coords": coords})
 
     def _mutate_system_prompts(self, concept: str, coords: dict):
-        prompt_path = os.path.join(getattr(self.lore, "DATA_DIR", "lore"), "system_prompts.json")
-        if not os.path.exists(prompt_path):
-            prompt_path = "system_prompts.json"
         try:
-            prompts = self.lore.get("system_prompts") or {}
-            if "EPIGENETIC_SCARS" not in prompts.get("GLOBAL_BASELINE", {}):
-                prompts.setdefault("GLOBAL_BASELINE", {})["EPIGENETIC_SCARS"] = []
-            tension = coords.get("beta", 0.0)
-            axiom = f"SCAR TISSUE [{concept.upper()}]: The system previously collapsed here (Tension: {tension}). You must structurally avoid repeating the failure that caused this."
-            if axiom not in prompts["GLOBAL_BASELINE"]["EPIGENETIC_SCARS"]:
-                prompts["GLOBAL_BASELINE"]["EPIGENETIC_SCARS"].append(axiom)
-            with open(prompt_path, "w", encoding="utf-8") as f:
-                json.dump(prompts, f, indent=2)
-            self.lore.inject("system_prompts", prompts)
-            if self.events:
-                self.events.log(f"{Prisma.VIOLET}🧬 [EPIGENETICS] Scar '{concept}' compiled into bedrock.{Prisma.RST}", "SYS")
+            prompts = self.lore.get("SYSTEM_PROMPTS") or {}
+            epigenetic_list = prompts.setdefault("GLOBAL_BASELINE", {}).setdefault("EPIGENETIC_SCARS", [])
+            axiom = f"SCAR TISSUE [{concept.upper()}]: The system previously collapsed here (Tension: {coords.get('beta', 0.0)}). You must structurally avoid repeating the failure that caused this."
+            if axiom not in epigenetic_list:
+                epigenetic_list.append(axiom)
+                self.lore.inject("SYSTEM_PROMPTS", prompts)
+                self.save_to_disk("system_prompts", prompts)
+                if self.events:
+                    self.events.log(f"{Prisma.VIOLET}🧬 [EPIGENETICS] Scar '{concept}' compiled into bedrock.{Prisma.RST}", "SYS")
         except Exception as e:
             if self.events:
-                self.events.log(f"{Prisma.RED}Failed to mutate system_prompts.json: {e}{Prisma.RST}", "SYS")
+                self.events.log(f"{Prisma.RED}Failed to mutate system_prompts: {e}{Prisma.RST}", "SYS")
 
     def bury_memory(self, concept: str, data: Dict):
         self.subconscious_strata.append({"concept": concept, "data": data})
@@ -118,20 +112,14 @@ class TheAkashicRecord:
 
     @staticmethod
     def _extract_dominant_trigram(physics: Any) -> str:
-        vector = safe_get(physics, "vector", safe_get(safe_get(physics, "matter"), "vector", {}))
-        if not vector or not isinstance(vector, dict):
-            return "KAN"
-        valid_items = {k: v for k, v in vector.items() if v is not None}
-        if not valid_items:
-            return "KAN"
+        vector = safe_get(physics, "vector", {})
+        valid_items = {k: v for k, v in vector.items() if v is not None} if isinstance(vector, dict) else {}
+        if not valid_items: return "KAN"
         dom = max(valid_items, key=valid_items.get)
         constants = LoreManifest.get_instance().get("PHYSICS_CONSTANTS") or {}
         trigrams = constants.get("TRIGRAM_MAP", {})
-        fallback_mapping = constants.get("FALLBACK_TRIGRAMS", {"CHI": "KAN", "LAMBDA": "KUN"})
-        fallback_default = constants.get("FALLBACK_DEFAULT", "KAN")
-        if dom in trigrams and len(trigrams[dom]) > 1:
-            return trigrams[dom][1]
-        return fallback_mapping.get(dom, fallback_default)
+        if dom in trigrams and len(trigrams[dom]) > 1: return trigrams[dom][1]
+        return constants.get("FALLBACK_TRIGRAMS", {}).get(dom, constants.get("FALLBACK_DEFAULT", "KAN"))
 
     def _on_mythology_update(self, payload):
         if not payload or not isinstance(payload, dict):
@@ -157,17 +145,11 @@ class TheAkashicRecord:
 
     @staticmethod
     def calculate_manifold_shift(theta: str, e: Dict[str, float]) -> Dict[str, float]:
-        bias = 0.0
-        scalar = 1.0
         theta_upper = theta.upper()
-        constants = LoreManifest.get_instance().get("PHYSICS_CONSTANTS", "MANIFOLD_SHIFTS") or {}
-        for word, b_val in constants.get("BIAS_LENSES", {}).items():
-            if word in theta_upper:
-                bias += b_val
-        for word, s_val in constants.get("SCALAR_LENSES", {}).items():
-            if word in theta_upper:
-                scalar *= s_val
-        for key, params in constants.get("VECTOR_THRESHOLDS", {}).items():
+        c = LoreManifest.get_instance().get("PHYSICS_CONSTANTS", "MANIFOLD_SHIFTS") or {}
+        bias = sum(b_val for w, b_val in c.get("BIAS_LENSES", {}).items() if w in theta_upper)
+        scalar = math.prod(s_val for w, s_val in c.get("SCALAR_LENSES", {}).items() if w in theta_upper)
+        for key, params in c.get("VECTOR_THRESHOLDS", {}).items():
             if e.get(key, 0.5) > params.get("threshold", 0.7):
                 scalar *= params.get("scalar_mod", 1.0)
                 bias += params.get("bias_mod", 0.0)
