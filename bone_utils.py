@@ -415,8 +415,7 @@ class DSPyCritic:
                 model_name = cfg_val("model", "vsl-hermes")
                 base_url = cfg_val("base_url", "http://127.0.0.1:11434/v1").replace("/chat/completions", "")
                 if provider == "ollama" or provider == "lm_studio":
-                    self.lm = dspy.LM(model=f"openai/{model_name}", api_base=base_url,
-                                      api_key="local-model-doesnt-need-a-key")
+                    self.lm = dspy.LM(model=f"openai/{model_name}", api_base=base_url, api_key="local-model-doesnt-need-a-key")
                 else:
                     self.lm = dspy.LM(model=model_name)
                 dspy.settings.configure(lm=self.lm)
