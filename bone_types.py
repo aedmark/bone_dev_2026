@@ -42,10 +42,7 @@ class Prisma:
 
     @classmethod
     def paint(cls, text: str, color_key: str = "0") -> str:
-        if len(color_key) == 1:
-            code = cls._COLOR_MAP.get(color_key, cls.WHT)
-        else:
-            code = cls._COLOR_MAP.get(str(color_key)[0].upper(), cls.WHT)
+        code = cls._COLOR_MAP.get(str(color_key)[0].upper(), cls.WHT)
         txt = str(text)
         return f"{code}{txt}" if txt.endswith(cls.RST) else f"{code}{txt}{cls.RST}"
 
@@ -231,10 +228,11 @@ class PhysicsPacket:
                 setattr(getattr(self, domain), t_key, value)
             return
         d = self.__dict__
-        if "energy" in d and hasattr(d["energy"], key): setattr(d["energy"], key, value)
-        elif "space" in d and hasattr(d["space"], key): setattr(d["space"], key, value)
-        elif "matter" in d and hasattr(d["matter"], key): setattr(d["matter"], key, value)
-        else: super().__setattr__(key, value)
+        for domain in ("energy", "space", "matter"):
+            if domain in d and hasattr(d[domain], key):
+                setattr(d[domain], key, value)
+                return
+        super().__setattr__(key, value)
 
     def __getitem__(self, key):
         try:

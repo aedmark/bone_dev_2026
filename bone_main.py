@@ -80,20 +80,19 @@ class SessionGuardian:
         print(f"\n{Prisma.paint(halt_msg, 'R')}")
         if self.engine_instance:
             self.engine_instance.shutdown()
-        if exc_type:
-            is_interrupt = issubclass(exc_type, KeyboardInterrupt)
-            if not is_interrupt:
-                crash_msg = ux("main_strings", "crash_msg")
-                print(f"{Prisma.RED}{crash_msg.format(exc_val=exc_val)}{Prisma.RST}")
-                if getattr(self.engine_instance, "boot_mode", "") == "TECHNICAL":
-                    full_trace = "".join(traceback.format_exception(exc_type, exc_val, exc_tb))
-                    print(f"{Prisma.GRY}{full_trace}{Prisma.RST}")
-                else:
-                    lattice_msg = ux("main_strings", "lattice_collapsed")
-                    print(f"{Prisma.GRY}{lattice_msg}{Prisma.RST}")
+        is_interrupt = exc_type and issubclass(exc_type, KeyboardInterrupt)
+        if exc_type and not is_interrupt:
+            crash_msg = ux("main_strings", "crash_msg")
+            print(f"{Prisma.RED}{crash_msg.format(exc_val=exc_val)}{Prisma.RST}")
+            if getattr(self.engine_instance, "boot_mode", "") == "TECHNICAL":
+                full_trace = "".join(traceback.format_exception(exc_type, exc_val, exc_tb))
+                print(f"{Prisma.GRY}{full_trace}{Prisma.RST}")
+            else:
+                lattice_msg = ux("main_strings", "lattice_collapsed")
+                print(f"{Prisma.GRY}{lattice_msg}{Prisma.RST}")
         conn_msg = ux("main_strings", "conn_severed")
         print(f"{Prisma.GRY}{conn_msg}{Prisma.RST}")
-        return exc_type is KeyboardInterrupt
+        return is_interrupt
 
 class ConfigWizard:
     CONFIG_FILE = "bone_config.json"

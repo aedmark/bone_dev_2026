@@ -79,13 +79,10 @@ class RandomRetrievalNavigator:
                 "note": self._generate_path_note(mode, tagged_results)}
 
     def _find_structural_match(self, coords: Coordinates) -> LibraryNode:
-        candidates = [
-            node for node in self.library.nodes
-            if abs(node.coords.S - coords.S) < 0.15
-            and abs(node.coords.D - coords.D) < 0.2
-            and abs(node.coords.C - coords.C) < 0.25
-        ]
-        return candidates[0] if candidates else self.library.root
+        return next((n for n in self.library.nodes
+                     if abs(n.coords.S - coords.S) < 0.15
+                     and abs(n.coords.D - coords.D) < 0.2
+                     and abs(n.coords.C - coords.C) < 0.25), self.library.root)
 
     def _generate_traversal_path(self, start_node: LibraryNode, r_val: float) -> list[LibraryNode]:
         path = [start_node]
@@ -114,20 +111,12 @@ class RandomRetrievalNavigator:
         return path
 
     def _get_neighbors(self, node: LibraryNode) -> list[LibraryNode]:
-        neighbors = []
-        if node.parent_id:
-            parent = next((n for n in self.library.nodes if n.id == node.parent_id), None)
-            if parent:
-                neighbors.append(parent)
-        children = [n for n in self.library.nodes if n.parent_id == node.id]
-        neighbors.extend(children)
-        if node.parent_id:
-            siblings = [n for n in self.library.nodes if n.parent_id == node.parent_id and n.id != node.id]
-            neighbors.extend(siblings)
-        if node.refs:
-            refs = [n for n in self.library.nodes if n.id in node.refs]
-            neighbors.extend(refs)
-        return neighbors
+        return [
+            n for n in self.library.nodes
+            if n.id == node.parent_id or n.parent_id == node.id or
+            (node.parent_id and n.parent_id == node.parent_id and n.id != node.id) or
+            n.id in node.refs
+        ]
 
     def _most_structural_neighbor(self, neighbors: list[LibraryNode], target_node: LibraryNode) -> LibraryNode:
         return max(neighbors, key=lambda current: self._structural_similarity(current, target_node))
@@ -421,13 +410,10 @@ class DSPyCritic:
             try:
                 from bone_core import safe_get
                 from bone_presets import BoneConfig
-                provider = safe_get(self.cfg, "PROVIDER", safe_get(self.cfg, "provider", getattr(BoneConfig, "PROVIDER", "ollama")))
-                model_name = safe_get(self.cfg, "MODEL", safe_get(self.cfg, "model", getattr(BoneConfig, "MODEL", "vsl-hermes")))
-                base_url = safe_get(self.cfg, "BASE_URL", safe_get(self.cfg, "base_url", getattr(BoneConfig, "BASE_URL", "http://127.0.0.1:11434/v1/chat/completions")))
-                if base_url:
-                    base_url = base_url.replace("/chat/completions", "")
-                else:
-                    base_url = "http://127.0.0.1:11434/v1"
+                cfg_val = lambda k, d: safe_get(self.cfg, k.upper(), safe_get(self.cfg, k.lower(), getattr(BoneConfig, k.upper(), d)))
+                provider = cfg_val("provider", "ollama")
+                model_name = cfg_val("model", "vsl-hermes")
+                base_url = cfg_val("base_url", "http://127.0.0.1:11434/v1").replace("/chat/completions", "")
                 if provider == "ollama" or provider == "lm_studio":
                     self.lm = dspy.LM(model=f"openai/{model_name}", api_base=base_url,
                                       api_key="local-model-doesnt-need-a-key")

@@ -328,9 +328,8 @@ class ArchetypeArbiter:
                 if rule.get("trigram") == trigram_name:
                     required_lens = rule.get("lens")
                     required_soul = rule.get("soul")
-                    match_lens = (required_lens == physics_lens) if required_lens else True
-                    match_soul = (required_soul == soul_archetype) if required_soul else True
-                    if match_lens and match_soul:
+                    if (not required_lens or required_lens == physics_lens) and \
+                        (not required_soul or required_soul == soul_archetype):
                         msg = rule.get("msg") or ux("core_strings", "arb_resonance")
                         return rule["result"], rule.get("source", "COSMIC"), msg
         cfg_core = getattr(target_cfg, "CORE", None)
