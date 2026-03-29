@@ -168,14 +168,10 @@ class RandomRetrievalNavigator:
         return sorted(collected, key=lambda x: x.final_score, reverse=True)
 
     def _vector_similarity(self, v1: list[float], v2: list[float]) -> float:
-        if not v1 or not v2:
-            return 0.5
-        dot = sum(val1 * val2 for val1, val2 in zip(v1, v2))
-        mag1 = math.sqrt(sum(val ** 2 for val in v1))
-        mag2 = math.sqrt(sum(val ** 2 for val in v2))
-        if mag1 * mag2 == 0:
-            return 0.5
-        return ((dot / (mag1 * mag2)) + 1.0) / 2.0
+        if not v1 or not v2: return 0.5
+        dot = sum(a * b for a, b in zip(v1, v2))
+        mag = math.hypot(*v1) * math.hypot(*v2)
+        return ((dot / mag) + 1.0) / 2.0 if mag != 0 else 0.5
 
     def _calculate_serendipity(self, results: list[RetrievalResult], query_coords: Coordinates) -> list[RetrievalResult]:
         for r in results:

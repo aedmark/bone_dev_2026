@@ -31,9 +31,7 @@ def safe_set(obj: Any, key: str, value: Any) -> None:
 
 class BoneJSONEncoder(json.JSONEncoder):
     def default(self, obj):
-        if isinstance(obj, set):
-            return list(obj)
-        if isinstance(obj, deque):
+        if isinstance(obj, (set, deque)):
             return list(obj)
         if hasattr(obj, "to_dict"):
             return obj.to_dict()

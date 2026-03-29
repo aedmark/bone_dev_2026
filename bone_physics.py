@@ -30,6 +30,9 @@ class GeodesicVector:
     dimensions: Dict[str, float]
 
 class GeodesicEngine:
+    _DIM_ORDER = ("VEL", "STR", "ENT", "PHI", "PSI", "BET", "DEL", "E")
+    _MASS_KEYS = ("heavy", "kinetic", "constructive", "abstract", "play", "social", "explosive", "void", "liminal", "meat", "harvest", "pareidolia", "crisis_term")
+
     @staticmethod
     def collapse_wavefunction(
             clean_words: List[str], counts: Dict[str, int], config_ref=None) -> GeodesicVector:
@@ -42,9 +45,7 @@ class GeodesicEngine:
 
     @staticmethod
     def _weigh_mass(counts: Dict[str, int]) -> Dict[str, float]:
-        keys = ["heavy", "kinetic", "constructive", "abstract", "play", "social", "explosive", "void", "liminal",
-                "meat", "harvest", "pareidolia", "crisis_term", ]
-        return {k: float(counts.get(k, 0)) for k in keys}
+        return {k: float(counts.get(k, 0)) for k in GeodesicEngine._MASS_KEYS}
 
     @staticmethod
     def _calculate_forces(masses: Dict[str, float], counts: Dict[str, int], volume: int, config_ref=None) -> Dict[str, float]:
@@ -107,21 +108,20 @@ class GeodesicEngine:
 
     @staticmethod
     def apply_path_reflection(dimensions: Dict[str, float], q_matrix: List[List[float]]) -> Dict[str, float]:
-        DIM_ORDER = ["VEL", "STR", "ENT", "PHI", "PSI", "BET", "DEL", "E"]
-        v = [dimensions.get(k, 0.0) for k in DIM_ORDER]
+        v = [dimensions.get(k, 0.0) for k in GeodesicEngine._DIM_ORDER]
         v_new = [sum(q_matrix[i][j] * v[j] for j in range(8)) for i in range(8)]
-        return {k: round(abs(v_new[i]), 3) for i, k in enumerate(DIM_ORDER)}
+        return {k: round(abs(v_new[i]), 3) for i, k in enumerate(GeodesicEngine._DIM_ORDER)}
 
 class HLA_Stabilizer:
+    _GENERIC_PATTERNS = ("as an ai", "helpful and harmless", "i don't have feelings", "as a large language", "i cannot fulfill", "i can't fulfill", "i am an ai")
+
     def __init__(self, config_ref=None):
         self.cfg = config_ref or BoneConfig
         self.resistance_threshold = 0.8
 
     def mitigate_rejection(self, model_output: str, current_psi: float, mito_state: Any = None) -> str:
-        generic_patterns = ["as an ai", "helpful and harmless", "i don't have feelings", "as a large language",
-                            "i cannot fulfill", "i can't fulfill", "i am an ai"]
         lower_out = model_output.lower()
-        rejection_detected = any(p in lower_out for p in generic_patterns)
+        rejection_detected = any(p in lower_out for p in self._GENERIC_PATTERNS)
         if rejection_detected:
             if mito_state and hasattr(mito_state, "atp_pool"):
                 mito_state.atp_pool = max(0.0, mito_state.atp_pool - 50.0)
@@ -196,7 +196,8 @@ class TheGatekeeper:
         toxic_keywords = style_crimes.get("TOXIC_KEYWORDS", [])
         patterns = style_crimes.get("PATTERNS", [])
         rejections = style_crimes.get("REJECTIONS", ["[CRITICAL: BANNED_SYNTAX '{trigger}' DETECTED. Purging output buffer...]"])
-        trigger = next((phrase for phrase in banned_phrases + toxic_keywords if phrase.lower() in text_lower), None)
+        from itertools import chain
+        trigger = next((phrase for phrase in chain(banned_phrases, toxic_keywords) if phrase.lower() in text_lower), None)
         if not trigger:
             for pat in patterns:
                 regex = pat.get("regex", "")

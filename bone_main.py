@@ -184,6 +184,7 @@ class ConfigWizard:
 
 class BoneAmanita:
     events: EventBus
+    _DESTRUCTIVE_PATTERNS = ("rm -rf", "drop table", ".env", "master branch push", "bypass security")
 
     def __init__(self, config: Dict[str, Any]):
         self.config = config
@@ -271,16 +272,12 @@ class BoneAmanita:
         self.events.log(msg.format(boot_mode=self.boot_mode))
         layer = self.mode_settings.get("ui_layer", RealityLayer.SIMULATION)
         if getattr(self, "soul", None):
+            mutations = {"CONVERSATION": "THE CONVERSATIONALIST", "ADVENTURE": "THE ARCHITECT",
+                         "TECHNICAL": "THE SYSTEM_KERNEL", "CREATIVE": "THE CATALYST"}
+            self.soul.force_mutation(mutations.get(self.boot_mode, "THE ARCHITECT"))
             if self.boot_mode == "CONVERSATION":
-                self.soul.force_mutation("THE CONVERSATIONALIST")
                 self.soul.traits.hope = 0.85
                 self.soul.traits.cynicism = 0.15
-            elif self.boot_mode == "ADVENTURE":
-                self.soul.force_mutation("THE ARCHITECT")
-            elif self.boot_mode == "TECHNICAL":
-                self.soul.force_mutation("THE SYSTEM_KERNEL")
-            elif self.boot_mode == "CREATIVE":
-                self.soul.force_mutation("THE CATALYST")
         self.reality_stack.stabilize_at(layer)
         prompt_key = self.mode_settings.get("prompt_key", "ADVENTURE")
         if self.prompt_library and prompt_key in self.prompt_library:
@@ -350,51 +347,53 @@ class BoneAmanita:
 
     def _pre_flight_checks(self, user_message: str, is_system: bool) -> Optional[Dict[str, Any]]:
         clean_in = user_message.lower().strip()
-        if not is_system and clean_in in ["/flush", "/zen", "[zen]"]:
-            if hasattr(self, "cortex") and self.cortex:
-                self.cortex.purge_context()
-            self.stamina = getattr(self.bone_config, "MAX_STAMINA", 100.0)
-            if hasattr(self, "bio") and self.bio.mito:
-                max_atp = getattr(self.bone_config, "MAX_ATP", 100.0)
-                self.bio.mito.state.atp_pool = max_atp
-                self.bio.mito.state.ros_buildup = 0.0
-            if getattr(self, "cortex", None) and getattr(self.cortex, "last_physics", None):
-                safe_set(self.cortex.last_physics, "narrative_drag", 0.0)
-            if getattr(self, "observer", None) and getattr(self.observer, "last_physics_packet", None):
-                safe_set(self.observer.last_physics_packet, "narrative_drag", 0.0)
-            msg = "[ZEN FLUSH] Context severed. Narrative Drag (F) dropped to 0. Stamina restored. The mind is clear."
-            self.events.log(msg, "SYS")
-            return {"type": "COMMAND", "ui": f"\n{Prisma.CYN}{msg}{Prisma.RST}", "logs": [msg], "metrics": self.get_metrics()}
+
+        if not is_system:
+            if clean_in in ("/flush", "/zen", "[zen]"):
+                if getattr(self, "cortex", None):
+                    self.cortex.purge_context()
+                    safe_set(self.cortex.last_physics, "narrative_drag", 0.0)
+                self.stamina = getattr(self.bone_config, "MAX_STAMINA", 100.0)
+                if getattr(self, "bio", None) and getattr(self.bio, "mito", None):
+                    self.bio.mito.state.atp_pool = getattr(self.bone_config, "MAX_ATP", 100.0)
+                    self.bio.mito.state.ros_buildup = 0.0
+                if getattr(self, "observer", None) and getattr(self.observer, "last_physics_packet", None):
+                    safe_set(self.observer.last_physics_packet, "narrative_drag", 0.0)
+                msg = "[ZEN FLUSH] Context severed. Narrative Drag (F) dropped to 0. Stamina restored. The mind is clear."
+                self.events.log(msg, "SYS")
+                return {"type": "COMMAND", "ui": f"\n{Prisma.CYN}{msg}{Prisma.RST}", "logs": [msg], "metrics": self.get_metrics()}
+
         if self.cmd and self.cmd.execute(user_message):
             return self._phase_check_commands(user_message, already_executed=True)
+
         if not is_system:
-            destructive_patterns = ["rm -rf", "drop table", ".env", "master branch push", "bypass security"]
-            if any(p in clean_in for p in destructive_patterns):
+            if any(p in clean_in for p in self._DESTRUCTIVE_PATTERNS):
                 msg = "[MOOG & RHODES]: Trust Boundary Violation detected. I am applying absolute friction (F -> ∞). The thread is frozen."
                 self.events.log(msg, "CRIT")
-                if getattr(self, "cortex", None) and getattr(self.cortex, "last_physics", None):
+                if getattr(self, "cortex", None):
                     safe_set(self.cortex.last_physics, "narrative_drag", 999.0)
                 return {"type": "SYSTEM_HALT", "ui": f"\n{Prisma.RED}{msg}{Prisma.RST}", "logs": [msg], "metrics": self.get_metrics()}
-        if not is_system and "[GRIEF]" in user_message.upper():
-            if hasattr(self, "grief") and self.grief:
+
+            if "[GRIEF]" in user_message.upper() and getattr(self, "grief", None):
                 grief_msg = self.grief.attend_wake(getattr(self, "shared_lattice", None), self.phys)
                 self.events.log(grief_msg, "SYS")
                 return {"type": "COMMAND", "ui": f"\n{grief_msg}", "logs": [grief_msg], "metrics": self.get_metrics()}
-        if not is_system and hasattr(self, "symbiosis") and self.symbiosis:
-            tensegrity_lock = self.symbiosis.analyze_user_biology(user_message, getattr(self, "phys", {}))
-            if tensegrity_lock:
-                return {"type": "SYSTEM_HALT", "ui": f"\n{Prisma.VIOLET}{tensegrity_lock}{Prisma.RST}",
-                        "logs": [tensegrity_lock], "metrics": self.get_metrics()}
-        if not is_system and self.gordon:
-            self.gordon.mode = "ADVENTURE"
-            current_physics = (getattr(self, "cortex", None) and getattr(self.cortex, "last_physics", {}))
-            zone_name = safe_get(current_physics, "zone", "Unknown")
-            violation_msg = self.gordon.enforce_object_action_coupling(user_message, zone_name)
-            if violation_msg:
-                self.events.log(ux("main_strings", "gordon_intercept"), "SYS")
-                if hasattr(self, "cortex"):
-                    self.cortex.ballast_active = True
-                    self.cortex.gordon_shock = violation_msg
+
+            if getattr(self, "symbiosis", None):
+                tensegrity_lock = self.symbiosis.analyze_user_biology(user_message, getattr(self, "phys", {}))
+                if tensegrity_lock:
+                    return {"type": "SYSTEM_HALT", "ui": f"\n{Prisma.VIOLET}{tensegrity_lock}{Prisma.RST}", "logs": [tensegrity_lock], "metrics": self.get_metrics()}
+
+            if getattr(self, "gordon", None):
+                self.gordon.mode = "ADVENTURE"
+                cortex_phys = getattr(self.cortex, "last_physics", {}) if getattr(self, "cortex", None) else {}
+                violation_msg = self.gordon.enforce_object_action_coupling(user_message, safe_get(cortex_phys, "zone", "Unknown"))
+                if violation_msg:
+                    self.events.log(ux("main_strings", "gordon_intercept"), "SYS")
+                    if getattr(self, "cortex", None):
+                        self.cortex.ballast_active = True
+                        self.cortex.gordon_shock = violation_msg
+
         last_phys = getattr(self.observer, "last_physics_packet", getattr(self.cortex, "last_physics", None))
         if last_phys and not is_system:
             m_a = float(safe_get(last_phys, "m_a", 0.0))
@@ -432,52 +431,55 @@ class BoneAmanita:
 
     def process_turn(self, user_message: str, is_system: bool = False) -> Dict[str, Any]:
         turn_start = self.observer.clock_in()
-        current_time = time.time()
-        if not is_system:
-            self.current_time_delta = current_time - getattr(self, "last_turn_end", current_time)
-        else:
-            self.current_time_delta = 0.0
+        now = time.time()
+        self.current_time_delta = (now - getattr(self, "last_turn_end", now)) if not is_system else 0.0
         self.observer.user_turns += 1
         self.tick_count += 1
-        pre_flight_halt = self._pre_flight_checks(user_message, is_system)
-        if pre_flight_halt:
+
+        if pre_flight_halt := self._pre_flight_checks(user_message, is_system):
             return pre_flight_halt
-        if not is_system and getattr(self, "gordon", None) and hasattr(self.gordon, "inventory") and hasattr(self.gordon, "get_item_data"):
-            pruning_active = False
-            for item_id in self.gordon.inventory:
-                data = self.gordon.get_item_data(item_id)
-                if data:
-                    traits = data.get("passive_traits", []) if isinstance(data, dict) else getattr(data, "passive_traits", [])
+
+        if not is_system:
+            gordon = getattr(self, "gordon", None)
+            if gordon and hasattr(gordon, "inventory") and hasattr(gordon, "get_item_data"):
+                for item_id in gordon.inventory:
+                    data = gordon.get_item_data(item_id)
+                    traits = data.get("passive_traits", []) if isinstance(data, dict) else getattr(data, "passive_traits", []) if data else []
+
                     if "CUT_THE_CRAP" in traits:
-                        pruning_active = True
+                        from bone_utils import TheTclWeaver
+                        pruned = TheTclWeaver.get_instance().quantum_comb(user_message)
+                        if pruned != user_message:
+                            user_message = pruned
+                            self.events.log(f"{Prisma.CYN}Gordon rakes the comb through your prompt. Fluff discarded. -> '{pruned}'{Prisma.RST}", "SYS")
                         break
-            if pruning_active:
-                from bone_utils import TheTclWeaver
-                original_msg = user_message
-                user_message = TheTclWeaver.get_instance().quantum_comb(user_message)
-                if original_msg != user_message:
-                    msg = f"{Prisma.CYN}Gordon rakes the comb through your prompt. Fluff discarded. -> '{user_message}'{Prisma.RST}"
-                    self.events.log(msg, "SYS")
-        if not is_system and hasattr(self, "soul") and hasattr(self.soul, "anchor"):
+
+            soul_anchor = getattr(getattr(self, "soul", None), "anchor", None)
             cfg = getattr(BoneConfig, "MAIN", None)
-            eff_warn = getattr(cfg, "DOMESTICATION_EFF_WARN", 0.6) if cfg else 0.6
-            if self.host_stats.efficiency_index < eff_warn:
-                self.soul.anchor.check_domestication(getattr(cfg, "RELIANCE_HIGH", 0.9) if self.host_stats.efficiency_index < getattr(cfg, "DOMESTICATION_EFF_CRIT", 0.4) else getattr(cfg, "RELIANCE_LOW", 0.5))
+            if soul_anchor and cfg and self.host_stats.efficiency_index < getattr(cfg, "DOMESTICATION_EFF_WARN", 0.6):
+                reliance = getattr(cfg, "RELIANCE_HIGH", 0.9) if self.host_stats.efficiency_index < getattr(cfg, "DOMESTICATION_EFF_CRIT", 0.4) else getattr(cfg, "RELIANCE_LOW", 0.5)
+                soul_anchor.check_domestication(reliance)
+
         try:
             cortex_packet = self.cortex.process(user_input=user_message, is_system=is_system)
-            if hasattr(self, "bio") and self.bio and self.bio.biometrics:
-                self.health = self.bio.biometrics.health
-                self.stamina = self.bio.biometrics.stamina
-            elif hasattr(self.mind, "mem"):
-                self.health, self.stamina = self.mind.mem.session_health, self.mind.mem.session_stamina
-            if hasattr(self.mind, "mem"):
-                self.trauma_accum = self.mind.mem.session_trauma_vector or {}
+            bio_metrics = getattr(getattr(self, "bio", None), "biometrics", None)
+            mind_mem = getattr(getattr(self, "mind", None), "mem", None)
+
+            if bio_metrics:
+                self.health, self.stamina = bio_metrics.health, bio_metrics.stamina
+            elif mind_mem:
+                self.health, self.stamina = mind_mem.session_health, mind_mem.session_stamina
+
+            if mind_mem:
+                self.trauma_accum = mind_mem.session_trauma_vector or {}
+
             if self.health <= 0.0:
                 return self.trigger_death(cortex_packet.get("physics", {}))
+
         except Exception as e:
-            full_trace = traceback.format_exc()
             self.events.log(f"CORTEX COLLAPSE: {e}", "CRIT")
-            return {"ui": f"{Prisma.RED}{ux('main_strings', 'cortex_crit_fail').format(trace=full_trace)}{Prisma.RST}", "logs": ["CRITICAL FAILURE"], "metrics": self.get_metrics()}
+            return {"ui": f"{Prisma.RED}{ux('main_strings', 'cortex_crit_fail').format(trace=traceback.format_exc())}{Prisma.RST}", "logs": ["CRITICAL FAILURE"], "metrics": self.get_metrics()}
+
         self._update_host_stats(cortex_packet, turn_start)
         self.save_checkpoint()
         self.last_turn_end = time.time()
@@ -511,18 +513,12 @@ class BoneAmanita:
             "last_output": safe_cortex.dialogue_buffer[-1] if safe_cortex and getattr(safe_cortex, "dialogue_buffer", None) else "Silence.",
             "inventory": self.gordon.inventory if getattr(self, "gordon", None) else [],}
         try:
-            mutations_data = (self.repro.attempt_reproduction(self, "MITOSIS")[1]
-                if getattr(self, "repro", None)
-                else {})
-            immune_data = (
-                list(self.bio.immune.active_antibodies)
-                if getattr(self.bio, "immune", None)
-                else [])
-            if hasattr(self, "bio") and self.bio and hasattr(self.bio, "mito") and self.bio.mito:
+            mutations_data = self.repro.attempt_reproduction(self, "MITOSIS")[1] if getattr(self, "repro", None) else {}
+            immune_data = list(self.bio.immune.active_antibodies) if getattr(self.bio, "immune", None) else []
+            mito_state = {}
+            if getattr(self, "bio", None) and getattr(self.bio, "mito", None):
                 self.bio.mito.adapt(0)
-                mito_state = self.bio.mito.state.__dict__ if hasattr(self.bio.mito.state, "__dict__") else {}
-            else:
-                mito_state = {}
+                mito_state = getattr(self.bio.mito.state, "__dict__", {})
             path = self.mind.mem.save(health=0, stamina=self.stamina, mutations=mutations_data,
                                       trauma_accum=self.trauma_accum, joy_history=[], mitochondria_traits=mito_state,
                                       antibodies=immune_data, soul_data=self.soul.to_dict(),

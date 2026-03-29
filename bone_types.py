@@ -213,13 +213,13 @@ class PhysicsPacket:
     def __getattr__(self, key):
         if key.startswith("_"):
             raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{key}'")
-        if hasattr(self, "_ALIAS_MAP") and key in self._ALIAS_MAP:
+        if key in self._ALIAS_MAP:
             domain, t_key = self._ALIAS_MAP[key][0]
             return getattr(getattr(self, domain), t_key)
-        d = self.__dict__
-        if "energy" in d and hasattr(d["energy"], key): return getattr(d["energy"], key)
-        if "space" in d and hasattr(d["space"], key): return getattr(d["space"], key)
-        if "matter" in d and hasattr(d["matter"], key): return getattr(d["matter"], key)
+        for domain in ("energy", "space", "matter"):
+            obj = self.__dict__.get(domain)
+            if hasattr(obj, key):
+                return getattr(obj, key)
         raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{key}'")
 
     def __setattr__(self, key, value):

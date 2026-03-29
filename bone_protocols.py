@@ -130,7 +130,7 @@ class TheBureau:
             else:
                 selected_form = ux("protocol_strings", "bureau_form_202a")
                 tax = tax_std
-        chi = _get(physics, "chi", _get(physics, "entropy", 0.0))
+        chi = float(safe_get(physics, "chi", safe_get(physics, "entropy", 0.0)))
         chaos_thresh = getattr(cfg_bureau, "CHAOS_TAX_THRESHOLD", 0.6) if cfg_bureau else 0.6
         tax_chaos = getattr(cfg_bureau, "TAX_CHAOS", 12.0) if cfg_bureau else 12.0
         if not selected_form and chi > chaos_thresh:

@@ -123,20 +123,20 @@ class EnneagramDriver:
         for persona, criteria in weights_cfg.items():
             if not isinstance(criteria, dict):
                 continue
-            if "tension_min" in criteria and p_vol > safe_float(criteria.get("tension_min", 0.0)):
+            if "tension_min" in criteria and p_vol > float(criteria.get("tension_min", 0.0)):
                 scores[persona] += 3.0
-            if "drag_min" in criteria and p_drag > safe_float(criteria.get("drag_min", 0.0)):
+            if "drag_min" in criteria and p_drag > float(criteria.get("drag_min", 0.0)):
                 scores[persona] += 5.0
-            if "coherence_min" in criteria and p_coh > safe_float(criteria.get("coherence_min", 0.0)):
+            if "coherence_min" in criteria and p_coh > float(criteria.get("coherence_min", 0.0)):
                 scores[persona] += 4.0
-            if "coherence_max" in criteria and p_coh < safe_float(criteria.get("coherence_max", 0.0)):
+            if "coherence_max" in criteria and p_coh < float(criteria.get("coherence_max", 0.0)):
                 scores[persona] += 4.0
             vectors = criteria.get("vectors", {})
             if isinstance(vectors, dict):
                 for dim, weight in vectors.items():
-                    val = safe_float(p_vec.get(dim, 0.0))
+                    val = float(p_vec.get(dim, 0.0))
                     if val > 0.2:
-                        scores[persona] += val * safe_float(weight)
+                        scores[persona] += val * float(weight)
         if soul_ref:
             soul_driver = SoulDriver(soul_ref)
             influence = soul_driver.get_influence()

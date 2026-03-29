@@ -51,9 +51,10 @@ class ChemicalState:
             delta = (target - current) * rate
             setattr(self, attr, current + delta)
 
+    _MIX_MAPPING = (("DOP", "dopamine"), ("COR", "cortisol"), ("ADR", "adrenaline"), ("SER", "serotonin"))
+
     def mix(self, new_state: Dict[str, float], weight: float = 0.5):
-        mapping = [("DOP", "dopamine"), ("COR", "cortisol"), ("ADR", "adrenaline"), ("SER", "serotonin"), ]
-        for key, attr in mapping:
+        for key, attr in self._MIX_MAPPING:
             val = new_state.get(key, new_state.get(attr, 0.0))
             current = getattr(self, attr)
             setattr(self, attr, (current * (1.0 - weight)) + (val * weight))
@@ -549,10 +550,15 @@ class TheCortex:
             if tinkerer:
                 village_data["tinkerer"] = (
                     tinkerer.to_dict() if hasattr(tinkerer, "to_dict") else {})
-        mode_settings = BonePresets.MODES.get(
-            self.active_mode, BonePresets.MODES["ADVENTURE"])
-        mode_map = {"CONVERSATION": ("CONVERSATIONALIST", "The Conversationalist"), "TECHNICAL": ("SYSTEM_KERNEL", "The System Kernel"), "CREATIVE": ("CATALYST", "The Catalyst")}
-        mind["lens"], mind["role"] = mode_map.get(self.active_mode, ("ARCHITECT", "The Architect"))
+        mode_settings = BonePresets.MODES.get(self.active_mode, BonePresets.MODES["ADVENTURE"])
+        if self.active_mode == "CONVERSATION":
+            mind["lens"], mind["role"] = "CONVERSATIONALIST", "The Conversationalist"
+        elif self.active_mode == "TECHNICAL":
+            mind["lens"], mind["role"] = "SYSTEM_KERNEL", "The System Kernel"
+        elif self.active_mode == "CREATIVE":
+            mind["lens"], mind["role"] = "CATALYST", "The Catalyst"
+        else:
+            mind["lens"], mind["role"] = "ARCHITECT", "The Architect"
         full_state = {"bio": bio, "physics": phys, "mind": mind, "soul": soul_data, "world": world,
             "village": village_data, "user_profile": {"name": "Traveler"},
             "vsl": (self.consultant.state.__dict__ if self.consultant and hasattr(self.consultant, "state") else {}),

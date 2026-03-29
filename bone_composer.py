@@ -181,7 +181,7 @@ class PromptComposer:
         self.cfg = config_ref or BoneConfig
         self.active_template = None
         self.lenses = self.lore.get("lenses") or {}
-        self.system_prompts = self.lore.get("system_prompts") or {}
+        self.system_prompts = self.lore.get("system_prompts") or self.lore.get("SYSTEM_PROMPTS") or {}
         self.fog_protocol = []
         self.inv_protocol = []
 
@@ -220,6 +220,8 @@ class PromptComposer:
             active_style_guide = high_voltage_data.get("style_guide", [])
         else:
             active_style_guide = mode_data.get("style_guide", [])
+        if self.fog_protocol:
+            active_style_guide = self.fog_protocol
         style_notes.extend([line.replace("{ban_string}", ban_string) if "{ban_string}" in line else line
                             for line in active_style_guide])
         if modifiers["include_inventory"]:
@@ -446,6 +448,9 @@ class PromptComposer:
                 if s_dm: somatic_cues.append(s_dm)
             if somatic_cues:
                 vsl_lines.append("SOMATIC CUES: " + " | ".join(somatic_cues))
+            if e > 0.8:
+                vsl_lines.append("CRITICAL: You are exhausted. You must conclude your thought in under 3 sentences.")
+
             persona_block.extend(vsl_lines)
         return persona_block
 

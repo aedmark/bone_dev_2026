@@ -118,10 +118,10 @@ class TheVillageCouncil:
         logs = []
 
         def gv(k, d=0.0): return float(safe_get(p, k, d) or d)
-        V, F, P, T = gv("V", 30.0), gv("F", 0.6), gv("P", 100.0), gv("T", 0.0)
-        beta, S, D, C = gv("beta", 0.4), gv("S", 0.3), gv("D", 0.3), gv("C", 0.2)
+        V, F, P, T = gv("V", gv("voltage", 30.0)), gv("F", gv("narrative_drag", 0.6)), gv("P", gv("stamina", 100.0)), gv("T", 0.0)
+        beta, S, D, C = gv("beta", gv("beta_index", 0.4)), gv("S", 0.3), gv("D", 0.3), gv("C", 0.2)
         psi, chi, valence = gv("psi", 0.2), gv("chi", 0.2), gv("valence", 0.0)
-        phi, delta, lq, ros = gv("PHI_RES", 0.0), gv("DELTA", 0.0), gv("LQ", 0.0), gv("ROS", 0.0)
+        phi, delta, lq, ros = gv("PHI_RES", gv("resonance", 0.0)), gv("DELTA", gv("silence", 0.0)), gv("LQ", gv("lq", 0.0)), gv("ROS", gv("ros", 0.0))
         vec = safe_get(p, "vector", {})
         lam = float(safe_get(vec, "LAMBDA", 0.0) or 0.0) if isinstance(vec, dict) else 0.0
 
