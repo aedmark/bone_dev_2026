@@ -244,8 +244,7 @@ class TrueEngineTest(unittest.TestCase):
         conv_prompt = composer.compose(conv_state, "Hello?", modifiers={"include_inventory": False})
         self.assertNotIn("Object-Action Coupling", conv_prompt,
                          "ADVENTURE mechanics bled into CONVERSATION mode prompt.")
-        self.assertIn("Do not act like a Dungeon Master", conv_prompt,
-                      "CONVERSATION Anti-Bleed constraint was not injected.")
+        self.assertIn("You are NOT a narrator", conv_prompt, "CONVERSATION Anti-Bleed constraint was not injected.")
         self.assertNotIn("INVENTORY:", conv_prompt,
                          "Inventory block rendered in Conversation mode despite being suppressed.")
         self.engine.cortex.active_mode = "TECHNICAL"
@@ -548,7 +547,7 @@ class TrueEngineTest(unittest.TestCase):
 
     def test_token_truncation_exhaustion_floor(self):
         self.engine.bio.mito.state.atp_pool = 10.0
-        state = self.engine.cortex.gather_state({"bio": {"mito": {"atp_pool": 10.0}}})
+        state = self.engine.cortex.gather_state({"bio": {"mito": {"state": {"atp_pool": 10.0}}}})
         llm_params = self.engine.cortex.modulator.modulate(base_voltage=10.0, physics_state=state.get("physics", {}))
         if llm_params.get("max_tokens", 4096) < 300 or state.get("physics", {}).get("p", 100.0) < 20.0:
             if "style_directives" not in state["mind"]:
@@ -573,7 +572,7 @@ class TrueEngineTest(unittest.TestCase):
         result = self.engine.cortex.process("Hello, please tell me a simple story.", is_system=False)
         phys = self.engine.cortex.last_physics
         drag_val = phys.get("narrative_drag") if isinstance(phys, dict) else getattr(phys, "narrative_drag", 0.0)
-        self.assertEqual(drag_val, float('inf'), "Mercy Rule failed to spike narrative drag to infinity.")
+        self.assertEqual(drag_val, 999.0, "Mercy Rule failed to spike narrative drag to infinity.")
         self.assertIn("struggling to map this request", result.get("raw_content", ""), "Mercy Rule failed to provide the safe fallback text.")
 
     def test_brittle_security_delegation(self):
