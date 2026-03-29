@@ -413,7 +413,8 @@ class DSPyCritic:
                 cfg_val = lambda k, d: safe_get(self.cfg, k.upper(), safe_get(self.cfg, k.lower(), getattr(BoneConfig, k.upper(), d)))
                 provider = cfg_val("provider", "ollama")
                 model_name = cfg_val("model", "vsl-hermes")
-                base_url = cfg_val("base_url", "http://127.0.0.1:11434/v1").replace("/chat/completions", "")
+                raw_base_url = cfg_val("base_url", "http://127.0.0.1:11434/v1") or "http://127.0.0.1:11434/v1"
+                base_url = raw_base_url.replace("/chat/completions", "")
                 if provider == "ollama" or provider == "lm_studio":
                     self.lm = dspy.LM(model=f"openai/{model_name}", api_base=base_url, api_key="local-model-doesnt-need-a-key")
                 else:

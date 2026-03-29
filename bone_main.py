@@ -231,7 +231,8 @@ class BoneAmanita:
         p = "lore/system_prompts.json"
         try:
             if os.path.exists(p):
-                self.prompt_library = json.load(open(p, encoding="utf-8"))
+                with open(p, "r", encoding="utf-8") as f:
+                    self.prompt_library = json.load(f)
                 print(f"{Prisma.GRY}{ux('main_strings', 'prompt_lib_loaded').format(p=p)}{Prisma.RST}")
             else:
                 print(f"{Prisma.YEL}{ux('main_strings', 'prompt_lib_warn')}{Prisma.RST}")

@@ -159,7 +159,9 @@ class SubconsciousStrata:
 
     def _load_json(self, path, default_factory):
         if os.path.exists(path):
-            try: return json.load(open(path, "r"))
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    return json.load(f)
             except Exception: pass
         return default_factory()
 
@@ -1055,8 +1057,11 @@ class LiteraryReproduction:
         return child_id, child_genome
 
     def crossover(self, parent_a_id, parent_a_bio, parent_b_path):
-        try: parent_b_data = json.load(open(parent_b_path, "r"))
-        except Exception: return None, ux("spore_strings", "repro_corrupt_spore")
+        try:
+            with open(parent_b_path, "r", encoding="utf-8") as f:
+                parent_b_data = json.load(f)
+        except Exception:
+            return None, ux("spore_strings", "repro_corrupt_spore")
         parent_b_id = parent_b_data.get("session_id", "UNKNOWN")
         trauma_a = parent_a_bio.get("trauma_vector", {})
         trauma_b = parent_b_data.get("trauma_vector", {})
