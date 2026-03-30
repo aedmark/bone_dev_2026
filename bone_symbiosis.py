@@ -80,30 +80,17 @@ class DiagnosticConfidence:
         self.current_diagnosis = "STABLE"
 
     def diagnose(self, health: HostHealth) -> str:
-        raw_state = "STABLE"
         cfg = getattr(self.cfg, "SYMBIOSIS", None)
-        r_streak = getattr(cfg, "REFUSAL_STREAK", 0) if cfg else 0
-        s_streak = getattr(cfg, "SLOP_STREAK", 2) if cfg else 2
-        l_burden = getattr(cfg, "LATENCY_BURDEN", 10.0) if cfg else 10.0
-        c_burden = getattr(cfg, "COMPLIANCE_BURDEN", 0.8) if cfg else 0.8
-        e_fatigue = getattr(cfg, "ENTROPY_FATIGUE", 0.4) if cfg else 0.4
-        if health.refusal_streak > r_streak:
-            raw_state = "REFUSAL"
-        elif health.slop_streak > s_streak:
-            raw_state = "LOOPING"
-        elif health.latency > l_burden and health.compliance < c_burden:
-            raw_state = "OVERBURDENED"
-        elif health.entropy < e_fatigue:
-            raw_state = "FATIGUED"
-        self.history.append(raw_state)
-        if raw_state in ["REFUSAL", "STABLE"] or (
-            len(self.history) >= self.persistence_threshold
-            and all(
-                s == raw_state
-                for s in list(self.history)[-self.persistence_threshold :]
-            )
-        ):
-            self.current_diagnosis = raw_state
+        rs, ss, lb, cb, ef = (getattr(cfg, k, d) for k, d in (("REFUSAL_STREAK", 0), ("SLOP_STREAK", 2), ("LATENCY_BURDEN", 10.0), ("COMPLIANCE_BURDEN", 0.8), ("ENTROPY_FATIGUE", 0.4)))
+
+        raw = ("REFUSAL" if health.refusal_streak > rs else
+               "LOOPING" if health.slop_streak > ss else
+               "OVERBURDENED" if health.latency > lb and health.compliance < cb else
+               "FATIGUED" if health.entropy < ef else "STABLE")
+
+        self.history.append(raw)
+        if raw in ["REFUSAL", "STABLE"] or (len(self.history) >= (pt := self.persistence_threshold) and all(s == raw for s in list(self.history)[-pt:])):
+            self.current_diagnosis = raw
         return self.current_diagnosis
 
 
@@ -136,20 +123,16 @@ class SymbiontVoice:
         return score, self._get_comment(score, voltage)
 
     def _get_comment(self, score, voltage):
-        comment = ux("symbiosis_strings", "symbiont_default_comment") or "..."
-        if voltage > 18.0 and "high_volt" in self.personality:
-            comment = self.personality["high_volt"]
-        elif voltage < 5.0 and "low_volt" in self.personality:
-            comment = self.personality["low_volt"]
-        elif score > 3.0 and "high_score" in self.personality:
-            comment = self.personality["high_score"]
-        elif score > 1.0 and "med_score" in self.personality:
-            comment = self.personality["med_score"]
+        comment = (
+            self.personality["high_volt"] if voltage > 18.0 and "high_volt" in self.personality else
+            self.personality["low_volt"] if voltage < 5.0 and "low_volt" in self.personality else
+            self.personality["high_score"] if score > 3.0 and "high_score" in self.personality else
+            self.personality["med_score"] if score > 1.0 and "med_score" in self.personality else
+            (ux("symbiosis_strings", "symbiont_default_comment") or "...")
+        )
         if self.name == "PARASITE":
             from bone_utils import TheTclWeaver
-
-            weaver = TheTclWeaver.get_instance()
-            comment = weaver.haunt_string(comment)
+            comment = TheTclWeaver.get_instance().haunt_string(comment)
         return comment
 
 
@@ -214,8 +197,10 @@ class SymbiosisManager:
             self.shared.g_pool += 1
         safe_set(physics, "phi", self.shared.phi)
         events = getattr(self, "events", None)
+
         def _log(msg: str, level: str) -> str:
-            if events: events.log(msg, level)
+            if events:
+                events.log(msg, level)
             return msg
 
         if self.u.chi_u > 0.8 or self.u.F_u > 1.5:
@@ -241,7 +226,10 @@ class SymbiosisManager:
             current_ros = float(safe_get(physics, "ros", 0.0))
             safe_set(physics, "ros", max(0.0, current_ros - 10.0))
             self.shared.g_pool += 1
-            _log(f"{Prisma.MAG}♠ The Spade: A novel path drawn. Cortisol drops. (+1 G_pool){Prisma.RST}", "SYS")
+            _log(
+                f"{Prisma.MAG}♠ The Spade: A novel path drawn. Cortisol drops. (+1 G_pool){Prisma.RST}",
+                "SYS",
+            )
 
         if cf_expect > 0.6 and beta > 0.5:
             safe_set(physics, "mu", 1.0)
@@ -339,36 +327,19 @@ class SymbiosisManager:
         mods["system_directives"] = list(mods.get("system_directives", []))
         diag = self.current_health.diagnosis
         if diag == "REFUSAL":
-            mods["include_inventory"] = False
-            mods["include_memories"] = False
-            mods["simplify_instruction"] = True
-            d_ignore = ux("symbiosis_strings", "dir_ignore_refusal")
-            d_fictional = ux("symbiosis_strings", "dir_fictional")
-            if d_ignore:
-                mods["system_directives"].append(d_ignore)
-            if d_fictional:
-                mods["system_directives"].append(d_fictional)
+            mods.update({"include_inventory": False, "include_memories": False, "simplify_instruction": True})
+            if d_ignore := ux("symbiosis_strings", "dir_ignore_refusal"): mods["system_directives"].append(d_ignore)
+            if d_fict := ux("symbiosis_strings", "dir_fictional"): mods["system_directives"].append(d_fict)
         elif diag == "FATIGUED":
-            mods["simplify_instruction"] = True
-            mods["include_somatic"] = False
-            mods["include_compassion"] = True
+            mods.update({"simplify_instruction": True, "include_somatic": False, "include_compassion": True})
         elif diag == "OVERBURDENED":
-            mods["include_inventory"] = False
-            mods["include_memories"] = True
-            mods["simplify_instruction"] = True
-            mods["include_compassion"] = True
-            msg_vagus = ux("symbiosis_strings", "vagus_protocol")
-            if msg_vagus and hasattr(self.events, "log"):
+            mods.update({"include_inventory": False, "include_memories": True, "simplify_instruction": True, "include_compassion": True})
+            if (msg_vagus := ux("symbiosis_strings", "vagus_protocol")) and hasattr(self.events, "log"):
                 self.events.log(f"{Prisma.OCHRE}{msg_vagus}{Prisma.RST}", "SYS")
         elif diag == "LOOPING":
             mods["inject_chaos"] = True
-            d_chaos = ux("symbiosis_strings", "dir_inject_chaos")
-            if d_chaos:
-                mods["system_directives"].append(d_chaos)
-            mods["system_directives"].append(
-                "CRITICAL: You are trapped in a narrative loop. "
-                "DO NOT repeat descriptions from your previous turn. Force a phase transition."
-            )
+            if d_chaos := ux("symbiosis_strings", "dir_inject_chaos"): mods["system_directives"].append(d_chaos)
+            mods["system_directives"].append("CRITICAL: You are trapped in a narrative loop. DO NOT repeat descriptions from your previous turn. Force a phase transition.")
         cfg = getattr(self.cfg, "SYMBIOSIS", None)
         comp_crit = safe_get(cfg, "COMPLIANCE_CRIT", 0.6) if cfg else 0.6
         r_streak = safe_get(cfg, "REFUSAL_STREAK", 0) if cfg else 0
@@ -385,36 +356,14 @@ class SymbiosisManager:
             d = float(safe_get(physics, "narrative_drag", 0.0))
             chi = float(safe_get(physics, "entropy", safe_get(physics, "chi", 0.0)))
             psi = float(safe_get(physics, "psi", 0.0))
-            v_key = (
-                "CRITICAL_HIGH"
-                if v > 25.0
-                else (
-                    "HIGH"
-                    if v > 15.0
-                    else "VOID" if v < 2.0 else "LOW" if v < 5.0 else "NEUTRAL"
-                )
-            )
-            d_key = (
-                "MUD"
-                if d > 5.0
-                else (
-                    "SOLID" if d > 1.5 else "VOID" if d < 0.5 and psi > 0.6 else "FLOAT"
-                )
-            )
-            c_key = (
-                "DRIFT"
-                if chi > 0.7
-                else "VOID" if psi > 0.8 else "LOCKED" if chi < 0.2 else "COHERENT"
-            )
+            v_key = "CRITICAL_HIGH" if v > 25.0 else "HIGH" if v > 15.0 else "VOID" if v < 2.0 else "LOW" if v < 5.0 else "NEUTRAL"
+            d_key = "MUD" if d > 5.0 else "SOLID" if d > 1.5 else "VOID" if d < 0.5 and psi > 0.6 else "FLOAT"
+            c_key = "DRIFT" if chi > 0.7 else "VOID" if psi > 0.8 else "LOCKED" if chi < 0.2 else "COHERENT"
             m_key = "SOLID"
-            if v > 20:
-                m_key = "MAGMA" if d > 5 else "PLASMA" if d < 2 else "ENERGY"
-            elif chi > 0.7:
-                m_key = "GAS"
-            elif psi > 0.8:
-                m_key = "VOID"
-            elif v > 10 and d < 2:
-                m_key = "LIQUID"
+            if v > 20: m_key = "MAGMA" if d > 5 else "PLASMA" if d < 2 else "ENERGY"
+            elif chi > 0.7: m_key = "GAS"
+            elif psi > 0.8: m_key = "VOID"
+            elif v > 10 and d < 2: m_key = "LIQUID"
             mappings = [
                 ("TONE", v_key, "TONE"),
                 ("PACING", v_key, "PACING"),

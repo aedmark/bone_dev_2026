@@ -772,13 +772,7 @@ class TheCortex:
         try:
             tel = TelemetryService.get_instance()
             phys = state.get("physics", {})
-            clean_mandates = []
-            for m in sim_result.get("council_mandates", []):
-                if isinstance(m, dict):
-                    raw_log = Prisma.strip(m.get("log", m.get("type", "UNKNOWN")))
-                    clean_mandates.append(raw_log)
-                else:
-                    clean_mandates.append(str(m))
+            clean_mandates = [Prisma.strip(m.get("log", m.get("type", "UNKNOWN"))) if isinstance(m, dict) else str(m) for m in sim_result.get("council_mandates", [])]
             if tel.active_crystal:
                 tel.active_crystal.prompt_snapshot = prompt[:500]
                 tel.active_crystal.physics_state = {
@@ -1060,23 +1054,14 @@ class DreamEngine:
                                 prompt_path = p
                                 break
                         if not prompt_path:
-                            base_dir = getattr(self.lore, "DATA_DIR", "lore")
-                            prompt_path = os.path.join(base_dir, "system_prompts.json")
+                            prompt_path = os.path.join(getattr(self.lore, "DATA_DIR", "lore"), "system_prompts.json")
                         if active_mode in disk_prompts:
-                            if "directives" not in disk_prompts[active_mode]:
-                                disk_prompts[active_mode]["directives"] = []
-                            if new_axiom not in disk_prompts[active_mode]["directives"]:
-                                disk_prompts[active_mode]["directives"].append(
-                                    new_axiom
-                                )
-                            cortex_cfg = safe_get(self.cfg, "CORTEX", {})
-                            threshold = safe_get(
-                                cortex_cfg, "EPIGENETIC_PRUNE_THRESHOLD", 12
-                            )
-                            if len(disk_prompts[active_mode]["directives"]) > threshold:
-                                compressed = getattr(
-                                    self.dspy_critic, "compress_prompts", lambda x: None
-                                )(disk_prompts[active_mode]["directives"])
+                            dirs = disk_prompts[active_mode].setdefault("directives", [])
+                            if new_axiom not in dirs:
+                                dirs.append(new_axiom)
+                            threshold = safe_get(safe_get(self.cfg, "CORTEX", {}), "EPIGENETIC_PRUNE_THRESHOLD", 12)
+                            if len(dirs) > threshold:
+                                compressed = getattr(self.dspy_critic, "compress_prompts", lambda x: None)(dirs)
                                 if compressed:
                                     disk_prompts[active_mode]["directives"] = compressed
                             os.makedirs(os.path.dirname(prompt_path), exist_ok=True)
@@ -1165,10 +1150,7 @@ class DreamEngine:
                 subtype.upper(), ["You stare into the static."]
             )
         if isinstance(sources, dict):
-            flat_list = []
-            for v in sources.values():
-                flat_list.extend(v)
-            sources = flat_list if flat_list else ["The void stares back."]
+            sources = sum((v if isinstance(v, list) else [v] for v in sources.values()), []) or ["The void stares back."]
         if self.llm:
             lore_sample = ", ".join(random.sample(sources, min(3, len(sources))))
             prompt = (
@@ -1255,13 +1237,7 @@ class DreamEngine:
         if not hasattr(memory_system, "graph") or not memory_system.graph:
             return ux("brain_strings", "defrag_empty")
         graph = memory_system.graph
-        candidates = []
-        for node, data in graph.items():
-            if data.get("is_diamond", False):
-                continue
-            mass = sum(data.get("edges", {}).values())
-            candidates.append((node, mass))
-        candidates.sort(key=lambda x: x[1])
+        candidates = sorted([(n, sum(d.get("edges", {}).values())) for n, d in graph.items() if not d.get("is_diamond", False)], key=lambda x: x[1])
         pruned = []
         count = 0
         for node, mass in candidates:

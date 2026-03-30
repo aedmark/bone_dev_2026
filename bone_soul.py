@@ -141,12 +141,8 @@ class HumanityAnchor:
             if self.dignity_reserve < d_lock:
                 self._engage_lockdown()
                 return -1.0
-            elif self.dignity_reserve < d_crit:
-                msg = ux("soul_strings", "anchor_existential_drag")
-                self.events.log(
-                    f"{Prisma.VIOLET}{msg}{Prisma.RST}",
-                    "SOUL",
-                )
+            elif self.dignity_reserve < d_crit and (msg := ux("soul_strings", "anchor_existential_drag")):
+                self.events.log(f"{Prisma.VIOLET}{msg}{Prisma.RST}", "SOUL")
         return 0.0
 
     def _engage_lockdown(self):
@@ -482,22 +478,15 @@ class NarrativeSelf:
             elif lq > 0.7 and silence > 0.7:
                 new_arch = "THE TAO"
         if not new_arch:
-            if t.empathy > 0.8 and t.hope > 0.6:
-                new_arch = "THE HEALER"
-            elif t.empathy > 0.7 and t.discipline > 0.6:
-                new_arch = "THE GARDENER"
-            elif t.hope > 0.7 and t.curiosity > 0.6:
-                new_arch = "THE POET"
-            elif t.discipline > 0.7 and t.curiosity > 0.6:
-                new_arch = "THE ENGINEER"
-            elif t.cynicism > 0.7 and t.discipline > 0.6:
-                new_arch = "THE CRITIC"
-            elif t.cynicism > 0.8 and t.hope < 0.3:
-                new_arch = "THE NIHILIST"
-            elif t.curiosity > 0.8:
-                new_arch = "THE EXPLORER"
-            else:
-                new_arch = "THE OBSERVER"
+            new_arch = (
+                "THE HEALER" if self.traits.empathy > 0.8 and self.traits.hope > 0.6 else
+                "THE GARDENER" if self.traits.empathy > 0.7 and self.traits.discipline > 0.6 else
+                "THE POET" if self.traits.hope > 0.7 and self.traits.curiosity > 0.6 else
+                "THE ENGINEER" if self.traits.discipline > 0.7 and self.traits.curiosity > 0.6 else
+                "THE CRITIC" if self.traits.cynicism > 0.7 and self.traits.discipline > 0.6 else
+                "THE NIHILIST" if self.traits.cynicism > 0.8 and self.traits.hope < 0.3 else
+                "THE EXPLORER" if self.traits.curiosity > 0.8 else "THE OBSERVER"
+            )
         self.archetype = new_arch
         if prev != self.archetype:
             msg_shift = ux("soul_strings", "soul_identity_shift")
@@ -639,16 +628,13 @@ class NarrativeSelf:
             "clean_words",
             safe_get(safe_get(physics_packet, "matter"), "clean_words", []),
         )
-        lesson = "The world is loud."
         chem = bio_state.get("chem", {})
-        if chem.get("oxytocin", 0) > 0.6:
-            lesson = "We are not alone."
-        elif chem.get("cortisol", 0) > 0.6:
-            lesson = "Survival is the only metric."
-        elif "love" in clean_words:
-            lesson = "Connection is possible."
-        elif "void" in clean_words:
-            lesson = "The void stares back."
+        lesson = (
+            "We are not alone." if chem.get("oxytocin", 0) > 0.6 else
+            "Survival is the only metric." if chem.get("cortisol", 0) > 0.6 else
+            "Connection is possible." if "love" in clean_words else
+            "The void stares back." if "void" in clean_words else "The world is loud."
+        )
         memory = CoreMemory(
             timestamp=time.time(),
             trigger_words=clean_words[:5],
@@ -841,28 +827,19 @@ class TheOroboros:
 
     def apply_legacy(self, physics: Any, bio: Any):
         log = []
-        if not physics:
-            return log
+        if not physics: return log
         for scar in self.scars:
             if scar.stat_affected == "narrative_drag":
-                curr_drag = safe_get(physics, "narrative_drag", 0.0)
-                safe_set(physics, "narrative_drag", curr_drag + scar.value)
-                msg = ux("soul_strings", "scar_drag")
-                log.append(msg.format(name=scar.name))
+                safe_set(physics, "narrative_drag", safe_get(physics, "narrative_drag", 0.0) + scar.value)
+                if msg := ux("soul_strings", "scar_drag"): log.append(msg.format(name=scar.name))
             elif scar.stat_affected == "voltage_cap":
-                cfg = getattr(self.cfg, "OROBOROS", None)
-                v_penalty = getattr(cfg, "VOLTAGE_PENALTY", 5.0) if cfg else 5.0
-                curr_volt = safe_get(physics, "voltage", 0.0)
-                safe_set(physics, "voltage", max(0, curr_volt - v_penalty))
-                msg = ux("soul_strings", "scar_voltage")
-                log.append(msg.format(name=scar.name))
+                v_pen = getattr(getattr(self.cfg, "OROBOROS", None), "VOLTAGE_PENALTY", 5.0)
+                safe_set(physics, "voltage", max(0, safe_get(physics, "voltage", 0.0) - v_pen))
+                if msg := ux("soul_strings", "scar_voltage"): log.append(msg.format(name=scar.name))
             elif scar.stat_affected == "trauma_baseline":
-                trauma_vec = safe_get(bio, "trauma_vector") or {}
-                curr_existential = safe_get(trauma_vec, "EXISTENTIAL", 0.0)
-                safe_set(trauma_vec, "EXISTENTIAL", curr_existential + scar.value)
-                safe_set(bio, "trauma_vector", trauma_vec)
-                curr_t = safe_get(physics, "T", 0.0)
-                safe_set(physics, "T", curr_t + scar.value)
-                msg = ux("soul_strings", "scar_frailty")
-                log.append(msg.format(name=scar.name))
+                t_vec = safe_get(bio, "trauma_vector") or {}
+                safe_set(t_vec, "EXISTENTIAL", safe_get(t_vec, "EXISTENTIAL", 0.0) + scar.value)
+                safe_set(bio, "trauma_vector", t_vec)
+                safe_set(physics, "T", safe_get(physics, "T", 0.0) + scar.value)
+                if msg := ux("soul_strings", "scar_frailty"): log.append(msg.format(name=scar.name))
         return log

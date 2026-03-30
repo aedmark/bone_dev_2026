@@ -96,33 +96,21 @@ class BioSystem:
 
     def _on_neural_shift(self, payload):
         state = payload.get("state", "NEUTRAL")
-        target_cfg = self.config_ref or BoneConfig
-        shifts = getattr(target_cfg.BIO, "NEURAL_SHIFTS", {})
+        shifts = getattr((self.config_ref or BoneConfig).BIO, "NEURAL_SHIFTS", {})
         if state == "PANIC":
-            panic_cfg = shifts.get("PANIC", {"adr": 0.3, "cor": 0.2})
-            self.endo.adrenaline = min(
-                1.0, self.endo.adrenaline + panic_cfg.get("adr", 0.3)
-            )
-            self.endo.cortisol = min(
-                1.0, self.endo.cortisol + panic_cfg.get("cor", 0.2)
-            )
-            if self.events:
-                msg = ux("vagus_nerve", "panic_spike")
-                if msg:
-                    self.events.log(f"{Prisma.RED}{msg}{Prisma.RST}", "BIO")
+            cfg = shifts.get("PANIC", {"adr": 0.3, "cor": 0.2})
+            self.endo.adrenaline = min(1.0, self.endo.adrenaline + cfg.get("adr", 0.3))
+            self.endo.cortisol = min(1.0, self.endo.cortisol + cfg.get("cor", 0.2))
+            if self.events and (msg := ux("vagus_nerve", "panic_spike")):
+                self.events.log(f"{Prisma.RED}{msg}{Prisma.RST}", "BIO")
         elif state == "ZEN":
-            zen_cfg = shifts.get("ZEN", {"cor": -0.3, "ser": 0.2})
-            self.endo.cortisol = max(0.0, self.endo.cortisol + zen_cfg.get("cor", -0.3))
-            self.endo.serotonin = min(
-                1.0, self.endo.serotonin + zen_cfg.get("ser", 0.2)
-            )
-            if self.events:
-                msg = ux("vagus_nerve", "lucid_calm")
-                if msg:
-                    self.events.log(f"{Prisma.GRN}{msg}{Prisma.RST}", "BIO")
+            cfg = shifts.get("ZEN", {"cor": -0.3, "ser": 0.2})
+            self.endo.cortisol = max(0.0, self.endo.cortisol + cfg.get("cor", -0.3))
+            self.endo.serotonin = min(1.0, self.endo.serotonin + cfg.get("ser", 0.2))
+            if self.events and (msg := ux("vagus_nerve", "lucid_calm")):
+                self.events.log(f"{Prisma.GRN}{msg}{Prisma.RST}", "BIO")
         elif state == "MANIC":
-            manic_cfg = shifts.get("MANIC", {"atp": -10.0})
-            self.mito.adjust_atp(manic_cfg.get("atp", -10.0), "Neural Overclock")
+            self.mito.adjust_atp(shifts.get("MANIC", {"atp": -10.0}).get("atp", -10.0), "Neural Overclock")
 
     def apply_environmental_entropy(self, physics_packet):
         vector = safe_get(physics_packet, "vector", {}) or {}
@@ -562,50 +550,33 @@ class BioFeedback:
     def check_vital_signs(self, phys: Any, stamina: float, logs: List[str]) -> str:
         b = self.bio.biometrics
         if not b:
-            msg = ux("bio_feedback", "interface_lost")
-            if msg:
-                logs.append(f"{Prisma.RED}{msg}{Prisma.RST}")
+            if msg := ux("bio_feedback", "interface_lost"): logs.append(f"{Prisma.RED}{msg}{Prisma.RST}")
             return "MAUSOLEUM_CLAMP"
         voltage = float(safe_get(phys, "voltage", 0.0))
         cfg = getattr(self.cfg, "BIO", None)
         min_health = getattr(cfg, "AUTOPHAGY_MIN_HEALTH", 10.0)
-        burn_amount = getattr(cfg, "AUTOPHAGY_BURN", 5.0)
         v_overload = getattr(cfg, "VOLTAGE_OVERLOAD", 30.0)
         if stamina <= 0:
             if b.health > min_health:
-                b.health -= burn_amount
-                msg = ux("bio_feedback", "autophagy")
-                if msg:
-                    logs.append(f"{Prisma.RED}{msg}{Prisma.RST}")
+                b.health -= getattr(cfg, "AUTOPHAGY_BURN", 5.0)
+                if msg := ux("bio_feedback", "autophagy"): logs.append(f"{Prisma.RED}{msg}{Prisma.RST}")
                 return "AUTOPHAGY"
             else:
-                msg = ux("bio_feedback", "fuel_depleted")
-                if msg:
-                    logs.append(f"{Prisma.RED}{msg}{Prisma.RST}")
+                if msg := ux("bio_feedback", "fuel_depleted"): logs.append(f"{Prisma.RED}{msg}{Prisma.RST}")
                 return "MAUSOLEUM_CLAMP"
         if voltage > v_overload:
-            msg = ux("bio_feedback", "voltage_overload")
-            if msg:
-                logs.append(f"{Prisma.RED}{msg.format(voltage=voltage)}{Prisma.RST}")
+            if msg := ux("bio_feedback", "voltage_overload"): logs.append(f"{Prisma.RED}{msg.format(voltage=voltage)}{Prisma.RST}")
             return "MAUSOLEUM_CLAMP"
         return "CLEAR"
 
     def perform_maintenance(self, text: str, phys: Any, logs: List[str], tick: int):
         cfg = getattr(self.cfg, "BIO", None)
-        buf_limit = getattr(cfg, "BUFFER_WARN_LIMIT", 10000) if cfg else 10000
-        sludge_thresh = getattr(cfg, "SLUDGE_DRAG_THRESH", 8.0) if cfg else 8.0
-        sludge_mod = getattr(cfg, "SLUDGE_TICK_MOD", 10) if cfg else 10
-        sludge_red = getattr(cfg, "SLUDGE_DRAG_REDUCTION", 2.0) if cfg else 2.0
-        if len(text) > buf_limit:
-            msg = ux("bio_feedback", "large_buffer")
-            if msg:
-                logs.append(f"{Prisma.GRY}{msg}{Prisma.RST}")
+        if len(text) > (getattr(cfg, "BUFFER_WARN_LIMIT", 10000) if cfg else 10000):
+            if msg := ux("bio_feedback", "large_buffer"): logs.append(f"{Prisma.GRY}{msg}{Prisma.RST}")
         drag = float(safe_get(phys, "narrative_drag", 0.0))
-        if drag > sludge_thresh and tick % sludge_mod == 0:
-            msg = ux("bio_feedback", "clearing_sludge")
-            if msg:
-                logs.append(f"{Prisma.OCHRE}{msg.format(drag=drag)}{Prisma.RST}")
-            safe_set(phys, "narrative_drag", max(1.0, drag - sludge_red))
+        if drag > (getattr(cfg, "SLUDGE_DRAG_THRESH", 8.0) if cfg else 8.0) and tick % (getattr(cfg, "SLUDGE_TICK_MOD", 10) if cfg else 10) == 0:
+            if msg := ux("bio_feedback", "clearing_sludge"): logs.append(f"{Prisma.OCHRE}{msg.format(drag=drag)}{Prisma.RST}")
+            safe_set(phys, "narrative_drag", max(1.0, drag - (getattr(cfg, "SLUDGE_DRAG_REDUCTION", 2.0) if cfg else 2.0)))
 
 
 class SemanticEndocrinologist:
@@ -985,30 +956,15 @@ class EndocrineSystem:
             self._apply_semantic_pressure(semantic_signal)
         self._maintain_homeostasis(social_context)
         glimmer_msg = self.check_for_glimmer(feedback, harvest_hits)
-        for chem in (
-            "dopamine",
-            "oxytocin",
-            "cortisol",
-            "serotonin",
-            "adrenaline",
-            "melatonin",
-        ):
-            current_val = getattr(self, chem, 0.0)
-            setattr(self, chem, self._clamp(current_val))
+        for chem in ("dopamine", "oxytocin", "cortisol", "serotonin", "adrenaline", "melatonin"):
+            setattr(self, chem, self._clamp(getattr(self, chem, 0.0)))
         state = self.get_state()
         if glimmer_msg:
             state["glimmer_msg"] = glimmer_msg
         return state
 
     def get_state(self) -> Dict[str, Any]:
-        return {
-            "DOP": round(self.dopamine, 2),
-            "OXY": round(self.oxytocin, 2),
-            "COR": round(self.cortisol, 2),
-            "SER": round(self.serotonin, 2),
-            "ADR": round(self.adrenaline, 2),
-            "MEL": round(self.melatonin, 2),
-        }
+        return {k: round(getattr(self, v), 2) for k, v in {"DOP": "dopamine", "OXY": "oxytocin", "COR": "cortisol", "SER": "serotonin", "ADR": "adrenaline", "MEL": "melatonin"}.items()}
 
 
 class PIDController:

@@ -74,24 +74,12 @@ class SessionGuardian:
 
     def __enter__(self):
         subprocess.run("cls" if os.name == "nt" else "clear", shell=True)
-        top_bar = ux(
-            "main_strings",
-            "term_header_top",
-            "┌──────────────────────────────────────────┐",
-        )
-        mid_bar = ux(
-            "main_strings",
-            "term_header_mid",
-            "│ BONEAMANITA TERMINAL // VERSION 18.3.0   │",
-        )
-        bot_bar = ux(
-            "main_strings",
-            "term_header_bot",
-            "└──────────────────────────────────────────┘",
-        )
-        print(f"{Prisma.paint(top_bar, 'M')}")
-        print(f"{Prisma.paint(mid_bar, 'M')}")
-        print(f"{Prisma.paint(bot_bar, 'M')}")
+        for key, default in [
+            ("term_header_top", "┌──────────────────────────────────────────┐"),
+            ("term_header_mid", "│ BONEAMANITA TERMINAL // VERSION 18.3.0   │"),
+            ("term_header_bot", "└──────────────────────────────────────────┘"),
+        ]:
+            print(Prisma.paint(ux("main_strings", key, default), "M"))
         cfg = (
             getattr(self.engine_instance.bone_config, "GUI", None)
             if self.engine_instance
@@ -174,43 +162,22 @@ class ConfigWizard:
         user_name = input(f"{Prisma.GRY}{prompt1}{Prisma.RST}").strip() or "TRAVELER"
         step2 = ux("main_strings", "step2_mode")
         print(f"\n{Prisma.paint(step2, 'W')}")
-        modes = [
-            (
-                "1",
-                "ADVENTURE",
-                ux("main_strings", "mode_adv_desc"),
-                "G",
-            ),
-            (
-                "2",
-                "CONVERSATION",
-                ux("main_strings", "mode_conv_desc"),
-                "C",
-            ),
-            (
-                "3",
-                "CREATIVE",
-                ux("main_strings", "mode_crea_desc"),
-                "V",
-            ),
-            (
-                "4",
-                "TECHNICAL",
-                ux("main_strings", "mode_tech_desc"),
-                "0",
-            ),
-        ]
-        for k, name, desc, col in modes:
+        for k, name, desc, col in [
+            ("1", "ADVENTURE", ux("main_strings", "mode_adv_desc"), "G"),
+            ("2", "CONVERSATION", ux("main_strings", "mode_conv_desc"), "C"),
+            ("3", "CREATIVE", ux("main_strings", "mode_crea_desc"), "V"),
+            ("4", "TECHNICAL", ux("main_strings", "mode_tech_desc"), "0"),
+        ]:
             print(f"  {k}. {Prisma.paint(name, col):<25} - {desc}")
-        prompt_mode = ux("main_strings", "prompt_mode")
-        mode_choice = input(f"{Prisma.paint(prompt_mode, 'C')} ").strip()
-        mode_map = {
+        mode_choice = input(
+            f"{Prisma.paint(ux('main_strings', 'prompt_mode'), 'C')} "
+        ).strip()
+        boot_mode = {
             "1": "ADVENTURE",
             "2": "CONVERSATION",
             "3": "CREATIVE",
             "4": "TECHNICAL",
-        }
-        boot_mode = mode_map.get(mode_choice, "ADVENTURE")
+        }.get(mode_choice, "ADVENTURE")
         step3 = ux("main_strings", "step3_backend")
         print(f"\n{Prisma.paint(step3, 'W')}")
         backends = [
@@ -412,17 +379,15 @@ class BoneAmanita:
         return sum(hist) / len(hist)
 
     def _unpack_anatomy(self, anatomy):
-        self.akashic = anatomy["akashic"]
-        self.embryo = anatomy["embryo"]
-        self.soul = anatomy["soul"]
-        self.oroboros = anatomy["oroboros"]
-        self.drivers = anatomy["drivers"]
-        self.symbiosis = anatomy["symbiosis"]
+        for k in ["akashic", "embryo", "soul", "oroboros", "drivers", "symbiosis"]:
+            setattr(self, k, anatomy[k])
         self.consultant = anatomy.get("consultant", None)
-        self.phys = self.embryo.physics
-        self.mind = self.embryo.mind
-        self.bio = self.embryo.bio
-        self.shimmer = self.embryo.shimmer
+        self.phys, self.mind, self.bio, self.shimmer = (
+            self.embryo.physics,
+            self.embryo.mind,
+            self.embryo.bio,
+            self.embryo.shimmer,
+        )
         self.bio.setup_listeners()
         v = anatomy.get("village", {})
         for k in [
@@ -446,25 +411,34 @@ class BoneAmanita:
         from bone_protocols import GriefProtocol
         from bone_utils import TheSubstrate
 
-        self.grief = GriefProtocol(self.events, engine_ref=self)
-        self.substrate = TheSubstrate(self.events)
-        self.soul.engine = self
-        self.council = CouncilChamber(self)
+        self.grief, self.substrate, self.soul.engine, self.council = (
+            GriefProtocol(self.events, engine_ref=self),
+            TheSubstrate(self.events),
+            self,
+            CouncilChamber(self),
+        )
         self.village = {
-            "town_hall": self.town_hall,
-            "bureau": self.bureau,
-            "zen": self.zen,
-            "tinkerer": self.tinkerer,
-            "critics": self.critics,
-            "navigator": self.navigator,
-            "limbo": self.limbo,
-            "council": self.council,
-            "therapy": self.therapy,
-            "enneagram": self.drivers.enneagram,
-            "suppressed_agents": self.suppressed_agents,
-            "therapist": self.therapist,
-            "gravedigger": self.gravedigger,
+            k: getattr(self, k)
+            for k in [
+                "town_hall",
+                "bureau",
+                "zen",
+                "tinkerer",
+                "critics",
+                "navigator",
+                "limbo",
+                "council",
+                "therapy",
+                "therapist",
+                "gravedigger",
+            ]
         }
+        self.village.update(
+            {
+                "enneagram": self.drivers.enneagram,
+                "suppressed_agents": self.suppressed_agents,
+            }
+        )
 
     def _update_host_stats(self, packet, turn_start):
         self.observer.clock_out(turn_start)
@@ -490,10 +464,10 @@ class BoneAmanita:
                     safe_set(self.cortex.last_physics, "narrative_drag", 0.0)
                 self.stamina = getattr(self.bone_config, "MAX_STAMINA", 100.0)
                 if getattr(self, "bio", None) and getattr(self.bio, "mito", None):
-                    self.bio.mito.state.atp_pool = getattr(
-                        self.bone_config, "MAX_ATP", 100.0
+                    self.bio.mito.state.atp_pool, self.bio.mito.state.ros_buildup = (
+                        getattr(self.bone_config, "MAX_ATP", 100.0),
+                        0.0,
                     )
-                    self.bio.mito.state.ros_buildup = 0.0
                 if getattr(self, "observer", None) and getattr(
                     self.observer, "last_physics_packet", None
                 ):

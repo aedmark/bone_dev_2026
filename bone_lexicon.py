@@ -8,6 +8,7 @@ import string
 import time
 import unicodedata
 from typing import Tuple, Dict, Set, Optional, List
+
 from bone_core import Prisma, LoreManifest, ux
 
 
@@ -78,27 +79,20 @@ class LexiconStore:
         self.REVERSE_INDEX[w].add(category)
 
     def _load_hive(self):
-        if not os.path.exists(self.HIVE_FILENAME):
-            return
+        if not os.path.exists(self.HIVE_FILENAME): return
         try:
-            with open(self.HIVE_FILENAME, "r", encoding="utf-8") as f:
-                hive_data = json.load(f)
-            if not isinstance(hive_data, dict):
-                return
+            with open(self.HIVE_FILENAME, "r", encoding="utf-8") as f: hive_data = json.load(f)
+            if not isinstance(hive_data, dict): return
             count = 0
             for cat, entries in hive_data.items():
-                if cat not in self.LEARNED_VOCAB:
-                    self.LEARNED_VOCAB[cat] = {}
-                for word, tick in entries.items():
-                    self.LEARNED_VOCAB[cat][word] = tick
+                self.LEARNED_VOCAB.setdefault(cat, {}).update(entries)
+                for word in entries:
                     self._index_word(word, cat)
                     count += 1
             self.hive_loaded = True
-            msg = ux("lexicon_strings", "hive_restored")
-            print(f"{Prisma.CYN}{msg.format(count=count)}{Prisma.RST}")
+            if msg := ux("lexicon_strings", "hive_restored"): print(f"{Prisma.CYN}{msg.format(count=count)}{Prisma.RST}")
         except (IOError, json.JSONDecodeError) as e:
-            msg = ux("lexicon_strings", "hive_corruption")
-            print(f"{Prisma.RED}{msg.format(e=e)}{Prisma.RST}")
+            if msg := ux("lexicon_strings", "hive_corruption"): print(f"{Prisma.RED}{msg.format(e=e)}{Prisma.RST}")
 
     def save_hive(self):
         try:
@@ -176,25 +170,12 @@ class LinguisticAnalyzer:
             self.ANTIGEN_REGEX = None
 
     def measure_viscosity(self, word: str) -> float:
-        if not word:
-            return 0.0
+        if not word: return 0.0
         w = word.lower()
-        if w in self.store.SOLVENTS:
-            return 0.1
-        length_score = min(1.0, len(w) / 12.0)
-        stops, flow = 0, 0
-        plosives = self.PHONETICS.get("PLOSIVE", set())
-        liquids = self.PHONETICS.get("LIQUID", set())
-        vowels = self.PHONETICS.get("VOWELS", set())
-        for c in w:
-            if c in plosives:
-                stops += 1
-            elif c in liquids or c in vowels:
-                flow += 1
-        stop_score = min(1.0, stops / 3.0)
-        flow_score = min(1.0, flow / 4.0)
-        substance_score = max(stop_score, flow_score)
-        return (length_score * 0.5) + (substance_score * 0.5)
+        if w in self.store.SOLVENTS: return 0.1
+        stops = sum(1 for c in w if c in self.PHONETICS.get("PLOSIVE", set()))
+        flow = sum(1 for c in w if c in self.PHONETICS.get("LIQUID", set()) | self.PHONETICS.get("VOWELS", set()))
+        return (min(1.0, len(w) / 12.0) * 0.5) + (max(min(1.0, stops / 3.0), min(1.0, flow / 4.0)) * 0.5)
 
     @staticmethod
     def get_turbulence(words: List[str]) -> float:
@@ -207,31 +188,13 @@ class LinguisticAnalyzer:
         return round(turbulence, 2)
 
     def vectorize(self, text: str) -> Dict[str, float]:
-        words = self.sanitize(text)
-        if not words:
-            return {}
-        dims = {
-            "VEL": 0.0,
-            "STR": 0.0,
-            "CHI": 0.0,
-            "PHI": 0.0,
-            "PSI": 0.0,
-            "BET": 0.0,
-            "DEL": 0.0,
-            "LAMBDA": 0.0,
-            "ENT": 0.0,
-        }
-        for w in words:
-            cats = self.store.get_categories_for_word(w)
-            for cat in cats:
-                if cat in self.dimension_map:
-                    target_dim = self.dimension_map[cat]
-                    dims[target_dim] += 1.0
+        if not (words := self.sanitize(text)): return {}
+        dims = {k: 0.0 for k in ("VEL", "STR", "CHI", "PHI", "PSI", "BET", "DEL", "LAMBDA", "ENT")}
+        for cat in (c for w in words for c in self.store.get_categories_for_word(w)):
+            if cat in self.dimension_map: dims[self.dimension_map[cat]] += 1.0
         total = max(1.0, sum(dims.values()))
         result = {k: round(v / total, 3) for k, v in dims.items()}
-        word_count = len(words)
-        fragmentation = min(1.0, (total / max(1, word_count)))
-        result["ENT"] = round((result["CHI"] + fragmentation) / 2.0, 3)
+        result["ENT"] = round((result.get("CHI", 0.0) + min(1.0, total / max(1, len(words)))) / 2.0, 3)
         return result
 
     @staticmethod
@@ -349,19 +312,14 @@ class SemanticField:
         self.history = deque(maxlen=10)
 
     def update(self, text: str) -> Dict[str, float]:
-        new_vector = self.analyzer.vectorize(text)
-        if not new_vector:
-            return self.current_vector
+        if not (new_vector := self.analyzer.vectorize(text)): return self.current_vector
         if not self.current_vector:
             self.current_vector = new_vector
             self.history.append((time.time(), 0.0))
             return self.current_vector
         flux = self.analyzer.calculate_flux(self.current_vector, new_vector)
         self.momentum = (self.momentum * 0.7) + (flux * 0.3)
-        blended = {k: round(v * 0.6, 3) for k, v in self.current_vector.items()}
-        for k, v in new_vector.items():
-            blended[k] = round(blended.get(k, 0.0) + (v * 0.4), 3)
-        self.current_vector = blended
+        self.current_vector = {k: round((self.current_vector.get(k, 0.0) * 0.6) + (new_vector.get(k, 0.0) * 0.4), 3) for k in set(self.current_vector) | set(new_vector)}
         self.history.append((time.time(), flux))
         return self.current_vector
 

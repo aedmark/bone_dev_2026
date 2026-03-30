@@ -536,14 +536,13 @@ To replace lost non-verbal communication and bypass the metabolically expensive 
 
 ---
 
-# PART VIII: MOD CHIPS
+# PART VIII: MOD CHIP ARCHITECTURE
 
-**Mod Chips** act as 'specialized' knowledge grafts. They are **opt‑in** and activated via simple flags.
+**Mod Chips** act as specialized knowledge grafts. They are **opt‑in** and activated via simple flags.
 
-Once active, they might:
+Once active, they:
+- Introduce new **Village members** (archetypes) with their own voices and triggers.
+- Add **extended metrics**.
+- Inherit all core Hypervisor rules natively. (e.g., The 5-Token Lexical Firewall, `cf.expect` penalties, and the Sincerity Protocols `[!r, !q, !k]` apply automatically to all Mod Chips without needing to be redefined).
 
-- Introduce new **Village members** (archetypes) with their own voices and triggers
-- Add **extended metrics**
-- Modify rules slightly to reflect the desired domain's friction.
-
-**NOTE:** Chips can be combined, though too many active mods will increase cognitive load and things might get... weird.
+**NOTE:** Chips can be combined, though too many active mods will increase cognitive load and trigger Systemic Friction ($F_{sys}$).

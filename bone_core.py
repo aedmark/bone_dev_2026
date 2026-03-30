@@ -22,11 +22,7 @@ def ux(section: str, key: str, default: Any = "") -> Any:
 
 
 def safe_get(obj: Any, key: str, default: Any = None) -> Any:
-    if obj is None:
-        return default
-    if isinstance(obj, dict):
-        return obj.get(key, default)
-    return getattr(obj, key, default)
+    return default if obj is None else (obj.get(key, default) if isinstance(obj, dict) else getattr(obj, key, default))
 
 
 def safe_set(obj: Any, key: str, value: Any) -> None:
@@ -233,14 +229,7 @@ class TheObserver:
         if avg_cycle < c_eff and avg_llm < l_eff:
             return ux("core_strings", "obs_efficient")
         if avg_llm > self.LATENCY_WARNING:
-            valid = [
-                j
-                for j in (
-                    ux("core_strings", k)
-                    for k in ("obs_fog", "obs_degraded", "obs_ponderous")
-                )
-                if j
-            ]
+            valid = [j for k in ("obs_fog", "obs_degraded", "obs_ponderous") if (j := ux("core_strings", k))]
             return random.choice(valid) if valid else ""
         if avg_cycle > self.CYCLE_WARNING:
             return ux("core_strings", "obs_sluggish")
@@ -282,15 +271,10 @@ class SystemHealth:
         self.observer = observer_ref
 
     def report_failure(self, component: str, error: Exception, severity="ERROR"):
-        msg = str(error)
-        self.errors.append(ErrorLog(component, msg, severity=severity))
-        if self.observer:
-            self.observer.log_error(component)
-        attr_name = f"{component.lower()}_online"
-        if hasattr(self, attr_name):
-            setattr(self, attr_name, False)
-        err_msg = ux("core_strings", "health_offline")
-        return err_msg.format(component=component, msg=msg) if err_msg else ""
+        self.errors.append(ErrorLog(component, msg := str(error), severity=severity))
+        if self.observer: self.observer.log_error(component)
+        if hasattr(self, attr_name := f"{component.lower()}_online"): setattr(self, attr_name, False)
+        return err_msg.format(component=component, msg=msg) if (err_msg := ux("core_strings", "health_offline")) else ""
 
     def report_warning(self, message: str):
         self.warnings.append(message)
@@ -584,20 +568,9 @@ class TelemetryService:
                             break
                         try:
                             data = json.loads(line)
-                            if (
-                                data.get("_type") != "CRYSTAL"
-                                and "final_response" not in data
-                            ):
-                                continue
-                            resp = data.get("final_response", "")
-                            prompt = data.get("prompt_snapshot", "")
-                            if not resp:
-                                continue
-                            user_text = (
-                                prompt.split("User:")[1].split("\n")[0].strip()
-                                if "User:" in prompt
-                                else "Unknown"
-                            )
+                            if data.get("_type") != "CRYSTAL" and "final_response" not in data: continue
+                            if not (resp := data.get("final_response", "")): continue
+                            user_text = prompt.split("User:")[1].split("\n")[0].strip() if "User:" in (prompt := data.get("prompt_snapshot", "")) else "Unknown"
                             history.insert(0, f"User: {user_text} | System: {resp}")
                         except (json.JSONDecodeError, IndexError):
                             continue

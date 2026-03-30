@@ -12,17 +12,9 @@ from bone_types import Prisma, PhysicsPacket
 
 
 def _hydrate_packet(p: Any) -> PhysicsPacket:
-    if isinstance(p, PhysicsPacket):
-        return p
+    if isinstance(p, PhysicsPacket): return p
     packet = PhysicsPacket.void_state()
-    keys = (
-        "voltage", "kappa", "narrative_drag", "zone",
-        "vector", "clean_words", "counts", "raw_text"
-    )
-    for k in keys:
-        val = safe_get(p, k)
-        if val is not None:
-            safe_set(packet, k, val)
+    [safe_set(packet, k, val) for k in ("voltage", "kappa", "narrative_drag", "zone", "vector", "clean_words", "counts", "raw_text") if (val := safe_get(p, k)) is not None]
     return packet
 
 
@@ -190,25 +182,13 @@ class MirrorGraph:
         self.stats = {"WAR": 0.0, "ART": 0.0, "LAW": 0.0, "ROT": 0.0}
 
     def reflect(self, packet: PhysicsPacket):
-        txt = ""
-        if hasattr(packet, "matter") and packet.matter:
-            txt = getattr(packet.matter, "raw_text", "")
-        if not txt:
-            txt = getattr(packet, "raw_text", "")
-        volt = packet.voltage
+        txt = getattr(packet.matter, "raw_text", "") if hasattr(packet, "matter") and packet.matter else getattr(packet, "raw_text", "")
         cfg = getattr(self.cfg, "VILLAGE", None)
         step = getattr(cfg, "MIRROR_STAT_STEP", 0.1) if cfg else 0.1
-        rot_ent = getattr(cfg, "MIRROR_ROT_ENTROPY_MIN", 0.5) if cfg else 0.5
-        manic = getattr(
-            getattr(self.cfg, "COUNCIL", None), "MANIC_VOLTAGE_TRIGGER", 18.0
-        )
-        drag_halt = getattr(getattr(self.cfg, "PHYSICS", None), "DRAG_HALT", 10.0)
-        self.stats["WAR"] += step if "!" in txt or volt > manic else 0.0
-        self.stats["ART"] += step if "?" in txt else 0.0
-        self.stats["LAW"] += step if packet.narrative_drag > drag_halt else 0.0
-        self.stats["ROT"] += (
-            step if packet.vector and packet.vector.get("ENT", 0.0) > rot_ent else 0.0
-        )
+        self.stats["WAR"] += step * ("!" in txt or packet.voltage > getattr(getattr(self.cfg, "COUNCIL", None), "MANIC_VOLTAGE_TRIGGER", 18.0))
+        self.stats["ART"] += step * ("?" in txt)
+        self.stats["LAW"] += step * (packet.narrative_drag > getattr(getattr(self.cfg, "PHYSICS", None), "DRAG_HALT", 10.0))
+        self.stats["ROT"] += step * (bool(packet.vector and packet.vector.get("ENT", 0.0) > (getattr(cfg, "MIRROR_ROT_ENTROPY_MIN", 0.5) if cfg else 0.5)))
         total = sum(self.stats.values())
         cap = getattr(cfg, "MIRROR_STAT_CAP", 5.0) if cfg else 5.0
         if total > cap:
@@ -221,20 +201,11 @@ class MirrorGraph:
 
     def get_reflection_modifiers(self) -> Dict:
         if not self.stats or sum(self.stats.values()) == 0:
-            msg_neutral = ux("village_strings", "mirror_neutral")
-            return {"flavor": msg_neutral, "drag_mult": 1.0}
+            return {"flavor": ux("village_strings", "mirror_neutral"), "drag_mult": 1.0}
         top_stat = max(self.stats, key=self.stats.get)
         cfg = getattr(self.cfg, "VILLAGE", None)
-        drag_map = {
-            "WAR": getattr(cfg, "MIRROR_DRAG_WAR", 1.2) if cfg else 1.2,
-            "ROT": getattr(cfg, "MIRROR_DRAG_ROT", 1.5) if cfg else 1.5,
-            "LAW": getattr(cfg, "MIRROR_DRAG_LAW", 0.8) if cfg else 0.8,
-            "ART": getattr(cfg, "MIRROR_DRAG_ART", 0.9) if cfg else 0.9,
-        }
-        mult = drag_map.get(top_stat, 1.0)
-        msg_raw = ux("village_strings", "mirror_stat")
-        msg_stat = msg_raw.format(stat=top_stat) if msg_raw else ""
-        return {"flavor": msg_stat, "drag_mult": mult}
+        mult = {"WAR": getattr(cfg, "MIRROR_DRAG_WAR", 1.2), "ROT": getattr(cfg, "MIRROR_DRAG_ROT", 1.5), "LAW": getattr(cfg, "MIRROR_DRAG_LAW", 0.8), "ART": getattr(cfg, "MIRROR_DRAG_ART", 0.9)}.get(top_stat, 1.0) if cfg else {"WAR": 1.2, "ROT": 1.5, "LAW": 0.8, "ART": 0.9}.get(top_stat, 1.0)
+        return {"flavor": (ux("village_strings", "mirror_stat") or "").format(stat=top_stat), "drag_mult": mult}
 
 
 @dataclass
@@ -393,7 +364,8 @@ class TheCartographer:
 
     def _prune_graph(self):
         candidates = (
-            k for k in self.world_graph
+            k
+            for k in self.world_graph
             if k not in ("GENESIS_POINT", self.current_node_id)
         )
         try:
@@ -512,24 +484,11 @@ class TownHall:
         p_cfg = getattr(self.cfg, "PHYSICS", None)
         v_high = getattr(p_cfg, "VOLTAGE_HIGH", 60.0) if p_cfg else 60.0
         d_heavy = getattr(p_cfg, "DRAG_HEAVY", 5.0) if p_cfg else 5.0
-        if latency > l_warn:
-            status = "HIGH_LATENCY"
-            advice = ux("village_strings", "town_lag")
-        elif packet.voltage > v_high:
-            status = "HIGH_VOLTAGE"
-            advice = random.choice(forecasts.get("HIGH_VOLTAGE", ["Manic energy."]))
-        elif packet.narrative_drag > d_heavy:
-            status = "HIGH_DRAG"
-            advice = random.choice(forecasts.get("HIGH_DRAG", ["Narrative stuck."]))
-        else:
-            status = "BALANCED"
-            advice = random.choice(forecasts.get("BALANCED", ["Nominal."]))
-        census_fmt = ux("village_strings", "town_census")
-        report = (
-            census_fmt.format(loc=loc_name, status=status, advice=advice)
-            if census_fmt
-            else ""
-        )
+        status, advice = ("HIGH_LATENCY", ux("village_strings", "town_lag")) if latency > l_warn else \
+                         ("HIGH_VOLTAGE", random.choice(forecasts.get("HIGH_VOLTAGE", ["Manic energy."]))) if packet.voltage > v_high else \
+                         ("HIGH_DRAG", random.choice(forecasts.get("HIGH_DRAG", ["Narrative stuck."]))) if packet.narrative_drag > d_heavy else \
+                         ("BALANCED", random.choice(forecasts.get("BALANCED", ["Nominal."])))
+        report = (ux("village_strings", "town_census") or "").format(loc=loc_name, status=status, advice=advice)
         news = self._get_town_news(latency, packet.voltage, config_ref=self.cfg)
         if news:
             report += f"\n{news}"

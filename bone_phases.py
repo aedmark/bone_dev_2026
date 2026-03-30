@@ -7,30 +7,17 @@ from bone_core import ArchetypeArbiter, LoreManifest, ux, safe_get, safe_set
 from bone_gui import SoulDashboard
 from bone_utils import TheTclWeaver
 
-
 def _safe_dict(obj):
-    if hasattr(obj, "to_dict"):
-        return obj.to_dict()
-    if isinstance(obj, dict):
-        return obj
-    return {}
-
+    return obj.to_dict() if hasattr(obj, "to_dict") else (obj if isinstance(obj, dict) else {})
 
 def _deep_update(obj, d):
     for k, v in d.items():
-        target = obj.get(k) if isinstance(obj, dict) else getattr(obj, k, None)
-        if (
-            isinstance(v, dict)
-            and target is not None
-            and (isinstance(target, dict) or hasattr(target, "__dict__"))
-        ):
-            _deep_update(target, v)
+        tgt = obj.get(k) if isinstance(obj, dict) else getattr(obj, k, None)
+        if isinstance(v, dict) and tgt is not None and (isinstance(tgt, dict) or hasattr(tgt, "__dict__")):
+            _deep_update(tgt, v)
         else:
-            try:
-                obj[k] = v
-            except Exception:
-                setattr(obj, k, v)
-
+            if isinstance(obj, dict): obj[k] = v
+            else: setattr(obj, k, v)
 
 class SimulationPhase:
     def __init__(self, engine_ref):
@@ -48,26 +35,15 @@ class ObservationPhase(SimulationPhase):
 
     def run(self, ctx: CycleContext):
         if ctx.time_delta > 10.0 and not ctx.is_system_event and ctx.physics:
-            nabla_msg = QuantumObserver.evaluate_silence(ctx.time_delta, ctx.physics)
-            if nabla_msg:
+            if nabla_msg := QuantumObserver.evaluate_silence(ctx.time_delta, ctx.physics):
                 ctx.log(f"{Prisma.GRY}*... {nabla_msg} ...*{Prisma.RST}")
-            if (
-                ctx.time_delta > 600.0
-                and hasattr(self.eng, "bio")
-                and hasattr(self.eng.bio, "mito")
-            ):
+
+            if ctx.time_delta > 600.0 and (bio := getattr(self.eng, "bio", None)) and getattr(bio, "mito", None):
                 hours_passed = min(24.0, ctx.time_delta / 3600.0)
-                if self.eng.bio.biometrics:
-                    target_cfg = getattr(self.eng, "bone_config", BoneConfig)
-                    max_h = getattr(target_cfg, "MAX_HEALTH", 100.0)
-                    self.eng.bio.biometrics.health = min(
-                        max_h, self.eng.bio.biometrics.health + (hours_passed * 10.0)
-                    )
                 target_cfg = getattr(self.eng, "bone_config", BoneConfig)
-                max_atp = getattr(target_cfg, "MAX_ATP", 100.0)
-                self.eng.bio.mito.state.atp_pool = min(
-                    max_atp, self.eng.bio.mito.state.atp_pool + (hours_passed * 25.0)
-                )
+                if bio.biometrics:
+                    bio.biometrics.health = min(getattr(target_cfg, "MAX_HEALTH", 100.0), bio.biometrics.health + (hours_passed * 10.0))
+                bio.mito.state.atp_pool = min(getattr(target_cfg, "MAX_ATP", 100.0), bio.mito.state.atp_pool + (hours_passed * 25.0))
                 ctx.log(
                     f"{Prisma.GRN}[BIO]: Retroactive metabolism applied for {hours_passed:.1f} hours of absence. ATP and Health restored.{Prisma.RST}"
                 )
@@ -263,18 +239,10 @@ class SanctuaryPhase(SimulationPhase):
             log_msg, effects = dream_packet
             ctx.log(f"{Prisma.VIOLET}☁️ {log_msg}{Prisma.RST}")
             if effects:
-                if "adrenaline" in effects:
-                    self.eng.bio.endo.adrenaline = max(
-                        0.0, self.eng.bio.endo.adrenaline + effects["adrenaline"]
-                    )
-                if "cortisol" in effects:
-                    self.eng.bio.endo.cortisol = max(
-                        0.0, self.eng.bio.endo.cortisol + effects["cortisol"]
-                    )
+                for k, target in [("adrenaline", self.eng.bio.endo), ("cortisol", self.eng.bio.endo)]:
+                    if k in effects: setattr(target, k, max(0.0, getattr(target, k) + effects[k]))
                 if "voltage" in effects:
-                    ctx.physics.voltage = max(
-                        0.0, ctx.physics.voltage + effects["voltage"]
-                    )
+                    ctx.physics.voltage = max(0.0, ctx.physics.voltage + effects["voltage"])
                 if "glimmers" in effects and effects["glimmers"] > 0:
                     if hasattr(self.eng, "shared_lattice"):
                         self.eng.shared_lattice.shared.g_pool += effects["glimmers"]
@@ -776,40 +744,27 @@ class MachineryPhase(SimulationPhase):
         boost, z_msg = 0.0, None
         if getattr(self.eng, "zen", None):
             boost, z_msg = self.eng.zen.raking_the_sand(phys_dict, ctx.bio_result)
-        if z_msg:
-            ctx.log(z_msg)
-        if boost > 0:
-            self.eng.bio.mito.state.membrane_potential = min(
-                2.0, self.eng.bio.mito.state.efficiency_mod + (boost * 0.1)
-            )
-        if self.eng.gordon and self.eng.gordon.inventory:
-            self._process_crafting(ctx, phys_dict)
-        if t_msg := self.eng.phys.forge.transmute(phys_dict):
-            ctx.log(t_msg)
+            if z_msg: ctx.log(z_msg)
+            if boost > 0: self.eng.bio.mito.state.membrane_potential = min(2.0, self.eng.bio.mito.state.efficiency_mod + (boost * 0.1))
+
+        if self.eng.gordon and self.eng.gordon.inventory: self._process_crafting(ctx, phys_dict)
+
+        if t_msg := self.eng.phys.forge.transmute(phys_dict): ctx.log(t_msg)
+
         _, f_msg, new_item = self.eng.phys.forge.hammer_alloy(phys_dict)
-        if f_msg:
-            ctx.log(f_msg)
-        if new_item and self.eng.gordon:
-            ctx.log(self.eng.gordon.acquire(new_item))
-        _, _, t_msg, t_crit = self.eng.phys.theremin.listen(
-            phys_dict, self.eng.bio.governor.mode
-        )
-        if t_msg:
-            ctx.log(t_msg)
-        if t_crit == "AIRSTRIKE":
-            self._handle_theremin_discharge(ctx)
-        self.eng.phys.pulse.update(
-            getattr(ctx.physics, "repetition", 0.0), ctx.physics.voltage
-        )
+        if f_msg: ctx.log(f_msg)
+        if new_item and self.eng.gordon: ctx.log(self.eng.gordon.acquire(new_item))
+
+        _, _, t_msg, t_crit = self.eng.phys.theremin.listen(phys_dict, self.eng.bio.governor.mode)
+        if t_msg: ctx.log(t_msg)
+        if t_crit == "AIRSTRIKE": self._handle_theremin_discharge(ctx)
+
+        self.eng.phys.pulse.update(getattr(ctx.physics, "repetition", 0.0), ctx.physics.voltage)
         c_state, c_val, c_msg = self.eng.phys.crucible.audit_fire(phys_dict)
-        if c_msg:
-            ctx.log(c_msg)
-        if c_state == "MELTDOWN":
-            damage = c_val
-            if self.eng.bio.biometrics:
-                self.eng.bio.biometrics.health = max(
-                    0.0, self.eng.bio.biometrics.health - damage
-                )
+        if c_msg: ctx.log(c_msg)
+        if c_state == "MELTDOWN" and self.eng.bio.biometrics:
+            self.eng.bio.biometrics.health = max(0.0, self.eng.bio.biometrics.health - c_val)
+
         _deep_update(ctx.physics, phys_dict)
         return ctx
 

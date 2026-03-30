@@ -272,10 +272,7 @@ class PhysicsPacket:
         return asdict(self)
 
     def get(self, key, default=None):
-        try:
-            return getattr(self, key)
-        except AttributeError:
-            return default
+        return getattr(self, key, default)
 
     def __getattr__(self, key):
         if key.startswith("_"):

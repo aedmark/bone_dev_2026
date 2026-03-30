@@ -252,32 +252,34 @@ class TheGatekeeper:
     def check_entry(
         self, ctx: CycleContext, current_atp: float = 20.0
     ) -> Tuple[bool, Optional[Dict]]:
-        phys = ctx.physics
-        starvation_threshold = getattr(self.cfg.BIO, "ATP_STARVATION", 5.0)
-        if current_atp < (starvation_threshold * 0.5):
-            msg = ux("physics_strings", "gatekeeper_starved")
-            return False, self._pack_refusal(ctx, "DARK_SYSTEM", msg)
-        counts = safe_get(phys, "counts", {})
-        if counts.get("antigen", 0) > 2:
-            msg = ux("physics_strings", "gatekeeper_toxic")
+        if current_atp < (getattr(self.cfg.BIO, "ATP_STARVATION", 5.0) * 0.5):
             return False, self._pack_refusal(
-                ctx, "TOXICITY", f"{Prisma.RED}{msg}{Prisma.RST}"
+                ctx, "DARK_SYSTEM", ux("physics_strings", "gatekeeper_starved")
+            )
+        if safe_get(ctx.physics, "counts", {}).get("antigen", 0) > 2:
+            return False, self._pack_refusal(
+                ctx,
+                "TOXICITY",
+                f"{Prisma.RED}{ux('physics_strings', 'gatekeeper_toxic')}{Prisma.RST}",
             )
         if self._audit_safety(ctx.clean_words):
-            msg = ux("physics_strings", "gatekeeper_cursed")
             return False, self._pack_refusal(
-                ctx, "CURSED_INPUT", f"{Prisma.RED}{msg}{Prisma.RST}"
+                ctx,
+                "CURSED_INPUT",
+                f"{Prisma.RED}{ux('physics_strings', 'gatekeeper_cursed')}{Prisma.RST}",
             )
         text = ctx.input_text
         if "```" in text or "{{" in text or "}}" in text:
-            msg = ux("physics_strings", "gatekeeper_syntax")
             return False, self._pack_refusal(
-                ctx, "SYNTAX_ERR", f"{Prisma.RED}{msg}{Prisma.RST}"
+                ctx,
+                "SYNTAX_ERR",
+                f"{Prisma.RED}{ux('physics_strings', 'gatekeeper_syntax')}{Prisma.RST}",
             )
         if len(text) > 10000:
-            msg = ux("physics_strings", "gatekeeper_overload")
             return False, self._pack_refusal(
-                ctx, "OVERLOAD", f"{Prisma.OCHRE}{msg}{Prisma.RST}"
+                ctx,
+                "OVERLOAD",
+                f"{Prisma.OCHRE}{ux('physics_strings', 'gatekeeper_overload')}{Prisma.RST}",
             )
         return True, None
 
@@ -420,7 +422,15 @@ class QuantumObserver:
         mu_val = min(1.0, (beta_val * 0.7) + (geo.coherence * 0.3))
 
         text_lower = text.lower()
-        val_phrases = ["right?", "good?", "make sense", "makes sense", "agree", "validate", "comfort"]
+        val_phrases = [
+            "right?",
+            "good?",
+            "make sense",
+            "makes sense",
+            "agree",
+            "validate",
+            "comfort",
+        ]
         cf_expect_val = 0.8 if any(p in text_lower for p in val_phrases) else 0.0
         novelty_val = min(1.0, (e_metric * 0.6) + (counts.get("play", 0) * 0.15))
 
@@ -621,29 +631,30 @@ class QuantumObserver:
         if not vector:
             return "COURTYARD"
         dom = max(vector, key=vector.get)
-        if dom in ["PSI", "DEL"]:
-            return "AERIE"
-        if dom in ["STR", "PHI"]:
-            return "THE_FORGE"
-        if dom in ["ENT", "VEL"]:
-            return "THE_MUD"
-        return "COURTYARD"
+        return (
+            "AERIE"
+            if dom in ["PSI", "DEL"]
+            else (
+                "THE_FORGE"
+                if dom in ["STR", "PHI"]
+                else ("THE_MUD" if dom in ["ENT", "VEL"] else "COURTYARD")
+            )
+        )
 
 
 class SurfaceTension:
     @staticmethod
     def audit_hubris(physics: Any, config_ref=None) -> Tuple[bool, str, str]:
-        target_cfg = config_ref or BoneConfig
-        voltage = physics.get("voltage", 0.0)
-        coherence = physics.get("kappa", 0.5)
-        volt_crit = getattr(target_cfg.PHYSICS, "VOLTAGE_CRITICAL", 15.0)
-        volt_flow = getattr(target_cfg.PHYSICS, "VOLTAGE_HIGH", 12.0)
-        if voltage >= volt_crit and coherence < 0.4:
-            msg = ux("physics_strings", "hubris_detected")
-            return True, msg.format(voltage=voltage), "ICARUS_CRASH"
-        if voltage > volt_flow and coherence > 0.8:
-            msg = ux("physics_strings", "hubris_flow")
-            return True, msg, "FLOW_BOOST"
+        cfg = getattr(config_ref or BoneConfig, "PHYSICS", BoneConfig.PHYSICS)
+        v, k = physics.get("voltage", 0.0), physics.get("kappa", 0.5)
+        if v >= getattr(cfg, "VOLTAGE_CRITICAL", 15.0) and k < 0.4:
+            return (
+                True,
+                (ux("physics_strings", "hubris_detected") or "").format(voltage=v),
+                "ICARUS_CRASH",
+            )
+        if v > getattr(cfg, "VOLTAGE_HIGH", 12.0) and k > 0.8:
+            return True, ux("physics_strings", "hubris_flow") or "", "FLOW_BOOST"
         return False, "", ""
 
 
@@ -652,16 +663,16 @@ class ChromaScope:
     def modulate(text: str, vector: Dict[str, float]) -> str:
         if not vector or not any(vector.values()):
             return f"{Prisma.GRY}{text}{Prisma.RST}"
-        primary_dim = max(vector, key=vector.get)
-        trigram_map = (
+        t_map = (
             LoreManifest.get_instance().get("PHYSICS_CONSTANTS", "TRIGRAM_MAP") or {}
         )
-        if primary_dim in trigram_map:
-            color_attr = trigram_map[primary_dim][3]
-            selected_color = getattr(Prisma, color_attr, Prisma.GRY)
-        else:
-            selected_color = Prisma.GRY
-        return f"{selected_color}{text}{Prisma.RST}"
+        primary = max(vector, key=vector.get)
+        color = (
+            getattr(Prisma, t_map[primary][3], Prisma.GRY)
+            if primary in t_map
+            else Prisma.GRY
+        )
+        return f"{color}{text}{Prisma.RST}"
 
 
 class ZoneInertia:

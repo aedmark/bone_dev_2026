@@ -55,33 +55,22 @@ class TheAkashicRecord:
             return 0.0, ux("akashic_strings", "autophagy_failed")
 
         if self.events:
-            self.events.publish("AUTOPHAGY_EVENT", {"node": target, "atp_gained": yield_val})
+            self.events.publish(
+                "AUTOPHAGY_EVENT", {"node": target, "atp_gained": yield_val}
+            )
         return yield_val, msg.format(target=target, word=target)
 
     def record_scar(self, concept: str, p: Any):
-        cfg_defaults = getattr(
-            getattr(BoneConfig, "AKASHIC", None), "DEFAULT_SCAR_COORDS", {}
-        )
+        cfg_defaults = getattr(getattr(BoneConfig, "AKASHIC", None), "DEFAULT_SCAR_COORDS", {})
         default_coords = {
-            "E": ("exhaustion", cfg_defaults.get("E", 0.2)),
-            "beta": ("beta_index", cfg_defaults.get("beta", 0.4)),
-            "S": ("scope", cfg_defaults.get("S", 0.3)),
-            "D": ("depth", cfg_defaults.get("D", 0.3)),
-            "C": ("connectivity", cfg_defaults.get("C", 0.2)),
-            "T": ("trauma", cfg_defaults.get("T", 0.0)),
-            "psi": ("psi", cfg_defaults.get("psi", 0.0)),
-            "chi": ("entropy", cfg_defaults.get("chi", 0.0)),
-            "valence": ("valence", cfg_defaults.get("valence", 0.0)),
-            "ROS": ("ros", cfg_defaults.get("ROS", 0.0)),
+            "E": ("exhaustion", cfg_defaults.get("E", 0.2)), "beta": ("beta_index", cfg_defaults.get("beta", 0.4)),
+            "S": ("scope", cfg_defaults.get("S", 0.3)), "D": ("depth", cfg_defaults.get("D", 0.3)),
+            "C": ("connectivity", cfg_defaults.get("C", 0.2)), "T": ("trauma", cfg_defaults.get("T", 0.0)),
+            "psi": ("psi", cfg_defaults.get("psi", 0.0)), "chi": ("entropy", cfg_defaults.get("chi", 0.0)),
+            "valence": ("valence", cfg_defaults.get("valence", 0.0)), "ROS": ("ros", cfg_defaults.get("ROS", 0.0)),
         }
-        coords = {}
-        for short_k, (real_k, default_v) in default_coords.items():
-            val = safe_get(p, short_k)
-            if val is None:
-                val = safe_get(safe_get(p, "energy"), real_k, default_v)
-            coords[short_k] = val
-        scar = {"concept": concept, "coordinates": coords, "gilded": True}
-        self.scar_map.append(scar)
+        coords = {k: val if (val := safe_get(p, k)) is not None else safe_get(safe_get(p, "energy"), real_k, d_val) for k, (real_k, d_val) in default_coords.items()}
+        self.scar_map.append({"concept": concept, "coordinates": coords, "gilded": True})
         self.store_ghost_echo(
             {"type": "SCAR_GHOST", "concept": concept, "coords": coords}
         )
@@ -135,14 +124,20 @@ class TheAkashicRecord:
     @staticmethod
     def _extract_dominant_trigram(physics: Any) -> str:
         vector = safe_get(physics, "vector", {})
-        valid_items = {k: v for k, v in (vector or {}).items() if v is not None} if isinstance(vector, dict) else {}
+        valid_items = (
+            {k: v for k, v in vector.items() if v is not None}
+            if isinstance(vector, dict)
+            else {}
+        )
         dom = max(valid_items, key=valid_items.get, default="KAN")
         constants = LoreManifest.get_instance().get("PHYSICS_CONSTANTS") or {}
         trigrams = constants.get("TRIGRAM_MAP", {})
-        if dom in trigrams and len(trigrams[dom]) > 1:
-            return trigrams[dom][1]
-        return constants.get("FALLBACK_TRIGRAMS", {}).get(
-            dom, constants.get("FALLBACK_DEFAULT", "KAN")
+        return (
+            trigrams[dom][1]
+            if dom in trigrams and len(trigrams[dom]) > 1
+            else constants.get("FALLBACK_TRIGRAMS", {}).get(
+                dom, constants.get("FALLBACK_DEFAULT", "KAN")
+            )
         )
 
     def _on_mythology_update(self, payload):
@@ -197,7 +192,11 @@ class TheAkashicRecord:
             self.store_ghost_echo(payload)
 
     def forge_new_item(self, vector: Dict[str, float]) -> Tuple[str, Dict]:
-        valid_items = {k: v for k, v in (vector or {}).items() if v is not None} if isinstance(vector, dict) else {}
+        valid_items = (
+            {k: v for k, v in (vector or {}).items() if v is not None}
+            if isinstance(vector, dict)
+            else {}
+        )
         dominant_force = max(valid_items, key=valid_items.get, default="CHI")
         item_gen_data = self.lore.get("ITEM_GENERATION") or {}
         prefixes = item_gen_data.get("PREFIXES", {})
@@ -335,25 +334,24 @@ class TheAkashicRecord:
                 )
 
     def track_successful_forge(self, ingredient_name, catalyst_type, result_item):
-        if not ingredient_name or not catalyst_type:
+        if (
+            not ingredient_name
+            or not catalyst_type
+            or (key := (ingredient_name, catalyst_type)) in self.known_recipes
+        ):
             return
-        if (ingredient_name, catalyst_type) in self.known_recipes:
-            return
-        key = (ingredient_name, catalyst_type)
-        if key not in self.recipe_candidates:
-            self.recipe_candidates[key] = {}
-        result_name = "Unknown Artifact"
+        self.recipe_candidates.setdefault(key, {})
+
         if isinstance(result_item, dict):
             result_name = result_item.get(
                 "name", result_item.get("description", "Unknown Artifact")
             )
         elif isinstance(result_item, str):
-            gordon_data = self.lore.get("GORDON") or {}
-            registry = gordon_data.get("ITEM_REGISTRY", {})
-            if result_item in registry:
-                result_name = registry[result_item].get("description", result_item)
-            else:
-                result_name = result_item
+            registry = (self.lore.get("GORDON") or {}).get("ITEM_REGISTRY", {})
+            result_name = registry.get(result_item, {}).get("description", result_item)
+        else:
+            result_name = "Unknown Artifact"
+
         self.recipe_candidates[key][result_name] = (
             self.recipe_candidates[key].get(result_name, 0) + 1
         )

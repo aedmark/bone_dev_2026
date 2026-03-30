@@ -35,14 +35,9 @@ class HippocampalCache:
     def extract_for_consolidation(
         self, limit: Optional[int] = None
     ) -> List[Tuple[str, Dict]]:
-        consolidated = []
-        keys_to_remove = []
-        for i, (k, v) in enumerate(self.nodes.items()):
-            if limit is not None and i >= limit:
-                break
-            consolidated.append((k, v))
-            keys_to_remove.append(k)
-        for k in keys_to_remove:
+        items = list(self.nodes.items())
+        consolidated = items[:limit] if limit is not None else items
+        for k, _ in consolidated:
             del self.nodes[k]
         return consolidated
 
@@ -85,15 +80,11 @@ class CerebralIndex:
         np_query = np.ascontiguousarray(np.array([query_vector]).astype("float32"))
         actual_k = min(k, self.total_nodes)
         distances, indices = self._index.search(np_query, actual_k)
-        results = []
-        for dist, idx in zip(distances[0], indices[0]):
-            if idx != -1:
-                pseudo_resonance = 1.0 / (1.0 + float(dist))
-                if pseudo_resonance >= resonance_threshold:
-                    node_data = dict(self._payloads[idx])
-                    node_data["resonance"] = pseudo_resonance
-                    results.append(node_data)
-        return results
+        return [
+            {**self._payloads[idx], "resonance": 1.0 / (1.0 + float(dist))}
+            for dist, idx in zip(distances[0], indices[0])
+            if idx != -1 and (1.0 / (1.0 + float(dist))) >= resonance_threshold
+        ]
 
 
 class MemoryConsolidator:

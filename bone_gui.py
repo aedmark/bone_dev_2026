@@ -176,37 +176,13 @@ class Projector:
     def _render_physics_strip(self, physics: Any, vectors: Dict) -> str:
         volt = float(self._extract(physics, "energy", "voltage", 0.0) or 0.0)
         drag = float(self._extract(physics, "space", "narrative_drag", 0.0) or 0.0)
-        drag_profile_str = ""
-        dp = safe_get(physics, "drag_profile")
-        if dp:
-            sem = float(safe_get(dp, "semantic", 0.0) or 0.0)
-            met = float(safe_get(dp, "metabolic", 0.0) or 0.0)
-            emo = float(safe_get(dp, "emotional", 0.0) or 0.0)
-            struc = float(safe_get(dp, "structural", 0.0) or 0.0)
-            tra = float(safe_get(dp, "trauma", 0.0) or 0.0)
-            parts = []
-            if sem > 0:
-                parts.append(f"Sem:{sem:.1f}")
-            if met > 0:
-                parts.append(f"Met:{met:.1f}")
-            if emo > 0:
-                parts.append(f"Emo:{emo:.1f}")
-            if struc > 0:
-                parts.append(f"Str:{struc:.1f}")
-            if tra > 0:
-                parts.append(f"Tra:{tra:.1f}")
-            if parts:
-                drag_profile_str = f" [{Prisma.GRY}{'|'.join(parts)}{Prisma.RST}]"
-        dom_vec = "NEUTRAL"
-        dom_val = 0.0
-        if vectors:
-            dom_vec = max(vectors, key=vectors.get)
-            dom_val = float(vectors.get(dom_vec, 0.0) or 0.0)
-        return (
-            f"  {Prisma.CYN}VOLT:{Prisma.RST} {volt:04.1f}v   "
-            f"{Prisma.SLATE}DRAG:{Prisma.RST} {drag:04.1f}{drag_profile_str}   "
-            f"{Prisma.MAG}VEC:{Prisma.RST} {dom_vec} ({dom_val:.2f})"
-        )
+        dp_str = ""
+        if dp := safe_get(physics, "drag_profile"):
+            parts = [f"{lbl}:{val:.1f}" for k, lbl in (("semantic", "Sem"), ("metabolic", "Met"), ("emotional", "Emo"), ("structural", "Str"), ("trauma", "Tra")) if (val := float(safe_get(dp, k, 0.0) or 0.0)) > 0]
+            if parts: dp_str = f" [{Prisma.GRY}{'|'.join(parts)}{Prisma.RST}]"
+        dom_vec = max(vectors, key=vectors.get) if vectors else "NEUTRAL"
+        dom_val = float(vectors.get(dom_vec, 0.0) or 0.0) if vectors else 0.0
+        return f"  {Prisma.CYN}VOLT:{Prisma.RST} {volt:04.1f}v   {Prisma.SLATE}DRAG:{Prisma.RST} {drag:04.1f}{dp_str}   {Prisma.MAG}VEC:{Prisma.RST} {dom_vec} ({dom_val:.2f})"
 
     def _get_lattice_val(self, physics: Any, keys: List[str], default: float) -> float:
         val = None
@@ -649,22 +625,22 @@ class PulseReader:
 
     @staticmethod
     def analyze_voltage(voltage: float, config_ref=None) -> Tuple[str, str]:
-        target_cfg = config_ref or BoneConfig
-        cfg = getattr(target_cfg, "GUI", None)
-        v_crit_t = getattr(cfg, "V_CRIT", 20.0) if cfg else 20.0
-        v_high_t = getattr(cfg, "V_HIGH", 15.0) if cfg else 15.0
-        v_low_t = getattr(cfg, "V_LOW", 5.0) if cfg else 5.0
-        if voltage > v_crit_t:
-            v_crit = ux("pulse_reader", "voltage_critical")
-            return v_crit[0], v_crit[1]
-        if voltage > v_high_t:
-            v_high = ux("pulse_reader", "voltage_high")
-            return v_high[0], v_high[1]
-        if voltage < v_low_t:
-            v_low = ux("pulse_reader", "voltage_low")
-            return v_low[0], v_low[1]
-        v_nom = ux("pulse_reader", "voltage_nominal")
-        return v_nom[0], v_nom[1]
+        cfg = getattr(config_ref or BoneConfig, "GUI", None)
+        vc, vh, vl = (
+            getattr(cfg, k, d)
+            for k, d in (("V_CRIT", 20.0), ("V_HIGH", 15.0), ("V_LOW", 5.0))
+        )
+        key = (
+            "voltage_critical"
+            if voltage > vc
+            else (
+                "voltage_high"
+                if voltage > vh
+                else "voltage_low" if voltage < vl else "voltage_nominal"
+            )
+        )
+        res = ux("pulse_reader", key)
+        return res[0], res[1]
 
 
 class SoulDashboard:
@@ -687,30 +663,34 @@ class SoulDashboard:
         d_ratio = getattr(cfg, "DIGNITY_BAR_RATIO", 5) if cfg else 5
         t_warn = getattr(cfg, "TENURE_WARN", 5) if cfg else 5
         t_crit = getattr(cfg, "TENURE_CRIT", 8) if cfg else 8
-        if dig > d_high:
-            color = Prisma.GRN
-        elif dig > d_low:
-            color = Prisma.OCHRE
-        else:
-            color = Prisma.RED
+        color = (
+            Prisma.GRN
+            if dig > d_high
+            else (Prisma.OCHRE if dig > d_low else Prisma.RED)
+        )
         filled = int(dig / d_ratio)
-        c_fill = ux("status_menu", "bar_filled")
-        c_empty = ux("status_menu", "bar_empty")
+        c_fill, c_empty = ux("status_menu", "bar_filled"), ux(
+            "status_menu", "bar_empty"
+        )
         bar_str = (
             f"{color}{c_fill * filled}{Prisma.GRY}{c_empty * (20 - filled)}{Prisma.RST}"
         )
-        lock_status = ""
-        if anchor.agency_lock:
-            lock_status = f" {Prisma.RED}{ux('soul_dashboard', 'agency_locked') or '[AGENCY LOCKED]'}{Prisma.RST}"
-        elif dig < d_low:
-            lock_status = f" {Prisma.OCHRE}{ux('soul_dashboard', 'fading') or '[FADING]'}{Prisma.RST}"
-        arch = soul.archetype
-        tenure = soul.archetype_tenure
-        tenure_color = Prisma.GRY
-        if tenure > t_warn:
-            tenure_color = Prisma.OCHRE
-        if tenure > t_crit:
-            tenure_color = Prisma.RED
+
+        lock_status = (
+            f" {Prisma.RED}{ux('soul_dashboard', 'agency_locked') or '[AGENCY LOCKED]'}{Prisma.RST}"
+            if anchor.agency_lock
+            else (
+                f" {Prisma.OCHRE}{ux('soul_dashboard', 'fading') or '[FADING]'}{Prisma.RST}"
+                if dig < d_low
+                else ""
+            )
+        )
+        arch, tenure = soul.archetype, soul.archetype_tenure
+        tenure_color = (
+            Prisma.RED
+            if tenure > t_crit
+            else (Prisma.OCHRE if tenure > t_warn else Prisma.GRY)
+        )
         arch_display = (
             f"{Prisma.CYN}{arch}{Prisma.RST} ({tenure_color}T:{tenure}{Prisma.RST})"
         )
@@ -783,12 +763,9 @@ class CycleReporter:
     def _inject_diagnostics(self, ctx):
         if hasattr(self.eng, "system_health"):
             fb = self.eng.system_health.flush_feedback()
-            i_hint = ux("cycle_reporter", "diagnostic_hint_icon") or "[!]"
-            i_warn = ux("cycle_reporter", "diagnostic_warn_icon") or "[*]"
-            for h in fb["hints"]:
-                ctx.logs.append(f"{Prisma.CYN}{i_hint} {h}{Prisma.RST}")
-            for w in fb["warnings"]:
-                ctx.logs.append(f"{Prisma.OCHRE}{i_warn} {w}{Prisma.RST}")
+            i_hint, i_warn = ux("cycle_reporter", "diagnostic_hint_icon") or "[!]", ux("cycle_reporter", "diagnostic_warn_icon") or "[*]"
+            ctx.logs.extend(f"{Prisma.CYN}{i_hint} {h}{Prisma.RST}" for h in fb["hints"])
+            ctx.logs.extend(f"{Prisma.OCHRE}{i_warn} {w}{Prisma.RST}" for w in fb["warnings"])
 
     def _inject_somatic_pulse(self, ctx):
         if not hasattr(self.eng, "somatic"):

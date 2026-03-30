@@ -34,28 +34,8 @@ from bone_symbiosis import SymbiosisManager
 from bone_types import Prisma, CycleContext
 
 
-def _deep_update(obj, d):
-    for k, v in d.items():
-        target = obj.get(k) if isinstance(obj, dict) else getattr(obj, k, None)
-        if (
-            isinstance(v, dict)
-            and target is not None
-            and (isinstance(target, dict) or hasattr(target, "__dict__"))
-        ):
-            _deep_update(target, v)
-        else:
-            try:
-                obj[k] = v
-            except Exception:
-                setattr(obj, k, v)
-
-
 def _safe_dict(obj):
-    if hasattr(obj, "to_dict"):
-        return obj.to_dict()
-    if isinstance(obj, dict):
-        return obj
-    return {}
+    return obj.to_dict() if hasattr(obj, "to_dict") else (obj if isinstance(obj, dict) else {})
 
 
 class PhaseExecutor:
@@ -233,14 +213,10 @@ class GeodesicOrchestrator:
             self.eng.ui_mode = (
                 "IDLE" if vsl_match.group(1) == "HIDE" else vsl_match.group(1)
             )
-        clean_message = re.sub(r"(?i)\[VSL_[A-Z]+]", "", user_message).strip()
-        if not clean_message:
-            clean_message = "(Waiting)"
+        clean_message = re.sub(r"(?i)\[VSL_[A-Z]+]", "", user_message).strip() or "(Waiting)"
         ctx = self._execute_core_cycle(clean_message, is_system)
         if not ctx.is_alive:
-            if hasattr(ctx, "crash_error"):
-                return self._generate_crash_report(ctx.crash_error)
-            return self.eng.trigger_death(ctx.physics)
+            return self._generate_crash_report(ctx.crash_error) if hasattr(ctx, "crash_error") else self.eng.trigger_death(ctx.physics)
         if getattr(ctx, "refusal_triggered", False) and getattr(
             ctx, "refusal_packet", None
         ):
@@ -257,9 +233,7 @@ class GeodesicOrchestrator:
     ) -> Dict[str, Any]:
         ctx = self._execute_core_cycle(user_message)
         if not ctx.is_alive:
-            if hasattr(ctx, "crash_error"):
-                return self._generate_crash_report(ctx.crash_error)
-            return self.eng.trigger_death(ctx.physics)
+            return self._generate_crash_report(ctx.crash_error) if hasattr(ctx, "crash_error") else self.eng.trigger_death(ctx.physics)
         if getattr(ctx, "refusal_triggered", False) and getattr(
             ctx, "refusal_packet", None
         ):

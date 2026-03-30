@@ -64,6 +64,7 @@ class RandomRetrievalNavigator:
         if config is None:
             config = {}
         self.library = library_graph
+        self._node_index = {n.id: n for n in self.library.nodes}
         self.randomness_dial: float = float(config.get("randomnessDial", 0.0))
         self.traversal_history: list[dict[str, Any]] = []
         self.serendipity_cache: dict[str, Any] = {}
@@ -120,36 +121,18 @@ class RandomRetrievalNavigator:
     ) -> list[LibraryNode]:
         path = [start_node]
         visited = {start_node.id}
-        steps = math.floor(1 + r_val * 5)
-        for _ in range(steps):
-            current_node = path[-1]
-            neighbors = self._get_neighbors(current_node)
-            available = [n for n in neighbors if n.id not in visited]
-            if not available:
-                break
+        for _ in range(math.floor(1 + r_val * 5)):
+            available = [n for n in self._get_neighbors(path[-1]) if n.id not in visited]
+            if not available: break
             if random.random() < r_val:
-                if r_val > 0.7 and random.random() < 0.3:
-                    random_branch = self._get_random_branch(current_node)
-                    next_node = (
-                        random_branch
-                        if (random_branch and random_branch.id not in visited)
-                        else random.choice(available)
-                    )
-                else:
-                    next_node = random.choice(available)
+                rb = self._get_random_branch(path[-1]) if r_val > 0.7 and random.random() < 0.3 else None
+                next_node = rb if rb and rb.id not in visited else random.choice(available)
             else:
                 next_node = self._most_structural_neighbor(available, start_node)
             if next_node:
                 path.append(next_node)
                 visited.add(next_node.id)
-        self.traversal_history.append(
-            {
-                "timestamp": time.time(),
-                "start_node": start_node.id,
-                "path": [n.id for n in path],
-                "R": self.randomness_dial,
-            }
-        )
+        self.traversal_history.append({"timestamp": time.time(), "start_node": start_node.id, "path": [n.id for n in path], "R": self.randomness_dial})
         return path
 
     def _get_neighbors(self, node: LibraryNode) -> list[LibraryNode]:
@@ -190,13 +173,9 @@ class RandomRetrievalNavigator:
     def _get_lineage(self, node: LibraryNode) -> set[str]:
         lineage = {node.id}
         current = node
-        while current.parent_id:
+        while current.parent_id and current.parent_id in self._node_index:
             lineage.add(current.parent_id)
-            current = next(
-                (n for n in self.library.nodes if n.id == current.parent_id), None
-            )
-            if not current:
-                break
+            current = self._node_index[current.parent_id]
         return lineage
 
     def _traverse_and_collect(
@@ -225,7 +204,9 @@ class RandomRetrievalNavigator:
             )
         return sorted(collected, key=lambda x: x.final_score, reverse=True)
 
-    def _vector_similarity(self, v1: list[float], v2: list[float], v2_mag: float = None) -> float:
+    def _vector_similarity(
+        self, v1: list[float], v2: list[float], v2_mag: float = None
+    ) -> float:
         if not v1 or not v2:
             return 0.5
         dot = sum(a * b for a, b in zip(v1, v2))
@@ -300,39 +281,23 @@ class TheSubstrate:
         self.pending_writes.append({"path": path, "content": content})
 
     def execute_writes(self, stamina_pool: float) -> Tuple[List[str], float]:
-        logs = []
-        cost = 0.0
-        if not self.pending_writes:
-            return logs, cost
+        logs, cost = [], 0.0
+        if not self.pending_writes: return logs, cost
         os.makedirs("output", exist_ok=True)
-        for write in self.pending_writes:
-            safe_name = os.path.basename(write["path"])
-            safe_path = os.path.join("output", safe_name)
-            content = write["content"]
-            size = len(content)
-            write_cost = size * 0.02
-            if stamina_pool - cost < write_cost:
-                logs.append(
-                    f"{Prisma.RED}SUBSTRATE FAULT: Insufficient stamina to forge {safe_name}.{Prisma.RST}"
-                )
+        for w in self.pending_writes:
+            s_name = os.path.basename(w["path"])
+            s_path = os.path.join("output", s_name)
+            w_cost = len(w["content"]) * 0.02
+            if stamina_pool - cost < w_cost:
+                logs.append(f"{Prisma.RED}SUBSTRATE FAULT: Insufficient stamina to forge {s_name}.{Prisma.RST}")
                 continue
             try:
-                with open(safe_path, "w", encoding="utf-8") as f:
-                    f.write(content)
-                cost += write_cost
-                logs.append(
-                    f"{Prisma.GRN}SUBSTRATE: Physically forged {safe_path} ({size} bytes).{Prisma.RST}"
-                )
-                if hasattr(self.events, "publish"):
-                    self.events.publish(
-                        "SUBSTRATE_FORGED", {"cost": write_cost, "file": safe_name}
-                    )
-                if "podcast" in safe_name.lower():
-                    self._trigger_tts(safe_path)
-            except Exception as e:
-                logs.append(
-                    f"{Prisma.RED}SUBSTRATE FAULT: Write failed - {e}{Prisma.RST}"
-                )
+                with open(s_path, "w", encoding="utf-8") as f: f.write(w["content"])
+                cost += w_cost
+                logs.append(f"{Prisma.GRN}SUBSTRATE: Physically forged {s_path} ({len(w['content'])} bytes).{Prisma.RST}")
+                if hasattr(self.events, "publish"): self.events.publish("SUBSTRATE_FORGED", {"cost": w_cost, "file": s_name})
+                if "podcast" in s_name.lower(): self._trigger_tts(s_path)
+            except Exception as e: logs.append(f"{Prisma.RED}SUBSTRATE FAULT: Write failed - {e}{Prisma.RST}")
         self.pending_writes.clear()
         return logs, cost
 
@@ -375,14 +340,10 @@ class TheTclWeaver:
         out = []
         for w in text.split(" "):
             L = len(w)
-            if chi > 0.85 and L > 4 and random.random() < (chi / 3.0):
-                out.append(f"{w[0]}{w[1:-1][::-1]}{w[-1]}")
-            elif chi > 0.6 and L > 4 and random.random() < (chi / 2.0):
-                out.append(f"{w[:L//2]}·{w[L//2:]}")
-            elif voltage > 80.0 and random.random() < 0.1:
-                out.append(w.upper())
-            else:
-                out.append(w)
+            if chi > 0.85 and L > 4 and random.random() < (chi / 3.0): out.append(f"{w[0]}{w[1:-1][::-1]}{w[-1]}")
+            elif chi > 0.6 and L > 4 and random.random() < (chi / 2.0): out.append(f"{w[:L//2]}·{w[L//2:]}")
+            elif voltage > 80.0 and random.random() < 0.1: out.append(w.upper())
+            else: out.append(w)
         return " ".join(out)
 
     def haunt_string(self, text: str) -> str:
@@ -509,7 +470,9 @@ class TheVocalCords:
                             generator = self.pipeline(text, voice=voice, speed=1.0)
                             for _, _, audio in generator:
                                 if audio is not None and len(audio) > 0:
-                                    combined_audio.append(self.np.array(audio).flatten())
+                                    combined_audio.append(
+                                        self.np.array(audio).flatten()
+                                    )
                             combined_audio.append(silence_pad)
                         if combined_audio:
                             final_array = self.np.concatenate(combined_audio)

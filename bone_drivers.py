@@ -140,9 +140,7 @@ class EnneagramDriver:
     def _calculate_raw_persona(self, physics, soul_ref=None) -> Tuple[str, str, str]:
         raw_vec = safe_get(physics, "vector", {})
         p_vec = raw_vec if isinstance(raw_vec, dict) else {}
-        p_vol = float(safe_get(physics, "voltage", 0.0) or 0.0)
-        p_drag = float(safe_get(physics, "narrative_drag", 0.0) or 0.0)
-        p_coh = float(safe_get(physics, "kappa", 0.0) or 0.0)
+        p_vol, p_drag, p_coh = (float(safe_get(physics, k, 0.0) or 0.0) for k in ("voltage", "narrative_drag", "kappa"))
         p_zone = str(safe_get(physics, "zone", ""))
         weights_cfg = self.weights
         if not isinstance(weights_cfg, dict) or len(weights_cfg) < 2:
@@ -287,17 +285,8 @@ class LiminalModule:
         dark_matter_sparks = 0
         if len(words) > 1 and hasattr(self.lex, "get_categories_for_word"):
             phys_set, void_set = {"heavy", "kinetic"}, {"abstract", "liminal", "void"}
-            flags = [
-                (bool(c & phys_set), bool(c & void_set))
-                for w in words
-                for c in [set(self.lex.get_categories_for_word(w) or [])]
-                if c
-            ]
-            for i in range(len(flags) - 1):
-                if (flags[i][0] and flags[i + 1][1]) or (
-                    flags[i][1] and flags[i + 1][0]
-                ):
-                    dark_matter_sparks += 1
+            flags = [1 if c & phys_set else (2 if c & void_set else 0) for w in words if (c := set(self.lex.get_categories_for_word(w) or []))]
+            dark_matter_sparks = sum(1 for i in range(len(flags) - 1) if flags[i] and flags[i + 1] and flags[i] != flags[i + 1])
         dark_matter_lambda = min(1.0, dark_matter_sparks * dm_weight)
         vector_lambda = 0.0
         if physics_vector:
@@ -387,19 +376,11 @@ class CongruenceValidator:
         archetype = raw_lens.upper().replace("THE ", "")
         tone_score = getattr(cfg, "CONGRUENCE_BASE_TONE", 0.8) if cfg else 0.8
         target_data = self.map.get(archetype, {})
-        target_words = set()
         if isinstance(target_data, dict):
-            if vocab_str := target_data.get("vocab", ""):
-                target_words.update(w.strip().lower() for w in vocab_str.split(","))
-            target_words.update(target_data.get("keywords", []))
-        if target_words:
-            words_to_check = (
-                set(context.clean_words) if hasattr(context, "clean_words") else set()
-            )
-            hits = len(words_to_check.intersection(target_words))
-            if hits > 0:
-                hit_bonus = getattr(cfg, "CONGRUENCE_HIT_BONUS", 0.1) if cfg else 0.1
-                tone_score += hit_bonus * hits
+            target_words = {w.strip().lower() for w in target_data.get("vocab", "").split(",") if w} | set(target_data.get("keywords", []))
+            if target_words and (words_to_check := set(getattr(context, "clean_words", []))):
+                if hits := len(words_to_check.intersection(target_words)):
+                    tone_score += (getattr(cfg, "CONGRUENCE_HIT_BONUS", 0.1) if cfg else 0.1) * hits
         max_tone = getattr(cfg, "CONGRUENCE_MAX_TONE", 1.5) if cfg else 1.5
         return min(max_tone, tone_score)
 
@@ -564,17 +545,8 @@ class SharedLatticeDriver:
                 self.shared.g_pool += 1
             self.shared.lambda_silence = min(1.0, self.shared.lambda_silence + 0.05)
             if self.shared.lambda_silence > 0.3:
-                silence_keys = {
-                    1: "silence_pregnant",
-                    2: "silence_exhausted",
-                    3: "silence_reverent",
-                    4: "silence_strategic",
-                }
-                msg_key = silence_keys.get(self.shared.sigma_silence)
-                silence_msg = (
-                    ux("driver_strings", msg_key) if msg_key else "The silence settles."
-                )
-                logs.append(f"{Prisma.GRY}... {silence_msg}{Prisma.RST}")
+                msg_key = {1: "silence_pregnant", 2: "silence_exhausted", 3: "silence_reverent", 4: "silence_strategic"}.get(self.shared.sigma_silence)
+                logs.append(f"{Prisma.GRY}... {ux('driver_strings', msg_key) if msg_key else 'The silence settles.'}{Prisma.RST}")
             if self.shared.phi > 0.85:
                 self.shared.resonance_streak = (
                     getattr(self.shared, "resonance_streak", 0) + 1

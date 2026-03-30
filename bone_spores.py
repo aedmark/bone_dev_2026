@@ -419,18 +419,9 @@ class MemoryCore:
             else:
                 protected.add(preserve_current)
         protected.update(self.cortical_stack)
-        candidates = []
-        for k, v in self.graph.items():
-            if k in protected or v.get("is_diamond", False):
-                continue
-            edge_count = len(v["edges"])
-            age = max(1, current_tick - v.get("last_tick", 0))
-            base_score = edge_count + (100.0 / age)
-            candidates.append((k, v, base_score))
+        candidates = sorted([(k, v, len(v["edges"]) + (100.0 / max(1, current_tick - v.get("last_tick", 0)))) for k, v in self.graph.items() if k not in protected and not v.get("is_diamond", False)], key=lambda x: x[2])
         if not candidates:
-            msg = ux("spore_strings", "core_lock") or ""
-            return None, msg
-        candidates.sort(key=lambda x: x[2])
+            return None, ux("spore_strings", "core_lock") or ""
         victim, data, score = candidates[0]
         mass = sum(data["edges"].values())
         lifespan = current_tick - data.get("strata", {}).get("birth_tick", current_tick)
@@ -973,14 +964,7 @@ class MycelialNetwork:
                 "resonance": top_joy[0].get("resonance", 0),
                 "timestamp": top_joy[0].get("timestamp", 0),
             }
-        core_graph = {}
-        for k, data in self.graph.items():
-            filtered_edges = {}
-            for target, weight in data["edges"].items():
-                if weight > 1.0:
-                    filtered_edges[target] = round(weight, 2)
-            if filtered_edges:
-                core_graph[k] = {"edges": filtered_edges, "last_tick": 0}
+        core_graph = {k: {"edges": {t: round(w, 2) for t, w in data["edges"].items() if w > 1.0}, "last_tick": 0} for k, data in self.graph.items() if any(w > 1.0 for w in data["edges"].values())}
         temp_trauma = {k: min(1.0, v) for k, v in trauma_accum.items()}
         future_seed_q = self._generate_future_seed(
             temp_health=health, trauma_vec=temp_trauma
@@ -1045,12 +1029,8 @@ class MycelialNetwork:
                         removed += 1
                 except (OSError, AttributeError):
                     pass
-        if removed:
-            msg = ux("spore_strings", "net_pruned_lines")
-            if msg:
-                self.events.log(
-                    f"{Prisma.GRY}{msg.format(removed=removed)}{Prisma.RST}"
-                )
+        if removed and (msg := ux("spore_strings", "net_pruned_lines")):
+            self.events.log(f"{Prisma.GRY}{msg.format(removed=removed)}{Prisma.RST}")
 
     def report_status(self):
         return len(self.graph)
@@ -1167,17 +1147,8 @@ class BioParasite:
         }
 
     def opine(self, clean_words: list, voltage: float) -> Tuple[float, str]:
-        hits = sum(1 for w in clean_words if w in self.archetypes)
-        score = (hits / max(1, len(clean_words))) * 10.0
-        comment = ""
-        if score > 3.0:
-            comment = ux("spore_strings", "para_op_great")
-        elif score > 1.0:
-            comment = ux("spore_strings", "para_op_good")
-        elif voltage > 15.0:
-            comment = ux("spore_strings", "para_op_hot")
-        elif voltage < 5.0:
-            comment = ux("spore_strings", "para_op_cold")
+        score = (sum(1 for w in clean_words if w in self.archetypes) / max(1, len(clean_words))) * 10.0
+        comment = ux("spore_strings", "para_op_great") if score > 3.0 else (ux("spore_strings", "para_op_good") if score > 1.0 else (ux("spore_strings", "para_op_hot") if voltage > 15.0 else (ux("spore_strings", "para_op_cold") if voltage < 5.0 else "")))
         return score, comment
 
     def infect(self, physics_packet, stamina):
@@ -1252,17 +1223,8 @@ class BioLichen:
         }
 
     def opine(self, clean_words: list, voltage: float) -> Tuple[float, str]:
-        hits = sum(1 for w in clean_words if w in self.archetypes)
-        score = (hits / max(1, len(clean_words))) * 10.0
-        comment = ""
-        if score > 3.0:
-            comment = ux("spore_strings", "lichen_op_great")
-        elif score > 1.0:
-            comment = ux("spore_strings", "lichen_op_good")
-        elif voltage > 18.0:
-            comment = ux("spore_strings", "lichen_op_hot")
-        elif voltage < 2.0:
-            comment = ux("spore_strings", "lichen_op_cold")
+        score = (sum(1 for w in clean_words if w in self.archetypes) / max(1, len(clean_words))) * 10.0
+        comment = ux("spore_strings", "lichen_op_great") if score > 3.0 else (ux("spore_strings", "lichen_op_good") if score > 1.0 else (ux("spore_strings", "lichen_op_hot") if voltage > 18.0 else (ux("spore_strings", "lichen_op_cold") if voltage < 2.0 else "")))
         return score, comment
 
     def photosynthesize(self, phys, clean_words, tick_count):
