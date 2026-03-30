@@ -418,6 +418,12 @@ class QuantumObserver:
         )
         i_c_val = min(1.0, (phi_val * 0.6) + (geo.coherence * 0.4))
         mu_val = min(1.0, (beta_val * 0.7) + (geo.coherence * 0.3))
+
+        text_lower = text.lower()
+        val_phrases = ["right?", "good?", "make sense", "makes sense", "agree", "validate", "comfort"]
+        cf_expect_val = 0.8 if any(p in text_lower for p in val_phrases) else 0.0
+        novelty_val = min(1.0, (e_metric * 0.6) + (counts.get("play", 0) * 0.15))
+
         energy = EnergyState(
             voltage=smoothed_voltage,
             entropy=e_metric,
@@ -443,6 +449,8 @@ class QuantumObserver:
             mu=mu_val,
             m_a=m_a_val,
             i_c=i_c_val,
+            cf_expect=cf_expect_val,
+            novelty=novelty_val,
         )
         matter = MaterialState(
             clean_words=clean_words,

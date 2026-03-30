@@ -165,6 +165,8 @@ class EnergyState:
     silence: float = 0.0
     lq: float = 0.0
     perfection_streak: int = 0
+    cf_expect: float = 0.0
+    novelty: float = 0.0
 
 
 @dataclass

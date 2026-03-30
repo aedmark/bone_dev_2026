@@ -234,6 +234,20 @@ class SymbiosisManager:
         i_c = float(safe_get(physics, "i_c", 1.0))
         beta = float(safe_get(physics, "beta_index", 0.0))
         chi_sys = float(safe_get(physics, "entropy", 0.0))
+        cf_expect = float(safe_get(physics, "cf_expect", 0.0))
+        novelty = float(safe_get(physics, "novelty", 0.0))
+
+        if novelty > 0.7:
+            current_ros = float(safe_get(physics, "ros", 0.0))
+            safe_set(physics, "ros", max(0.0, current_ros - 10.0))
+            self.shared.g_pool += 1
+            _log(f"{Prisma.MAG}♠ The Spade: A novel path drawn. Cortisol drops. (+1 G_pool){Prisma.RST}", "SYS")
+
+        if cf_expect > 0.6 and beta > 0.5:
+            safe_set(physics, "mu", 1.0)
+            safe_set(physics, "narrative_drag", float("inf"))
+            msg = "[GORDON/SCHUR - Affective Guardrail]: High validation seeking detected on a structurally flawed premise. Applying absolute Moral Friction. Sycophancy locked."
+            return _log(f"{Prisma.OCHRE}{msg}{Prisma.RST}", "CRIT")
 
         if self.u.chi_u > 0.7 and self.u.E_u > 0.7 and beta > 0.6:
             safe_set(physics, "ros", 0.0)

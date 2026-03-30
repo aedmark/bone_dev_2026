@@ -258,6 +258,11 @@ class CommandProcessor:
             self._cmd_journal,
             _cd("journal") or "Generates a narrative diary entry of the session so far",
         )
+        self.registry.register(
+            "/shuffle",
+            self._cmd_shuffle,
+            _cd("shuffle") or "Explicit intent [ !s ]: The Jester's Gambit. Breaks loops, resets drag, lateral shift.",
+        )
 
     def execute(self, text: str):
         if hasattr(self.interface.eng, "reality_stack"):
@@ -729,4 +734,21 @@ class CommandProcessor:
             self.interface.log(
                 f"{self.P.RED}Journal generation failed: {e}{self.P.RST}"
             )
+        return True
+
+    def _cmd_shuffle(self, _parts):
+        cmd_cfg = getattr(self.interface.Config, "COMMANDS", None)
+        cost = getattr(cmd_cfg, "COST_SHUFFLE", 5.0) if cmd_cfg else 5.0
+        if not self.tax.levy("SHUFFLE", {"atp": cost}):
+            return True
+
+        if hasattr(self.interface.eng, "phys"):
+            self.interface.eng.phys.narrative_drag = 0.0
+
+        self.interface.log(
+            f"{self.P.VIOLET}🃏 [ !s ] THE SHUFFLE: Jester summoned. Lateral shift initiated.{self.P.RST}"
+        )
+        self.interface.log(
+            f"{self.P.GRY}Control illusion shattered. Narrative drag reset to 0. (Cost: {cost} ATP){self.P.RST}"
+        )
         return True

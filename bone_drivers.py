@@ -196,20 +196,6 @@ class EnneagramDriver:
         runner_up, run_score = sorted_scores[1]
         cfg = getattr(self.cfg, "DRIVERS", None)
         hybrid_gap = getattr(cfg, "ENNEAGRAM_HYBRID_GAP", 0.5) if cfg else 0.5
-        if (win_score - run_score) < hybrid_gap:
-            k1 = "THE OBSERVER" if winner == "NARRATOR" else winner
-            k2 = "THE OBSERVER" if runner_up == "NARRATOR" else runner_up
-            final_hybrid = next(
-                (h for h in (f"{k1}_{k2}_HYBRID", f"{k2}_{k1}_HYBRID") if h in lenses),
-                None,
-            )
-            if final_hybrid:
-                msg = ux("driver_strings", "ennea_synthesis")
-                return (
-                    final_hybrid,
-                    "SYNTHESIS",
-                    msg.format(winner=winner, runner_up=runner_up),
-                )
         msg_winner = ux("driver_strings", "ennea_winner")
         reason = msg_winner.format(
             winner=winner, score=scores[winner], v=p_vol, d=p_drag

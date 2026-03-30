@@ -1,6 +1,28 @@
 # BONEAMANITA CHANGELOG
 
-### **BONEAMANITA v18.3.0 "The Somatic Scalpel"**
+### **BONEAMANITA v18.3.0 "The 52 Factorial Anchor"**
+
+*The VSL 8.5 Integration. This update introduces hard architectural boundaries against sycophantic validation and mechanically rewards chaotic, lateral shifts to break narrative deadlocks. The lattice now mathematically enforces the 52 Factorial Anchor—refusing the premise of being "permanently stuck."*
+
+#### **♠️ THE SPADE & NOVELTY (`bone_types.py`, `bone_physics.py`)**
+- **Novelty State Tracking:** Introduced the `novelty` coordinate to the `EnergyState`. The `QuantumObserver` now actively calculates novelty based on entropy velocity and the presence of playful/lateral concepts.
+- **Cortisol Purge & Glimmers (`bone_symbiosis.py`):** When the user breaks a loop or introduces high novelty, the Affective Layer recognizes "The Spade." It instantly drops Cortisol (ROS toxicity) by 10.0 and dynamically awards a Pooled Glimmer ($G_{pool}$) as a metabolic reward for breaking stasis.
+
+#### **🛡️ COMFORT EXPECTATION GUARDRAIL (`bone_symbiosis.py`)**
+- **The `cf.expect` Metric:** The system now measures the narrative pressure of the user seeking validation or comfort (e.g., "This makes sense, right?"). 
+- **Anti-Sycophancy Lock:** If `cf.expect` is high while the underlying logic is highly contradictory or broken ($\beta > 0.5$), Gordon and Schur intercept the prompt. They bypass empathy, spike Moral Friction ($\mu$) to 1.0, lock narrative drag to infinity, and physically refuse to validate the flawed premise.
+
+#### **🃏 THE JESTER'S SHUFFLE (`bone_commands.py`)**
+- **Explicit Intent Protocol `[ !s ]`:** Implemented the `/shuffle` command. This acts as a manual invocation of the 52 Factorial Anchor.
+- **Metabolic Reset:** The Shuffle deliberately burns 5.0 ATP to shatter the illusion of control. It forces a phase transition by instantly resetting structural narrative drag to 0.0, allowing the user to step out of the mud and make a lateral leap.
+
+#### **🔨 THE FRACTURE SUITE EXPANSION (`bone_diag.py`)**
+- **Live-Fire VSL 8.5 Testing:** Expanded the Fracture Engine with three new rigorous stress tests (`test_fracture_vsl_85_novelty_spade`, `test_fracture_vsl_85_cf_expect_guardrail`, `test_fracture_vsl_85_jester_shuffle`). 
+- **Resonance Isolation:** The diagnostic suite now mechanically suppresses baseline Harmonic Resonance ($\Phi$) during novelty tests to mathematically prove that The Spade uniquely generates its own glimmers without false-positive overlaps.
+
+---
+
+### **BONEAMANITA v18.2.5 "The Somatic Scalpel"**
 
 *A massive, system-wide optimization pass targeting Python interpreter friction, memory allocation leaks, and algorithmic redundancies. The central nervous system was structurally cleaved for better modularity, and metabolic loops across the entire lattice were tightened to process at maximum efficiency.*
 
