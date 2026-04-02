@@ -114,7 +114,7 @@ class LoreManifest:
     def __init__(self, data_dir=None, config_ref=None):
         self.cfg = config_ref or BoneConfig
         cfg_core = getattr(self.cfg, "CORE", None)
-        default_dir = getattr(cfg_core, "LORE_DIR", "lore") if cfg_core else "lore"
+        default_dir = safe_get(cfg_core, "LORE_DIR", "lore")
         self.DATA_DIR = data_dir or default_dir
         self._cache = {}
 
@@ -178,17 +178,17 @@ class TheObserver:
         self.cyber_gov = CyberneticGovernor(config_ref=self.cfg)
         self.start_time = time.time()
         cfg_core = getattr(self.cfg, "CORE", None)
-        max_len = getattr(cfg_core, "OBSERVER_MAX_LEN", 20) if cfg_core else 20
+        max_len = safe_get(cfg_core, "OBSERVER_MAX_LEN", 20)
         self.cycle_times = deque(maxlen=max_len)
         self.llm_latencies = deque(maxlen=max_len)
         self.memory_snapshots = deque(maxlen=max_len)
         self.error_counts = Counter()
         self.user_turns = 0
         self.LATENCY_WARNING = (
-            getattr(cfg_core, "OBSERVER_LATENCY_WARN", 5.0) if cfg_core else 5.0
+            safe_get(cfg_core, "OBSERVER_LATENCY_WARN", 5.0)
         )
         self.CYCLE_WARNING = (
-            getattr(cfg_core, "OBSERVER_CYCLE_WARN", 8.0) if cfg_core else 8.0
+            safe_get(cfg_core, "OBSERVER_CYCLE_WARN", 8.0)
         )
         self.last_cycle_duration = 0.0
 
@@ -390,9 +390,7 @@ class ArchetypeArbiter:
                         return rule["result"], rule.get("source", "COSMIC"), msg
         cfg_core = getattr(target_cfg, "CORE", None)
         loud_lenses = (
-            getattr(cfg_core, "LOUD_LENSES", ["THE MANIC", "THE VOID"])
-            if cfg_core
-            else ["THE MANIC", "THE VOID"]
+            safe_get(cfg_core, "LOUD_LENSES", ["THE MANIC", "THE VOID"])
         )
         if physics_lens in loud_lenses:
             msg = ux("core_strings", "arb_loud")
@@ -411,15 +409,13 @@ class TelemetryService:
         self.cfg = config_ref or BoneConfig
         cfg_core = getattr(self.cfg, "CORE", None)
         self.log_dir = (
-            getattr(cfg_core, "TELEMETRY_LOG_DIR", "logs/telemetry")
-            if cfg_core
-            else "logs/telemetry"
+            safe_get(cfg_core, "TELEMETRY_LOG_DIR", "logs/telemetry")
         )
         self.BUFFER_SIZE = (
-            getattr(cfg_core, "TELEMETRY_BUFFER_SIZE", 50) if cfg_core else 50
+            safe_get(cfg_core, "TELEMETRY_BUFFER_SIZE", 50)
         )
         self.MAX_ERRORS = (
-            getattr(cfg_core, "TELEMETRY_MAX_ERRORS", 5) if cfg_core else 5
+            safe_get(cfg_core, "TELEMETRY_MAX_ERRORS", 5)
         )
         self.trace_buffer: Deque[DecisionTrace] = deque(maxlen=self.BUFFER_SIZE)
         self.write_buffer: List[str] = []

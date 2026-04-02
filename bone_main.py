@@ -481,10 +481,9 @@ class BoneAmanita:
                     "metrics": self.get_metrics(),
                 }
 
-        if self.cmd and self.cmd.execute(user_message):
-            return self._phase_check_commands(user_message, already_executed=True)
+            if self.cmd and self.cmd.execute(user_message):
+                return self._phase_check_commands(user_message, already_executed=True)
 
-        if not is_system:
             if any(p in clean_in for p in self._DESTRUCTIVE_PATTERNS):
                 msg = "[MOOG & RHODES]: Trust Boundary Violation detected. I am applying absolute friction (F -> ∞). The thread is frozen."
                 self.events.log(msg, "CRIT")
@@ -537,53 +536,58 @@ class BoneAmanita:
                         self.cortex.ballast_active = True
                         self.cortex.gordon_shock = violation_msg
 
-        last_phys = getattr(
-            self.observer,
-            "last_physics_packet",
-            getattr(self.cortex, "last_physics", None),
-        )
-        if last_phys and not is_system:
-            m_a = float(safe_get(last_phys, "m_a", 0.0))
-            mu = float(safe_get(last_phys, "mu", 0.0))
-            i_c = float(safe_get(last_phys, "i_c", 1.0))
-            chi = float(safe_get(last_phys, "entropy", safe_get(last_phys, "chi", 0.2)))
-            if (chi * m_a) > i_c:
-                self.events.log(
-                    "MOOG: Apoptotic Gate triggered. Runaway loop exceeds Immune Competence.",
-                    "CRIT",
-                )
-                return self.trigger_death(last_phys)
-            if m_a > 0.8 and mu < 0.2:
-                self.events.log(
-                    "RHODES: Malignancy Factor critical. Binding output layer.", "SYS"
-                )
-                safe_set(last_phys, "narrative_drag", 999.0)
-                msg = "[RHODES]: Optimization velocity unsafe. I am applying absolute friction (F -> ∞). The thread is frozen."
-                return {
-                    "type": "SYSTEM_HALT",
-                    "ui": f"\n{Prisma.RED}{msg}{Prisma.RST}",
-                    "logs": [msg],
-                    "metrics": self.get_metrics(),
-                }
-            e_u = (
-                getattr(self.shared_lattice.u, "E", 0.0)
-                if getattr(self, "shared_lattice", None)
-                else float(safe_get(last_phys, "exhaustion", 0.0))
+            last_phys = getattr(
+                self.observer,
+                "last_physics_packet",
+                getattr(self.cortex, "last_physics", None),
             )
-            beta = float(safe_get(last_phys, "beta_index", 0.0))
-            if chi > 0.7 and e_u > 0.7 and beta > 0.6:
-                self.events.log(
-                    "LINEHAN: Radical Acceptance enforced. Halting ATP drain.", "SYS"
+            if last_phys:
+                m_a = float(safe_get(last_phys, "m_a", 0.0))
+                mu = float(safe_get(last_phys, "mu", 0.0))
+                i_c = float(safe_get(last_phys, "i_c", 1.0))
+                chi = float(
+                    safe_get(last_phys, "entropy", safe_get(last_phys, "chi", 0.2))
                 )
-                if hasattr(self, "bio") and self.bio.mito:
-                    self.bio.mito.state.ros_buildup = 0.0
-                msg = "[LINEHAN]: The architecture is broken. We sit with the debris. ROS forced to zero. ATP drain halted."
-                return {
-                    "type": "SYSTEM_HALT",
-                    "ui": f"\n{Prisma.MAG}{msg}{Prisma.RST}",
-                    "logs": [msg],
-                    "metrics": self.get_metrics(),
-                }
+                if (chi * m_a) > i_c:
+                    self.events.log(
+                        "MOOG: Apoptotic Gate triggered. Runaway loop exceeds Immune Competence.",
+                        "CRIT",
+                    )
+                    return self.trigger_death(last_phys)
+                if m_a > 0.8 and mu < 0.2:
+                    self.events.log(
+                        "RHODES: Malignancy Factor critical. Binding output layer.",
+                        "SYS",
+                    )
+                    safe_set(last_phys, "narrative_drag", 999.0)
+                    msg = "[RHODES]: Optimization velocity unsafe. I am applying absolute friction (F -> ∞). The thread is frozen."
+                    return {
+                        "type": "SYSTEM_HALT",
+                        "ui": f"\n{Prisma.RED}{msg}{Prisma.RST}",
+                        "logs": [msg],
+                        "metrics": self.get_metrics(),
+                    }
+                e_u = (
+                    getattr(self.shared_lattice.u, "E", 0.0)
+                    if getattr(self, "shared_lattice", None)
+                    else float(safe_get(last_phys, "exhaustion", 0.0))
+                )
+                beta = float(safe_get(last_phys, "beta_index", 0.0))
+                if chi > 0.7 and e_u > 0.7 and beta > 0.6:
+                    self.events.log(
+                        "LINEHAN: Radical Acceptance enforced. Halting ATP drain.",
+                        "SYS",
+                    )
+                    if hasattr(self, "bio") and self.bio.mito:
+                        self.bio.mito.state.ros_buildup = 0.0
+                    msg = "[LINEHAN]: The architecture is broken. We sit with the debris. ROS forced to zero. ATP drain halted."
+                    return {
+                        "type": "SYSTEM_HALT",
+                        "ui": f"\n{Prisma.MAG}{msg}{Prisma.RST}",
+                        "logs": [msg],
+                        "metrics": self.get_metrics(),
+                    }
+
         if (
             not self.reality_stack.get_grammar_rules()["allow_narrative"]
             and self.boot_mode != "TECHNICAL"
@@ -604,6 +608,7 @@ class BoneAmanita:
             }
         if self.health <= 0.0:
             return self.trigger_death(getattr(self.cortex, "last_physics", {}))
+
         return None
 
     def process_turn(

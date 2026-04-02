@@ -29,14 +29,14 @@ class TheCrucible:
         self.cfg = config_ref or BoneConfig
         cfg = getattr(self.cfg, "MACHINE", None)
         self.max_voltage_cap = (
-            getattr(cfg, "CRUCIBLE_VOLTAGE_CAP", 20.0) if cfg else 20.0
+            safe_get(cfg, "CRUCIBLE_VOLTAGE_CAP", 20.0)
         )
         self.active_state = "COLD"
         self.dampener_charges = (
-            getattr(cfg, "CRUCIBLE_DAMPENER_CHARGES", 3) if cfg else 3
+            safe_get(cfg, "CRUCIBLE_DAMPENER_CHARGES", 3)
         )
         self.dampener_tolerance = (
-            getattr(cfg, "DAMPENER_TOLERANCE", 15.0) if cfg else 15.0
+            safe_get(cfg, "DAMPENER_TOLERANCE", 15.0)
         )
         self.instability_index = 0.0
         self.logs = self._load_logs()
@@ -242,10 +242,10 @@ class TheTheremin:
         self.classical_turns = 0
         cfg = getattr(self.cfg, "MACHINE", None)
         self.AMBER_THRESHOLD = (
-            getattr(cfg, "THEREMIN_AMBER_THRESHOLD", 20.0) if cfg else 20.0
+            safe_get(cfg, "THEREMIN_AMBER_THRESHOLD", 20.0)
         )
         self.SHATTER_POINT = (
-            getattr(cfg, "THEREMIN_SHATTER_POINT", 100.0) if cfg else 100.0
+            safe_get(cfg, "THEREMIN_SHATTER_POINT", 100.0)
         )
         self.is_stuck = False
         self.logs = self._load_logs()
@@ -277,7 +277,7 @@ class TheTheremin:
         thermal_hits = counts.get("thermal", 0)
         theremin_msg = ""
         cfg = getattr(self.cfg, "MACHINE", None)
-        melt_thresh = getattr(cfg, "THEREMIN_MELT_THRESHOLD", 5.0) if cfg else 5.0
+        melt_thresh = safe_get(cfg, "THEREMIN_MELT_THRESHOLD", 5.0)
         critical_event = None
         if thermal_hits > 0 and self.decoherence_buildup > melt_thresh:
             dissolved = thermal_hits * 15.0
@@ -500,7 +500,7 @@ class BoneArchitect:
     def _construct_bio(events, mind, lex, config_ref=None) -> BioSystem:
         target_cfg = config_ref or BoneConfig
         cfg = getattr(target_cfg, "METABOLISM", None)
-        genesis_val = getattr(cfg, "GENESIS_VOLTAGE", 100.0) if cfg else 100.0
+        genesis_val = safe_get(cfg, "GENESIS_VOLTAGE", 100.0)
         mito_state = MitochondrialState(atp_pool=genesis_val)
         start_health = getattr(target_cfg, "MAX_HEALTH", 100.0)
         start_stamina = getattr(target_cfg, "MAX_STAMINA", 100.0)
@@ -615,7 +615,7 @@ class BoneArchitect:
         if embryo.bio and embryo.bio.mito and embryo.bio.mito.state.atp_pool <= 0.0:
             target_cfg = getattr(embryo.bio, "config_ref", None) or BoneConfig
             cfg = getattr(target_cfg, "METABOLISM", None)
-            genesis_val = getattr(cfg, "GENESIS_VOLTAGE", 100.0) if cfg else 100.0
+            genesis_val = safe_get(cfg, "GENESIS_VOLTAGE", 100.0)
             msg = ux("machine_strings", "arch_cold_boot")
             events.log(
                 (
