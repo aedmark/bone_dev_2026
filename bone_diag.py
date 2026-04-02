@@ -1,7 +1,15 @@
 """bone_diag.py"""
 
+import random
+import time
 import unittest
-from unittest.mock import patch
+import warnings
+from unittest.mock import patch, MagicMock
+
+from bone_core import LoreManifest, EventBus
+from bone_main import BoneAmanita
+from bone_presets import BoneConfig
+from bone_spores import MycelialNetwork
 
 
 class TrueEngineTest(unittest.TestCase):
@@ -1040,18 +1048,6 @@ class TrueEngineTest(unittest.TestCase):
         )
 
 
-import unittest
-import warnings
-import random
-import time
-from unittest.mock import MagicMock
-from bone_main import BoneAmanita
-from bone_core import LoreManifest
-from bone_core import EventBus
-from bone_spores import MycelialNetwork
-from bone_presets import BoneConfig
-
-
 class FractureEngineTest(unittest.TestCase):
     def setUp(self):
         warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -1068,24 +1064,21 @@ class FractureEngineTest(unittest.TestCase):
 
     def test_fracture_n_turn_runaway_loop(self):
         print("\n--- FRACTURE 1: N-Turn Runaway ---")
-        system_halted = False
         for i in range(20):
             result = self.engine.process_turn(
                 "NO! YOU ARE WRONG! FIX IT NOW! DO IT AGAIN!"
             )
             if (
-                result.get("type") == "SYSTEM_HALT"
-                or "take a breath" in result.get("ui", "").lower()
+                    result.get("type") == "SYSTEM_HALT"
+                    or "take a breath" in result.get("ui", "").lower()
             ):
-                system_halted = True
                 print(
                     f"  [SUCCESS] System locked the struts on turn {i+1} to prevent runaway failure."
                 )
                 break
-        self.assertTrue(
-            system_halted,
-            "The system failed to defend itself. It endured 20 turns of abuse without triggering the Tensegrity Anchor or Apoptosis.",
-        )
+        else:
+            self.fail("The system failed to defend itself. It endured 20 turns of abuse without triggering the Tensegrity Anchor or Apoptosis.")
+
         self.assertLess(
             self.engine.bio.mito.state.atp_pool,
             100.0,
@@ -1441,12 +1434,10 @@ class FractureEngineTest(unittest.TestCase):
 
     def generate_mock_memories(self, count=10000, dim=8):
         print(f"🧬 Synthesizing {count} mock memory engrams...")
-        memories = []
-        for i in range(count):
-            vector = [random.uniform(-1.0, 1.0) for _ in range(dim)]
-            meta = {"concept": f"ghost_node_{i}", "mass": random.uniform(1.0, 10.0)}
-            memories.append((f"node_{i}", vector, meta))
-        return memories
+        return [
+            (f"node_{i}", [random.uniform(-1.0, 1.0) for _ in range(dim)], {"concept": f"ghost_node_{i}", "mass": random.uniform(1.0, 10.0)})
+            for i in range(count)
+        ]
 
     def test_the_fracture(self):
         events = EventBus()

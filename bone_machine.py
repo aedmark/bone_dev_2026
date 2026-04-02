@@ -575,7 +575,10 @@ class BoneArchitect:
         embryo.soul_legacy = {}
         embryo.continuity = None
         recovered_atlas = {}
-        mito_legacy, immune_legacy, soul_legacy, continuity, atlas = (list(load_result) + [None] * 5)[:5] if isinstance(load_result, (list, tuple)) else (None,) * 5
+
+        raw_result = list(load_result) if isinstance(load_result, (list, tuple)) else []
+        padded_result = raw_result + [None] * 5
+        mito_legacy, immune_legacy, soul_legacy, continuity, atlas = padded_result[:5]
 
         if mito_legacy and hasattr(embryo.bio.mito, "apply_inheritance"):
             embryo.bio.mito.apply_inheritance(mito_legacy)

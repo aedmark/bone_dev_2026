@@ -165,32 +165,29 @@ class NeurotransmitterModulator:
         ent_offset = getattr(cfg, "TEMP_ENTROPY_OFFSET", 0.5)
         ent_scalar = getattr(cfg, "TEMP_ENTROPY_SCALAR", 1.5)
         entropy_bonus = max(0.0, chi - ent_offset) * ent_scalar
+        clamp = lambda v, mn, mx: max(mn, min(mx, v))
+
         t_limits = getattr(cfg, "TEMP_LIMITS", (0.4, 1.5))
         final_temp = round(
-            max(
+            clamp(
+                base_temp + chemical_delta + voltage_heat + entropy_bonus,
                 t_limits[0],
-                min(
-                    t_limits[1],
-                    base_temp + chemical_delta + voltage_heat + entropy_bonus,
-                ),
+                t_limits[1],
             ),
             2,
         )
         final_top_p = min(
             1.0, base_top_p + (chi * getattr(cfg, "TOP_P_CHI_SCALAR", 0.05))
         )
-        freq_pen = min(
+
+        base_penalty = min(
             1.2,
             0.5
             + (beta * getattr(cfg, "PEN_BETA_SCALAR", 0.3))
             + (chi * getattr(cfg, "PEN_CHI_SCALAR", 0.2)),
         )
-        pres_pen = min(
-            1.2,
-            0.5
-            + (beta * getattr(cfg, "PEN_BETA_SCALAR", 0.3))
-            + (chi * getattr(cfg, "PEN_CHI_SCALAR", 0.2)),
-        )
+        freq_pen = pres_pen = base_penalty
+
         token_mods = getattr(
             cfg, "TOKEN_CHEM_MODIFIERS", {"dop": 800, "adr": 400, "cor": 200}
         )
@@ -199,9 +196,10 @@ class NeurotransmitterModulator:
             - (c.adrenaline * token_mods.get("adr", 400))
             - (c.cortisol * token_mods.get("cor", 200))
         )
+
         min_tokens = getattr(cfg, "MIN_TOKENS", 150.0)
         max_t = int(
-            max(min_tokens, min(float(self.MAX_TOKENS), self.BASE_TOKENS + token_delta))
+            clamp(self.BASE_TOKENS + token_delta, min_tokens, float(self.MAX_TOKENS))
         )
         return {
             "temperature": final_temp,
@@ -523,11 +521,7 @@ class TheCortex:
                                 ).strip()
                                 if affect_res.upper().startswith("FAIL"):
                                     is_faithful = False
-                                    judge_reason = (
-                                        affect_res.replace("FAIL:", "")
-                                        .replace("FAIL", "")
-                                        .strip()
-                                    )
+                                    judge_reason = affect_res[4:].lstrip(":").strip()
                                     self.modulator.current_chem.cortisol = min(
                                         1.0, self.modulator.current_chem.cortisol + 0.20
                                     )
@@ -1048,13 +1042,15 @@ class DreamEngine:
                         disk_prompts = getattr(self.eng, "prompt_library", {})
                         if not disk_prompts:
                             disk_prompts = self.lore.get("SYSTEM_PROMPTS") or {}
-                        prompt_path = None
-                        for p in ["lore/system_prompts.json"]:
-                            if os.path.exists(p):
-                                prompt_path = p
-                                break
-                        if not prompt_path:
-                            prompt_path = os.path.join(getattr(self.lore, "DATA_DIR", "lore"), "system_prompts.json")
+                        base_path = "lore/system_prompts.json"
+                        prompt_path = (
+                            base_path
+                            if os.path.exists(base_path)
+                            else os.path.join(
+                                getattr(self.lore, "DATA_DIR", "lore"),
+                                "system_prompts.json",
+                            )
+                        )
                         if active_mode in disk_prompts:
                             dirs = disk_prompts[active_mode].setdefault("directives", [])
                             if new_axiom not in dirs:

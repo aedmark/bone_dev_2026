@@ -6,11 +6,11 @@ _A relentless, codebase-wide optimization strike targeting Python interpreter la
 
 #### **🗜️ ALGORITHMIC COMPRESSION (System-Wide)**
 
-- **The Walrus Protocol:** Integrated Python 3.8+ assignment expressions (`:=`) across virtually every simulation phase, diagnostic module, and biological governor. This eliminates thousands of redundant truthy checks and dictionary `.get()` calls per minute.
+- **The Walrus Protocol:** Integrated Python 3.8+ assignment expressions (`:=`) across virtually every simulation phase (`bone_phases.py`), diagnostic module (`bone_diag.py`), and biological governor (`bone_body.py`). This eliminates thousands of redundant truthy checks and dictionary `.get()` calls per minute.
 - **Ternary Chains & Comprehensions:** Gutted sprawling, 20-line `if/elif` ladders (especially in somatic mappings, diagnostic states, and UI color routing) and replaced them with mathematically clean, chained ternary operations and single-pass dictionary comprehensions.
 - **Dead Weight Purge:** Excised orphaned utility functions (e.g., duplicated `_deep_update` and `_safe_dict` methods in the cycle orchestrator) and stripped unnecessary list-padding logic.
 
-#### **🐛 CATASTROPHIC BUG FIXES (`bone_protocols.py`, `bone_physics.py`, `bone_phases.py`)**
+#### **🐛 CATASTROPHIC BUG FIXES (`bone_physics.py`, `bone_phases.py`)**
 
 - **The Folly Crash Averted:** Identified and eradicated a fatal scope bug in `TheFolly._attempt_digest_abstract`. An invalid `@staticmethod` decorator was causing the engine to throw an `AttributeError` when attempting to reference the config file upon successfully digesting an abstract concept.
 - **Copy-Paste Anomalies Sealed:** Restored the `ChromaScope` class in `bone_physics.py` after an accidental namespace overwrite, preventing the `bone_gui` projector from crashing during color modulation.
@@ -28,10 +28,10 @@ _A relentless, codebase-wide optimization strike targeting Python interpreter la
 - **Vector FAISS Querying:** Processed FAISS distances and indices (`CerebralIndex.query_neighborhood`) are now immediately flattened into their pseudo-resonance payload dictionaries via list comprehensions.
 - **Coordinate Matrix Assembly:** `TheAkashicRecord` no longer uses manual key-value mappings to build `Gödel Scar` coordinates, securely fetching and assembling the 10-dimensional matrix in a single line.
 
-#### **⚙️ THE ENGINE & GUI (`bone_gui.py`, `bone_main.py`, `bone_body.py`)**
+#### **⚙️ THE ENGINE & GUI (`bone_gui.py`, `bone_main.py`, `bone_council.py`)**
 
 - **Projector Strip Condensation:** The terminal `Projector` now formats and calculates the physics and drag profile strings dynamically. Multi-line checks for semantic, metabolic, and emotional drag were collapsed into an inline map.
-- **Biological Homeostasis:** `EndocrineSystem` clamping loops and `BioFeedback` maintenance gates were compressed, ensuring the biological host ticks with near-zero computational drag.
+- **The Abyssal Safe-Get Resolved:** `TheStrangeLoop`, `TheLeveragePoint`, and `CouncilChamber` no longer use 4-level deep `safe_get()` nesting to extract physics variables. Extraction is now linear and biologically legible.
 - **Boot Sequence Tightened:** The `BoneGenesis._summon_village` and setup wizard loops were structurally flattened, streamlining the instantiation of the Parliament and the engine's initial cold boot.
 
 ---

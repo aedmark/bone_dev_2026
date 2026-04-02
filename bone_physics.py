@@ -165,29 +165,19 @@ class GeodesicEngine:
         inv_vol = 1.0 / max(1, volume)
         base_mass = 0.1
         str_mass = masses["heavy"] * 2.0 + masses["constructive"] + masses["harvest"]
-        ent_mass = (
-            (counts.get("antigen", 0) * 3.0) + masses["meat"] + masses["crisis_term"]
-        )
-        psi_mass = forces["abstraction"]
+        ent_mass = (counts.get("antigen", 0) * 3.0) + masses["meat"] + masses["crisis_term"]
+
+        clamp = lambda v: max(0.0, min(1.0, v))
+
         return {
-            "VEL": max(
-                0.0,
-                min(
-                    1.0,
-                    (masses["kinetic"] * 2.0 - forces["compression"] + base_mass)
-                    * inv_vol,
-                ),
-            ),
-            "STR": max(0.0, min(1.0, (str_mass + base_mass) * inv_vol)),
-            "ENT": max(0.0, min(1.0, ent_mass * inv_vol)),
-            "PHI": max(
-                0.0,
-                min(1.0, (masses["heavy"] + masses["kinetic"] + base_mass) * inv_vol),
-            ),
-            "PSI": max(0.0, min(1.0, psi_mass)),
-            "BET": max(0.0, min(1.0, (masses["social"] * 2.0) * inv_vol)),
-            "DEL": max(0.0, min(1.0, (masses["play"] * 3.0) * inv_vol)),
-            "E": max(0.0, min(1.0, (counts.get("solvents", 0)) * inv_vol)),
+            "VEL": clamp((masses["kinetic"] * 2.0 - forces["compression"] + base_mass) * inv_vol),
+            "STR": clamp((str_mass + base_mass) * inv_vol),
+            "ENT": clamp(ent_mass * inv_vol),
+            "PHI": clamp((masses["heavy"] + masses["kinetic"] + base_mass) * inv_vol),
+            "PSI": clamp(forces["abstraction"]),
+            "BET": clamp((masses["social"] * 2.0) * inv_vol),
+            "DEL": clamp((masses["play"] * 3.0) * inv_vol),
+            "E": clamp(counts.get("solvents", 0) * inv_vol),
         }
 
     @staticmethod

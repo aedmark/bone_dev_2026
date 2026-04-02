@@ -435,17 +435,18 @@ class MetabolismPhase(SimulationPhase):
             self.eng.tick_count,
             circadian_bias=self._check_circadian_rhythm(ctx),
         )
-        if self.eng.bio.mito and hasattr(self.eng.bio.mito.state, "atp_pool"):
-            self.eng.bio.mito.state.atp_pool = max(
-                0.0, float(self.eng.bio.mito.state.atp_pool)
-            )
-        if self.eng.bio.biometrics:
-            self.eng.bio.biometrics.health = max(
-                0.0, float(self.eng.bio.biometrics.health)
-            )
-            self.eng.bio.biometrics.stamina = max(
-                0.0, float(self.eng.bio.biometrics.stamina)
-            )
+        if self.eng.bio:
+            if self.eng.bio.mito and hasattr(self.eng.bio.mito.state, "atp_pool"):
+                self.eng.bio.mito.state.atp_pool = max(
+                    0.0, float(self.eng.bio.mito.state.atp_pool)
+                )
+            if self.eng.bio.biometrics:
+                self.eng.bio.biometrics.health = max(
+                    0.0, float(self.eng.bio.biometrics.health)
+                )
+                self.eng.bio.biometrics.stamina = max(
+                    0.0, float(self.eng.bio.biometrics.stamina)
+                )
         ctx.is_alive = ctx.bio_result["is_alive"]
         for log in ctx.bio_result["logs"]:
             if any(x in str(log) for x in ["CRITICAL", "TAX", "Poison", "NECROSIS"]):
@@ -1099,15 +1100,16 @@ class ArbitrationPhase(SimulationPhase):
             msg = ux("cycle_strings", "arbiter_stage_manager_hold")
             ctx.log(f"{Prisma.WHT}{msg}{Prisma.RST}")
         else:
-            if synergy_active and synergy_name:
-                final_lens = synergy_name
-                msg = ux("cycle_strings", "arbiter_synergy_named")
-                ctx.log(
-                    f"{Prisma.GRY}{msg.format(synergy_name=synergy_name)}{Prisma.RST}"
-                )
-            elif synergy_active:
-                msg = ux("cycle_strings", "arbiter_synergy_unnamed")
-                ctx.log(f"{Prisma.GRY}{msg}{Prisma.RST}")
+            if synergy_active:
+                if synergy_name:
+                    final_lens = synergy_name
+                    msg = ux("cycle_strings", "arbiter_synergy_named")
+                    ctx.log(
+                        f"{Prisma.GRY}{msg.format(synergy_name=synergy_name)}{Prisma.RST}"
+                    )
+                else:
+                    msg = ux("cycle_strings", "arbiter_synergy_unnamed")
+                    ctx.log(f"{Prisma.GRY}{msg}{Prisma.RST}")
             else:
                 msg = ux("cycle_strings", "arbiter_normal_lens")
                 ctx.log(f"{Prisma.GRY}{msg.format(final_lens=final_lens)}{Prisma.RST}")
@@ -1252,14 +1254,13 @@ class SimulationPreflightPhase(SimulationPhase):
         if current_atp >= 30.0 and silence > 0.7 and is_slash:
             has_glimmer = False
             if (
-                hasattr(self.eng, "shared_lattice")
+                getattr(self.eng, "shared_lattice", None)
                 and self.eng.shared_lattice.shared.g_pool >= 1
             ):
                 self.eng.shared_lattice.shared.g_pool -= 1
                 has_glimmer = True
-            elif safe_get(energy_obj, "glimmers", 0) >= 1:
-                current_glimmers = safe_get(energy_obj, "glimmers", 0)
-                safe_set(energy_obj, "glimmers", current_glimmers - 1)
+            elif (glimmers := safe_get(energy_obj, "glimmers", 0)) >= 1:
+                safe_set(energy_obj, "glimmers", glimmers - 1)
                 has_glimmer = True
             old_theta = safe_get(phys_obj, "theta", 0.0)
             safe_set(phys_obj, "theta", min(1.0, old_theta + 0.15))

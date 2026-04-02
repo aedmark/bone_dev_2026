@@ -140,7 +140,10 @@ class EnneagramDriver:
     def _calculate_raw_persona(self, physics, soul_ref=None) -> Tuple[str, str, str]:
         raw_vec = safe_get(physics, "vector", {})
         p_vec = raw_vec if isinstance(raw_vec, dict) else {}
-        p_vol, p_drag, p_coh = (float(safe_get(physics, k, 0.0) or 0.0) for k in ("voltage", "narrative_drag", "kappa"))
+        p_vol, p_drag, p_coh = (
+            float(safe_get(physics, k, 0.0) or 0.0)
+            for k in ("voltage", "narrative_drag", "kappa")
+        )
         p_zone = str(safe_get(physics, "zone", ""))
         weights_cfg = self.weights
         if not isinstance(weights_cfg, dict) or len(weights_cfg) < 2:
@@ -164,25 +167,19 @@ class EnneagramDriver:
         for persona, criteria in weights_cfg.items():
             if not isinstance(criteria, dict):
                 continue
-            if "tension_min" in criteria and p_vol > float(
-                criteria.get("tension_min", 0.0)
-            ):
+
+            if p_vol > float(criteria.get("tension_min", float("inf"))):
                 scores[persona] += 3.0
-            if "drag_min" in criteria and p_drag > float(criteria.get("drag_min", 0.0)):
+            if p_drag > float(criteria.get("drag_min", float("inf"))):
                 scores[persona] += 5.0
-            if "coherence_min" in criteria and p_coh > float(
-                criteria.get("coherence_min", 0.0)
-            ):
+            if p_coh > float(criteria.get("coherence_min", float("inf"))):
                 scores[persona] += 4.0
-            if "coherence_max" in criteria and p_coh < float(
-                criteria.get("coherence_max", 0.0)
-            ):
+            if "coherence_max" in criteria and p_coh < float(criteria["coherence_max"]):
                 scores[persona] += 4.0
-            vectors = criteria.get("vectors", {})
-            if isinstance(vectors, dict):
+
+            if isinstance(vectors := criteria.get("vectors", {}), dict):
                 for dim, weight in vectors.items():
-                    val = float(p_vec.get(dim, 0.0))
-                    if val > 0.2:
+                    if (val := float(p_vec.get(dim, 0.0))) > 0.2:
                         scores[persona] += val * float(weight)
         if soul_ref:
             soul_driver = SoulDriver(soul_ref)
@@ -285,8 +282,18 @@ class LiminalModule:
         dark_matter_sparks = 0
         if len(words) > 1 and hasattr(self.lex, "get_categories_for_word"):
             phys_set, void_set = {"heavy", "kinetic"}, {"abstract", "liminal", "void"}
-            flags = [1 if c & phys_set else (2 if c & void_set else 0) for w in words if (c := set(self.lex.get_categories_for_word(w) or []))]
-            dark_matter_sparks = sum(1 for i in range(len(flags) - 1) if flags[i] and flags[i + 1] and flags[i] != flags[i + 1])
+            flags = []
+            for w in words:
+                cats = set(self.lex.get_categories_for_word(w) or [])
+                if not cats:
+                    continue
+                flags.append(1 if cats & phys_set else (2 if cats & void_set else 0))
+
+            dark_matter_sparks = sum(
+                1
+                for i in range(len(flags) - 1)
+                if flags[i] and flags[i + 1] and flags[i] != flags[i + 1]
+            )
         dark_matter_lambda = min(1.0, dark_matter_sparks * dm_weight)
         vector_lambda = 0.0
         if physics_vector:
@@ -377,10 +384,16 @@ class CongruenceValidator:
         tone_score = getattr(cfg, "CONGRUENCE_BASE_TONE", 0.8) if cfg else 0.8
         target_data = self.map.get(archetype, {})
         if isinstance(target_data, dict):
-            target_words = {w.strip().lower() for w in target_data.get("vocab", "").split(",") if w} | set(target_data.get("keywords", []))
-            if target_words and (words_to_check := set(getattr(context, "clean_words", []))):
+            target_words = {
+                w.strip().lower() for w in target_data.get("vocab", "").split(",") if w
+            } | set(target_data.get("keywords", []))
+            if target_words and (
+                words_to_check := set(getattr(context, "clean_words", []))
+            ):
                 if hits := len(words_to_check.intersection(target_words)):
-                    tone_score += (getattr(cfg, "CONGRUENCE_HIT_BONUS", 0.1) if cfg else 0.1) * hits
+                    tone_score += (
+                        getattr(cfg, "CONGRUENCE_HIT_BONUS", 0.1) if cfg else 0.1
+                    ) * hits
         max_tone = getattr(cfg, "CONGRUENCE_MAX_TONE", 1.5) if cfg else 1.5
         return min(max_tone, tone_score)
 
@@ -496,22 +509,22 @@ class SharedLatticeDriver:
             self.u.E_u = min(1.0, self.u.E_u + 0.1)
         else:
             self.u.E_u = max(0.0, self.u.E_u - 0.05)
-        self.u.V_u = float(safe_get(input_phys, "voltage", self.u.V_u) or self.u.V_u)
-        self.u.psi_u = float(safe_get(input_phys, "psi", self.u.psi_u) or self.u.psi_u)
-        self.u.chi_u = float(
-            safe_get(input_phys, "chi", safe_get(input_phys, "entropy", self.u.chi_u))
-            or self.u.chi_u
-        )
-        self.u.F_u = float(
-            safe_get(input_phys, "narrative_drag", self.u.F_u) or self.u.F_u
-        )
-        sys_beta = float(safe_get(sys_phys, "beta", 0.0) or 0.0)
-        sys_chi = float(
-            safe_get(sys_phys, "chi", safe_get(sys_phys, "entropy", 0.0)) or 0.0
-        )
-        sys_val = float(safe_get(sys_phys, "valence", 0.0) or 0.0)
-        sys_psi = float(safe_get(sys_phys, "psi", 0.0) or 0.0)
-        sys_drag = float(safe_get(sys_phys, "narrative_drag", 1.0) or 1.0)
+        def _get_f(obj, *keys, default=0.0):
+            for k in keys:
+                if (val := safe_get(obj, k)) is not None:
+                    return float(val)
+            return float(default)
+
+        self.u.V_u = _get_f(input_phys, "voltage", default=self.u.V_u)
+        self.u.psi_u = _get_f(input_phys, "psi", default=self.u.psi_u)
+        self.u.chi_u = _get_f(input_phys, "chi", "entropy", default=self.u.chi_u)
+        self.u.F_u = _get_f(input_phys, "narrative_drag", default=self.u.F_u)
+
+        sys_beta = _get_f(sys_phys, "beta")
+        sys_chi = _get_f(sys_phys, "chi", "entropy")
+        sys_val = _get_f(sys_phys, "valence")
+        sys_psi = _get_f(sys_phys, "psi")
+        sys_drag = _get_f(sys_phys, "narrative_drag", default=1.0)
         dp = safe_get(sys_phys, "drag_profile")
         dp_trauma = 0.0
         if dp is not None:
@@ -545,8 +558,15 @@ class SharedLatticeDriver:
                 self.shared.g_pool += 1
             self.shared.lambda_silence = min(1.0, self.shared.lambda_silence + 0.05)
             if self.shared.lambda_silence > 0.3:
-                msg_key = {1: "silence_pregnant", 2: "silence_exhausted", 3: "silence_reverent", 4: "silence_strategic"}.get(self.shared.sigma_silence)
-                logs.append(f"{Prisma.GRY}... {ux('driver_strings', msg_key) if msg_key else 'The silence settles.'}{Prisma.RST}")
+                msg_key = {
+                    1: "silence_pregnant",
+                    2: "silence_exhausted",
+                    3: "silence_reverent",
+                    4: "silence_strategic",
+                }.get(self.shared.sigma_silence)
+                logs.append(
+                    f"{Prisma.GRY}... {ux('driver_strings', msg_key) if msg_key else 'The silence settles.'}{Prisma.RST}"
+                )
             if self.shared.phi > 0.85:
                 self.shared.resonance_streak = (
                     getattr(self.shared, "resonance_streak", 0) + 1

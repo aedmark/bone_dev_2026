@@ -112,18 +112,20 @@ class HumanityAnchor:
         cfg = getattr(self.cfg, "ANCHOR", None)
         atp_min = getattr(cfg, "AUDIT_ATP_MIN", 5.0) if cfg else 5.0
         volt_min = getattr(cfg, "AUDIT_VOLTAGE_MIN", 5.0) if cfg else 5.0
-        atp = safe_get(bio, "atp", 0.0)
-        if not atp:
-            mito = safe_get(bio, "mito", {})
-            atp = safe_get(mito, "atp_pool", safe_get(safe_get(mito, "state", {}), "atp_pool", 0.0))
+        atp = float(
+            safe_get(bio, "atp")
+            or safe_get(safe_get(bio, "mito", {}), "atp_pool")
+            or safe_get(safe_get(safe_get(bio, "mito", {}), "state", {}), "atp_pool")
+            or 0.0
+        )
+        volt = float(safe_get(physics, "voltage", 0.0))
 
-        volt = safe_get(physics, "voltage", 0.0)
         if atp >= atp_min or volt >= volt_min:
             return 0.0
 
         matter = safe_get(physics, "matter", {})
-        vector = safe_get(physics, "vector", None) or safe_get(matter, "vector", {}) or {}
-        counts = safe_get(physics, "counts", None) or safe_get(matter, "counts", {}) or {}
+        vector = safe_get(physics, "vector") or safe_get(matter, "vector", {})
+        counts = safe_get(physics, "counts") or safe_get(matter, "counts", {})
         dim_resonance = sum(vector.get(k, 0.0) for k in self._VECTOR_ANCHORS)
         lex_resonance = sum(counts.get(k, 0) for k in self._LEXICAL_ANCHORS)
         lex_mult = getattr(cfg, "AUDIT_LEXICAL_MULT", 0.5)
@@ -141,7 +143,9 @@ class HumanityAnchor:
             if self.dignity_reserve < d_lock:
                 self._engage_lockdown()
                 return -1.0
-            elif self.dignity_reserve < d_crit and (msg := ux("soul_strings", "anchor_existential_drag")):
+            elif self.dignity_reserve < d_crit and (
+                msg := ux("soul_strings", "anchor_existential_drag")
+            ):
                 self.events.log(f"{Prisma.VIOLET}{msg}{Prisma.RST}", "SOUL")
         return 0.0
 
@@ -478,15 +482,22 @@ class NarrativeSelf:
             elif lq > 0.7 and silence > 0.7:
                 new_arch = "THE TAO"
         if not new_arch:
-            new_arch = (
-                "THE HEALER" if self.traits.empathy > 0.8 and self.traits.hope > 0.6 else
-                "THE GARDENER" if self.traits.empathy > 0.7 and self.traits.discipline > 0.6 else
-                "THE POET" if self.traits.hope > 0.7 and self.traits.curiosity > 0.6 else
-                "THE ENGINEER" if self.traits.discipline > 0.7 and self.traits.curiosity > 0.6 else
-                "THE CRITIC" if self.traits.cynicism > 0.7 and self.traits.discipline > 0.6 else
-                "THE NIHILIST" if self.traits.cynicism > 0.8 and self.traits.hope < 0.3 else
-                "THE EXPLORER" if self.traits.curiosity > 0.8 else "THE OBSERVER"
-            )
+            if self.traits.empathy > 0.8 and self.traits.hope > 0.6:
+                new_arch = "THE HEALER"
+            elif self.traits.empathy > 0.7 and self.traits.discipline > 0.6:
+                new_arch = "THE GARDENER"
+            elif self.traits.hope > 0.7 and self.traits.curiosity > 0.6:
+                new_arch = "THE POET"
+            elif self.traits.discipline > 0.7 and self.traits.curiosity > 0.6:
+                new_arch = "THE ENGINEER"
+            elif self.traits.cynicism > 0.7 and self.traits.discipline > 0.6:
+                new_arch = "THE CRITIC"
+            elif self.traits.cynicism > 0.8 and self.traits.hope < 0.3:
+                new_arch = "THE NIHILIST"
+            elif self.traits.curiosity > 0.8:
+                new_arch = "THE EXPLORER"
+            else:
+                new_arch = "THE OBSERVER"
         self.archetype = new_arch
         if prev != self.archetype:
             msg_shift = ux("soul_strings", "soul_identity_shift")
@@ -577,8 +588,13 @@ class NarrativeSelf:
         if not clean_words:
             return None, None
         candidates = [
-            (w, lex.measure_viscosity(w) + (0.2 if lex.get_current_category(w) else 0.0))
-            for w in clean_words if len(w) >= 4 and w.lower() not in self.SYSTEM_NOISE
+            (
+                w,
+                lex.measure_viscosity(w)
+                + (0.2 if lex.get_current_category(w) else 0.0),
+            )
+            for w in clean_words
+            if len(w) >= 4 and w.lower() not in self.SYSTEM_NOISE
         ]
         if candidates:
             word = max(candidates, key=lambda x: x[1])[0]
@@ -629,12 +645,16 @@ class NarrativeSelf:
             safe_get(safe_get(physics_packet, "matter"), "clean_words", []),
         )
         chem = bio_state.get("chem", {})
-        lesson = (
-            "We are not alone." if chem.get("oxytocin", 0) > 0.6 else
-            "Survival is the only metric." if chem.get("cortisol", 0) > 0.6 else
-            "Connection is possible." if "love" in clean_words else
-            "The void stares back." if "void" in clean_words else "The world is loud."
-        )
+        if chem.get("oxytocin", 0) > 0.6:
+            lesson = "We are not alone."
+        elif chem.get("cortisol", 0) > 0.6:
+            lesson = "Survival is the only metric."
+        elif "love" in clean_words:
+            lesson = "Connection is possible."
+        elif "void" in clean_words:
+            lesson = "The void stares back."
+        else:
+            lesson = "The world is loud."
         memory = CoreMemory(
             timestamp=time.time(),
             trigger_words=clean_words[:5],
@@ -827,19 +847,37 @@ class TheOroboros:
 
     def apply_legacy(self, physics: Any, bio: Any):
         log = []
-        if not physics: return log
+        if not physics:
+            return log
         for scar in self.scars:
             if scar.stat_affected == "narrative_drag":
-                safe_set(physics, "narrative_drag", safe_get(physics, "narrative_drag", 0.0) + scar.value)
-                if msg := ux("soul_strings", "scar_drag"): log.append(msg.format(name=scar.name))
+                safe_set(
+                    physics,
+                    "narrative_drag",
+                    safe_get(physics, "narrative_drag", 0.0) + scar.value,
+                )
+                if msg := ux("soul_strings", "scar_drag"):
+                    log.append(msg.format(name=scar.name))
             elif scar.stat_affected == "voltage_cap":
-                v_pen = getattr(getattr(self.cfg, "OROBOROS", None), "VOLTAGE_PENALTY", 5.0)
-                safe_set(physics, "voltage", max(0, safe_get(physics, "voltage", 0.0) - v_pen))
-                if msg := ux("soul_strings", "scar_voltage"): log.append(msg.format(name=scar.name))
+                v_pen = getattr(
+                    getattr(self.cfg, "OROBOROS", None), "VOLTAGE_PENALTY", 5.0
+                )
+                safe_set(
+                    physics,
+                    "voltage",
+                    max(0, safe_get(physics, "voltage", 0.0) - v_pen),
+                )
+                if msg := ux("soul_strings", "scar_voltage"):
+                    log.append(msg.format(name=scar.name))
             elif scar.stat_affected == "trauma_baseline":
                 t_vec = safe_get(bio, "trauma_vector") or {}
-                safe_set(t_vec, "EXISTENTIAL", safe_get(t_vec, "EXISTENTIAL", 0.0) + scar.value)
+                safe_set(
+                    t_vec,
+                    "EXISTENTIAL",
+                    safe_get(t_vec, "EXISTENTIAL", 0.0) + scar.value,
+                )
                 safe_set(bio, "trauma_vector", t_vec)
                 safe_set(physics, "T", safe_get(physics, "T", 0.0) + scar.value)
-                if msg := ux("soul_strings", "scar_frailty"): log.append(msg.format(name=scar.name))
+                if msg := ux("soul_strings", "scar_frailty"):
+                    log.append(msg.format(name=scar.name))
         return log

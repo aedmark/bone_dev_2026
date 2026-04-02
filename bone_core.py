@@ -564,9 +564,22 @@ class TelemetryService:
                             break
                         try:
                             data = json.loads(line)
-                            if data.get("_type") != "CRYSTAL" and "final_response" not in data: continue
-                            if not (resp := data.get("final_response", "")): continue
-                            user_text = prompt.split("User:")[1].split("\n")[0].strip() if "User:" in (prompt := data.get("prompt_snapshot", "")) else "Unknown"
+                            if (
+                                data.get("_type") != "CRYSTAL"
+                                and "final_response" not in data
+                            ):
+                                continue
+
+                            resp = data.get("final_response", "")
+                            if not resp:
+                                continue
+
+                            prompt_snap = data.get("prompt_snapshot", "")
+                            user_text = (
+                                prompt_snap.split("User:")[1].split("\n")[0].strip()
+                                if "User:" in prompt_snap
+                                else "Unknown"
+                            )
                             history.insert(0, f"User: {user_text} | System: {resp}")
                         except (json.JSONDecodeError, IndexError):
                             continue

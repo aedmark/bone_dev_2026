@@ -5,7 +5,7 @@ import re
 import time
 import traceback
 import uuid
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 
 from bone_core import LoreManifest, ux, safe_get
 from bone_drivers import CongruenceValidator
@@ -62,14 +62,11 @@ class PhaseExecutor:
 
     @staticmethod
     def _audit_flux(ctx, phase, before, after):
-        b_v = float(safe_get(before, "voltage", 0.0) or 0.0)
-        a_v = float(safe_get(after, "voltage", 0.0) or 0.0)
-        b_d = float(safe_get(before, "narrative_drag", 0.0) or 0.0)
-        a_d = float(safe_get(after, "narrative_drag", 0.0) or 0.0)
-        if abs(b_v - a_v) > 0.01:
-            ctx.record_flux(phase, "voltage", b_v, a_v, "PHASE_DELTA")
-        if abs(b_d - a_d) > 0.01:
-            ctx.record_flux(phase, "drag", b_d, a_d, "PHASE_DELTA")
+        for key, name in [("voltage", "voltage"), ("narrative_drag", "drag")]:
+            b_val = float(safe_get(before, key, 0.0) or 0.0)
+            a_val = float(safe_get(after, key, 0.0) or 0.0)
+            if abs(b_val - a_val) > 0.01:
+                ctx.record_flux(phase, name, b_val, a_val, "PHASE_DELTA")
 
 
 class CycleSimulator:
@@ -110,13 +107,12 @@ class CycleSimulator:
 
     def check_circuit_breaker(self, phase_name: str) -> bool:
         health = self.eng.system_health
-        if phase_name == "OBSERVE" and not health.physics_online:
-            return False
-        if phase_name == "METABOLISM" and not health.bio_online:
-            return False
-        if phase_name == "COGNITION" and not health.mind_online:
-            return False
-        return True
+        checks = {
+            "OBSERVE": health.physics_online,
+            "METABOLISM": health.bio_online,
+            "COGNITION": health.mind_online
+        }
+        return checks.get(phase_name, True)
 
     def handle_phase_crash(self, ctx, phase_name, error):
         msg_crash = ux("cycle_strings", "sim_crash_header")
@@ -206,38 +202,50 @@ class GeodesicOrchestrator:
                 self.eng.telemetry.finalize_cycle()
             return ctx
 
-    def run_turn(self, user_message: str, is_system: bool = False) -> Dict[str, Any]:
-        upper_msg = user_message.upper()
-        vsl_match = re.search(r"\[VSL_(DEEP|CORE|LITE|HIDE)]", upper_msg)
-        if vsl_match:
-            self.eng.ui_mode = (
-                "IDLE" if vsl_match.group(1) == "HIDE" else vsl_match.group(1)
-            )
-        clean_message = re.sub(r"(?i)\[VSL_[A-Z]+]", "", user_message).strip() or "(Waiting)"
-        ctx = self._execute_core_cycle(clean_message, is_system)
+    def _check_early_exit(self, ctx: CycleContext) -> Optional[Dict[str, Any]]:
         if not ctx.is_alive:
-            return self._generate_crash_report(ctx.crash_error) if hasattr(ctx, "crash_error") else self.eng.trigger_death(ctx.physics)
+            return (
+                self._generate_crash_report(ctx.crash_error)
+                if hasattr(ctx, "crash_error")
+                else self.eng.trigger_death(ctx.physics)
+            )
         if getattr(ctx, "refusal_triggered", False) and getattr(
             ctx, "refusal_packet", None
         ):
             return ctx.refusal_packet
+        return None
+
+    def run_turn(self, user_message: str, is_system: bool = False) -> Dict[str, Any]:
+        upper_msg = user_message.upper()
+        if vsl_match := re.search(r"\[VSL_(DEEP|CORE|LITE|HIDE)]", upper_msg):
+            self.eng.ui_mode = (
+                "IDLE" if vsl_match.group(1) == "HIDE" else vsl_match.group(1)
+            )
+
+        clean_message = (
+            re.sub(r"(?i)\[VSL_[A-Z]+]", "", user_message).strip() or "(Waiting)"
+        )
+        ctx = self._execute_core_cycle(clean_message, is_system)
+
+        if exit_pkt := self._check_early_exit(ctx):
+            return exit_pkt
+
         snapshot = self.reporter.render_snapshot(ctx)
         self._hydrate_snapshot_metadata(snapshot, ctx)
-        latency = time.time() - ctx.timestamp
         if "ui" in snapshot:
-            self.symbiosis.monitor_host(latency, snapshot["ui"], len(user_message))
+            self.symbiosis.monitor_host(
+                time.time() - ctx.timestamp, snapshot["ui"], len(user_message)
+            )
         return snapshot
 
     def run_headless_turn(
         self, user_message: str, latency: float = 0.0
     ) -> Dict[str, Any]:
         ctx = self._execute_core_cycle(user_message)
-        if not ctx.is_alive:
-            return self._generate_crash_report(ctx.crash_error) if hasattr(ctx, "crash_error") else self.eng.trigger_death(ctx.physics)
-        if getattr(ctx, "refusal_triggered", False) and getattr(
-            ctx, "refusal_packet", None
-        ):
-            return ctx.refusal_packet
+
+        if exit_pkt := self._check_early_exit(ctx):
+            return exit_pkt
+
         snapshot = {"type": "HEADLESS", "logs": ctx.logs}
         self._hydrate_snapshot_metadata(snapshot, ctx)
         self.symbiosis.monitor_host(latency, "HEADLESS_MODE", len(user_message))

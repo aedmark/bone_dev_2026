@@ -325,23 +325,32 @@ class MemoryCore:
                 scored_memories.append((resonance_score, node, data))
         scored_memories.sort(key=lambda x: x[0], reverse=True)
         results = []
+        res_prefix = ux("spore_strings", "core_illuminate_resonant") or "Resonant"
+        assoc_prefix = ux("spore_strings", "core_illuminate_associated") or "Associated"
+        fmt = (
+            ux("spore_strings", "core_illuminate_format")
+            or "{prefix} Engram: '{name}'{conn_str}"
+        )
+
         for score, name, data in scored_memories[:limit]:
             connections = list(data.get("edges", {}).keys())
             conn_str = f" -> [{', '.join(connections[:2])}]" if connections else ""
+
             if active_dims and hasattr(self, "subconscious"):
-                is_diamond_node = data.get("is_diamond", False)
-                if not is_diamond_node:
+                if not data.get("is_diamond", False):
                     for edge in list(data.get("edges", {}).keys()):
-                        if self.graph.get(edge, {}).get("is_diamond", False):
-                            continue
-                        data["edges"][edge] *= 0.95
+                        if not self.graph.get(edge, {}).get("is_diamond", False):
+                            data["edges"][edge] *= 0.95
+
                 top_current_dim = max(active_dims, key=active_dims.get)
-                dim_words = list(self.dimension_map.get(top_current_dim, {"static"}))
-                if dim_words:
+                if dim_words := list(
+                    self.dimension_map.get(top_current_dim, {"static"})
+                ):
                     context_word = random.choice(dim_words)
                     data["edges"][context_word] = (
                         data["edges"].get(context_word, 0.0) + 1.0
                     )
+
                 try:
                     self.subconscious.bury(
                         {"word": name, "mass": 1.0, "reconstructive": True},
@@ -349,16 +358,8 @@ class MemoryCore:
                     )
                 except Exception:
                     pass
-            if score > 0.5:
-                prefix = ux("spore_strings", "core_illuminate_resonant") or "Resonant"
-            else:
-                prefix = (
-                    ux("spore_strings", "core_illuminate_associated") or "Associated"
-                )
-            fmt = (
-                ux("spore_strings", "core_illuminate_format")
-                or "{prefix} Engram: '{name}'{conn_str}"
-            )
+
+            prefix = res_prefix if score > 0.5 else assoc_prefix
             results.append(
                 fmt.format(prefix=prefix, name=name.upper(), conn_str=conn_str)
             )
@@ -419,7 +420,17 @@ class MemoryCore:
             else:
                 protected.add(preserve_current)
         protected.update(self.cortical_stack)
-        candidates = sorted([(k, v, len(v["edges"]) + (100.0 / max(1, current_tick - v.get("last_tick", 0)))) for k, v in self.graph.items() if k not in protected and not v.get("is_diamond", False)], key=lambda x: x[2])
+
+        candidates = []
+        for k, v in self.graph.items():
+            if k not in protected and not v.get("is_diamond", False):
+                score = len(v.get("edges", {})) + (
+                    100.0 / max(1, current_tick - v.get("last_tick", 0))
+                )
+                candidates.append((k, v, score))
+
+        candidates.sort(key=lambda x: x[2])
+
         if not candidates:
             return None, ux("spore_strings", "core_lock") or ""
         victim, data, score = candidates[0]
@@ -964,7 +975,14 @@ class MycelialNetwork:
                 "resonance": top_joy[0].get("resonance", 0),
                 "timestamp": top_joy[0].get("timestamp", 0),
             }
-        core_graph = {k: {"edges": {t: round(w, 2) for t, w in data["edges"].items() if w > 1.0}, "last_tick": 0} for k, data in self.graph.items() if any(w > 1.0 for w in data["edges"].values())}
+        core_graph = {}
+        for k, data in self.graph.items():
+            valid_edges = {
+                t: round(w, 2) for t, w in data.get("edges", {}).items() if w > 1.0
+            }
+            if valid_edges:
+                core_graph[k] = {"edges": valid_edges, "last_tick": 0}
+
         temp_trauma = {k: min(1.0, v) for k, v in trauma_accum.items()}
         future_seed_q = self._generate_future_seed(
             temp_health=health, trauma_vec=temp_trauma

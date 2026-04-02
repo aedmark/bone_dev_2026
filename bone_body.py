@@ -549,24 +549,32 @@ class BioFeedback:
 
     def check_vital_signs(self, phys: Any, stamina: float, logs: List[str]) -> str:
         b = self.bio.biometrics
+
+        def _log_err(ux_key, **kwargs):
+            if msg := ux("bio_feedback", ux_key):
+                logs.append(f"{Prisma.RED}{msg.format(**kwargs)}{Prisma.RST}")
+
         if not b:
-            if msg := ux("bio_feedback", "interface_lost"): logs.append(f"{Prisma.RED}{msg}{Prisma.RST}")
+            _log_err("interface_lost")
             return "MAUSOLEUM_CLAMP"
+
         voltage = float(safe_get(phys, "voltage", 0.0))
         cfg = getattr(self.cfg, "BIO", None)
         min_health = getattr(cfg, "AUTOPHAGY_MIN_HEALTH", 10.0)
         v_overload = getattr(cfg, "VOLTAGE_OVERLOAD", 30.0)
+
         if stamina <= 0:
             if b.health > min_health:
                 b.health -= getattr(cfg, "AUTOPHAGY_BURN", 5.0)
-                if msg := ux("bio_feedback", "autophagy"): logs.append(f"{Prisma.RED}{msg}{Prisma.RST}")
+                _log_err("autophagy")
                 return "AUTOPHAGY"
-            else:
-                if msg := ux("bio_feedback", "fuel_depleted"): logs.append(f"{Prisma.RED}{msg}{Prisma.RST}")
-                return "MAUSOLEUM_CLAMP"
-        if voltage > v_overload:
-            if msg := ux("bio_feedback", "voltage_overload"): logs.append(f"{Prisma.RED}{msg.format(voltage=voltage)}{Prisma.RST}")
+            _log_err("fuel_depleted")
             return "MAUSOLEUM_CLAMP"
+
+        if voltage > v_overload:
+            _log_err("voltage_overload", voltage=voltage)
+            return "MAUSOLEUM_CLAMP"
+
         return "CLEAR"
 
     def perform_maintenance(self, text: str, phys: Any, logs: List[str], tick: int):
@@ -1041,19 +1049,18 @@ class MetabolicGovernor:
 
     def regulate(self, physics: Any, dt: float) -> Tuple[float, float]:
         safe_dt = max(0.001, dt)
-        v_val = safe_get(
-            physics,
-            "voltage",
-            safe_get(safe_get(physics, "energy", physics), "voltage", 0.0),
+
+        energy = safe_get(physics, "energy", physics)
+        v_val = float(safe_get(physics, "voltage", safe_get(energy, "voltage", 0.0)))
+
+        space = safe_get(physics, "space", physics)
+        d_val = float(
+            safe_get(physics, "narrative_drag", safe_get(space, "narrative_drag", 0.0))
         )
-        d_val = safe_get(
-            physics,
-            "narrative_drag",
-            safe_get(safe_get(physics, "space", physics), "narrative_drag", 0.0),
+
+        return self.voltage_pid.update(v_val, safe_dt), self.drag_pid.update(
+            d_val, safe_dt
         )
-        v_force = self.voltage_pid.update(v_val, safe_dt)
-        d_force = self.drag_pid.update(d_val, safe_dt)
-        return v_force, d_force
 
     def assess(self, physics_packet) -> Tuple[bool, float]:
         curr_v = float(safe_get(physics_packet, "voltage", 0.0))
@@ -1280,21 +1287,30 @@ class SynestheticCortex:
             getattr(self.cfg, "CORTEX", None), "VOLTAGE_ARC_TRIGGER", 18.0
         )
 
-        if impulse.cortisol_delta > 0.1 and impulse.adrenaline_delta > 0.1: key = "fight_flight"
-        elif impulse.dopamine_delta > 0.1 and impulse.adrenaline_delta > 0.1: key = "electric"
-        elif impulse.adrenaline_delta > 0.1: key = "pupils"
-        elif impulse.oxytocin_delta > 0.1 and impulse.dopamine_delta > 0.1: key = "glow"
-        elif impulse.oxytocin_delta > 0.1: key = "chest"
-        elif impulse.cortisol_delta > 0.1: key = "gut"
-        elif impulse.dopamine_delta > 0.1: key = "spark"
-        elif physics.get("psi", 0.0) > 0.6: key = "liminal"
-        elif physics.get("entropy", 0.0) > 0.7: key = "static"
-        elif physics.get("voltage", 0) > arc_trigger: key = "arcing"
-        elif physics.get("voltage", 0) < 2.0: key = "dimming"
-        elif physics.get("narrative_drag", 0) > 5.0: key = "sagging"
-        else: key = "steady"
+        conditions = [
+            (
+                impulse.cortisol_delta > 0.1 and impulse.adrenaline_delta > 0.1,
+                "fight_flight",
+            ),
+            (
+                impulse.dopamine_delta > 0.1 and impulse.adrenaline_delta > 0.1,
+                "electric",
+            ),
+            (impulse.adrenaline_delta > 0.1, "pupils"),
+            (impulse.oxytocin_delta > 0.1 and impulse.dopamine_delta > 0.1, "glow"),
+            (impulse.oxytocin_delta > 0.1, "chest"),
+            (impulse.cortisol_delta > 0.1, "gut"),
+            (impulse.dopamine_delta > 0.1, "spark"),
+            (physics.get("psi", 0.0) > 0.6, "liminal"),
+            (physics.get("entropy", 0.0) > 0.7, "static"),
+            (physics.get("voltage", 0) > arc_trigger, "arcing"),
+            (physics.get("voltage", 0) < 2.0, "dimming"),
+            (physics.get("narrative_drag", 0) > 5.0, "sagging"),
+        ]
 
+        key = next((k for cond, k in conditions if cond), "steady")
         res = s.get(key, "")
+
         if key == "steady" and self.last_reflex == res:
             return "..."
         return res

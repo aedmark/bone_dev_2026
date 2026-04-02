@@ -15,20 +15,10 @@ def _hydrate_packet(p: Any) -> PhysicsPacket:
     if isinstance(p, PhysicsPacket):
         return p
     packet = PhysicsPacket.void_state()
-    [
-        safe_set(packet, k, val)
-        for k in (
-            "voltage",
-            "kappa",
-            "narrative_drag",
-            "zone",
-            "vector",
-            "clean_words",
-            "counts",
-            "raw_text",
-        )
-        if (val := safe_get(p, k)) is not None
-    ]
+    keys = ("voltage", "kappa", "narrative_drag", "zone", "vector", "clean_words", "counts", "raw_text")
+    for k in keys:
+        if (val := safe_get(p, k)) is not None:
+            safe_set(packet, k, val)
     return packet
 
 
@@ -384,20 +374,21 @@ class TheCartographer:
         d_halt = getattr(phys_cfg, "DRAG_HALT", 10.0) if phys_cfg else 10.0
 
         if packet.voltage > v_trig:
-            suffix = ux("village_strings", "loci_flux_suffix")
-            atmosphere = ux("village_strings", "loci_flux_atmos")
-            smell = ux("village_strings", "loci_flux_smell")
+            state_key = "flux"
         elif packet.narrative_drag > d_halt:
-            suffix = ux("village_strings", "loci_deep_suffix")
-            atmosphere = ux("village_strings", "loci_deep_atmos")
-            smell = ux("village_strings", "loci_deep_smell")
+            state_key = "deep"
         else:
-            suffix = ux("village_strings", "loci_prime_suffix")
-            atmosphere = ux("village_strings", "loci_prime_atmos")
-            smell = ux("village_strings", "loci_prime_smell")
-        final_name = f"{name} {suffix}".upper()
+            state_key = "prime"
+
+        suffix = ux("village_strings", f"loci_{state_key}_suffix")
+        atmosphere = ux("village_strings", f"loci_{state_key}_atmos")
+        smell = ux("village_strings", f"loci_{state_key}_smell")
+
         return GeniusLoci(
-            id=node_id, name=final_name, atmosphere=atmosphere, smell=smell
+            id=node_id,
+            name=f"{name} {suffix}".upper(),
+            atmosphere=atmosphere,
+            smell=smell,
         )
 
     def _prune_graph(self):
@@ -522,28 +513,20 @@ class TownHall:
         p_cfg = getattr(self.cfg, "PHYSICS", None)
         v_high = float(safe_get(p_cfg, "VOLTAGE_HIGH", 60.0))
         d_heavy = float(safe_get(p_cfg, "DRAG_HEAVY", 5.0))
-        status, advice = (
-            ("HIGH_LATENCY", ux("village_strings", "town_lag"))
-            if latency > l_warn
-            else (
-                (
-                    "HIGH_VOLTAGE",
-                    random.choice(forecasts.get("HIGH_VOLTAGE", ["Manic energy."])),
-                )
-                if packet.voltage > v_high
-                else (
-                    (
-                        "HIGH_DRAG",
-                        random.choice(forecasts.get("HIGH_DRAG", ["Narrative stuck."])),
-                    )
-                    if packet.narrative_drag > d_heavy
-                    else (
-                        "BALANCED",
-                        random.choice(forecasts.get("BALANCED", ["Nominal."])),
-                    )
-                )
+        if latency > l_warn:
+            status, advice = "HIGH_LATENCY", ux("village_strings", "town_lag")
+        elif packet.voltage > v_high:
+            status, advice = "HIGH_VOLTAGE", random.choice(
+                forecasts.get("HIGH_VOLTAGE", ["Manic energy."])
             )
-        )
+        elif packet.narrative_drag > d_heavy:
+            status, advice = "HIGH_DRAG", random.choice(
+                forecasts.get("HIGH_DRAG", ["Narrative stuck."])
+            )
+        else:
+            status, advice = "BALANCED", random.choice(
+                forecasts.get("BALANCED", ["Nominal."])
+            )
         report = (ux("village_strings", "town_census") or "").format(
             loc=loc_name, status=status, advice=advice
         )

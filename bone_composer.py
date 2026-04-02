@@ -512,28 +512,43 @@ class PromptComposer:
         lq = float(safe_get(phys_ref, "lq", 0.1))
         psi = float(safe_get(phys_ref, "psi", 0.2))
         c_cfg = getattr(self.cfg, "CORTEX", None)
-        p_rob_phi = getattr(c_cfg, "PHASE_ROBERTA_PHI", 0.6) if c_cfg else 0.6
-        p_rob_psi = getattr(c_cfg, "PHASE_ROBERTA_PSI", 0.5) if c_cfg else 0.5
-        p_moi_phi = getattr(c_cfg, "PHASE_MOIRA_PHI", 0.7) if c_cfg else 0.7
-        p_ben_lq = getattr(c_cfg, "PHASE_BENEDICT_LQ", 0.7) if c_cfg else 0.7
-        p_jes_del = getattr(c_cfg, "PHASE_JESTER_DELTA", 0.7) if c_cfg else 0.7
-        p_col_del = getattr(c_cfg, "PHASE_COLIN_DELTA", 0.8) if c_cfg else 0.8
+        safe_cfg = lambda k, d: getattr(c_cfg, k, d) if c_cfg else d
+
+        phase_shifts = {
+            "ROBERTA": (
+                phi > safe_cfg("PHASE_ROBERTA_PHI", 0.6)
+                and psi > safe_cfg("PHASE_ROBERTA_PSI", 0.5),
+                "The Cartographer",
+                "phase_shift_roberta",
+            ),
+            "MOIRA": (
+                phi > safe_cfg("PHASE_MOIRA_PHI", 0.7),
+                "The Homesteader",
+                "phase_shift_moira",
+            ),
+            "BENEDICT": (
+                lq > safe_cfg("PHASE_BENEDICT_LQ", 0.7),
+                "The Tactician",
+                "phase_shift_benedict",
+            ),
+            "JESTER": (
+                delta > safe_cfg("PHASE_JESTER_DELTA", 0.7),
+                "The Fool",
+                "phase_shift_jester",
+            ),
+            "COLIN": (
+                delta > safe_cfg("PHASE_COLIN_DELTA", 0.8),
+                "The Waiter",
+                "phase_shift_colin",
+            ),
+        }
+
         phase_shift_note = ""
-        if lens_key == "ROBERTA" and phi > p_rob_phi and psi > p_rob_psi:
-            role = "The Cartographer"
-            phase_shift_note = ux("brain_strings", "phase_shift_roberta")
-        elif lens_key == "MOIRA" and phi > p_moi_phi:
-            role = "The Homesteader"
-            phase_shift_note = ux("brain_strings", "phase_shift_moira")
-        elif lens_key == "BENEDICT" and lq > p_ben_lq:
-            role = "The Tactician"
-            phase_shift_note = ux("brain_strings", "phase_shift_benedict")
-        elif lens_key == "JESTER" and delta > p_jes_del:
-            role = "The Fool"
-            phase_shift_note = ux("brain_strings", "phase_shift_jester")
-        elif lens_key == "COLIN" and delta > p_col_del:
-            role = "The Waiter"
-            phase_shift_note = ux("brain_strings", "phase_shift_colin")
+        if lens_key in phase_shifts:
+            condition_met, new_role, ux_key = phase_shifts[lens_key]
+            if condition_met:
+                role = new_role
+                phase_shift_note = ux("brain_strings", ux_key)
         baseline = global_data.get(
             "persona_block",
             [
@@ -591,32 +606,40 @@ class PromptComposer:
                 "MANDATE: Consume these metrics to shape your narrative and tone. DO NOT output these numbers or draw UI bars.",
                 f"METRICS: Voltage={voltage:.1f}/100, Exhaustion={e:.2f}, Contradiction={beta:.2f}, Void={psi:.2f}, Chaos={chi:.2f}, Valence={valence:.2f}",
             ]
-            s_psi = getattr(c_cfg, "SOMATIC_PSI", 0.6) if c_cfg else 0.6
-            s_chi = getattr(c_cfg, "SOMATIC_CHI", 0.6) if c_cfg else 0.6
-            s_beta = getattr(c_cfg, "SOMATIC_BETA", 0.7) if c_cfg else 0.7
-            s_val = getattr(c_cfg, "SOMATIC_VALENCE", 0.5) if c_cfg else 0.5
-            s_lam = getattr(c_cfg, "SOMATIC_LAMBDA", 0.5) if c_cfg else 0.5
             somatic_cues = []
-            if psi > s_psi:
-                s_adr = ux("brain_strings", "somatic_adrenaline")
-                if s_adr:
-                    somatic_cues.append(s_adr)
-            if chi > s_chi:
-                s_cor = ux("brain_strings", "somatic_cortisol")
-                if s_cor:
-                    somatic_cues.append(s_cor)
-            if beta > s_beta:
-                s_par = ux("brain_strings", "somatic_paradox")
-                if s_par:
-                    somatic_cues.append(s_par)
-            if valence > s_val:
-                s_oxy = ux("brain_strings", "somatic_oxytocin")
-                if s_oxy:
-                    somatic_cues.append(s_oxy)
-            if lam > s_lam:
-                s_dm = ux("brain_strings", "somatic_dark_matter")
-                if s_dm:
-                    somatic_cues.append(s_dm)
+            cues_map = [
+                (
+                    psi,
+                    getattr(c_cfg, "SOMATIC_PSI", 0.6) if c_cfg else 0.6,
+                    "somatic_adrenaline",
+                ),
+                (
+                    chi,
+                    getattr(c_cfg, "SOMATIC_CHI", 0.6) if c_cfg else 0.6,
+                    "somatic_cortisol",
+                ),
+                (
+                    beta,
+                    getattr(c_cfg, "SOMATIC_BETA", 0.7) if c_cfg else 0.7,
+                    "somatic_paradox",
+                ),
+                (
+                    valence,
+                    getattr(c_cfg, "SOMATIC_VALENCE", 0.5) if c_cfg else 0.5,
+                    "somatic_oxytocin",
+                ),
+                (
+                    lam,
+                    getattr(c_cfg, "SOMATIC_LAMBDA", 0.5) if c_cfg else 0.5,
+                    "somatic_dark_matter",
+                ),
+            ]
+
+            for val, thresh, ux_key in cues_map:
+                if val > thresh:
+                    if msg := ux("brain_strings", ux_key):
+                        somatic_cues.append(msg)
+
             if somatic_cues:
                 vsl_lines.append("SOMATIC CUES: " + " | ".join(somatic_cues))
             if e > 0.8:
@@ -776,22 +799,30 @@ class ResponseValidator:
         active_mode = _state.get("meta", {}).get("active_mode", "ADVENTURE")
         if active_mode != "TECHNICAL":
             for match in self._think_pattern.finditer(clean_text):
-                think_content = match.group(1).strip()
-                for line in think_content.split("\n"):
-                    if line.strip():
-                        extracted_meta_logs.append(f"[THOUGHT]: {line.strip()}")
+                extracted_meta_logs.extend(
+                    [
+                        f"[THOUGHT]: {line.strip()}"
+                        for line in match.group(1).split("\n")
+                        if line.strip()
+                    ]
+                )
             clean_text = self._think_pattern.sub("", clean_text)
+
         for match in self._internals_pattern.finditer(clean_text):
-            meta_content = match.group(1).strip()
-            for line in meta_content.split("\n"):
-                if line.strip():
-                    extracted_meta_logs.append(f"[THOUGHT]: {line.strip()}")
+            extracted_meta_logs.extend(
+                [
+                    f"[THOUGHT]: {line.strip()}"
+                    for line in match.group(1).split("\n")
+                    if line.strip()
+                ]
+            )
         clean_text = self._internals_pattern.sub("", clean_text)
+
         for match in self._file_pattern.finditer(clean_text):
-            path = match.group(1).strip()
-            content = match.group(2).strip()
-            safe_content = content.replace("\n", "|||NEWLINE|||")
-            extracted_meta_logs.append(f"[SUBSTRATE_QUEUE] {path}:::{safe_content}")
+            safe_content = match.group(2).strip().replace("\n", "|||NEWLINE|||")
+            extracted_meta_logs.append(
+                f"[SUBSTRATE_QUEUE] {match.group(1).strip()}:::{safe_content}"
+            )
         clean_text = self._file_pattern.sub("", clean_text)
         for pattern, replacement in self.scrub_patterns:
             clean_text = pattern.sub(replacement, clean_text)
