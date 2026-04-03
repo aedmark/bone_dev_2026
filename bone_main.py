@@ -372,11 +372,8 @@ class BoneAmanita:
             self.events.log(msg_mods.format(mods=", ".join(active_mods)), "SYS")
 
     def get_avg_voltage(self):
-        observer = getattr(self.phys, "observer", self.phys)
-        hist = getattr(observer, "voltage_history", [])
-        if not hist:
-            return 0.0
-        return sum(hist) / len(hist)
+        hist = getattr(getattr(self.phys, "observer", self.phys), "voltage_history", [])
+        return sum(hist) / len(hist) if hist else 0.0
 
     def _unpack_anatomy(self, anatomy):
         for k in ["akashic", "embryo", "soul", "oroboros", "drivers", "symbiosis"]:
