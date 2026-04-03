@@ -218,6 +218,25 @@ class ConfigWizard:
                 }
             )
             config["model"] = input(f"Model ID [llama3]: ").strip() or "llama3"
+
+        print(f"\n{Prisma.paint('STEP 4: INTERFACE COMPLEXITY', 'W')}")
+        print(f"  1. {Prisma.paint('DEEP', 'M')}    - Full Multidimensional Matrix (Requires VSL Knowledge)")
+        print(f"  2. {Prisma.paint('CORE', 'C')}    - Standard Physics & Shared Co-Regulation")
+        print(f"  3. {Prisma.paint('LITE', 'Y')}    - Basic Vitals (Voltage, Health, Stamina)")
+        print(f"  4. {Prisma.paint('MINIMAL', 'G')} - Clean, Human-Readable Telemetry (Recommended)")
+        print(f"  5. {Prisma.paint('WARM', '0')}    - No HUD. Immersive Text Only.")
+
+        ui_choice = input(f"{Prisma.paint('>', 'C')} ").strip()
+        ui_mode = {
+            "1": "DEEP",
+            "2": "CORE",
+            "3": "LITE",
+            "4": "MINIMAL",
+            "5": "WARM"
+        }.get(ui_choice, "MINIMAL")
+
+        config["default_ui_depth"] = ui_mode
+
         try:
             with open(ConfigWizard.CONFIG_FILE, "w") as f:
                 json.dump(config, f, indent=4)
@@ -354,7 +373,37 @@ class BoneAmanita:
                 self.soul.traits.hope = 0.85
                 self.soul.traits.cynicism = 0.15
         self.reality_stack.stabilize_at(layer)
+
         prompt_key = self.mode_settings.get("prompt_key", "ADVENTURE")
+        model_id = self.config.get("model", "").lower()
+
+        small_model_indicators = [
+            "7b",
+            "8b",
+            "9b",
+            "11b",
+            "12b",
+            "14b",
+            "mini",
+            "lite",
+            "flash",
+        ]
+
+        if any(ind in model_id for ind in small_model_indicators):
+            lite_key = f"{prompt_key}_LITE"
+            if lite_key in getattr(self, "prompt_library", {}):
+                prompt_key = lite_key
+                self.events.log(
+                    f"Sub-15B model detected ('{model_id}'). Loading tethered prompt: {prompt_key}",
+                    "SYS",
+                )
+            if hasattr(self, "cortex") and hasattr(self.cortex, "dspy_critic"):
+                self.cortex.dspy_critic.enabled = False
+                self.events.log(
+                    "Sub-15B model detected. Disabling DSPy Affective Critic to preserve cognitive load.",
+                    "SYS",
+                )
+
         if self.prompt_library and prompt_key in self.prompt_library:
             if self.cortex and self.cortex.composer:
                 self.cortex.composer.load_template(self.prompt_library[prompt_key])
@@ -619,6 +668,21 @@ class BoneAmanita:
         self.observer.user_turns += 1
         self.tick_count += 1
 
+        chaotic_agents = ["JESTER", "REVENANT", "GIDEON", "DEATH"]
+        if self.tick_count <= 25:
+            for agent in chaotic_agents:
+                if agent not in self.suppressed_agents:
+                    self.suppressed_agents.append(agent)
+            if hasattr(self, "village"):
+                self.village["suppressed_agents"] = self.suppressed_agents
+            if self.tick_count == 1 and not is_system:
+                self.events.log(f"{Prisma.CYN}['The Bunny Hill' Active: Chaotic archetypes leashed for 25 turns.]{Prisma.RST}", "SYS")
+        elif self.tick_count == 26:
+            self.suppressed_agents = [a for a in self.suppressed_agents if a not in chaotic_agents]
+            if hasattr(self, "village"):
+                self.village["suppressed_agents"] = self.suppressed_agents
+            self.events.log(f"{Prisma.VIOLET}[The Bunny Hill has ended. The chaotic archetypes are online.]{Prisma.RST}", "SYS")
+
         if pre_flight_halt := self._pre_flight_checks(user_message, is_system):
             return pre_flight_halt
 
@@ -687,12 +751,16 @@ class BoneAmanita:
                 return self.trigger_death(cortex_packet.get("physics", {}))
 
         except Exception as e:
+
             self.events.log(f"CORTEX COLLAPSE: {e}", "CRIT")
+
             return {
                 "ui": f"{Prisma.RED}{ux('main_strings', 'cortex_crit_fail').format(trace=traceback.format_exc())}{Prisma.RST}",
                 "logs": ["CRITICAL FAILURE"],
                 "metrics": self.get_metrics(),
             }
+
+        self._update_host_stats(cortex_packet, turn_start)
 
         self._update_host_stats(cortex_packet, turn_start)
         self.save_checkpoint()
