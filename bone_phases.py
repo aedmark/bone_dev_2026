@@ -334,15 +334,25 @@ class GatekeeperPhase(SimulationPhase):
                 ctx.input_text, current_zone
             )
             if coupling_error:
-                log_msg = ux("cycle_strings", "gatekeep_log_premise")
-                ctx.refusal_triggered = True
-                ctx.refusal_packet = {
-                    "type": "PREMISE_VIOLATION",
-                    "ui": f"\n{coupling_error}",
-                    "logs": [log_msg] if log_msg else [],
-                    "metrics": self.eng.get_metrics(),
-                }
-                return ctx
+                log_msg = (
+                    ux("cycle_strings", "gatekeep_log_premise")
+                    or f"Premise Violation: {coupling_error}"
+                )
+                ctx.log(
+                    f"{Prisma.OCHRE}[GORDON] {log_msg}. Applying massive Narrative Drag.{Prisma.RST}"
+                )
+
+                current_drag = float(getattr(ctx.physics, "narrative_drag", 0.0) or 0.0)
+                setattr(ctx.physics, "narrative_drag", current_drag + 50.0)
+
+                if not hasattr(ctx, "council_mandates"):
+                    ctx.council_mandates = []
+                ctx.council_mandates.append(
+                    {
+                        "action": "STYLE_INJECTION",
+                        "log": f"CRITICAL CONTEXT: The user attempted an impossible action ({coupling_error}). Do NOT fulfill the action. React to their failure in-character based on your current archetype.",
+                    }
+                )
         is_allowed, refusal_packet = self.gatekeeper.check_entry(ctx)
         if not is_allowed:
             ctx.refusal_triggered = True

@@ -275,6 +275,14 @@ class TheCortex:
         from bone_utils import DSPyCritic
 
         self.dspy_critic = DSPyCritic(config_ref=self.cfg)
+        if getattr(self.cfg, "WEIGHT_CLASS", "HEAVYWEIGHT") == "LIGHTWEIGHT":
+            self.dspy_critic.enabled = False
+            if self.events:
+                self.events.log(
+                    f"{Prisma.OCHRE}Lightweight Physics Active: DSPyCritic disabled to prevent recursive loops.{Prisma.RST}",
+                    "SYS",
+                )
+
         self.dreamer.dspy_critic = self.dspy_critic
         if not hasattr(self.dreamer, "trauma_buffer"):
             self.dreamer.trauma_buffer = deque(maxlen=5)
