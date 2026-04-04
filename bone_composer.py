@@ -339,7 +339,9 @@ class PromptComposer:
         )
         raw_history = state.get("dialogue_history", [])
         cfg_cortex = getattr(self.cfg, "CORTEX", None)
-        char_limit = getattr(cfg_cortex, "MAX_HISTORY_CHARS", 4096) if cfg_cortex else 4096
+        char_limit = (
+            getattr(cfg_cortex, "MAX_HISTORY_CHARS", 4096) if cfg_cortex else 4096
+        )
 
         current_chars = 0
         cutoff_idx = len(raw_history)
@@ -739,7 +741,9 @@ class ResponseValidator:
 
         if self.banned_phrases:
             escaped_banned = [re.escape(p) for p in self.banned_phrases]
-            self._banned_regex = re.compile(r"(?i)\b(?:{})\b".format("|".join(escaped_banned)))
+            self._banned_regex = re.compile(
+                r"(?i)\b(?:{})\b".format("|".join(escaped_banned))
+            )
         else:
             self._banned_regex = None
         self.regex_patterns = list(crimes.get("PATTERNS", []))
@@ -790,15 +794,20 @@ class ResponseValidator:
         slop_pattern = re.compile(
             r"(?i)(?:^=== REJECTION OF ATTEMPT.*?===\s*|^FAILED OUTPUT(?: MODIFIED)?:\s*|"
             r"^REWRITTEN OUTPUT:\s*|^Here is the (?:corrected |rewritten )?response:?\s*|"
-            r"\[REMAINING IN STRICT MODE].*|ERRORS TO FIX:.*)", re.DOTALL
+            r"\[REMAINING IN STRICT MODE].*|ERRORS TO FIX:.*)",
+            re.DOTALL,
         )
         clean_text = slop_pattern.sub("", clean_text)
 
         multi_slop = re.compile(r"(?i)(?:^MANIFEST SEED:.*|^TASK:.*)", re.MULTILINE)
         clean_text = multi_slop.sub("", clean_text).strip()
         active_mode = _state.get("meta", {}).get("active_mode", "ADVENTURE")
+        patterns_to_extract = [self._internals_pattern]
         if active_mode != "TECHNICAL":
-            for match in self._think_pattern.finditer(clean_text):
+            patterns_to_extract.append(self._think_pattern)
+
+        for pattern in patterns_to_extract:
+            for match in pattern.finditer(clean_text):
                 extracted_meta_logs.extend(
                     [
                         f"[THOUGHT]: {line.strip()}"
@@ -806,17 +815,7 @@ class ResponseValidator:
                         if line.strip()
                     ]
                 )
-            clean_text = self._think_pattern.sub("", clean_text)
-
-        for match in self._internals_pattern.finditer(clean_text):
-            extracted_meta_logs.extend(
-                [
-                    f"[THOUGHT]: {line.strip()}"
-                    for line in match.group(1).split("\n")
-                    if line.strip()
-                ]
-            )
-        clean_text = self._internals_pattern.sub("", clean_text)
+            clean_text = pattern.sub("", clean_text)
 
         for match in self._file_pattern.finditer(clean_text):
             safe_content = match.group(2).strip().replace("\n", "|||NEWLINE|||")
@@ -829,23 +828,18 @@ class ResponseValidator:
         clean_lines = []
         toxic_keywords = getattr(self, "toxic_keywords", [])
         for line in clean_text.splitlines():
-            stripped_line = line.strip()
-            if not stripped_line:
+            sl = line.strip()
+            if not sl:
                 clean_lines.append("")
                 continue
-            is_meta = False
-            for marker in self.meta_markers:
-                if marker.lower() in stripped_line.lower():
-                    is_meta = True
-                    break
-            for toxic in toxic_keywords:
-                if toxic.lower() in stripped_line.lower():
-                    is_meta = True
-                    break
-            if re.match(r"^\[.*?]$", stripped_line) or stripped_line == "[]":
-                is_meta = True
-            if re.match(r"^[A-Z]+\s*=\s*[0-9./]+$", stripped_line):
-                is_meta = True
+            sll = sl.lower()
+            is_meta = (
+                any(m.lower() in sll for m in self.meta_markers)
+                or any(t.lower() in sll for t in toxic_keywords)
+                or re.match(r"^\[.*?]$", sl)
+                or sl == "[]"
+                or re.match(r"^[A-Z]+\s*=\s*[0-9./]+$", sl)
+            )
             if not is_meta:
                 clean_lines.append(line)
         sanitized_response = "\n".join(clean_lines).strip()
@@ -853,22 +847,20 @@ class ResponseValidator:
         errors_found = []
         primary_replacement = None
         tech_allowed_phrases = [
-            "here is a", "here is the", "this metaphor",
-            "this code defines", "running this code will"
+            "here is a",
+            "here is the",
+            "this metaphor",
+            "this code defines",
+            "running this code will",
         ]
 
         if self._banned_regex:
             for match in self._banned_regex.finditer(sanitized_response):
                 phrase = match.group(0).lower()
-                is_whitelisted = False
-                if active_mode == "TECHNICAL":
-                    for allowed in tech_allowed_phrases:
-                        if phrase in allowed and allowed in low_resp:
-                            is_whitelisted = True
-                            break
-                if is_whitelisted:
+                if active_mode == "TECHNICAL" and any(
+                    phrase in a and a in low_resp for a in tech_allowed_phrases
+                ):
                     continue
-
                 if not primary_replacement:
                     primary_replacement = self._generate_dynamic_rejection(phrase)
                 errors_found.append(f"BANNED PHRASE: '{phrase.upper()}'")

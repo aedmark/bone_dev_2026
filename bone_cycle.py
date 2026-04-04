@@ -107,12 +107,10 @@ class CycleSimulator:
 
     def check_circuit_breaker(self, phase_name: str) -> bool:
         health = self.eng.system_health
-        checks = {
-            "OBSERVE": health.physics_online,
-            "METABOLISM": health.bio_online,
-            "COGNITION": health.mind_online
-        }
-        return checks.get(phase_name, True)
+        if phase_name == "OBSERVE": return health.physics_online
+        if phase_name == "METABOLISM": return health.bio_online
+        if phase_name == "COGNITION": return health.mind_online
+        return True
 
     def handle_phase_crash(self, ctx, phase_name, error):
         msg_crash = ux("cycle_strings", "sim_crash_header")
@@ -252,15 +250,16 @@ class GeodesicOrchestrator:
         return snapshot
 
     def _hydrate_snapshot_metadata(self, snapshot: Dict, ctx: CycleContext):
+        def _sd(obj): return obj.to_dict() if hasattr(obj, "to_dict") else (obj if isinstance(obj, dict) else {})
         snapshot.update(
             {
                 "trace_id": getattr(ctx, "trace_id", "UNKNOWN"),
                 "is_alive": True,
-                "physics": _safe_dict(ctx.physics),
-                "bio": _safe_dict(ctx.bio_result),
-                "mind": _safe_dict(ctx.mind_state),
-                "world": _safe_dict(ctx.world_state),
-                "soul": _safe_dict(getattr(self.eng, "soul", {})),
+                "physics": _sd(ctx.physics),
+                "bio": _sd(ctx.bio_result),
+                "mind": _sd(ctx.mind_state),
+                "world": _sd(ctx.world_state),
+                "soul": _sd(getattr(self.eng, "soul", {})),
                 "council_mandates": getattr(ctx, "council_mandates", []),
                 "dream": getattr(ctx, "last_dream", None),
                 "mutated_input": ctx.input_text,
