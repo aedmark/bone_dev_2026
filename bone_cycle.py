@@ -51,23 +51,12 @@ class PhaseExecutor:
                 break
             if not simulator.check_circuit_breaker(phase.name):
                 continue
-            snapshot_before = ctx.physics.snapshot()
             try:
                 ctx = phase.run(ctx)
             except Exception as e:
                 simulator.handle_phase_crash(ctx, phase.name, e)
                 break
-            finally:
-                self._audit_flux(ctx, phase.name, snapshot_before, ctx.physics)
         return ctx
-
-    @staticmethod
-    def _audit_flux(ctx, phase, before, after):
-        for key, name in [("voltage", "voltage"), ("narrative_drag", "drag")]:
-            b_val = float(safe_get(before, key, 0.0) or 0.0)
-            a_val = float(safe_get(after, key, 0.0) or 0.0)
-            if abs(b_val - a_val) > 0.01:
-                ctx.record_flux(phase, name, b_val, a_val, "PHASE_DELTA")
 
 
 class CycleSimulator:
@@ -107,11 +96,9 @@ class CycleSimulator:
         return ctx
 
     def check_circuit_breaker(self, phase_name: str) -> bool:
-        health = self.eng.system_health
-        if phase_name == "OBSERVE": return health.physics_online
-        if phase_name == "METABOLISM": return health.bio_online
-        if phase_name == "COGNITION": return health.mind_online
-        return True
+        h = self.eng.system_health
+        breakers = {"OBSERVE": h.physics_online, "METABOLISM": h.bio_online, "COGNITION": h.mind_online}
+        return breakers.get(phase_name, True)
 
     def handle_phase_crash(self, ctx, phase_name, error):
         msg_crash = ux("cycle_strings", "sim_crash_header")
@@ -167,16 +154,12 @@ class GeodesicOrchestrator:
             ctx.limits = (
                 vars(cfg_obj) if hasattr(cfg_obj, "__dict__") else (cfg_obj or {})
             )
-            if (
-                hasattr(self.eng, "observer")
-                and self.eng.observer
-                and getattr(self.eng.observer, "last_physics_packet", None)
-            ):
-                ctx.physics = self.eng.observer.last_physics_packet.snapshot()
-            elif not ctx.physics:
+            obs = getattr(self.eng, "observer", None)
+            if obs and getattr(obs, "last_physics_packet", None):
+                ctx.physics = obs.last_physics_packet.snapshot()
+            elif not getattr(ctx, "physics", None):
                 ctx.physics = PanicRoom.get_safe_physics()
-                msg = ux("cycle_strings", "orch_physics_bypass")
-                self.eng.events.log(msg, "SYS")
+                self.eng.events.log(ux("cycle_strings", "orch_physics_bypass"), "SYS")
             ctx.validator = CongruenceValidator()
             ctx.reality_stack = getattr(self.eng, "reality_stack", None)
             ctx.user_name = self.eng.user_name

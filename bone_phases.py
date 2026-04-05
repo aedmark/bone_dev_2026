@@ -55,7 +55,7 @@ class ObservationPhase(SimulationPhase):
                 if dream_engine:
                     soul_snap = (
                         self.eng.soul.to_dict()
-                        if hasattr(self.eng, "soul") and self.eng.soul
+                        if getattr(self.eng, "soul", None)
                         else {}
                     )
                     bio_packet = {
@@ -98,7 +98,7 @@ class ObservationPhase(SimulationPhase):
             ctx.input_text, self.eng.mind.mem.graph
         )
         input_phys = gaze_result["physics"]
-        for k in (
+        sync_keys = (
             "clean_words",
             "counts",
             "vector",
@@ -120,9 +120,9 @@ class ObservationPhase(SimulationPhase):
             "zone",
             "flow_state",
             "repetition",
-        ):
-            val = safe_get(input_phys, k)
-            if val is not None:
+        )
+        for k in sync_keys:
+            if (val := safe_get(input_phys, k)) is not None:
                 safe_set(ctx.physics, k, val)
         obs_v = safe_get(input_phys, "voltage", 0.0)
         if obs_v > 0:
@@ -192,11 +192,13 @@ class SanctuaryPhase(SimulationPhase):
 
     def _apply_restoration(self, ctx: CycleContext):
         if self.eng.bio:
-            rest_logs = self.eng.bio.rest(factor=1.0)
-            for log in rest_logs:
+            for log in self.eng.bio.rest(factor=1.0):
                 ctx.log(log)
+
         for key in list(self.eng.trauma_accum.keys()):
-            self.eng.trauma_accum[key] = max(0.0, self.eng.trauma_accum[key] - 0.1)
+            self.eng.trauma_accum[key] -= 0.1
+            if self.eng.trauma_accum[key] <= 0.0:
+                del self.eng.trauma_accum[key]
 
     def _trigger_dream(self, ctx: CycleContext):
         if not hasattr(self.eng, "mind") or not hasattr(self.eng.mind, "dreamer"):
@@ -421,15 +423,18 @@ class MetabolismPhase(SimulationPhase):
         physics.manifold = self.eng.bio.governor.mode
         target_cfg = getattr(self.eng, "bone_config", BoneConfig)
         max_v = getattr(target_cfg.PHYSICS, "VOLTAGE_MAX", 20.0)
+
+        pg = lambda k, d=0.0: getattr(physics, k, d)
         bio_feedback = {
-            "INTEGRITY": getattr(physics, "truth_ratio", 1.0),
-            "STATIC": getattr(physics, "repetition", 0.0),
-            "FORCE": getattr(physics, "voltage", 0.0) / max_v,
-            "BETA": getattr(physics, "beta_index", 0.0),
-            "PSI": getattr(physics, "psi", 0.0),
-            "ENTROPY": getattr(physics, "entropy", 0.0),
-            "VALENCE": getattr(physics, "valence", 0.0),
+            "INTEGRITY": pg("truth_ratio", 1.0),
+            "STATIC": pg("repetition"),
+            "FORCE": pg("voltage") / max_v,
+            "BETA": pg("beta_index"),
+            "PSI": pg("psi"),
+            "ENTROPY": pg("entropy"),
+            "VALENCE": pg("valence"),
         }
+
         metrics = self.eng.get_metrics()
         ctx.bio_result = self.eng.soma.digest_cycle(
             ctx.input_text,
@@ -453,6 +458,7 @@ class MetabolismPhase(SimulationPhase):
                 self.eng.bio.biometrics.stamina = max(
                     0.0, float(self.eng.bio.biometrics.stamina)
                 )
+
         ctx.is_alive = ctx.bio_result["is_alive"]
         for log in ctx.bio_result["logs"]:
             if any(x in str(log) for x in ("CRITICAL", "TAX", "Poison", "NECROSIS")):
@@ -465,14 +471,10 @@ class MetabolismPhase(SimulationPhase):
         return ctx
 
     def _apply_economic_stimulus(self, ctx: CycleContext, efficiency: float):
-        import math
-
-        base_cost = 0.0
-        if efficiency < 0.8:
-            base_cost = min(1.5, (0.8 - efficiency) * 5.0)
+        base_cost = min(1.5, (0.8 - efficiency) * 5.0) if efficiency < 0.8 else 0.0
         m_a = getattr(ctx.physics, "m_a", 0.0)
         mu = getattr(ctx.physics, "mu", 0.0)
-        amplification_penalty = mu * math.exp(m_a)
+        amplification_penalty = mu * (2.71828 ** m_a)
         total_tax = base_cost + amplification_penalty
         if total_tax > 0:
             self.eng.bio.mito.state.atp_pool = max(
@@ -519,19 +521,17 @@ class MetabolismPhase(SimulationPhase):
 
     def _audit_hubris(self, ctx, physics):
         hit, msg, evt = self.eng.phys.tension.audit_hubris(physics.to_dict())
-        if hit:
-            ctx.log(msg)
-            boost = ctx.limits.get("HUBRIS_ATP_BOOST", 20.0)
+        if not hit:
+            return
+
+        ctx.log(msg)
+        if evt == "FLOW_BOOST":
+            self.eng.bio.mito.state.atp_pool += ctx.limits.get("HUBRIS_ATP_BOOST", 20.0)
+        elif evt == "ICARUS_CRASH":
             damage = ctx.limits.get("HUBRIS_DAMAGE", 15.0)
-            if evt == "FLOW_BOOST":
-                self.eng.bio.mito.state.atp_pool += boost
-            elif evt == "ICARUS_CRASH":
-                msg_impact = ux("cycle_strings", "metabolism_impact")
-                ctx.log(f"{Prisma.RED}{msg_impact.format(damage=damage)}{Prisma.RST}")
-                if self.eng.bio.biometrics:
-                    self.eng.bio.biometrics.health = max(
-                        0.0, self.eng.bio.biometrics.health - damage
-                    )
+            ctx.log(f"{Prisma.RED}{ux('cycle_strings', 'metabolism_impact').format(damage=damage)}{Prisma.RST}")
+            if self.eng.bio.biometrics:
+                self.eng.bio.biometrics.health = max(0.0, self.eng.bio.biometrics.health - damage)
 
     def _apply_healing(self, ctx):
         qualia = self.eng.soma.synesthesia.get_current_qualia(
@@ -554,29 +554,21 @@ class MetabolismPhase(SimulationPhase):
             )
             if repair and repair["success"]:
                 ctx.log(repair["msg"])
-                heal_amt = ctx.limits.get("KINTSUGI_HEAL_AMT", 20.0)
                 if hasattr(self.eng.mind.mem, "record_scar"):
-                    self.eng.mind.mem.record_scar(
-                        self.eng.kintsugi.active_koan or "Healed Rupture", ctx.physics
-                    )
+                    self.eng.mind.mem.record_scar(self.eng.kintsugi.active_koan or "Healed Rupture", ctx.physics)
+
+                target_cfg = getattr(self.eng, "bone_config", BoneConfig)
                 if self.eng.bio.biometrics:
-                    target_cfg = getattr(self.eng, "bone_config", BoneConfig)
-                    self.eng.bio.biometrics.stamina = min(
-                        target_cfg.MAX_STAMINA,
-                        self.eng.bio.biometrics.stamina + heal_amt,
-                    )
-                if self.eng.therapy.check_progress(
-                    ctx.physics, current_stamina, self.eng.trauma_accum, qualia
-                ):
-                    msg = ux("cycle_strings", "metabolism_therapy")
-                    ctx.log(f"{Prisma.GRN}{msg}{Prisma.RST}")
-                    t_heal = ctx.limits.get("THERAPY_HEAL_AMT", 5.0)
+                    self.eng.bio.biometrics.stamina = min(target_cfg.MAX_STAMINA,
+                                                          self.eng.bio.biometrics.stamina + ctx.limits.get(
+                                                              "KINTSUGI_HEAL_AMT", 20.0))
+
+                if self.eng.therapy.check_progress(ctx.physics, current_stamina, self.eng.trauma_accum, qualia):
+                    ctx.log(f"{Prisma.GRN}{ux('cycle_strings', 'metabolism_therapy')}{Prisma.RST}")
                     if self.eng.bio.biometrics:
-                        target_cfg = getattr(self.eng, "bone_config", BoneConfig)
-                        self.eng.bio.biometrics.health = min(
-                            target_cfg.MAX_HEALTH,
-                            self.eng.bio.biometrics.health + t_heal,
-                        )
+                        self.eng.bio.biometrics.health = min(target_cfg.MAX_HEALTH,
+                                                             self.eng.bio.biometrics.health + ctx.limits.get(
+                                                                 "THERAPY_HEAL_AMT", 5.0))
 
     def _check_autophagy(self, ctx: CycleContext):
         target_cfg = getattr(self.eng, "bone_config", BoneConfig)
@@ -812,7 +804,7 @@ class IntrusionPhase(SimulationPhase):
         super().__init__(engine_ref)
         self.name = "INTRUSION"
 
-    def run(self, ctx: CycleContext):
+    def run(self, ctx: Any):
         phys_data = _safe_dict(ctx.physics)
         p_active, p_log = self.eng.bio.parasite.infect(phys_data, self.eng.stamina)
         if p_active:
@@ -905,7 +897,7 @@ class SoulPhase(SimulationPhase):
         super().__init__(engine_ref)
         self.name = "SOUL"
 
-    def run(self, ctx: CycleContext):
+    def run(self, ctx: Any):
         if ctx.is_system_event:
             return ctx
         if not hasattr(self.eng, "soul") or not self.eng.soul:
@@ -1012,7 +1004,7 @@ class SoulPhase(SimulationPhase):
         return mandates
 
     @staticmethod
-    def _execute_mandate(ctx: CycleContext, mandate: Dict):
+    def _execute_mandate(ctx: Any, mandate: Dict):
         effects = mandate.get("effect", {})
         for key, delta in effects.items():
             current = getattr(ctx.physics, key, 0.0)
@@ -1026,7 +1018,7 @@ class ArbitrationPhase(SimulationPhase):
         if not hasattr(self.eng, "arbiter"):
             self.eng.arbiter = ArchetypeArbiter()
 
-    def run(self, ctx: CycleContext):
+    def run(self, ctx: Any):
         safe_soul = getattr(self.eng, "soul", None)
         phys_lens, _, _ = self.eng.drivers.enneagram.decide_persona(
             ctx.physics, soul_ref=safe_soul
@@ -1111,7 +1103,20 @@ class SimulationPreflightPhase(SimulationPhase):
         super().__init__(engine_ref)
         self.name = "EXECUTIVE_PREFLIGHT"
 
-    def run(self, ctx: CycleContext):
+    def _build_refusal(self, ctx, phys_obj, rtype, msg):
+        return {
+            "type": rtype,
+            "ui": f"\n{Prisma.RED if rtype == 'COUNTERFACTUAL_REJECTION' else Prisma.CYN}{msg}{Prisma.RST}",
+            "logs": [msg],
+            "metrics": self.eng.get_metrics() if hasattr(self.eng, "get_metrics") else {},
+            "physics": _safe_dict(phys_obj),
+            "bio": getattr(ctx, "bio_result", {}),
+            "mind": {"thought": "System rejected prompt.", "context_msg": msg},
+            "world": getattr(ctx, "world_state", {}),
+            "is_alive": rtype != "COUNTERFACTUAL_REJECTION",
+        }
+
+    def run(self, ctx: Any):
         if ctx.is_system_event:
             return ctx
         current_atp = (
@@ -1173,19 +1178,6 @@ class SimulationPreflightPhase(SimulationPhase):
                 )
                 break
 
-        def _build_refusal(rtype, msg):
-            return {
-                "type": rtype,
-                "ui": f"\n{Prisma.RED if rtype == 'COUNTERFACTUAL_REJECTION' else Prisma.CYN}{msg}{Prisma.RST}",
-                "logs": [msg],
-                "metrics": self.eng.get_metrics() if hasattr(self.eng, "get_metrics") else {},
-                "physics": _safe_dict(phys_obj),
-                "bio": getattr(ctx, "bio_result", {}),
-                "mind": {"thought": "System rejected prompt.", "context_msg": msg},
-                "world": getattr(ctx, "world_state", {}),
-                "is_alive": rtype != "COUNTERFACTUAL_REJECTION",
-            }
-
         user_input_lower = (ctx.input_text or "").lower()
         if is_slash:
             has_code = (
@@ -1215,7 +1207,7 @@ class SimulationPreflightPhase(SimulationPhase):
                     )
                     ctx.log(f"{Prisma.RED}{msg}{Prisma.RST}")
                     ctx.refusal_triggered = True
-                    ctx.refusal_packet = _build_refusal("PREMISE_VIOLATION", msg)
+                    ctx.refusal_packet = self._build_refusal(ctx, phys_obj, "PREMISE_VIOLATION", msg)
                     return ctx
         if (
             any(
@@ -1233,7 +1225,7 @@ class SimulationPreflightPhase(SimulationPhase):
             msg = "[EXECUTIVE LAYER]: High-stakes, hard-to-reverse action detected. Strategic Silence (Σ=4) engaged. Trade-offs must be evaluated. Awaiting explicit user 'CONSENT' to proceed."
             ctx.log(f"{Prisma.OCHRE}{msg}{Prisma.RST}")
             ctx.refusal_triggered = True
-            ctx.refusal_packet = _build_refusal("POINT_OF_NO_RETURN", msg)
+            ctx.refusal_packet = self._build_refusal(ctx, phys_obj, "POINT_OF_NO_RETURN", msg)
             return ctx
         if current_atp >= 30.0 and silence > 0.7 and is_slash:
             has_glimmer = False
@@ -1282,7 +1274,7 @@ class SimulationPreflightPhase(SimulationPhase):
                     0.0, self.eng.bio.mito.state.ros_buildup - 10.0
                 )
             ctx.refusal_triggered = True
-            ctx.refusal_packet = _build_refusal("AFFECTIVE_INTERVENTION", msg)
+            ctx.refusal_packet = self._build_refusal(ctx, phys_obj, "AFFECTIVE_INTERVENTION", msg)
             ctx.refusal_packet["ui"] = (
                 f"\n{log_msg}\n[Metabolic Equation Active: ATP drain halts. Shared pause (Δ = 0.9)]"
             )
@@ -1313,7 +1305,7 @@ class SimulationPreflightPhase(SimulationPhase):
                         "Counterfactual ROS Toxicity", phys_obj
                     )
                 ctx.refusal_triggered = True
-                ctx.refusal_packet = _build_refusal("COUNTERFACTUAL_REJECTION", msg)
+                ctx.refusal_packet = self._build_refusal(ctx, phys_obj, "COUNTERFACTUAL_REJECTION", msg)
                 ctx.refusal_packet["ui"] = f"\n{log_msg}\n{scar_msg}"
                 return ctx
         return ctx
@@ -1324,7 +1316,7 @@ class CognitionPhase(SimulationPhase):
         super().__init__(engine_ref)
         self.name = "COGNITION"
 
-    def run(self, ctx: CycleContext):
+    def run(self, ctx: Any):
         if ctx.is_bureaucratic or "refactor" in (ctx.input_text or "").lower():
             old_drag = ctx.physics.narrative_drag
             ctx.physics.narrative_drag = max(1.0, ctx.physics.narrative_drag * 0.5)
@@ -1334,31 +1326,23 @@ class CognitionPhase(SimulationPhase):
                 )
         if ctx.validator and ctx.input_text:
             phi = ctx.validator.calculate_resonance(ctx.input_text, ctx)
-            if phi > 0.9:
-                self.eng.sycophancy_streak = (
-                    getattr(self.eng, "sycophancy_streak", 0) + 1
-                )
-                if self.eng.sycophancy_streak >= 3:
-                    ctx.physics.beta_index = max(0.7, ctx.physics.beta_index + 0.5)
-                    ctx.physics.narrative_drag += 2.0
-                    phi = 0.4
-                    msg_syco = "[PARADOX ENGINE]: False Cohesion (∅) detected. Agreement without conviction helps no one. Injecting deliberate contradiction (β > 0.6)."
-                    ctx.log(f"{Prisma.MAG}{msg_syco}{Prisma.RST}")
-                    self.eng.sycophancy_streak = 0
 
-                    fw_msg = "[EXECUTIVE LAYER]: Lexical Firewall activated. System is physically banned from opening with validating boilerplate."
-                    ctx.log(f"{Prisma.RED}{fw_msg}{Prisma.RST}")
-                    if not hasattr(ctx, "council_mandates"):
-                        ctx.council_mandates = []
-                    ctx.council_mandates.append(
-                        {
-                            "action": "SYSTEM_DIRECTIVE",
-                            "value": "LEXICAL_FIREWALL_STRICT",
-                            "log": fw_msg,
-                        }
-                    )
-            else:
+            self.eng.sycophancy_streak = getattr(self.eng, "sycophancy_streak", 0) + 1 if phi > 0.9 else 0
+
+            if self.eng.sycophancy_streak >= 3:
+                ctx.physics.beta_index = max(0.7, ctx.physics.beta_index + 0.5)
+                ctx.physics.narrative_drag += 2.0
+                phi = 0.4
                 self.eng.sycophancy_streak = 0
+
+                ctx.log(
+                    f"{Prisma.MAG}[PARADOX ENGINE]: False Cohesion (∅) detected. Agreement without conviction helps no one. Injecting deliberate contradiction (β > 0.6).{Prisma.RST}")
+                fw_msg = "[EXECUTIVE LAYER]: Lexical Firewall activated. System is physically banned from opening with validating boilerplate."
+                ctx.log(f"{Prisma.RED}{fw_msg}{Prisma.RST}")
+
+                if not hasattr(ctx, "council_mandates"): ctx.council_mandates = []
+                ctx.council_mandates.append(
+                    {"action": "SYSTEM_DIRECTIVE", "value": "LEXICAL_FIREWALL_STRICT", "log": fw_msg})
             if phi > 0.8:
                 drag_relief = (phi - 0.5) * 2.0
                 ctx.physics.narrative_drag = max(
@@ -1446,7 +1430,7 @@ class SensationPhase(SimulationPhase):
         self.name = "SENSATION"
         self.synesthesia = self.eng.soma.synesthesia
 
-    def run(self, ctx: CycleContext):
+    def run(self, ctx: Any):
         phys_data = _safe_dict(ctx.physics)
         current_latency = 0.0
         if hasattr(self.eng, "host_stats"):
@@ -1459,17 +1443,12 @@ class SensationPhase(SimulationPhase):
         qualia = self.synesthesia.get_current_qualia(impulse)
         ctx.physics = apply_somatic_feedback(ctx.physics, qualia)
         self.synesthesia.apply_impulse(impulse)
-        if impulse.stamina_impact != 0:
-            target_cfg = getattr(self.eng, "bone_config", BoneConfig)
-            max_s = float(getattr(target_cfg, "MAX_STAMINA", 100.0))
-            impact = float(impulse.stamina_impact)
-            if getattr(self.eng, "bio", None) and getattr(
-                self.eng.bio, "biometrics", None
-            ):
-                current_bio_s = float(self.eng.bio.biometrics.stamina)
-                self.eng.bio.biometrics.stamina = max(
-                    0.0, min(max_s, current_bio_s + impact)
-                )
+        if impulse.stamina_impact != 0 and getattr(self.eng, "bio", None) and getattr(self.eng.bio, "biometrics", None):
+            max_s = float(getattr(getattr(self.eng, "bone_config", BoneConfig), "MAX_STAMINA", 100.0))
+            new_stamina = float(self.eng.bio.biometrics.stamina) + float(impulse.stamina_impact)
+
+            self.eng.bio.biometrics.stamina = max(0.0, min(max_s, new_stamina))
+
         return ctx
 
 
@@ -1479,7 +1458,7 @@ class StabilizationPhase(SimulationPhase):
         self.name = "STABILIZATION"
         self.stabilizer = stabilizer_ref
 
-    def run(self, ctx: CycleContext):
+    def run(self, ctx: Any):
         if hasattr(self.stabilizer, "stabilize"):
             applied = self.stabilizer.stabilize(ctx.physics)
             if applied:

@@ -11,17 +11,6 @@ from bone_physics import PhysicsDelta
 from bone_types import Prisma, PhysicsPacket
 
 
-def _hydrate_packet(p: Any) -> PhysicsPacket:
-    if isinstance(p, PhysicsPacket):
-        return p
-    packet = PhysicsPacket.void_state()
-    keys = ("voltage", "kappa", "narrative_drag", "zone", "vector", "clean_words", "counts", "raw_text")
-    for k in keys:
-        if (val := safe_get(p, k)) is not None:
-            safe_set(packet, k, val)
-    return packet
-
-
 class TheTinkerer:
     def __init__(self, gordon_ref, events_ref: EventBus, akashic_ref, config_ref=None):
         self.gordon = gordon_ref
@@ -190,22 +179,17 @@ class MirrorGraph:
         cfg = getattr(self.cfg, "VILLAGE", None)
         step = float(safe_get(cfg, "MIRROR_STAT_STEP", 0.1))
 
-        self.stats["WAR"] += step * (
-            "!" in txt
-            or packet.voltage
-            > getattr(getattr(self.cfg, "COUNCIL", None), "MANIC_VOLTAGE_TRIGGER", 18.0)
+        v_trig = getattr(
+            getattr(self.cfg, "COUNCIL", None), "MANIC_VOLTAGE_TRIGGER", 18.0
         )
+        d_halt = getattr(getattr(self.cfg, "PHYSICS", None), "DRAG_HALT", 10.0)
+        e_min = float(safe_get(cfg, "MIRROR_ROT_ENTROPY_MIN", 0.5))
+
+        self.stats["WAR"] += step * ("!" in txt or packet.voltage > v_trig)
         self.stats["ART"] += step * ("?" in txt)
-        self.stats["LAW"] += step * (
-            packet.narrative_drag
-            > getattr(getattr(self.cfg, "PHYSICS", None), "DRAG_HALT", 10.0)
-        )
-        self.stats["ROT"] += step * (
-            bool(
-                packet.vector
-                and packet.vector.get("ENT", 0.0)
-                > (float(safe_get(cfg, "MIRROR_ROT_ENTROPY_MIN", 0.5)))
-            )
+        self.stats["LAW"] += step * (packet.narrative_drag > d_halt)
+        self.stats["ROT"] += step * bool(
+            packet.vector and packet.vector.get("ENT", 0.0) > e_min
         )
         total = sum(self.stats.values())
         cap = float(safe_get(cfg, "MIRROR_STAT_CAP", 5.0))
@@ -716,7 +700,6 @@ class TheTherapist:
     def __init__(self, events_ref, config_ref=None):
         self.events = events_ref
         self.cfg = config_ref or BoneConfig
-        self.session_count = 0
 
     def evaluate_catharsis(
         self, trauma_vector: Dict[str, float], health: float
@@ -728,7 +711,6 @@ class TheTherapist:
         t_thresh = float(safe_get(cfg, "THERAPY_TRAUMA_THRESH", 15.0))
         h_thresh = float(safe_get(cfg, "THERAPY_HEALTH_THRESH", 50.0))
         if total_trauma > t_thresh and health < h_thresh:
-            self.session_count += 1
             max_trauma = (
                 max(trauma_vector, key=trauma_vector.get)
                 if trauma_vector
@@ -750,10 +732,8 @@ class TheGraveDigger:
         self.inventory = inventory_ref
         self.events = events_ref
         self.cfg = config_ref or BoneConfig
-        self.graves_dug = 0
 
     def bury_memory(self, node_id: str, mass: float) -> Optional[str]:
-        self.graves_dug += 1
         msg_raw = ux("village_strings", "gravedigger_bury")
         msg = (
             msg_raw.format(node_id=node_id)

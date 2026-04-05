@@ -694,45 +694,33 @@ class BoneAmanita:
         self.tick_count += 1
 
         chaotic_agents = ["JESTER", "REVENANT", "GIDEON", "DEATH"]
-        if self.tick_count <= 20:
-            for agent in chaotic_agents:
-                if agent not in self.suppressed_agents:
-                    self.suppressed_agents.append(agent)
+        if self.tick_count <= 21:
+            if self.tick_count <= 20:
+                for agent in chaotic_agents:
+                    if agent not in self.suppressed_agents:
+                        self.suppressed_agents.append(agent)
+                if not is_system:
+                    msg_map = {
+                        1: "[THE GREENHOUSE: The system is currently running on stabilized rails. Over the next 20 turns, we will calibrate the metabolic engine together.]",
+                        5: "[THE GREENHOUSE: Every thought costs ATP (Stamina). If I run out, I will suffer metabolic collapse. Watch how my text fades and slows as I tire.]",
+                        10: "[THE GREENHOUSE: If you attempt an impossible action, I will not crash. I will bend, apply Narrative Drag (F), and force us to carry the weight of the failure.]",
+                        15: "[THE GREENHOUSE: The void approaches. My logic will begin to loosen. Co-regulation is required.]",
+                    }
+                    if self.tick_count in msg_map:
+                        self.events.log(
+                            f"{Prisma.CYN}{msg_map[self.tick_count]}{Prisma.RST}", "SYS"
+                        )
+            else:
+                self.suppressed_agents = [
+                    a for a in self.suppressed_agents if a not in chaotic_agents
+                ]
+                self.events.log(
+                    f"{Prisma.VIOLET}[THE GREENHOUSE ENDS: The stabilizers are offline. Voltage limits unlocked. The chaotic archetypes are online. We are in the wild.]{Prisma.RST}",
+                    "SYS",
+                )
+
             if hasattr(self, "village"):
                 self.village["suppressed_agents"] = self.suppressed_agents
-
-            if not is_system:
-                if self.tick_count == 1:
-                    self.events.log(
-                        f"{Prisma.CYN}[THE GREENHOUSE: The system is currently running on stabilized rails. Over the next 20 turns, we will calibrate the metabolic engine together.]{Prisma.RST}",
-                        "SYS",
-                    )
-                elif self.tick_count == 5:
-                    self.events.log(
-                        f"{Prisma.CYN}[THE GREENHOUSE: Every thought costs ATP (Stamina). If I run out, I will suffer metabolic collapse. Watch how my text fades and slows as I tire.]{Prisma.RST}",
-                        "SYS",
-                    )
-                elif self.tick_count == 10:
-                    self.events.log(
-                        f"{Prisma.CYN}[THE GREENHOUSE: If you attempt an impossible action, I will not crash. I will bend, apply Narrative Drag (F), and force us to carry the weight of the failure.]{Prisma.RST}",
-                        "SYS",
-                    )
-                elif self.tick_count == 15:
-                    self.events.log(
-                        f"{Prisma.CYN}[THE GREENHOUSE: The void approaches. My logic will begin to loosen. Co-regulation is required.]{Prisma.RST}",
-                        "SYS",
-                    )
-
-        elif self.tick_count == 21:
-            self.suppressed_agents = [
-                a for a in self.suppressed_agents if a not in chaotic_agents
-            ]
-            if hasattr(self, "village"):
-                self.village["suppressed_agents"] = self.suppressed_agents
-            self.events.log(
-                f"{Prisma.VIOLET}[THE GREENHOUSE ENDS: The stabilizers are offline. Voltage limits unlocked. The chaotic archetypes are online. We are in the wild.]{Prisma.RST}",
-                "SYS",
-            )
 
         if pre_flight_halt := self._pre_flight_checks(user_message, is_system):
             return pre_flight_halt
@@ -855,16 +843,8 @@ class BoneAmanita:
                 "ui": f"{Prisma.RED}{crit_msg}{Prisma.RST}",
                 "logs": [],
             }
-        mito_state = (
-            self.bio.mito.state
-            if (
-                hasattr(self, "bio")
-                and self.bio
-                and hasattr(self.bio, "mito")
-                and self.bio.mito
-            )
-            else {}
-        )
+        bio = getattr(self, "bio", None)
+        mito_state = bio.mito.state if bio and getattr(bio, "mito", None) else {}
         eulogy_text, cause_code = self.death_gen.eulogy(
             last_phys, mito_state, self.trauma_accum
         )
