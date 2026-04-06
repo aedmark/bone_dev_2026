@@ -108,17 +108,29 @@ class GeodesicEngine:
         mass_scalar = min(1.0, safe_vol / (getattr(t_cfg, "SHAPLEY_MASS_THRESHOLD", 5.0) * gc("SQUELCH_LIMIT_MULT", 2.0)))
         if safe_vol < gc("SAFE_VOL_THRESHOLD", 50): mass_scalar *= gc("MIN_VOLUME_SCALAR", 0.5)
 
-        visc = (math.log1p(max(0, counts.get("suburban", 0))) * gc("SUBURBAN_FRICTION_LOG_BASE", 0.5) + masses["heavy"] * gc("HEAVY_FRICTION_MULT", 1.2)) / (1.0 + counts.get("solvents", 0) * gc("SOLVENT_LUBRICATION_FACTOR", 0.2)) / (1.0 + (tot_kin / safe_vol) * gc("SHEAR_RESISTANCE_SCALAR", 0.1))
+        base_friction = math.log1p(max(0, counts.get("suburban", 0))) * gc("SUBURBAN_FRICTION_LOG_BASE", 0.5)
+        heavy_friction = masses["heavy"] * gc("HEAVY_FRICTION_MULT", 1.2)
+        lubrication = 1.0 + counts.get("solvents", 0) * gc("SOLVENT_LUBRICATION_FACTOR", 0.2)
+        shear = 1.0 + (tot_kin / safe_vol) * gc("SHEAR_RESISTANCE_SCALAR", 0.1)
 
+        visc = (base_friction + heavy_friction) / lubrication / shear
         lift = masses["play"] * gc("PLAY_LIFT_MULT", 1.5) + (tot_kin * gc("KINETIC_LIFT_RATIO", 0.8)) / (masses["heavy"] * 0.5 + 1.0)
+
         raw_comp = ((visc - lift) / safe_vol) * gc("COMPRESSION_SCALAR", 2.0) * getattr(t_cfg, "SIGNAL_DRAG_MULTIPLIER", 1.0)
         str_mass = max(0.0, masses["heavy"] + masses["constructive"] + masses["harvest"] - masses["void"] * 0.5)
 
+        max_tension = min(100.0, (raw_tension / safe_vol) * gc("DENSITY_SCALAR") * getattr(t_cfg, "KINETIC_GAIN", 1.0) * mass_scalar)
+        clamped_comp = max(-5.0, min(cg("DRAG_HALT", 10.0), raw_comp * mass_scalar))
+        coherence_val = min(1.0, str_mass / max(1.0, getattr(t_cfg, "SHAPLEY_MASS_THRESHOLD", 5.0)))
+
+        abstract_mass = masses["abstract"] + masses["liminal"] + masses["pareidolia"] + masses["void"]
+        abstraction_val = min(1.0, (abstract_mass / safe_vol) + gc("ABSTRACTION_BASE", 0.1))
+
         return {
-            "tension": round(min(100.0, (raw_tension / safe_vol) * gc("DENSITY_SCALAR") * getattr(t_cfg, "KINETIC_GAIN", 1.0) * mass_scalar), 2),
-            "compression": round(max(-5.0, min(cg("DRAG_HALT", 10.0), raw_comp * mass_scalar)), 2),
-            "coherence": round(min(1.0, str_mass / max(1.0, getattr(t_cfg, "SHAPLEY_MASS_THRESHOLD", 5.0))), 3),
-            "abstraction": round(min(1.0, (masses["abstract"] + masses["liminal"] + masses["pareidolia"] + masses["void"]) / safe_vol + gc("ABSTRACTION_BASE", 0.1)), 2),
+            "tension": round(max_tension, 2),
+            "compression": round(clamped_comp, 2),
+            "coherence": round(coherence_val, 3),
+            "abstraction": round(abstraction_val, 2),
         }
 
     @staticmethod
@@ -302,15 +314,28 @@ class QuantumObserver:
 
         val = self.lex.get_valence(clean_words)
 
+        # Humanize the metrics before packing them. Give the maintainer room to breathe.
+        graph_mass = round(self._calculate_graph_mass(clean_words, graph), 1)
+        gamma_idx = max(0.0, 1.0 - e_m)
+        sigma_synergy = min(1.0, (c_v + p_v) / 2.0)
+        eta_humanity = min(1.0, (counts.get("social", 0) * 0.1) + max(0.0, val))
+        upsilon_integrity = 1.0 - min(1.0, counts.get("pareidolia", 0) * 0.2)
+        mu_friction = min(1.0, (b_v * 0.7) + (geo.coherence * 0.3))
+        malignancy = min(1.0, (sv / 150.0) * e_m * (1.0 - (b_v * 0.5)))
+        immune_comp = min(1.0, (p_v * 0.6) + (geo.coherence * 0.4))
+        novelty = min(1.0, (e_m * 0.6) + (counts.get("play", 0) * 0.15))
+
+        sycophancy_triggers = ("right?", "good?", "make sense", "makes sense", "agree", "validate", "comfort")
+        cf_expect = 0.8 if any(p in t_low for p in sycophancy_triggers) else 0.0
+
         energy = EnergyState(
-            voltage=sv, entropy=e_m, beta_index=b_v, contradiction=b_v, scope=s_v, depth=d_v,
-            connectivity=c_v, resonance=p_v, silence=del_v, lq=lq_v, mass=round(self._calculate_graph_mass(clean_words, graph), 1),
-            psi=geo.abstraction, kappa=geo.coherence, valence=val, velocity=0.0, turbulence=0.0,
-            gamma=max(0.0, 1.0 - e_m), sigma=min(1.0, (c_v + p_v) / 2.0), eta=min(1.0, (counts.get("social", 0) * 0.1) + max(0.0, val)),
-            theta=geo.coherence, upsilon=1.0 - min(1.0, counts.get("pareidolia", 0) * 0.2), mu=min(1.0, (b_v * 0.7) + (geo.coherence * 0.3)),
-            m_a=min(1.0, (sv / 150.0) * e_m * (1.0 - (b_v * 0.5))), i_c=min(1.0, (p_v * 0.6) + (geo.coherence * 0.4)),
-            cf_expect=0.8 if any(p in t_low for p in ("right?", "good?", "make sense", "makes sense", "agree", "validate", "comfort")) else 0.0,
-            novelty=min(1.0, (e_m * 0.6) + (counts.get("play", 0) * 0.15))
+            voltage=sv, entropy=e_m, beta_index=b_v, contradiction=b_v,
+            scope=s_v, depth=d_v, connectivity=c_v, resonance=p_v,
+            silence=del_v, lq=lq_v, mass=graph_mass, psi=geo.abstraction,
+            kappa=geo.coherence, valence=val, velocity=0.0, turbulence=0.0,
+            gamma=gamma_idx, sigma=sigma_synergy, eta=eta_humanity,
+            theta=geo.coherence, upsilon=upsilon_integrity, mu=mu_friction,
+            m_a=malignancy, i_c=immune_comp, cf_expect=cf_expect, novelty=novelty
         )
         matter = MaterialState(clean_words=clean_words, raw_text=text, counts=counts, antigens=counts.get("antigen", 0), vector=geo.dimensions, truth_ratio=0.5)
         space = SpatialState(narrative_drag=geo.compression, zone=self._determine_zone(geo.dimensions), flow_state=self._determine_flow(sv, geo.coherence, self.cfg))
@@ -344,26 +369,30 @@ class QuantumObserver:
     def _tally_categories(self, clean_words: List[str]) -> Counter:
         counts = Counter()
         solvents = self.lex.get("solvents") or set()
-        for w in clean_words:
+        word_freq = Counter(clean_words)
+
+        for w, freq in word_freq.items():
             if w in solvents:
-                counts["solvents"] += 1
+                counts["solvents"] += freq
                 continue
             cats = self.lex.get_categories_for_word(w)
             if cats:
-                counts.update(cats)
+                for cat in cats:
+                    counts[cat] += freq
             else:
                 flavor, conf = self.lex.taste(w)
                 if flavor and conf > 0.5:
-                    counts[flavor] += 1
+                    counts[flavor] += freq
         return counts
 
     @staticmethod
     def _calculate_graph_mass(words: List[str], graph: Optional[Dict]) -> float:
         if not graph:
             return 0.0
+        word_freq = Counter(words)
         return sum(
-            min(50.0, sum(graph[w].get("edges", {}).values()))
-            for w in words
+            min(50.0, sum(graph[w].get("edges", {}).values())) * freq
+            for w, freq in word_freq.items()
             if w in graph
         )
 
@@ -374,33 +403,42 @@ class QuantumObserver:
 
         cfg = getattr(config_ref or BoneConfig, "PHYSICS", None)
         cg = lambda k, d: getattr(cfg, k, d) if cfg else d
-
         solvents = counts.get("solvents", 0)
-        e_metric = min(1.0, (length / cg("TEXT_LENGTH_SCALAR", 1500.0)) * (1.0 - (min(1.0, (
-                    solvents / max(1.0, length / cg("GLUE_SOLVENT_DIV", 5.0))) * cg("GLUE_FACTOR_MULT", 2.0)) * cg(
-            "ENTROPY_REDUCTION_SCALAR", 0.8))))
 
-        structure_score = sum(1 for c in text if c in "!?%@#$;,") + (
-                    (counts.get("heavy", 0) + counts.get("constructive", 0) + counts.get("sacred", 0)) * cg(
-                "BETA_SCORE_PENALTY", 2))
+        base_entropy = length / cg("TEXT_LENGTH_SCALAR", 1500.0)
+        glue_density = solvents / max(1.0, length / cg("GLUE_SOLVENT_DIV", 5.0))
+        glue_factor = min(1.0, glue_density * cg("GLUE_FACTOR_MULT", 2.0))
+        entropy_reduction = glue_factor * cg("ENTROPY_REDUCTION_SCALAR", 0.8)
+        e_metric = min(1.0, base_entropy * (1.0 - entropy_reduction))
+
+        punctuation_weight = sum(1 for c in text if c in "!?%@#$;,")
+        concept_weight = (counts.get("heavy", 0) + counts.get("constructive", 0) + counts.get("sacred", 0))
+        structure_score = punctuation_weight + (concept_weight * cg("BETA_SCORE_PENALTY", 2))
+
         beta_index = min(1.0, math.log1p(structure_score + 1) / math.log1p(length * cg("BETA_LOG_SCALAR", 0.1) + 1))
-        if length < (bsl := cg("BETA_SHORT_TEXT_LIMIT", 50)): beta_index *= length / float(bsl)
-
+        if length < (bsl := cg("BETA_SHORT_TEXT_LIMIT", 50)):
+            beta_index *= length / float(bsl)
         safe_len = max(1, len(text.split()))
         scope = min(1.0, (counts.get("abstract", 0) + counts.get("void", 0)) / safe_len + cg("SCOPE_BASE", 0.2))
         depth = min(1.0, (counts.get("heavy", 0) + counts.get("constructive", 0)) / safe_len + cg("DEPTH_BASE", 0.1))
         connectivity = min(1.0, (counts.get("social", 0) + solvents) / safe_len + cg("CONN_BASE", 0.1))
-        resonance = min(1.0, (
-                    (counts.get("social", 0) * cg("RES_SOCIAL_MULT", 2)) + counts.get("constructive", 0)) / safe_len + (
-                                    1.0 - e_metric))
+        resonance = min(1.0, ((counts.get("social", 0) * cg("RES_SOCIAL_MULT", 2)) + counts.get("constructive", 0)) / safe_len + (1.0 - e_metric))
 
         silence = 1.0 - min(1.0, (length / cg("SILENCE_DIV", 100.0)) + (counts.get("action", 0) / safe_len))
         if length < cg("SILENCE_SHORT_LIMIT", 10): silence = max(silence, cg("SILENCE_MIN", 0.8))
 
-        return round(e_metric, 3), round(beta_index, 3), round(scope, 3), round(depth, 3), round(connectivity,
-                                                                                                 3), round(resonance,
-                                                                                                           3), round(
-            silence, 3), round(min(1.0, beta_index * depth * cg("LQ_SCALAR", 1.5)), 3)
+        loop_quotient = min(1.0, beta_index * depth * cg("LQ_SCALAR", 1.5))
+
+        return (
+            round(e_metric, 3),
+            round(beta_index, 3),
+            round(scope, 3),
+            round(depth, 3),
+            round(connectivity, 3),
+            round(resonance, 3),
+            round(silence, 3),
+            round(loop_quotient, 3)
+        )
 
     @staticmethod
     def _determine_flow(v: float, k: float, config_ref=None) -> str:
@@ -425,7 +463,8 @@ class SurfaceTension:
     @staticmethod
     def audit_hubris(physics: Any, config_ref=None) -> Tuple[bool, str, str]:
         cfg = getattr(config_ref or BoneConfig, "PHYSICS", BoneConfig.PHYSICS)
-        v, k = physics.get("voltage", 0.0), physics.get("kappa", 0.5)
+        v = safe_get(physics, "voltage", 0.0)
+        k = safe_get(physics, "kappa", 0.5)
         if v >= getattr(cfg, "VOLTAGE_CRITICAL", 15.0) and k < 0.4:
             return (
                 True,
@@ -476,8 +515,12 @@ class ZoneInertia:
         return self.is_anchored
 
     def stabilize(self, proposed_zone: str, physics: Any, cosmic_state: Tuple[str, float, str]) -> Tuple[str, Optional[str]]:
-        beta = safe_get(physics, "beta_index", safe_get(safe_get(physics, "energy", physics), "beta_index", 1.0))
-        truth = safe_get(physics, "truth_ratio", safe_get(safe_get(physics, "matter", physics), "truth_ratio", 0.5))
+        energy_node = safe_get(physics, "energy", physics)
+        matter_node = safe_get(physics, "matter", physics)
+
+        beta = safe_get(physics, "beta_index", safe_get(energy_node, "beta_index", 1.0))
+        truth = safe_get(physics, "truth_ratio", safe_get(matter_node, "truth_ratio", 0.5))
+
         current_vec = (beta, truth, 1.0 if cosmic_state[0] != "VOID_DRIFT" else 0.0)
 
         self.dwell_counter += 1
@@ -701,14 +744,6 @@ class CycleStabilizer:
                 "DOMESTICATION_PENALTY", self._on_domestication_penalty
             )
 
-    @staticmethod
-    def _get(obj, f, default=0.0):
-        return safe_get(obj, f, default)
-
-    @staticmethod
-    def _set(obj, f, val):
-        safe_set(obj, f, val)
-
     def _on_domestication_penalty(self, payload):
         amount = payload.get("drag_penalty", 0.0)
         self.pending_drag += amount
@@ -716,7 +751,7 @@ class CycleStabilizer:
     def stabilize(self, physics: Any) -> bool:
         applied_correction = False
         if self.pending_drag > 0:
-            self._set(physics, "narrative_drag", self._get(physics, "narrative_drag", 0.0) + self.pending_drag)
+            safe_set(physics, "narrative_drag", safe_get(physics, "narrative_drag", 0.0) + self.pending_drag)
             if hasattr(self.events, "log"):
                 msg = ux("physics_strings", "stabilizer_domestication") or "Domestication penalty applied."
                 self.events.log(f"STABILIZER: {msg} (+{self.pending_drag} Drag)", "PHYSICS")
@@ -741,8 +776,8 @@ class CycleStabilizer:
     def _apply_force(self, p, field, force, limits=None) -> bool:
         if abs(force) <= 0.05:
             return False
-        new_val = self._get(p, field, 0.0) + force
-        self._set(
+        new_val = safe_get(p, field, 0.0) + force
+        safe_set(
             p,
             field,
             max(limits[0], min(limits[1], new_val)) if limits else max(0.0, new_val),
