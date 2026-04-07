@@ -93,8 +93,8 @@ class BoneConfig:
     PROVIDER = "ollama"
     BASE_URL = None
     API_KEY = "ollama"
-    MODEL = "mistral-nemo"
-    OLLAMA_MODEL_ID = "mistral-nemo"
+    MODEL = "hermes3"
+    OLLAMA_MODEL_ID = "hermes3"
 
     class SOUL:
         MEMORY_VOLTAGE_MIN = 14.0

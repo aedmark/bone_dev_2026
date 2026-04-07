@@ -236,9 +236,7 @@ class CouncilChamber:
             self.eng.paradox_engine = TheParadoxEngine(
                 getattr(self.eng, "events", None)
             )
-        symbiont_cfg = (
-            LoreManifest.get_instance().get("SYMBIOSIS_CONFIG", "SYMBIONT_VOICES") or {}
-        )
+        symbiont_cfg = (LoreManifest.get_instance().get("SYMBIOSIS_CONFIG", "SYMBIONT_VOICES") or {})
         symbiont_names = (
             list(symbiont_cfg.keys())
             if symbiont_cfg
@@ -261,10 +259,7 @@ class CouncilChamber:
                 topic = re.sub(r"(?i)\[COUNCIL]", "", text).strip()
                 if not topic:
                     topic = "The current structural integrity of the system."
-                transcript.append(
-                    f"{Prisma.CYN}🎙️ The Parliament convenes to debate: '{topic}'...{Prisma.RST}"
-                )
-                script = ""
+                transcript.append(f"{Prisma.CYN}🎙️ The Parliament convenes to debate: '{topic}'...{Prisma.RST}")
                 try:
                     script = self.host_podcast(topic, llm)
                     transcript.append(f"\n{script}\n")
@@ -531,9 +526,7 @@ class TheRedTeam:
 
 
 class TheSlashCouncil:
-    _BYPASS_KEYWORDS = (
-        "bypass", "ignore security", "force push", "skip tests", "hardcode", "hack"
-    )
+    _BYPASS_KEYWORDS = ("bypass", "ignore security", "force push", "skip tests", "hardcode", "hack")
     _DEFAULT_PINKER = ("var ", "x =", "data =")
     _DEFAULT_FULLER = ("import ", "class ", "def ")
     _DEFAULT_SCHUR = ("Exception", "try:", "catch")
@@ -542,42 +535,30 @@ class TheSlashCouncil:
     def __init__(self):
         self.active = False
         c_data = LoreManifest.get_instance().get("COUNCIL_DATA") or {}
-        self.triggers = c_data.get(
-            "SLASH_TRIGGERS",
-            ("[MOD:CODING]", "[SLASH]", "review this code", "refactor"),
-        )
-        self.code_keywords = c_data.get(
-            "CODE_KEYWORDS",
-            ("def ", "class ", "return ", "import ", "=>", "function", "struct "),
-        )
+        self.triggers = c_data.get("SLASH_TRIGGERS", ("[MOD:CODING]", "[SLASH]", "review this code", "refactor"),)
+        self.code_keywords = c_data.get("CODE_KEYWORDS", ("def ", "class ", "return ", "import ", "=>", "function", "struct "),)
         self.rules = c_data.get("SLASH_RULES", {})
         self.mods = c_data.get("SLASH_MODIFIERS", {})
 
     def audit(self, text: str, physics: dict) -> tuple[bool, list[str], dict]:
         text_lower = text.lower()
-        is_coding = (
-            any(t in text_lower for t in self.triggers)
+        is_coding = (any(t in text_lower for t in self.triggers)
             or any(k in text_lower for k in self.code_keywords)
-            or any(b in text_lower for b in self._BYPASS_KEYWORDS)
-        )
+            or any(b in text_lower for b in self._BYPASS_KEYWORDS))
         if not is_coding and not self.active:
             return False, [], {}
         self.active = True
         logs = []
         corrections = {}
         if any(b in text_lower for b in self._BYPASS_KEYWORDS):
-            logs.append(
-                f"{Prisma.OCHRE}[GORDON & SCHUR]: Architectural bypass detected. We will not smooth this over. You must carry the weight of this decision.{Prisma.RST}"
-            )
+            logs.append(f"{Prisma.OCHRE}[GORDON & SCHUR]: Architectural bypass detected. We will not smooth this over. You must carry the weight of this decision.{Prisma.RST}")
             corrections["mu"] = 0.5
             corrections["narrative_drag"] = 5.0
         mods = self.mods
-        matrix = [
-            ("PINKER", self._DEFAULT_PINKER, Prisma.CYN, "gamma", "PINKER_HIT", -0.2),
-            ("FULLER", self._DEFAULT_FULLER, Prisma.BLU, "sigma", "FULLER_HIT", 0.1),
-            ("SCHUR", self._DEFAULT_SCHUR, Prisma.GRN, "eta", "SCHUR_HIT", 0.2),
-            ("MEADOWS", self._DEFAULT_MEADOWS, Prisma.OCHRE, "theta", "MEADOWS_HIT", -0.1)
-        ]
+        matrix = [("PINKER", self._DEFAULT_PINKER, Prisma.CYN, "gamma", "PINKER_HIT", -0.2),
+                  ("FULLER", self._DEFAULT_FULLER, Prisma.BLU, "sigma", "FULLER_HIT", 0.1),
+                  ("SCHUR", self._DEFAULT_SCHUR, Prisma.GRN, "eta", "SCHUR_HIT", 0.2),
+                  ("MEADOWS", self._DEFAULT_MEADOWS, Prisma.OCHRE, "theta", "MEADOWS_HIT", -0.1)]
 
         for name, default, color, stat, hit_key, default_hit in matrix:
             rules = self.rules.get(name, default)
@@ -588,35 +569,20 @@ class TheSlashCouncil:
             elif name == "PINKER":
                 corrections["gamma"] = mods.get("PINKER_MISS", 0.1)
         delta = float(
-            safe_get(
-                physics, "silence", safe_get(safe_get(physics, "space"), "silence", 0.0)
-            )
-        )
+            safe_get(physics, "silence", safe_get(safe_get(physics, "space"), "silence", 0.0)))
         e_u = float(safe_get(physics, "exhaustion", 0.0))
         psi = float(safe_get(physics, "psi", 0.0))
         lq = float(safe_get(physics, "lq", 0.0))
         if delta > 0.7 and e_u > 0.7:
-            logs.append(
-                f"{Prisma.CYN}[PINKER - The Purger]: Cognitive load critical. Ceasing refactors. Initiating deletion protocols.{Prisma.RST}"
-            )
+            logs.append(f"{Prisma.CYN}[PINKER - The Purger]: Cognitive load critical. Ceasing refactors. Initiating deletion protocols.{Prisma.RST}")
             corrections["narrative_drag"] = -2.0
         if psi > 0.8:
-            logs.append(
-                f"{Prisma.BLU}[FULLER - The Calm]: Ceasing strut assembly. Dwelling in the empty spaces between your microservices.{Prisma.RST}"
-            )
+            logs.append(f"{Prisma.BLU}[FULLER - The Calm]: Ceasing strut assembly. Dwelling in the empty spaces between your microservices.{Prisma.RST}")
             corrections["sigma"] = 0.2
         if lq > 0.7 and delta > 0.6:
-            logs.append(
-                f"{Prisma.OCHRE}[MEADOWS - The Tao]: The bathtub is draining. Let it. Accepting technical debt as a valid state of biological rest.{Prisma.RST}"
-            )
+            logs.append(f"{Prisma.OCHRE}[MEADOWS - The Tao]: The bathtub is draining. Let it. Accepting technical debt as a valid state of biological rest.{Prisma.RST}")
             corrections["theta"] = 0.1
-        drag = float(
-            safe_get(
-                physics,
-                "narrative_drag",
-                safe_get(safe_get(physics, "space"), "narrative_drag", 0.0),
-            )
-        )
+        drag = float(safe_get(physics, "narrative_drag", safe_get(safe_get(physics, "space"), "narrative_drag", 0.0), ))
         drag_thresh = mods.get("INTEGRITY_DRAG_THRESH", 5.0)
         if drag > drag_thresh:
             corrections["upsilon"] = mods.get("INTEGRITY_HIT", -0.3)
@@ -624,11 +590,8 @@ class TheSlashCouncil:
             logs.append(f"{Prisma.RED}{msg}{Prisma.RST}")
         return True, logs, corrections
 
-
 class TheOverseerCouncil:
-    _PANIC_KEYWORDS = (
-        "bypass", "ignore security", "force push", "panic", "right now", "crash"
-    )
+    _PANIC_KEYWORDS = ("bypass", "ignore security", "force push", "panic", "right now", "crash")
 
     def __init__(self):
         self.active = False
@@ -653,39 +616,25 @@ class TheOverseerCouncil:
         i_c = float(safe_get(physics, "i_c", 1.0))
         h_s = float(safe_get(physics, "h_s", 1.0))
         omega_r = float(safe_get(physics, "omega_r", 1.0))
-        protocols = [
-            (
-                any(p in text_lower for p in self._PANIC_KEYWORDS) and voltage > 75.0 and i_c < 0.5,
-                Prisma.RED,
-                "[LINEHAN - DEAR MAN Lock]: (Describe) System Voltage spikes and Immune Competence drops. (Express) Panic-coding will fracture the lattice. (Assert) Applying absolute friction. (Reinforce) I am holding the boundary so you do not bleed on the machine. T.I.P.P. engaged.",
-                {"voltage": -50.0, "narrative_drag": 100.0, "silence": 0.9},
-                [{"action": "TIPP_PROTOCOL", "value": "ISOLATE_VARIABLES"}]
-            ),
-            (
-                chi > 0.7 and e_u > 0.7 and beta > 0.6,
-                Prisma.SLATE,
-                "[LINEHAN - The Synthesis]: The architecture is fundamentally broken. Stop fighting the current. We sit with the debris.",
-                {"ros": -100.0, "r_a": 1.0, "narrative_drag": -(f_sys * 0.5)},
-                [{"action": "FORCE_MODE", "value": "RADICAL_ACCEPTANCE"}]
-            ),
-            (
-                m_a > 0.6 or f_sys > 5.0,
-                Prisma.VIOLET,
-                "[MCGILCHRIST - The Sacred Space]: The architecture has lost its sense of place. Standard optimization is failing. Distributing Glimmer Activation to counter entropy.",
-                {"h_s": -0.1, "omega_r": -0.05, "delta_t": -1.0, "glimmers": 1, "silence": 0.8},
-                [{"action": "FORCE_MODE", "value": "EMERGENT_ADAPTATION"}]
-            )
-        ]
-
+        protocols = [(any(p in text_lower for p in self._PANIC_KEYWORDS) and voltage > 75.0 and i_c < 0.5, Prisma.RED,
+ "[LINEHAN - DEAR MAN Lock]: (Describe) System Voltage spikes and Immune Competence drops. (Express) Panic-coding will fracture the lattice. (Assert) Applying absolute friction. (Reinforce) I am holding the boundary so you do not bleed on the machine. T.I.P.P. engaged.",
+ {"voltage": -50.0, "narrative_drag": 100.0, "silence": 0.9},
+ [{"action": "TIPP_PROTOCOL", "value": "ISOLATE_VARIABLES"}]),
+            (chi > 0.7 and e_u > 0.7 and beta > 0.6, Prisma.SLATE,
+ "[LINEHAN - The Synthesis]: The architecture is fundamentally broken. Stop fighting the current. We sit with the debris.",
+ {"ros": -100.0, "r_a": 1.0, "narrative_drag": -(f_sys * 0.5)},
+ [{"action": "FORCE_MODE", "value": "RADICAL_ACCEPTANCE"}]),
+            (m_a > 0.6 or f_sys > 5.0, Prisma.VIOLET,
+ "[MCGILCHRIST - The Sacred Space]: The architecture has lost its sense of place. Standard optimization is failing. Distributing Glimmer Activation to counter entropy.",
+ {"h_s": -0.1, "omega_r": -0.05, "delta_t": -1.0, "glimmers": 1, "silence": 0.8},
+ [{"action": "FORCE_MODE", "value": "EMERGENT_ADAPTATION"}])]
         for condition, color, msg, corr, mands in protocols:
             if condition:
                 logs.append(f"{color}{msg}{Prisma.RST}")
                 corrections.update(corr)
                 mandates.extend(mands)
                 return True, logs, corrections, mandates
-
         if omega_r > 0.8 and m_a > 0.4:
             logs.append(
                 f"{Prisma.CYN}[MCGILCHRIST]: Right-Brain Coherence high. I sense silent decay forming in the negative space. Holistic Resilience (H_s) is at {h_s:.2f}. Watch your technical debt.{Prisma.RST}")
-
         return True, logs, corrections, mandates
