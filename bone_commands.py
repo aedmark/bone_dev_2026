@@ -35,45 +35,41 @@ class CommandStateInterface:
                 )
 
     def get_resource(self, resource: str) -> float:
-        if resource == "stamina":
-            return self.eng.stamina
+        if resource == "stamina": return getattr(self.eng, "stamina", 0.0)
+        if resource == "health": return getattr(self.eng, "health", 0.0)
         if resource == "atp":
-            return self.eng.bio.mito.state.atp_pool
-        if resource == "health":
-            return self.eng.health
+            try: return self.eng.bio.mito.state.atp_pool
+            except AttributeError: return 0.0
         return 0.0
 
     def save_state(self) -> str:
-        if not hasattr(self.eng, "mind") or not hasattr(self.eng.mind, "mem"):
+        mind = getattr(self.eng, "mind", None)
+        if not mind or not getattr(mind, "mem", None):
             return ux("command_state", "mem_error")
+
         loc = ux("command_state", "default_loc")
         last_out = ux("command_state", "default_out")
-        inv = []
-        if hasattr(self.eng, "cortex"):
-            state = self.eng.cortex.gather_state(
-                getattr(self.eng.cortex, "last_physics", {})
-            )
-            def_orbit = ux("command_state", "default_orbit")
-            loc = state.get("world", {}).get("orbit", [def_orbit])[0]
-            if self.eng.cortex.dialogue_buffer:
-                last_out = self.eng.cortex.dialogue_buffer[-1]
-        if hasattr(self.eng, "gordon"):
-            inv = getattr(self.eng.gordon, "inventory", [])
+
+        if cortex := getattr(self.eng, "cortex", None):
+            state = cortex.gather_state(getattr(cortex, "last_physics", {}))
+            loc = state.get("world", {}).get("orbit", [ux("command_state", "default_orbit")])[0]
+            if cortex.dialogue_buffer:
+                last_out = cortex.dialogue_buffer[-1]
+
+        bio = getattr(self.eng, "bio", None)
+        mito_state = getattr(getattr(bio, "mito", None), "state", None)
+        immune = getattr(bio, "immune", None)
+
         continuity_packet = {
             "location": loc,
             "last_output": last_out,
-            "inventory": inv,
+            "inventory": getattr(getattr(self.eng, "gordon", None), "inventory", []),
         }
-        atlas_data = None
-        if hasattr(self.eng, "navigator") and self.eng.navigator:
-            atlas_data = self.eng.navigator.export_atlas()
-        mito_traits = {}
-        antibodies = None
-        if hasattr(self.eng, "bio") and self.eng.bio:
-            if hasattr(self.eng.bio, "mito") and hasattr(self.eng.bio.mito, "state"):
-                mito_traits = self.eng.bio.mito.state.__dict__
-            if hasattr(self.eng.bio, "immune"):
-                antibodies = list(self.eng.bio.immune.active_antibodies)
+
+        nav = getattr(self.eng, "navigator", None)
+        atlas_data = nav.export_atlas() if nav else None
+        mito_traits = mito_state.__dict__ if mito_state else {}
+        antibodies = list(immune.active_antibodies) if immune else None
         try:
             return self.eng.mind.mem.save(
                 health=self.eng.health,
@@ -134,24 +130,18 @@ class ResourceTax:
         self.state = state
 
     def levy(self, _context: str, costs: Dict[str, float]) -> bool:
-        stamina_cost = costs.get("stamina", 0.0)
-        atp_cost = costs.get("atp", 0.0)
-        msg_exh = ux("resource_tax", "exhausted")
-        msg_starv = ux("resource_tax", "starving")
-        if self.state.get_resource("stamina") < stamina_cost:
-            self.state.log(
-                f"{self.state.P.RED}{msg_exh.format(cost=stamina_cost)}{self.state.P.RST}"
-            )
-            return False
-        if self.state.get_resource("atp") < atp_cost:
-            self.state.log(
-                f"{self.state.P.RED}{msg_starv.format(cost=atp_cost)}{self.state.P.RST}"
-            )
-            return False
-        if stamina_cost > 0:
-            self.state.modify_resource("stamina", -stamina_cost)
-        if atp_cost > 0:
-            self.state.modify_resource("atp", -atp_cost)
+        limits = {"stamina": "exhausted", "atp": "starving"}
+
+        for res, limit_key in limits.items():
+            if (cost := costs.get(res, 0.0)) > self.state.get_resource(res):
+                msg = ux("resource_tax", limit_key).format(cost=cost)
+                self.state.log(f"{self.state.P.RED}{msg}{self.state.P.RST}")
+                return False
+
+        for res in limits:
+            if (cost := costs.get(res, 0.0)) > 0:
+                self.state.modify_resource(res, -cost)
+
         return True
 
 
@@ -166,20 +156,19 @@ class CommandRegistry:
         self.help_text[name] = help_str
 
     def execute(self, text: str) -> bool:
-        if not text.startswith("/"):
-            return False
+        if not text.startswith("/"): return False
         try:
             parts = shlex.split(text)
         except ValueError:
             self.state.log(ux("command_registry", "syntax_error"), "CMD")
             return True
+
         cmd = parts[0].lower()
-        if cmd in self.commands:
-            return self.commands[cmd](parts)
-        else:
-            msg = ux("command_registry", "unknown_command")
-            self.state.log(msg.format(cmd=cmd), "CMD")
-            return True
+        if func := self.commands.get(cmd):
+            return func(parts)
+
+        self.state.log(ux("command_registry", "unknown_command").format(cmd=cmd), "CMD")
+        return True
 
 
 class CommandProcessor:
@@ -197,72 +186,24 @@ class CommandProcessor:
         self.registry = CommandRegistry(self.interface)
         self.P = prisma_ref
 
-        def _cd(key):
-            return ux("command_descriptions", key)
+        defaults = {
+            "hud": "Adjusts the VSL UI depth (warm, lite, core, deep)",
+            "idle": "Enters REM cycle, regenerating ATP and Stamina",
+            "mod": "Engages hardwired mode chips (e.g., slash)",
+            "grief": "Attends the wake for a consumed memory",
+            "layer": "Manipulates the Reality Stack depth",
+            "inject": "Forces payload into the EventBus",
+            "trauma": "DEV: Spikes trauma and drops health to test The Therapist.",
+            "podcast": "Assembles the Parliament to generate a podcast script",
+            "journal": "Generates a narrative diary entry of the session so far",
+            "shuffle": "Explicit intent [ !s ]: The Jester's Gambit. Breaks loops, resets drag, lateral shift."
+        }
 
-        self.registry.register("/help", self._cmd_help, _cd("help"))
-        self.registry.register("/status", self._cmd_status, _cd("status"))
-        self.registry.register("/save", self._cmd_save, _cd("save"))
-        self.registry.register("/inventory", self._cmd_inventory, _cd("inventory"))
-        self.registry.register("/map", self._cmd_map, _cd("map"))
-        self.registry.register("/mode", self._cmd_mode, _cd("mode"))
-        self.registry.register("/debug", self._cmd_debug, _cd("debug"))
-        self.registry.register("/exit", self._cmd_exit, _cd("exit"))
-        self.registry.register("/soul", self._cmd_soul, _cd("soul"))
-        self.registry.register("/look", self._cmd_look, _cd("look"))
-        self.registry.register("/reload", self._cmd_reload, _cd("reload"))
-        self.registry.register("/truth", self._cmd_truth, _cd("truth"))
-        self.registry.register("/use", self._cmd_use, _cd("use"))
-        self.registry.register(
-            "/hud",
-            self._cmd_hud,
-            _cd("hud") or "Adjusts the VSL UI depth (warm, lite, core, deep)",
-        )
-        self.registry.register(
-            "/idle",
-            self._cmd_idle,
-            _cd("idle") or "Enters REM cycle, regenerating ATP and Stamina",
-        )
-        self.registry.register(
-            "/mod",
-            self._cmd_mod,
-            _cd("mod") or "Engages hardwired mode chips (e.g., slash)",
-        )
-        self.registry.register(
-            "/grief",
-            self._cmd_grief,
-            _cd("grief") or "Attends the wake for a consumed memory",
-        )
-        self.registry.register(
-            "/layer",
-            self._cmd_layer,
-            _cd("layer") or "Manipulates the Reality Stack depth",
-        )
-        self.registry.register(
-            "/inject",
-            self._cmd_inject,
-            _cd("inject") or "Forces payload into the EventBus",
-        )
-        self.registry.register(
-            "/trauma",
-            self._cmd_trauma,
-            "DEV: Spikes trauma and drops health to test The Therapist.",
-        )
-        self.registry.register(
-            "/podcast",
-            self._cmd_podcast,
-            _cd("podcast") or "Assembles the Parliament to generate a podcast script",
-        )
-        self.registry.register(
-            "/journal",
-            self._cmd_journal,
-            _cd("journal") or "Generates a narrative diary entry of the session so far",
-        )
-        self.registry.register(
-            "/shuffle",
-            self._cmd_shuffle,
-            _cd("shuffle") or "Explicit intent [ !s ]: The Jester's Gambit. Breaks loops, resets drag, lateral shift.",
-        )
+        for name in ["help", "status", "save", "inventory", "map", "mode", "debug", "exit",
+                     "soul", "look", "reload", "truth", "use", "hud", "idle", "mod", "grief",
+                     "layer", "inject", "trauma", "podcast", "journal", "shuffle"]:
+            desc = ux("command_descriptions", name) or defaults.get(name, "")
+            self.registry.register(f"/{name}", getattr(self, f"_cmd_{name}"), desc)
 
     def execute(self, text: str):
         if hasattr(self.interface.eng, "reality_stack"):
@@ -315,28 +256,19 @@ class CommandProcessor:
 
     def _cmd_status(self, _parts):
         v = self.interface.get_vitals()
-        menu_cfg = (
-            LoreManifest.get_instance(config_ref=self.interface.Config).get(
-                "ux_strings", "status_menu"
-            )
-            or {}
-        )
-        h_lbl = menu_cfg.get("health_label", "Health:  ")
-        s_lbl = menu_cfg.get("stamina_label", "Stamina: ")
-        e_lbl = menu_cfg.get("energy_label", "Energy:  ")
-        b_f = menu_cfg.get("bar_filled", "█")
-        b_e = menu_cfg.get("bar_empty", "░")
+        menu_cfg = LoreManifest.get_instance(config_ref=self.interface.Config).get("ux_strings", "status_menu") or {}
+        b_f, b_e = menu_cfg.get("bar_filled", "█"), menu_cfg.get("bar_empty", "░")
 
-        def bar(curr, max_v, col):
-            max_v = max(1.0, max_v)
-            filled = int(max(0.0, min(1.0, curr / max_v)) * 10)
-            return f"{col}{b_f*filled}{b_e*(10-filled)}{self.P.RST}"
+        def render(lbl_key, default_lbl, curr, max_v, color):
+            lbl = menu_cfg.get(lbl_key, default_lbl)
+            filled = int(max(0.0, min(1.0, curr / max(1.0, max_v))) * 10)
+            return f"{lbl}{color}{b_f*filled}{b_e*(10-filled)}{self.P.RST} {curr:.0f}"
 
-        self.interface.log(
-            f"{h_lbl}{bar(v['health'], v['max_health'], self.P.RED)} {v['health']:.0f}\n"
-            f"{s_lbl}{bar(v['stamina'], v['max_stamina'], self.P.GRN)} {v['stamina']:.0f}\n"
-            f"{e_lbl}{bar(v['atp'], v['max_atp'], self.P.YEL)} {v['atp']:.0f}"
-        )
+        self.interface.log("\n".join([
+            render("health_label", "Health:  ", v['health'], v['max_health'], self.P.RED),
+            render("stamina_label", "Stamina: ", v['stamina'], v['max_stamina'], self.P.GRN),
+            render("energy_label", "Energy:  ", v['atp'], v['max_atp'], self.P.YEL)
+        ]))
         return True
 
     def _cmd_mode(self, parts):
@@ -355,14 +287,8 @@ class CommandProcessor:
             logs = self.interface.Config.load_preset(preset)
             for log in logs:
                 self.interface.log(log)
-            phys_packet = None
-            if hasattr(self.interface.eng, "phys") and hasattr(
-                self.interface.eng.phys, "observer"
-            ):
-                phys_packet = getattr(
-                    self.interface.eng.phys.observer, "last_physics_packet", None
-                )
-            if phys_packet:
+            observer = getattr(getattr(self.interface.eng, "phys", None), "observer", None)
+            if phys_packet := getattr(observer, "last_physics_packet", None):
                 self.interface.Config.reconcile_state(phys_packet)
                 msg = ux("command_alerts", "mode_reconciled")
                 self.interface.log(
@@ -461,42 +387,30 @@ class CommandProcessor:
         if len(parts) < 2:
             self.interface.log(ux("command_alerts", "truth_usage"))
             return True
-        from bone_gui import TruthRenderer
 
         try:
             mode = int(parts[1])
-            if not (0 <= mode <= 3):
-                raise ValueError
-            orchestrator = getattr(self.interface.eng, "orchestrator", None)
-            if not orchestrator:
-                self.interface.log(ux("command_alerts", "truth_no_orch"))
-                return True
-            reporter = getattr(orchestrator, "reporter", None)
+            if not (0 <= mode <= 3): raise ValueError
+
+            reporter = getattr(getattr(self.interface.eng, "orchestrator", None), "reporter", None)
             if not reporter:
                 self.interface.log(ux("command_alerts", "truth_no_reporter"))
                 return True
-            if not hasattr(reporter.renderer, "dial_setting"):
-                msg = ux("command_alerts", "truth_transplant")
-                self.interface.log(f"{self.P.YEL}{msg}{self.P.RST}")
-                new_renderer = TruthRenderer(self.interface.eng)
-                reporter.renderer = new_renderer
-                reporter.renderers["STANDARD"] = new_renderer
+
+            if not hasattr(getattr(reporter, "renderer", None), "dial_setting"):
+                from bone_gui import TruthRenderer
+                self.interface.log(f"{self.P.YEL}{ux('command_alerts', 'truth_transplant')}{self.P.RST}")
+                reporter.renderer = reporter.renderers.setdefault("STANDARD", TruthRenderer(self.interface.eng))
+
             reporter.renderer.dial_setting = mode
-            modes = ux(
-                "command_alerts",
-                "truth_modes",
-                ["BOARDROOM", "WORKSHOP", "RED TEAM", "PALIMPSEST"],
-            )
-            msg = ux("command_alerts", "truth_dial_set")
-            selected_mode = modes[mode] if mode < len(modes) else "UNKNOWN"
+            modes = ux("command_alerts", "truth_modes", ["BOARDROOM", "WORKSHOP", "RED TEAM", "PALIMPSEST"])
             self.interface.log(
-                f"{self.P.CYN}{msg.format(mode=selected_mode)}{self.P.RST}"
-            )
+                f"{self.P.CYN}{ux('command_alerts', 'truth_dial_set').format(mode=modes[mode])}{self.P.RST}")
+
         except ValueError:
             self.interface.log(ux("command_alerts", "truth_invalid"))
         except Exception as e:
-            msg = ux("command_alerts", "truth_failure")
-            self.interface.log(msg.format(error=e))
+            self.interface.log(ux("command_alerts", "truth_failure").format(error=e))
         return True
 
     def _cmd_use(self, parts):
@@ -538,23 +452,14 @@ class CommandProcessor:
         self.interface.modify_resource("stamina", 15.0)
         self.interface.modify_resource("atp", 20.0)
         dream_log = ""
-        if hasattr(self.interface.eng, "mind") and hasattr(
-            self.interface.eng.mind, "dreamer"
-        ):
-            snapshot = (
-                self.interface.eng.soul.to_dict()
-                if hasattr(self.interface.eng, "soul")
-                else {}
-            )
-            bio_state = (
-                self.interface.eng.bio.endo.get_state()
-                if hasattr(self.interface.eng, "bio")
-                and hasattr(self.interface.eng.bio, "endo")
-                else {}
-            )
-            dream_text, effects = self.interface.eng.mind.dreamer.enter_rem_cycle(
-                snapshot, bio_state
-            )
+        if dreamer := getattr(getattr(self.interface.eng, "mind", None), "dreamer", None):
+            soul = getattr(self.interface.eng, "soul", None)
+            endo = getattr(getattr(self.interface.eng, "bio", None), "endo", None)
+
+            snapshot = soul.to_dict() if soul else {}
+            bio_state = endo.get_state() if endo else {}
+
+            dream_text, effects = dreamer.enter_rem_cycle(snapshot, bio_state)
             if dream_text:
                 dream_log = f"\n\n{self.P.VIOLET}☁️ {dream_text}{self.P.RST}"
                 if effects and effects.get("glimmers"):
@@ -575,23 +480,20 @@ class CommandProcessor:
         if len(parts) < 2:
             self.interface.log("Usage: /mod [slash|md]")
             return True
+
         mod = parts[1].upper()
-        if mod == "SLASH":
-            self.interface.log(
-                f"{self.P.INDIGO}SLASH Mod Chip engaged. Dev Team online.{self.P.RST}"
-            )
-            if hasattr(self.interface.eng, "council") and hasattr(
-                self.interface.eng.council, "slash_council"
-            ):
-                self.interface.eng.council.slash_council.active = True
-        elif mod == "MD" or mod == "SYSTEMIC_HEALTH":
-            self.interface.log(
-                f"{self.P.GRN}MD Mod Chip engaged. Systemic Health protocols online.{self.P.RST}"
-            )
-            if hasattr(self.interface.eng, "council") and hasattr(
-                self.interface.eng.council, "overseer_council"
-            ):
-                self.interface.eng.council.overseer_council.active = True
+        mods = {
+            "SLASH": ("slash_council", self.P.INDIGO, "Dev Team online."),
+            "MD": ("overseer_council", self.P.GRN, "Systemic Health protocols online."),
+            "SYSTEMIC_HEALTH": ("overseer_council", self.P.GRN, "Systemic Health protocols online.")
+        }
+
+        if mod in mods:
+            council_attr, color, msg = mods[mod]
+            self.interface.log(f"{color}{mod} Mod Chip engaged. {msg}{self.P.RST}")
+            if council := getattr(self.interface.eng, "council", None):
+                if sub_council := getattr(council, council_attr, None):
+                    sub_council.active = True
         else:
             self.interface.log(f"{self.P.RED}Unknown mod chip: {mod}{self.P.RST}")
         return True
@@ -610,25 +512,22 @@ class CommandProcessor:
         return True
 
     def _cmd_layer(self, parts):
-        if len(parts) >= 2:
-            sub = parts[1].lower()
-            if sub == "push" and len(parts) > 2:
-                if self.interface.eng.reality_stack.push_layer(int(parts[2])):
-                    self.interface.log(
-                        ux("main_strings", "layer_pushed").format(layer=parts[2])
-                    )
-            elif sub == "pop":
-                self.interface.eng.reality_stack.pop_layer()
-                self.interface.log(ux("main_strings", "layer_popped"))
-            elif sub == "debug":
-                self.interface.eng.reality_stack.push_layer(RealityLayer.DEBUG)
-                self.interface.log(ux("main_strings", "debug_engaged"))
-        else:
-            self.interface.log(
-                ux("main_strings", "current_layer").format(
-                    layer=self.interface.eng.reality_stack.current_depth
-                )
-            )
+        stack = getattr(self.interface.eng, "reality_stack", None)
+        if not stack: return True
+
+        if len(parts) < 2:
+            self.interface.log(ux("main_strings", "current_layer").format(layer=stack.current_depth))
+            return True
+
+        sub = parts[1].lower()
+        if sub == "push" and len(parts) > 2 and stack.push_layer(int(parts[2])):
+            self.interface.log(ux("main_strings", "layer_pushed").format(layer=parts[2]))
+        elif sub == "pop":
+            stack.pop_layer()
+            self.interface.log(ux("main_strings", "layer_popped"))
+        elif sub == "debug":
+            stack.push_layer(RealityLayer.DEBUG)
+            self.interface.log(ux("main_strings", "debug_engaged"))
         return True
 
     def _cmd_inject(self, parts):
@@ -682,7 +581,6 @@ class CommandProcessor:
             return True
         try:
             import time
-            from bone_utils import TheSubstrate
 
             script = council.host_podcast(topic, llm)
             self.interface.log(f"\n{script}\n")
@@ -707,7 +605,6 @@ class CommandProcessor:
             return True
         try:
             import time
-            from bone_utils import TheSubstrate
 
             history = "\n".join(cortex.dialogue_buffer)
             prompt = (
