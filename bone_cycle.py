@@ -27,7 +27,7 @@ from bone_phases import (
     SimulationPreflightPhase,
     CognitionPhase,
     SensationPhase,
-    StabilizationPhase,
+    StabilizationPhase, SimulationPhase,
 )
 from bone_physics import CycleStabilizer
 from bone_presets import BoneConfig
