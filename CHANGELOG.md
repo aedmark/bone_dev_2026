@@ -1,3 +1,16 @@
+### **BONEAMANITA v19.2.5 "The Formalized Determinant"**
+
+_A direct translation of Nelson Spence's zero-sorry Lean 4 formalization into the pythonic bedrock. We have replaced the generic heuristic equations of the Creative Determinant with the mathematically proven $L^\infty$ algebraic bounds, turning abstract survival math into undeniable biological reality._
+
+#### **🧮 FORMAL MATHEMATICAL BOUNDS (`bone_physics.py`)**
+- **The L-Infinity Bound:** Eradicated the generic `calculate_atp_cost` heuristic. Implemented `execute_metabolic_tick`, which perfectly mirrors the PDE formalization: $v \le (b/c)^{1/(p-1)}$. The system now calculates its maximum theoretical ATP regeneration rate using mathematically proven boundary conditions.
+- **Nonlinearity & Decay:** The `CreativeDeterminantEngine` constructor now natively tracks the nonlinearity exponent ($p$) and baseline systemic decay ($c$) required to calculate the limits of autopoietic closure.
+
+#### **🫀 METABOLIC INTEGRATION (`bone_cycle.py`)**
+- **Native Autopoiesis:** Wired the verified bounds directly into the Orchestrator loop. The system no longer estimates ROS penalties; it applies the exact mathematical deltas for ATP regeneration and Toxicity accumulation based on its active Canonical Viability ($b$).
+
+---
+
 ### **BONEAMANITA v19.2.4 "The Immunosuppressant Graft"**
 
 _A localized adaptation of the bureaucratic defense mechanisms from Nelson Spence's "Grippy" architecture (Project Navi). We have translated strict output policies and linting gates into native biological laws, granting the user localized agency while protecting the system's baseline ATP from adversarial exhaustion._

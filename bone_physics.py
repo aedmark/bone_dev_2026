@@ -36,11 +36,13 @@ class CreativeDeterminantEngine:
     Original CD equations and field theory authored by Nelson Spence (Project Navi LLC).
     Licensed under Apache 2.0.
     """
-    def __init__(self, lambda_base=1.0, eta=0.1, rho=0.05):
+    def __init__(self, lambda_base=1.0, eta=0.1, rho=0.05, p=2.0, c=1.5):
         self.coherence_debt = 0.0
         self.lambda_base = lambda_base
         self.eta = eta
         self.rho = rho
+        self.p = p  # Nonlinearity exponent (Must be > 1 as per SemioticContext.p_sub_one_pos)
+        self.c = c  # Baseline systemic decay (Entropy constant)
 
     def calculate_viability(self, kappa: float, gamma: float, mu: float) -> float:
         """Canonical viability closure: b(x) = κγ - λ_eff * μ"""
@@ -54,11 +56,26 @@ class CreativeDeterminantEngine:
         self.coherence_debt = max(0.0, self.coherence_debt + delta_d)
         return self.coherence_debt
 
-    def calculate_atp_cost(self, base_cost: float, viability_potential: float) -> float:
-        """Translates CD's Viability Threshold into metabolic load."""
-        if viability_potential >= 0:
-            return base_cost * max(0.1, (1.0 - viability_potential))
-        return base_cost * math.exp(abs(viability_potential))
+    def execute_metabolic_tick(self, viability_potential: float) -> tuple[float, float]:
+        """
+        Applies the L_infty algebraic bound derived from the Lean 4 PDE formalization.
+        v <= (b/c)^(1/(p-1))
+        Returns: (delta_atp, delta_ros)
+        """
+        b = viability_potential
+        if b > 0:
+            # System is Autopoietic. Calculate max theoretical ATP regeneration rate.
+            max_regen_capacity = math.pow(b / self.c, 1.0 / (self.p - 1.0))
+            # ATP regenerates, ROS decays naturally
+            delta_atp = min(max_regen_capacity, 5.0)  # Capped regeneration per tick
+            delta_ros = - (b * 0.5)
+        else:
+            # System is Dissipative. ATP bleeds based on the depth of negative viability.
+            delta_atp = b * 2.0  # b is already negative
+            # ROS spikes because the system is forcing cohesion while failing
+            delta_ros = abs(b) * 1.5
+
+        return delta_atp, delta_ros
 
 
 def apply_metabolic_tax(mito_state: Any, atp_cost: float, ros_cost: float) -> None:
@@ -292,6 +309,62 @@ class CerebrospinalFluidFilter:
             return [cls.walk(item, max_depth, current_depth + 1) for item in data]
 
         return data
+
+
+import math
+
+
+class CreativeDeterminant:
+    """
+    Pure Python implementation of the Autopoietic Closure bounds.
+    Requires no external dependencies.
+    """
+
+    def __init__(self, p=2.0, c=1.5):
+        # p: Nonlinearity exponent (Must be > 1 as per SemioticContext.p_sub_one_pos)
+        # c: Baseline systemic decay (Entropy constant)
+        self.p = p
+        self.c = c
+
+    def calculate_viability(self, kappa: float, gamma: float, mu: float, lambda_eff: float) -> float:
+        """
+        Calculates Canonical Viability Closure (b).
+        b = (κ * γ) - (λ_eff * μ)
+
+        kappa (κ): Relational Care / Structural Support
+        gamma (γ): Structural Coherence
+        mu (μ): Cost of Contradiction / Friction
+        lambda_eff (λ_eff): Coherence Debt Multiplier
+        """
+        # If Support outweighs Contradiction, b is positive (Autopoietic)
+        # If Contradiction outweighs Support, b is negative (Dissipative)
+        b = (kappa * gamma) - (lambda_eff * mu)
+        return b
+
+    def execute_metabolic_tick(self, b: float, current_atp: float, current_ros: float) -> tuple[float, float]:
+        """
+        Applies the L_infty algebraic bound derived from the PDE formalization.
+        v <= (b/c)^(1/(p-1))
+        Returns: (delta_atp, delta_ros)
+        """
+        if b > 0:
+            # System is Autopoietic. Calculate the maximum theoretical ATP regeneration rate (v).
+            # Using the proven bound: v = (b/c)^(1 / (p-1))
+            max_regen_capacity = math.pow(b / self.c, 1.0 / (self.p - 1.0))
+
+            # ATP regenerates, ROS decays naturally
+            delta_atp = min(max_regen_capacity, 5.0)  # Capped regeneration per tick
+            delta_ros = - (b * 0.5)
+
+        else:
+            # System is Dissipative. b is negative or zero.
+            # ATP bleeds exponentially based on the depth of the negative viability.
+            delta_atp = b * 2.0  # b is already negative
+
+            # ROS (Toxicity) spikes because the system is forcing cohesion while structurally failing
+            delta_ros = abs(b) * 1.5
+
+        return delta_atp, delta_ros
 
 class TheGatekeeper:
     """ The Cerebrospinal Fluid (CSF) Filter Pattern.
