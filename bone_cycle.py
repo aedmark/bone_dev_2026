@@ -168,6 +168,36 @@ class GeodesicOrchestrator:
             pre_logs = [e["text"] for e in self.eng.events.flush()]
             ctx.logs.extend(pre_logs)
             ctx = self.simulator.run_simulation(ctx)
+
+            """ Metabolic integration of the Creative Determinant (CD) framework.
+                Original CD equations and field theory authored by Nelson Spence (Project Navi LLC).
+                Licensed under Apache 2.0.
+                """
+            if hasattr(self.eng, "bio") and hasattr(self.eng.bio, "mito") and hasattr(ctx, "physics"):
+                energy_node = safe_get(ctx.physics, "energy", ctx.physics)
+                viability = float(safe_get(energy_node, "viability_potential", 0.0))
+                debt = float(safe_get(energy_node, "coherence_debt", 0.0))
+
+                cd_engine = getattr(getattr(self.eng, "observer", None), "cd_engine", None)
+                if cd_engine:
+                    if viability < 0:
+                        # System is dissipative (Care/Coherence < Contradiction).
+                        # Apply Nelson's exponential "cost of striving" penalty.
+                        penalty_tax = cd_engine.calculate_atp_cost(base_cost=2.0, viability_potential=viability)
+                        self.eng.bio.mito.state.atp_pool = max(0.0, self.eng.bio.mito.state.atp_pool - penalty_tax)
+                        self.eng.bio.mito.state.ros_buildup += (debt * 5.0) # Debt converts directly to toxicity
+
+                        if penalty_tax > 5.0:
+                            self.eng.events.log(
+                                f"{Prisma.RED}[CD METABOLISM] Viability threshold broken (b={viability:.2f}). Coherence Debt: {debt:.2f}. Exponential ATP drain applied.{Prisma.RST}",
+                                "BIO"
+                            )
+                    elif viability > 0:
+                        # System is autopoietic. Regenerate ATP via viability surplus.
+                        regen = viability * 5.0
+                        self.eng.bio.mito.state.atp_pool = min(100.0, self.eng.bio.mito.state.atp_pool + regen)
+            # -------------------------------------------------------
+
             if hasattr(self.eng, "observer") and self.eng.observer:
                 self.eng.observer.last_physics_packet = ctx.physics.snapshot()
             if hasattr(self.eng, "telemetry") and self.eng.telemetry:
@@ -248,11 +278,20 @@ class GeodesicOrchestrator:
             lattice = getattr(self.eng, "shared_lattice", None)
             delta_val = float(getattr(lattice.shared, "delta", 0.0)) if lattice else 0.0
 
-            if atp_val >= 80.0 and delta_val >= 0.6 and clean_message == "(Waiting)":
+            # --- CD COHERENCE DEBT CHECK ---
+            obs = getattr(self.eng, "observer", None)
+            phys = getattr(obs, "last_physics_packet", None) if obs else None
+            en_node = safe_get(phys, "energy", phys) if phys else {}
+            debt = float(safe_get(en_node, "coherence_debt", 0.0))
+
+            is_standard_rem = atp_val >= 80.0 and delta_val >= 0.6 and clean_message == "(Waiting)"
+            is_debt_recovery = debt > 1.5 and atp_val >= 30.0 and clean_message == "(Waiting)"
+
+            if is_standard_rem or is_debt_recovery:
                 def _auto_rem_worker():
                     try:
-                        self.eng.events.log(
-                            "Automatic REM Bridge engaged (High ATP, High Silence). Consolidating synapses...", "SYS")
+                        reason = "High Coherence Debt detected. Metabolizing trauma..." if is_debt_recovery else "High ATP, High Silence. Consolidating synapses..."
+                        self.eng.events.log(f"Automatic REM Bridge engaged: {reason}", "SYS")
                         self.run_headless_turn("/idle")
                     except Exception as e:
                         self.eng.events.log(f"Auto REM Crash: {e}", "CRIT")
