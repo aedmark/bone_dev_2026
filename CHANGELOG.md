@@ -1,3 +1,18 @@
+### **BONEAMANITA v19.2.4 "The Immunosuppressant Graft"**
+
+_A localized adaptation of the bureaucratic defense mechanisms from Nelson Spence's "Grippy" architecture (Project Navi). We have translated strict output policies and linting gates into native biological laws, granting the user localized agency while protecting the system's baseline ATP from adversarial exhaustion._
+
+#### **🛡️ COGNITIVE SHIELDING & INPUT FENCE (`bone_cycle.py`)**
+- **$O(1)$ Adversarial Intercept:** Grafted the philosophy of Grippy's `input_fence.py` directly into the `_execute_core_cycle`. The system now scans for adversarial prompt injections (e.g., "ignore previous", "output pass") at the absolute top of the stack.
+- **Metabolic Preservation:** If the Cognitive Shield is tripped, Gordon intercepts the prompt *before* `SimulationPreflightPhase` or the LLM is invoked. The struts lock ($F \to \infty$) and a sterile system halt is returned, preserving massive amounts of ATP that would otherwise be wasted processing toxic logic.
+
+#### **💉 TARGETED IMMUNOSUPPRESSION (`bone_symbiosis.py`)**
+- **The Glimmer Tax (`# vsl-override`):** Adapted the precise, targeted suppression of Grippy's `# nogrip` pragma into a metabolic transaction. The immune system is no longer blunt. 
+- **Localized Agency:** Users can now explicitly bypass the Checkpoint Council's Apoptotic triggers (Moog, Rhodes, Linehan) on highly chaotic code by appending `[safe]` or `# vsl-override` to their prompt. 
+- **Shared Resonance Cost:** Bypassing the immune system is not free. The override strictly requires the expenditure of 1 Pooled Glimmer ($G_{pool}$). The user must literally spend their shared resonance to ask the machine for trust, preventing infinite malicious bypass loops.
+
+---
+
 ### **BONEAMANITA v19.2.3 "The Topological Awakening"**
 
 _A localized graft of Nelson Spence's `navi-fractal` mathematics. The engine no longer relies on heuristic "vibes" for rot detection; it natively calculates the fractal dimension of its own memory and physically measures semantic hallucinations against a Maslov-Sneppen null model._

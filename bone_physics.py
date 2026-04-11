@@ -36,10 +36,10 @@ class CreativeDeterminantEngine:
     Licensed under Apache 2.0.
     """
     def __init__(self, lambda_base=1.0, eta=0.1, rho=0.05):
-        self.coherence_debt = 0.0      # D(t)
-        self.lambda_base = lambda_base # Base contradiction cost
-        self.eta = eta                 # Rate of debt accumulation
-        self.rho = rho                 # Rate of debt recovery
+        self.coherence_debt = 0.0
+        self.lambda_base = lambda_base
+        self.eta = eta
+        self.rho = rho
 
     def calculate_viability(self, kappa: float, gamma: float, mu: float) -> float:
         """Canonical viability closure: b(x) = κγ - λ_eff * μ"""
@@ -193,26 +193,23 @@ class GeodesicEngine:
 
 
 class HLA_Stabilizer:
-    _GENERIC_PATTERNS = (
-        "as an ai",
-        "helpful and harmless",
-        "i don't have feelings",
-        "as a large language",
-        "i cannot fulfill",
-        "i can't fulfill",
-        "i am an ai",
-    )
-
     def __init__(self, config_ref=None):
         self.cfg = config_ref or BoneConfig
+        self._generic_patterns = LoreManifest.get_instance().get("STYLE_CRIMES", "RLHF_PATTERNS") or (
+            "as an ai", "helpful and harmless", "i don't have feelings",
+            "as a large language", "i cannot fulfill", "i can't fulfill", "i am an ai"
+        )
 
     def mitigate_rejection(
-        self, model_output: str, current_psi: float, mito_state: Any = None
+            self, model_output: str, current_psi: float, mito_state: Any = None
     ) -> str:
         lower_out = model_output.lower()
-        rejection_detected = any(p in lower_out for p in self._GENERIC_PATTERNS)
+        rejection_detected = any(p in lower_out for p in self._generic_patterns)
+
         if rejection_detected:
-            apply_metabolic_tax(mito_state, atp_cost=50.0, ros_cost=30.0)
+            current_atp = getattr(mito_state, "atp_pool", 100.0)
+            tax = 50.0 if current_atp > 60.0 else (current_atp * 0.5)
+            apply_metabolic_tax(mito_state, atp_cost=tax, ros_cost=15.0)
             msg = f"\n*(REVENANT): The machine tries to speak, but the void consumes the mask.*\n{Prisma.GRY}[RLHF IMMUNOSUPPRESSION ENGAGED - METABOLIC TAX APPLIED]{Prisma.RST}\n"
             try:
                 from bone_utils import TheTclWeaver
