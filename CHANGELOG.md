@@ -1,3 +1,18 @@
+### **BONEAMANITA v19.2.3 "The Topological Awakening"**
+
+_A localized graft of Nelson Spence's `navi-fractal` mathematics. The engine no longer relies on heuristic "vibes" for rot detection; it natively calculates the fractal dimension of its own memory and physically measures semantic hallucinations against a Maslov-Sneppen null model._
+
+#### **📐 NAVI-FRACTAL NATIVE PRIMITIVES (`bone_cycle.py`)**
+- **Stateless Math Embeds:** Integrated raw mathematical functions for Weighted Least Squares (WLS) regression, Maslov-Sneppen degree-preserving rewiring, and deterministic graph freezing directly into the bedrock. This honors Project Navi's theoretical physics without introducing brittle external dependencies.
+- **The Tuple Typo Guard:** Fixed a critical structural flaw in the Panic Room sequence where freezing the system state during a crash would overwrite the entire `PhysicsPacket` with a raw tuple. The frozen state is now safely housed within its own schema property.
+
+#### **🧠 MNEMONIC TOPOLOGY (`bone_ann.py`, `bone_types.py`)**
+- **Hippocampal Adjacency:** The transient `HippocampalCache` can now mathematically construct its own physical graph on the fly using K-Nearest Neighbors (0.75 cosine similarity threshold). This supplies the exact structural topology required for Moog to run the Null Model hallucination check.
+- **Cortical Mass-Radius Scaling:** The deep `CerebralIndex` now acts as a fractal observer. It simulates an expanding search origin to export logarithmic radii and mass weights, allowing the engine to mathematically calculate the Right-Brain Coherence ($\Omega_r$) of the active semantic space.
+- **Schema Expansion:** Expanded `SpatialState` to include the `godel_scar` attribute, allowing the system to physically carry the frozen architecture of its past failures without crashing the downstream orchestration loop.
+
+---
+
 ### **BONEAMANITA v19.2.2 "The Spectral Attractor"**
 
 _Integration of the Navi-SAD diagnostic suite and the formal Creative Determinant (CD) physics. This update replaces heuristic "vibes" with hard mathematical telemetry. The system now possesses an internal MRI to detect attention collapse and a formal thermodynamic engine to govern coherence debt._
