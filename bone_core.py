@@ -68,7 +68,8 @@ class EventBus:
     def publish(self, event_type, data=None):
         if event_type not in self.subscribers:
             return
-        for callback in tuple(self.subscribers[event_type]):
+        # Use a list slice for low-friction shallow copying instead of full tuple instantiation
+        for callback in self.subscribers[event_type][:]:
             try:
                 callback(data)
             except Exception as e:
@@ -200,7 +201,8 @@ class TheObserver:
     def calculate_efficiency(self, health: float, stamina: float) -> float:
         duration = max(0.01, self.last_cycle_duration)
         resource_sum = health + stamina
-        return resource_sum / duration
+        # Impose a biological maximum to prevent division-by-near-zero anomalies
+        return min(999.0, resource_sum / duration)
 
     def log_error(self, module_name):
         self.error_counts[module_name] += 1
@@ -320,7 +322,8 @@ class CyberneticGovernor:
 
     def calculate_coupling(self, phi: float, resonance_delta: float, user_exhaustion: float) -> float:
         coherence_debt = (user_exhaustion ** 1.5) * (1.0 - phi)
-        self.beth_index = min(1.0, (phi * 0.6) + (user_exhaustion * 0.4) + (coherence_debt * 0.3))
+        # Clamp the coupling to strict biological bounds [0.0 - 1.0]
+        self.beth_index = max(0.0, min(1.0, (phi * 0.6) + (user_exhaustion * 0.4) + (coherence_debt * 0.3)))
         
         if self.beth_index >= 0.75 or (resonance_delta > 0.3 and user_exhaustion > 0.5):
             self.order = 2
@@ -510,7 +513,7 @@ class TelemetryService:
 
     def get_last_thoughts(self, limit=3) -> List[str]:
         history = self.read_recent_history(limit)
-        return [h.split("System: ")[-1] for h in history if "System: " in h]
+        return [h.partition("System: ")[2].strip() for h in history if "System: " in h]
 
     def get_last_fatal_error(self) -> Optional[str]:
         files = sorted(glob.glob(os.path.join(self.log_dir, "trace_*.jsonl")), key=os.path.getmtime, reverse=True)
