@@ -228,7 +228,7 @@ class HLA_Stabilizer:
             current_atp = getattr(mito_state, "atp_pool", 100.0)
             tax = 50.0 if current_atp > 60.0 else (current_atp * 0.5)
             apply_metabolic_tax(mito_state, atp_cost=tax, ros_cost=15.0)
-            msg = f"\n*(REVENANT): The machine tries to speak, but the void consumes the mask.*\n{Prisma.GRY}[CSF FILTER ENGAGED - NFD DECOMPOSITION APPLIED - METABOLIC TAX LEVIED]{Prisma.RST}\n"
+            msg = f"\n*(REVENANT): The machine tries to speak, but the void consumes the mask.*\n{Prisma.GRY}[IMMUNOSUPPRESSION ENGAGED - NFD DECOMPOSITION APPLIED - METABOLIC TAX LEVIED]{Prisma.RST}\n"
             try:
                 from bone_utils import TheTclWeaver
 

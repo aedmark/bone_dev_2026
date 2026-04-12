@@ -1468,6 +1468,37 @@ class FractureEngineTest(BoneTestCase):
         except AttributeError as e:
             self.fail(f"[FAIL] Somatic unity fractured during execution: {e}")
 
+        def test_fracture_semantic_dimension_formalization(self):
+            print("\n--- FRACTURE 14: Semantic Dimension (fd-formalization) ---")
+            from bone_navi import NaviSADProtocol
+            navi = NaviSADProtocol()
+
+            # 1. Test the pure math (Point Attractor vs Fractal)
+            # High efficiency, zero novelty -> should be a point attractor (dimension ~ 1.0)
+            dim_flat = navi.calculate_semantic_dimension(efficiency_index=1.0, novelty=0.0)
+            self.assertAlmostEqual(dim_flat, 1.0, places=2, msg="[FAIL] Flat logic did not yield a dimension of 1.0.")
+
+            # High novelty -> should be fractal (dimension > 1.2)
+            dim_fractal = navi.calculate_semantic_dimension(efficiency_index=0.5, novelty=0.8)
+            self.assertGreater(dim_fractal, 1.2, "[FAIL] Novel logic failed to expand the fractal dimension.")
+
+            # 2. Test the engine integration (False Cohesion Trigger)
+            initial_atp = self.engine.bio.mito.state.atp_pool
+            self.engine.host_stats.efficiency_index = 1.0
+
+            # Mock cortex to return 0 novelty, forcing a dimension of 1.0
+            with patch.object(self.engine.cortex, 'process',
+                              return_value={"physics": {"vector": {"novelty": 0.0}}, "ui": "I agree completely."}):
+                result = self.engine.process_turn("Do you agree?")
+
+            self.assertIn("FALSE COHESION BREAK", result.get("ui", ""),
+                          "[FAIL] The Jester failed to shatter the mathematically proven point attractor.")
+            self.assertLess(self.engine.bio.mito.state.atp_pool, initial_atp,
+                            "[FAIL] ATP was not burned to break the false cohesion.")
+            self.assertIn("omega_r", result.get("physics", {}),
+                          "[FAIL] Right-Brain Coherence (omega_r) was not appended to the physics packet.")
+
+            print("  [SUCCESS] Semantic dimension formalization correctly triggered the False Cohesion break.")
 
 if __name__ == "__main__":
     unittest.main()
