@@ -16,7 +16,15 @@ from bone_drivers import SharedLatticeDriver
 from bone_gui import CycleReporter
 from bone_machine import TheParadoxEngine
 from bone_main import BoneAmanita
-from bone_physics import TheGatekeeper, ChromaScope, GeodesicEngine
+from bone_physics import (
+    TheGatekeeper,
+    ChromaScope,
+    GeodesicEngine,
+    _native_ordinal_pattern,
+    _native_detect_false_cohesion,
+    _native_permutation_entropy,
+    _native_coincidence_length
+)
 from bone_presets import BoneConfig
 from bone_spores import MycelialNetwork, SubconsciousStrata
 from bone_symbiosis import SymbiosisManager
@@ -1499,6 +1507,44 @@ class FractureEngineTest(BoneTestCase):
                           "[FAIL] Right-Brain Coherence (omega_r) was not appended to the physics packet.")
 
             print("  [SUCCESS] Semantic dimension formalization correctly triggered the False Cohesion break.")
+
+
+class TopologicalPrimitivesTest(BoneTestCase):
+    """
+    Rigorously tests the zero-dependency Takens Delay Embedding math.
+    (Route B - Discrete Combinatorial Logic)
+    """
+    def test_ordinal_pattern(self):
+        # A sequence of [1.2, 1.8, 1.5] should sort to indices (0, 2, 1)
+        self.assertEqual(_native_ordinal_pattern([1.2, 1.8, 1.5]), (0, 2, 1), "[FAIL] Ordinal pattern extraction failed.")
+
+        # A descending sequence should reverse indices
+        self.assertEqual(_native_ordinal_pattern([3.0, 2.0, 1.0]), (2, 1, 0), "[FAIL] Descending pattern extraction failed.")
+
+    def test_false_cohesion(self):
+        # Two identical consecutive windows of size 3 (Total length 6)
+        history_stuck = [1.0, 5.0, 2.0, 1.0, 5.0, 2.0]
+        self.assertTrue(_native_detect_false_cohesion(history_stuck, window_size=3), "[FAIL] Point Attractor went undetected.")
+
+        # A changing signal should not flag as False Cohesion
+        history_changing = [1.0, 2.0, 3.0, 3.0, 2.0, 1.0]
+        self.assertFalse(_native_detect_false_cohesion(history_changing, window_size=3), "[FAIL] False positive on Cohesion trigger.")
+
+    def test_permutation_entropy(self):
+        # A flatline or monotonically increasing signal only has ONE pattern. Entropy = 0.
+        flatline = [1.0, 2.0, 3.0, 4.0, 5.0]
+        self.assertEqual(_native_permutation_entropy(flatline, window_size=3), 0.0, "[FAIL] Flatline entropy must be exactly 0.0.")
+
+        # A chaotic signal should have measurable entropy (> 0.0)
+        chaotic = [1.0, 5.0, 2.0, 8.0, 1.0, 9.0]
+        self.assertGreater(_native_permutation_entropy(chaotic, window_size=3), 0.0, "[FAIL] Chaotic signal yielded zero entropy.")
+
+    def test_coincidence_length(self):
+        # Two orbits that run parallel for exactly 3 steps before diverging
+        orbit_a = [1.0, 2.0, 3.0, 4.0, 5.0]
+        orbit_b = [1.0, 2.0, 3.0, 9.0, 9.0]
+        self.assertEqual(_native_coincidence_length(orbit_a, orbit_b, tol=0.1), 3, "[FAIL] Orbit coincidence length miscalculated.")
+
 
 if __name__ == "__main__":
     unittest.main()

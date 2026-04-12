@@ -21,6 +21,34 @@ from bone_types import (
 )
 
 
+# --- NAVI TOPOLOGICAL PRIMITIVES (Takens Delay Embedding) ---
+def _native_ordinal_pattern(window: List[float]) -> Tuple[int, ...]:
+    """Returns the permutation (ordinal pattern) of a time series window."""
+    return tuple(i for i, v in sorted(enumerate(window), key=lambda x: x[1]))
+
+def _native_detect_false_cohesion(history: List[float], window_size: int = 3) -> bool:
+    """Detects if the system has collapsed into a point attractor."""
+    if len(history) < window_size * 2: return False
+    return _native_ordinal_pattern(history[-window_size:]) == _native_ordinal_pattern(history[-(window_size*2):-window_size])
+
+def _native_permutation_entropy(time_series: List[float], window_size: int = 3) -> float:
+    """Measures true systemic chaos via permutation entropy of delay windows."""
+    if len(time_series) < window_size: return 1.0
+    patterns = [_native_ordinal_pattern(time_series[i : i + window_size]) for i in range(len(time_series) - window_size + 1)]
+    counts = Counter(patterns)
+    entropy = -sum((c / len(patterns)) * math.log2(c / len(patterns)) for c in counts.values())
+    max_e = math.log2(math.factorial(window_size))
+    return entropy / max_e if max_e > 0 else 0.0
+
+def _native_coincidence_length(orbit_a: List[float], orbit_b: List[float], tol: float = 0.01) -> int:
+    """Measures how many steps two distinct orbits share before diverging."""
+    length = 0
+    for a, b in zip(orbit_a, orbit_b):
+        if abs(a - b) <= tol: length += 1
+        else: break
+    return length
+
+
 @dataclass
 class PhysicsDelta:
     operator: str
@@ -370,7 +398,7 @@ class TheGatekeeper:
     """ The Cerebrospinal Fluid (CSF) Filter Pattern.
      Deterministically strips validating boilerplate and prevents tag smuggling before generation. """
 
-    _FIREWALL_PATTERN = re.compile(r"^(that makes sense|i understand|you bring up a great point|you're right|i agree|makes sense)[\.,]?\s*", re.IGNORECASE)
+    _FIREWALL_PATTERN = re.compile(r"^(that makes sense|i understand|you bring up a great point|you're right|i agree|makes sense)[.,]?\s*", re.IGNORECASE)
 
     def __init__(self, lexicon_ref, config_ref=None):
         self.lex = lexicon_ref
@@ -485,7 +513,7 @@ class QuantumObserver:
         self.lex = lexicon_ref
         self.cfg = config_ref or BoneConfig
         self.cd_engine = CreativeDeterminantEngine()
-        self.voltage_history: Deque[float] = deque(maxlen=5)
+        self.voltage_history: Deque[float] = deque(maxlen=20)  # Increased for topological embedding
         self.last_physics_packet: Optional[PhysicsPacket] = None
         self.Q_n = None
         if hasattr(self.events, "subscribe"):
@@ -503,6 +531,29 @@ class QuantumObserver:
         self.voltage_history.append(geo.tension)
         sv = round(sum(self.voltage_history) / len(self.voltage_history), 2)
         e_m, b_v, s_v, d_v, c_v, p_v, del_v, lq_v = self._calculate_metrics(text, counts, self.cfg)
+
+        # --- TAKENS TOPOLOGICAL OVERRIDES ---
+        v_hist = list(self.voltage_history)
+        if len(v_hist) >= 3:
+            # 1. Permutation Entropy (Chaos/Toxicity)
+            true_chaos = _native_permutation_entropy(v_hist, window_size=3)
+            e_m = round((e_m * 0.4) + (true_chaos * 0.6), 3)  # Blend heuristic with topological
+
+            # 2. False Cohesion Detection (Point Attractor)
+            if _native_detect_false_cohesion(v_hist, window_size=3):
+                lq_v = max(lq_v, 0.95)
+                sv = max(1.0, sv * 0.5)
+                if hasattr(self.events, "log"):
+                    self.events.log(
+                        f"{Prisma.MAG}[TOPOLOGY] False Cohesion detected (Point Attractor). Spiking Loop Quotient.{Prisma.RST}",
+                        "PHYSICS")
+
+        # 3. Coincidence Length (Loop Quotient)
+        if len(v_hist) >= 6:
+            mid = len(v_hist) // 2
+            c_len = _native_coincidence_length(v_hist[:mid], v_hist[mid:], tol=2.0)
+            if c_len > 2:
+                lq_v = min(1.0, lq_v + (c_len * 0.15))
 
         t_up, t_low = text.upper(), text.lower()
         dg = lambda k, d: getattr(getattr(self.cfg, "PHYSICS_DEEP", None), k, d)
@@ -843,6 +894,7 @@ class CosmicDynamics:
         return new_drag, logs
 
     def analyze_orbit(self, network: Any, clean_words: List[str]) -> Tuple[str, float, str]:
+        current_time = None
         if not (clean_words and network and getattr(network, "graph", None)):
             return "VOID_DRIFT", 3.0, self.logs.get("VOID") or "Drifting in the Void."
 
