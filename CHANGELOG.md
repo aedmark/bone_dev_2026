@@ -1,3 +1,29 @@
+### **BONEAMANITA v19.3.0 "The SLASH Optimization"**
+
+_A comprehensive, four-pass architectural refactor executed across the core biological and cognitive engines. Focused on purging syntactic friction, flattening memory topology, reducing maintainer cognitive load, and mathematically bounding dynamic feedback loops._
+
+#### **⚙️ CORE INFRASTRUCTURE (`bone_core.py`)**
+- **Asynchronous Telemetry Routing:** Eradicated synchronous main-thread I/O blocking in `record_event`. Telemetry now routes exclusively through the async buffer.
+- **Topological Flattening ($O(1)$ Optimization):** Replaced $O(N^2)$ memory shifting in `read_recent_history` using `deque.appendleft`, and removed $O(N)$ double-check penalties during apoptotic event pruning.
+- **Aperture Completeness in Crash Detection:** Widened the temporal search radius in `get_last_fatal_error` to catch terminal states hidden in older history files.
+- **Feedback Stabilization:** Clamped the `Beth Index` floor to absolute biological zero ($0.0$) and capped infinite systemic efficiency spikes to prevent false anomaly detection.
+
+#### **🫀 SOMATIC & METABOLIC SYSTEMS (`bone_body.py`)**
+- **Closure Allocation Purge:** Flattened massive inline ASTs by purging nested `lambda` closures in `SynestheticCortex._derive_reflex` and `BioFeedback.check_vital_signs`, ending cyclical garbage collection churn.
+- **Biological Half-Lives:** Converted linear hormone subtraction to true asymptotic half-life decay curves, eliminating jagged sawtooth waves at the biological floor.
+- **Thermal Runaway Cap:** Imposed a mathematical ceiling on environmental entropy drain, preventing highly chaotic prompts from vaporizing the system's `health` in a single tick.
+- **Autophagy Hysteresis:** Replaced the hard reset on starvation strikes with a gradual cooldown (`-1` per tick), closing a micro-oscillation exploit that allowed infinite ATP cannibalization.
+- **Substrate Poisoning Fix:** Prevented global `LoreManifest` dictionary poisoning by enforcing shallow copies for local `ENZYME_MAP` instantiation.
+
+#### **🧠 COGNITIVE & NOETIC LOOPS (`bone_brain.py`)**
+- **$O(N \log N)$ Defragmentation Drag Eradicated:** The `DreamEngine` now topologically filters dead synapses *before* sorting them by weight, drastically speeding up REM cycles.
+- **Lexicon Poisoning Exploit Closed:** Unknown words hallucinatory strings are no longer universally tagged as `kinetic` (which generated runaway ATP). They are rate-limited and mapped to neutral `structure`.
+- **DSPy Audit Flattening:** Extracted the Affective Real-Time Critic into a dedicated method (`_run_affective_audit`), allowing the `process` loop to breathe and surfacing hidden networking errors.
+- **Mercy Rule Calibration:** Fixed the "magic number" trap in the generation loop. The Cortex now fully exhausts its retry limit before yielding to infinite narrative friction.
+- **Nociception Enabled:** Removed silent failures across the board. Substrate Queue write failures, `MitochondrialForge` dictionary bugs, and Governor formatting errors now scream to the console instead of dying in the void.
+
+---
+
 ### **BONEAMANITA v19.2.6 "The Semantic Dimension"**
 
 _Continuing the integration of formal verification into the biological runtime. We have wired the $(u,v)$-flower log-ratio convergence theorem directly into the Navi-SAD protocol, replacing vague heuristics for "conversational depth" with a zero-dependency, mathematically sound fractal dimension calculator._

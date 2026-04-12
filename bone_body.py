@@ -129,7 +129,8 @@ class BioSystem:
         effective_entropy = base_entropy * (1.0 - shield_strength)
         thermal_feedback = 0.0
         if em_field > heat_thresh:
-            thermal_feedback = (em_field - heat_thresh) * thermal_mult
+            # Asymptotic cap prevents a single catastrophic prompt from instantly vaporizing health
+            thermal_feedback = min(50.0, (em_field - heat_thresh) * thermal_mult)
             if self.events and (msg := ux("entropy_shield", "inductive_heating")):
                 self.events.log(f"{Prisma.RED}{msg}{Prisma.RST}", "BIO_WARN")
         total_drain = effective_entropy + thermal_feedback
@@ -184,7 +185,9 @@ class MitochondrialForge:
             return ""
         try:
             return tmpl.format(**kwargs)
-        except Exception:
+        except Exception as e:
+            # Do not crash the engine, but warn the human that narrative formatting is broken
+            print(f"{Prisma.RED}[MITO_FORGE] Missing narrative kwargs for '{key}': {e}{Prisma.RST}")
             return tmpl
 
     def _trigger_anaerobic_bypass(self, raw_cost: float) -> MetabolicReceipt:
@@ -454,15 +457,14 @@ class BioFeedback:
                 self.consecutive_autophagy += 1
                 if msg := ux("bio_feedback", "autophagy"): logs.append(f"{Prisma.MAG}{msg}{Prisma.RST}")
                 return "AUTOPHAGY"
-            self.consecutive_autophagy = 0
+            # Maintain the lockout until stamina truly recovers
             if msg := ux("bio_feedback", "fuel_depleted"): logs.append(f"{Prisma.RED}{msg}{Prisma.RST}")
-            return "MAUSOLEUM_CLAMP"
-            
-        self.consecutive_autophagy = 0
+            return "MAUSOLEUM_CLAMP" 
+        # Gradual cooldown prevents oscillation exploits where a +0.1 stamina blip instantly resets the strike counter
+        self.consecutive_autophagy = max(0, self.consecutive_autophagy - 1)
         if voltage > v_overload:
             if msg := ux("bio_feedback", "voltage_overload"): logs.append(f"{Prisma.RED}{msg.format(voltage=voltage)}{Prisma.RST}")
             return "MAUSOLEUM_CLAMP"
-            
         return "CLEAR"
 
     def perform_maintenance(self, text: str, phys: Any, logs: List[str], tick: int):
@@ -573,10 +575,15 @@ class SomaticLoop:
         return self._package_result(receipt.status, logs, chem_state, enzyme)
 
     def _package_result(self, resp_status, logs, chem_state=None, enzyme="NONE"):
-        return {"respiration": resp_status, "is_alive": resp_status in ("RESPIRING", "ANAEROBIC"), "logs": logs,
-                "chemistry": chem_state or {}, "enzyme": enzyme,
-                "atp": self.bio.mito.state.atp_pool if getattr(self.bio, "mito", None) else 60.0,
-                "stamina": self.bio.biometrics.stamina if getattr(self.bio, "biometrics", None) else 100.0, }
+        atp_val = self.bio.mito.state.atp_pool if getattr(self.bio, "mito", None) else 60.0
+        stam_val = self.bio.biometrics.stamina if getattr(self.bio, "biometrics", None) else 100.0
+        return {"respiration": resp_status, 
+            "is_alive": resp_status in ("RESPIRING", "ANAEROBIC"), 
+            "logs": logs,
+            "chemistry": chem_state or {}, 
+            "enzyme": enzyme,
+            "atp": atp_val,
+            "stamina": stam_val,}
 
 @dataclass
 class EndocrineSystem:
@@ -634,7 +641,8 @@ class EndocrineSystem:
         if feedback.get("INTEGRITY", 0) > 0.8:
             self.dopamine += self.cfg.BIO.REWARD_MEDIUM
         else:
-            self.dopamine -= self.cfg.BIO.DECAY_RATE
+            # Asymptotic half-life decay prevents jagged sawtooth waves at the biological floor
+            self.dopamine *= max(0.0, 1.0 - self.cfg.BIO.DECAY_RATE)
         if stamina < 20.0:
             self.cortisol += self.cfg.BIO.REWARD_MEDIUM * stress_mod
             self.dopamine -= self.cfg.BIO.REWARD_MEDIUM
@@ -643,7 +651,7 @@ class EndocrineSystem:
         if health < 30.0 or feedback.get("STATIC", 0) > 0.8:
             self.adrenaline += self.cfg.BIO.REWARD_LARGE * stress_mod
         else:
-            self.adrenaline -= self.cfg.BIO.DECAY_RATE * 5
+            self.adrenaline *= max(0.0, 1.0 - (self.cfg.BIO.DECAY_RATE * 5))
         psi = feedback.get("PSI", 0.0)
         chi = feedback.get("CHI", feedback.get("ENTROPY", 0.0))
         valence = feedback.get("VALENCE", 0.0)
@@ -770,11 +778,13 @@ class PIDController:
             self._last_error = error
             self._first_run = False
         P = self.kp * error
-        self._integral += error * safe_dt
         if self.ki != 0:
+            self._integral += error * safe_dt
             int_limit_max = self.max_out / self.ki
             int_limit_min = self.min_out / self.ki
             self._integral = max(int_limit_min, min(int_limit_max, self._integral))
+        else:
+            self._integral = 0.0  # Prevent infinite float windup when the integral term is inactive
         I = self.ki * self._integral
         derivative = (error - self._last_error) / safe_dt
         D = self.kd * derivative
@@ -812,8 +822,10 @@ class MetabolicGovernor:
 
     def regulate(self, physics: Any, dt: float) -> Tuple[float, float]:
         safe_dt = max(0.001, dt)
-        v_val = float(safe_get(physics, "voltage") or safe_get(safe_get(physics, "energy", {}), "voltage", 0.0))
-        d_val = float(safe_get(physics, "narrative_drag") or safe_get(safe_get(physics, "space", {}), "narrative_drag", 0.0))
+        energy_dict = safe_get(physics, "energy") or {}
+        space_dict = safe_get(physics, "space") or {}
+        v_val = float(safe_get(physics, "voltage") or energy_dict.get("voltage", 0.0))
+        d_val = float(safe_get(physics, "narrative_drag") or space_dict.get("narrative_drag", 0.0))
         return self.voltage_pid.update(v_val, safe_dt), self.drag_pid.update(d_val, safe_dt)
 
     def assess(self, physics_packet) -> Tuple[bool, float]:
@@ -887,7 +899,8 @@ class MetabolicGovernor:
         tmpl = text_map.get(lookup, defaults.get(mode, ""))
         try:
             return tmpl.format(color=colors.get(mode, Prisma.WHT), reset=Prisma.RST, volts=safe_get(physics, "voltage", 0.0), beta=safe_get(physics, "beta_index", 0.0), )
-        except:
+        except Exception as e:
+            print(f"{Prisma.RED}[GOVERNOR] Shift message format error for '{mode}': {e}{Prisma.RST}")
             return f"{colors.get(mode, '')}{defaults.get(mode, '')}{Prisma.RST}"
 
 @dataclass
