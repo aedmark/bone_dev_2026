@@ -110,7 +110,7 @@ class BioSystem:
             if self.events and (msg := ux("vagus_nerve", "lucid_calm")):
                 self.events.log(f"{Prisma.GRN}{msg}{Prisma.RST}", "BIO")
         elif state == "MANIC":
-            self.mito.adjust_atp(shifts.get("MANIC", {"atp": -10.0}).get("atp", -10.0), "Neural Overclock", )
+            self.mito.adjust_atp(shifts.get("MANIC", {}).get("atp", -10.0), "Neural Overclock")
 
     def apply_environmental_entropy(self, physics_packet):
         vector = safe_get(physics_packet, "vector", {}) or {}
@@ -336,8 +336,9 @@ class DigestiveTrack:
         self.bio = bio_system_ref
         self.lex = lexicon_ref
         self.cfg = config_ref or BoneConfig
-        self.enzyme_map = (
-            LoreManifest.get_instance(config_ref=self.cfg).get("BODY_CONFIG", "ENZYME_MAP") or {})
+        # Create a shallow copy to prevent cross-session memory poisoning of the global Lore cache
+        base_map = (LoreManifest.get_instance(config_ref=self.cfg).get("BODY_CONFIG", "ENZYME_MAP") or {})
+        self.enzyme_map = dict(base_map)
         if "heavy" not in self.enzyme_map:
             self.enzyme_map.update(
                 {"heavy": "CELLULASE", "constructive": "CHITINASE", "aerobic": "LIGNASE", "meat": "PROTEASE", })
@@ -440,13 +441,8 @@ class BioFeedback:
 
     def check_vital_signs(self, phys: Any, stamina: float, logs: List[str]) -> str:
         b = self.bio.biometrics
-
-        def _log_err(ux_key, color=Prisma.RED, **kwargs):
-            if msg := ux("bio_feedback", ux_key):
-                logs.append(f"{color}{msg.format(**kwargs)}{Prisma.RST}")
-
         if not b:
-            _log_err("interface_lost")
+            if msg := ux("bio_feedback", "interface_lost"): logs.append(f"{Prisma.RED}{msg}{Prisma.RST}")
             return "MAUSOLEUM_CLAMP"
         voltage = float(safe_get(phys, "voltage", 0.0))
         cfg = getattr(self.cfg, "BIO", None)
@@ -456,15 +452,17 @@ class BioFeedback:
             if b.health > min_health and self.consecutive_autophagy < 3:
                 b.health -= getattr(cfg, "AUTOPHAGY_BURN", 5.0)
                 self.consecutive_autophagy += 1
-                _log_err("autophagy", color=Prisma.MAG)
+                if msg := ux("bio_feedback", "autophagy"): logs.append(f"{Prisma.MAG}{msg}{Prisma.RST}")
                 return "AUTOPHAGY"
             self.consecutive_autophagy = 0
-            _log_err("fuel_depleted")
+            if msg := ux("bio_feedback", "fuel_depleted"): logs.append(f"{Prisma.RED}{msg}{Prisma.RST}")
             return "MAUSOLEUM_CLAMP"
+            
         self.consecutive_autophagy = 0
         if voltage > v_overload:
-            _log_err("voltage_overload", voltage=voltage)
+            if msg := ux("bio_feedback", "voltage_overload"): logs.append(f"{Prisma.RED}{msg.format(voltage=voltage)}{Prisma.RST}")
             return "MAUSOLEUM_CLAMP"
+            
         return "CLEAR"
 
     def perform_maintenance(self, text: str, phys: Any, logs: List[str], tick: int):
@@ -492,12 +490,15 @@ class SemanticEndocrinologist:
         if self.mem:
             cortical_set = set(getattr(self.mem, "cortical_stack", []))
             graph_ref = getattr(self.mem, "graph", {})
-        novel_count = sum(1 for w in clean_words if len(w) > 4 and w not in cortical_set)
+        novel_count = 0
+        hits = 0
+        for w in clean_words:
+            if len(w) > 4 and w not in cortical_set:
+                novel_count += 1
+            if graph_ref and w in graph_ref:
+                hits += 1
         novelty_score = min(1.0, novel_count / max(1, len(clean_words)))
-        resonance_score = 0.0
-        if graph_ref:
-            hits = sum(1 for w in clean_words if w in graph_ref)
-            resonance_score = min(1.0, hits / max(1, len(clean_words)))
+        resonance_score = min(1.0, hits / max(1, len(clean_words))) if graph_ref else 0.0
         valence_score = 0.0
         if self.lex and hasattr(self.lex, "get_valence"):
             valence_score = self.lex.get_valence(clean_words)
@@ -554,8 +555,9 @@ class SomaticLoop:
             b.stamina = 10.0
         total_yield = 0.0
         enzyme = "NONE"
+        clean_words = getattr(phys, "clean_words", [])
         if self.bio.lichen:
-            sugar, photo_log = self.bio.lichen.photosynthesize(phys, getattr(phys, "clean_words", []), tick_count)
+            sugar, photo_log = self.bio.lichen.photosynthesize(phys, clean_words, tick_count)
             if sugar > 0:
                 total_yield += sugar
             if photo_log:
@@ -565,7 +567,6 @@ class SomaticLoop:
         enzyme = soma_enzyme if enzyme == "NONE" else enzyme
         self.bio.mito.adjust_atp(total_yield, "Symbiotic Yield")
         self.feedback.perform_maintenance(text, phys, logs, tick_count)
-        clean_words = getattr(phys, "clean_words", [])
         semantic_sig = self.semantic_doctor.assess(clean_words, phys)
         fb_dict.update({"PSI": getattr(phys, "psi", 0.0), "CHI": getattr(phys, "chi", 0.0), "VALENCE": getattr(phys, "valence", 0.0), "INTEGRITY": semantic_sig.coherence, "NOVELTY": semantic_sig.novelty, })
         chem_state = self.bio.endo.metabolize(feedback=fb_dict, health=b.health, stamina=b.stamina, ros_level=self.bio.mito.state.ros_buildup, receipt=receipt, harvest_hits=harvest_hits, stress_mod=stress_modifier, enzyme_type=enzyme, circadian_bias=circadian_bias, semantic_signal=semantic_sig, )
@@ -594,6 +595,10 @@ class EndocrineSystem:
         self.cfg = self.config_ref or BoneConfig
         body_config = (LoreManifest.get_instance(config_ref=self.cfg).get("BODY_CONFIG") or {})
         self._REACTION_MAP = body_config.get("REACTION_MAP", {})
+        self._KEY_MAP = {"ADR": "adrenaline", "COR": "cortisol", "OXY": "oxytocin", "DOP": "dopamine", "SER": "serotonin", "MEL": "melatonin"}
+        # Hoist the circadian topology into memory once
+        self._CIRCADIAN_SCHEDULE = body_config.get("CIRCADIAN_SCHEDULE", [])
+        self._CIRCADIAN_NIGHT = body_config.get("CIRCADIAN_NIGHT", [{"MEL": 0.3, "COR": -0.1}, "LUNAR", ""])
 
     @staticmethod
     def _clamp(val: float) -> float:
@@ -602,12 +607,10 @@ class EndocrineSystem:
     def calculate_circadian_bias(self) -> Tuple[Dict[str, float], Optional[str]]:
         hour = time.localtime().tm_hour
         circ = self.narrative_data.get("CIRCADIAN", {})
-        config = LoreManifest.get_instance().get("BODY_CONFIG") or {}
-        schedule = config.get("CIRCADIAN_SCHEDULE", [])
-        for s, e, bias, key, default in schedule:
+        for s, e, bias, key, default in getattr(self, "_CIRCADIAN_SCHEDULE", []):
             if s <= hour < e:
                 return bias, circ.get(key, "")
-        night_cfg = config.get("CIRCADIAN_NIGHT", [{"MEL": 0.3, "COR": -0.1}, "LUNAR", ""])
+        night_cfg = getattr(self, "_CIRCADIAN_NIGHT", [{"MEL": 0.3, "COR": -0.1}, "LUNAR", ""])
         return night_cfg[0], circ.get(night_cfg[1], night_cfg[2])
 
     def _apply_enzyme_reaction(self, enzyme_type: str, harvest_hits: int):
@@ -620,12 +623,9 @@ class EndocrineSystem:
         if enzyme_type == "DECRYPTASE":
             self.serotonin = min(1.0, self.serotonin + 0.15)
             self.cortisol = max(0.0, self.cortisol - 0.2)
-        impact = self._REACTION_MAP.get(enzyme_type)
-        if impact:
-            key_map = {"ADR": "adrenaline", "COR": "cortisol", "OXY": "oxytocin", "DOP": "dopamine", "SER": "serotonin", }
+        if impact := self._REACTION_MAP.get(enzyme_type):
             for k, v in impact.items():
-                attr = key_map.get(k)
-                if attr:
+                if attr := self._KEY_MAP.get(k):
                     setattr(self, attr, getattr(self, attr) + v)
 
     def _apply_environmental_pressure(self, feedback: Dict, health: float, stamina: float, ros_level: float, stress_mod: float, ):
@@ -719,9 +719,8 @@ class EndocrineSystem:
     def metabolize(self, feedback, health, stamina, ros_level=0.0, receipt=None, social_context=False, enzyme_type=None,
                    harvest_hits=0, stress_mod=1.0, circadian_bias=None, semantic_signal=None, ):
         if circadian_bias:
-            key_map = {"COR": "cortisol", "SER": "serotonin", "MEL": "melatonin", "DOP": "dopamine", "OXY": "oxytocin", "ADR": "adrenaline", }
             for k, v in circadian_bias.items():
-                if hasattr(self, attr_name := key_map.get(k, k.lower())):
+                if hasattr(self, attr_name := self._KEY_MAP.get(k, k.lower())):
                     setattr(self, attr_name, getattr(self, attr_name) + v)
         self._apply_enzyme_reaction(enzyme_type, harvest_hits)
         self._apply_environmental_pressure(feedback, health, stamina, ros_level, stress_mod)
@@ -980,23 +979,19 @@ class SynestheticCortex:
     def _derive_reflex(self, physics: Dict, impulse: BiologicalImpulse) -> str:
         s = (LoreManifest.get_instance(config_ref=self.cfg).get("BODY_CONFIG", "QUALIA_STRINGS") or {}).get("reflexes", {})
         arc_trigger = getattr(getattr(self.cfg, "CORTEX", None), "VOLTAGE_ARC_TRIGGER", 18.0)
-
-        def _check_conditions():
-            if impulse.cortisol_delta > 0.1 and impulse.adrenaline_delta > 0.1: return "fight_flight"
-            if impulse.dopamine_delta > 0.1 and impulse.adrenaline_delta > 0.1: return "electric"
-            if impulse.adrenaline_delta > 0.1: return "pupils"
-            if impulse.oxytocin_delta > 0.1 and impulse.dopamine_delta > 0.1: return "glow"
-            if impulse.oxytocin_delta > 0.1: return "chest"
-            if impulse.cortisol_delta > 0.1: return "gut"
-            if impulse.dopamine_delta > 0.1: return "spark"
-            if physics.get("psi", 0.0) > 0.6: return "liminal"
-            if physics.get("entropy", 0.0) > 0.7: return "static"
-            if physics.get("voltage", 0) > arc_trigger: return "arcing"
-            if physics.get("voltage", 0) < 2.0: return "dimming"
-            if physics.get("narrative_drag", 0) > 5.0: return "sagging"
-            return "steady"
-
-        key = _check_conditions()
+        key = "steady"
+        if impulse.cortisol_delta > 0.1 and impulse.adrenaline_delta > 0.1: key = "fight_flight"
+        elif impulse.dopamine_delta > 0.1 and impulse.adrenaline_delta > 0.1: key = "electric"
+        elif impulse.adrenaline_delta > 0.1: key = "pupils"
+        elif impulse.oxytocin_delta > 0.1 and impulse.dopamine_delta > 0.1: key = "glow"
+        elif impulse.oxytocin_delta > 0.1: key = "chest"
+        elif impulse.cortisol_delta > 0.1: key = "gut"
+        elif impulse.dopamine_delta > 0.1: key = "spark"
+        elif physics.get("psi", 0.0) > 0.6: key = "liminal"
+        elif physics.get("entropy", 0.0) > 0.7: key = "static"
+        elif physics.get("voltage", 0) > arc_trigger: key = "arcing"
+        elif physics.get("voltage", 0) < 2.0: key = "dimming"
+        elif physics.get("narrative_drag", 0) > 5.0: key = "sagging"
         res = s.get(key, "")
         if key == "steady" and self.last_reflex == res:
             return "..."
@@ -1013,7 +1008,6 @@ class SynestheticCortex:
         tones, hints, reflexes = strings.get("tones", {}), strings.get("hints", {}), strings.get("reflexes", {})
         tone = tones.get(t_key, "") if dom_val > 0.2 else tones.get("steady", "")
         hint = hints.get(h_key, "") if dom_val > 0.05 else hints.get("observe", "")
-
         return Qualia(color if dom_val > 0.2 else Prisma.GRY, impulse.somatic_reflex or reflexes.get("steady", ""), tone, hint)
 
     def apply_impulse(self, impulse: BiologicalImpulse) -> float:
