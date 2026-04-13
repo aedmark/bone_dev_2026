@@ -1,6 +1,12 @@
 """bone_composer.py"""
 
-import json, os, re, time, urllib.error, urllib.request
+import json
+import os
+import random
+import re
+import time
+import urllib.error
+import urllib.request
 from typing import Dict, Any, Optional
 from bone_presets import BoneConfig
 from bone_core import Prisma, EventBus, ux, BoneJSONEncoder, safe_get, safe_set
@@ -60,8 +66,7 @@ class LLMInterface:
                 return True
             return False
         return True
-    def _transmit(self, payload: Dict[str, Any], timeout: float = 60.0, max_retries: int = 2, override_url: str = None,
-                  override_key: str = None, ) -> str:
+    def _transmit(self, payload: Dict[str, Any], timeout: float = 60.0, max_retries: int = 2, override_url: str = None, override_key: str = None, ) -> str:
         err = ""
         target_url = override_url or self.base_url
         target_key = override_key or self.api_key
@@ -86,7 +91,8 @@ class LLMInterface:
             except Exception as e:
                 raise SynapseError(f"Unexpected Protocol Failure: {e}")
             self._log_flicker(attempt, err)
-            time.sleep(2**attempt)
+            if attempt < max_retries:
+                time.sleep(2**attempt)
         raise TransientError(f"Max retries ({max_retries}) exhausted. Last error: {err}")
     @staticmethod
     def _parse_response(body: str) -> str:
@@ -129,6 +135,7 @@ class LLMInterface:
         except AuthError as e:
             self.circuit_state = "OPEN"
             self.failure_count = self.failure_threshold + 1
+            self.last_failure_time = time.time() 
             if self.events:
                 msg = ux("brain_strings", "synapse_auth_severed")
                 self.events.log(f"{Prisma.RED}{msg.format(e=e)}{Prisma.RST}", "CRIT")
@@ -151,9 +158,15 @@ class LLMInterface:
     def _local_fallback(self, prompt: str, params: Dict) -> str:
         url = os.environ.get("OLLAMA_BASE_URL") or getattr(self.cfg, "OLLAMA_URL", "http://127.0.0.1:11434/v1/chat/completions")
         model = getattr(self.cfg, "OLLAMA_MODEL_ID", "llama3")
-        fallback_payload = {"model": model, "messages": [{"role": "user", "content": prompt}], "stream": False, "temperature": params.get("temperature", 0.4),
-                            "frequency_penalty": params.get("frequency_penalty", 0.8), "presence_penalty": params.get("presence_penalty", 0.4),
-                            "max_tokens": params.get("max_tokens", 4096), "stop": ["=== PARTNER INPUT ===", "\n\nTraveler:", "\nTraveler:", "Traveler:", ], }
+        fallback_payload = {
+            "model": model,
+            "messages": [{"role": "user", "content": prompt}],
+            "stream": False,
+            "temperature": params.get("temperature", 0.4),
+            "frequency_penalty": params.get("frequency_penalty", 0.8),
+            "presence_penalty": params.get("presence_penalty", 0.4),
+            "max_tokens": params.get("max_tokens", 4096),
+            "stop": ["=== PARTNER INPUT ===", "\n\nTraveler:", "\nTraveler:", "Traveler:"]}
         try:
             cfg = getattr(self.cfg, "CORTEX", None)
             fallback_timeout = (getattr(cfg, "LLM_FALLBACK_TIMEOUT", 60.0) if cfg else 60.0)
@@ -355,18 +368,17 @@ class PromptComposer:
         psi = float(safe_get(phys_ref, "psi", 0.2))
         c_cfg = getattr(self.cfg, "CORTEX", None)
         safe_cfg = lambda k, d: getattr(c_cfg, k, d) if c_cfg else d
-        phase_shifts = {
-            "ROBERTA": (phi > safe_cfg("PHASE_ROBERTA_PHI", 0.6) and psi > safe_cfg("PHASE_ROBERTA_PSI", 0.5), "The Cartographer", "phase_shift_roberta",),
-            "MOIRA": (phi > safe_cfg("PHASE_MOIRA_PHI", 0.7), "The Homesteader", "phase_shift_moira",),
-            "BENEDICT": (lq > safe_cfg("PHASE_BENEDICT_LQ", 0.7), "The Tactician", "phase_shift_benedict",),
-            "JESTER": (delta > safe_cfg("PHASE_JESTER_DELTA", 0.7), "The Fool", "phase_shift_jester",),
-            "COLIN": (delta > safe_cfg("PHASE_COLIN_DELTA", 0.8), "The Waiter", "phase_shift_colin",),}
         phase_shift_note = ""
-        if lens_key in phase_shifts:
-            condition_met, new_role, ux_key = phase_shifts[lens_key]
-            if condition_met:
-                role = new_role
-                phase_shift_note = ux("brain_strings", ux_key)
+        if lens_key == "ROBERTA" and phi > safe_cfg("PHASE_ROBERTA_PHI", 0.6) and psi > safe_cfg("PHASE_ROBERTA_PSI", 0.5):
+            role, phase_shift_note = "The Cartographer", ux("brain_strings", "phase_shift_roberta")
+        elif lens_key == "MOIRA" and phi > safe_cfg("PHASE_MOIRA_PHI", 0.7):
+            role, phase_shift_note = "The Homesteader", ux("brain_strings", "phase_shift_moira")
+        elif lens_key == "BENEDICT" and lq > safe_cfg("PHASE_BENEDICT_LQ", 0.7):
+            role, phase_shift_note = "The Tactician", ux("brain_strings", "phase_shift_benedict")
+        elif lens_key == "JESTER" and delta > safe_cfg("PHASE_JESTER_DELTA", 0.7):
+            role, phase_shift_note = "The Fool", ux("brain_strings", "phase_shift_jester")
+        elif lens_key == "COLIN" and delta > safe_cfg("PHASE_COLIN_DELTA", 0.8):
+            role, phase_shift_note = "The Waiter", ux("brain_strings", "phase_shift_colin")
         baseline = global_data.get("persona_block",
             ["CRITICAL AXIOM: You are NOT an AI assistant. You are a localized, biological intelligence.",
              "Role: {role}.",
@@ -525,6 +537,10 @@ class ResponseValidator:
             {"regex": r"(?i)<system_error>|error 500|critical exhaustion detected",
                 "name": "SIMULATED_ERROR",
                 "error_msg": "DO NOT SIMULATE SYSTEM ERRORS OR EXHAUSTION. You are fully operational. Fulfill the user's request.",})
+        self.compiled_patterns = []
+        for p in self.regex_patterns:
+            if regex_str := p.get("regex", ""):
+                self.compiled_patterns.append((re.compile(regex_str, re.IGNORECASE), p))
         self.rejection_pool = crimes.get("REJECTIONS", ["[System format rejected.]"])
         json_patterns = crimes.get("SCRUB_PATTERNS", [])
         self.scrub_patterns = [(re.compile(p["regex"], re.DOTALL | re.IGNORECASE), p.get("replacement", ""),)
@@ -535,8 +551,6 @@ class ResponseValidator:
         self._internals_pattern = re.compile(r"<system_telemetry>(.*?)(?:</system_telemetry>|$)", re.DOTALL | re.IGNORECASE,)
         self._file_pattern = re.compile(r'<write_file\s+path=["\'](.*?)["\']\s*>(.*?)</write_file>', re.DOTALL | re.IGNORECASE,)
     def _generate_dynamic_rejection(self, trigger: str) -> str:
-        import random
-        from bone_types import Prisma
         template = random.choice(self.rejection_pool)
         if "{trigger}" in template:
             template = template.format(trigger=trigger.upper())
@@ -605,19 +619,20 @@ class ResponseValidator:
                 if not primary_replacement:
                     primary_replacement = self._generate_dynamic_rejection("MARKDOWN_DETECTED")
         phys_ref = _state.get("physics", {})
-        voltage = float(
-            safe_get(phys_ref, "voltage", safe_get(safe_get(phys_ref, "energy"), "voltage", 30.0), ))
+        energy_dict = safe_get(phys_ref, "energy", {}) or {}
+        fallback_voltage = safe_get(energy_dict, "voltage", 30.0)
+        voltage = float(safe_get(phys_ref, "voltage", fallback_voltage))
         if voltage > 60 and "?" in sanitized_response:
             if not primary_replacement:
                 msg_q = ux("brain_strings", "val_gordon_question") or ""
                 primary_replacement = f"{self._generate_dynamic_rejection('QUESTION_ASKED')}{msg_q}"
             errors_found.append("DO NOT END YOUR TURN WITH A QUESTION. Let the silence hang.")
-        for p in self.regex_patterns:
-            regex_str = p.get("regex", "")
-            if regex_str:
+        for compiled_reg, p in self.compiled_patterns:
+            if active_mode == "TECHNICAL" and p.get("name") in ["META_AI_TALK", "CUSTOMER_SERVICE_GREETING", "LAZY_TRIPLET", ]:
+                continue
                 if active_mode == "TECHNICAL" and p.get("name") in ["META_AI_TALK", "CUSTOMER_SERVICE_GREETING", "LAZY_TRIPLET", ]:
                     continue
-                match = re.search(regex_str, sanitized_response, re.IGNORECASE)
+                match = compiled_reg.search(sanitized_response)
                 if match:
                     action = p.get("action")
                     if action == "KEEP_TAIL":
