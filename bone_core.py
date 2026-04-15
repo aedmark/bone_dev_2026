@@ -15,8 +15,8 @@ def ux(section: str, key: str, default: Any = "") -> Any:
 
 
 def safe_get(obj: Any, key: str, default: Any = None) -> Any:
-    return default if obj is None else (obj.get(key, default) if isinstance(
-        obj, dict) else getattr(obj, key, default))
+    return default if obj is None else (
+        obj.get(key, default) if isinstance(obj, dict) else getattr(obj, key, default))
 
 
 def strict_get(obj: Any, key: str, default: Any = None) -> Any:
@@ -84,9 +84,7 @@ class EventBus:
                 raw_err = f"{short_err}\n{full_trace}"
                 msg = ux("core_strings", "bus_error")
                 if msg:
-                    print(
-                        f"{Prisma.RED}{msg.format(error_msg=short_err)}{Prisma.RST}"
-                    )
+                    print(f"{Prisma.RED}{msg.format(error_msg=short_err)}{Prisma.RST}")
                 if event_type != "EVENT_FAILURE":
                     self.log(f"EVENT_FAILURE: {raw_err}",
                              source="EVENT_FAILURE",
@@ -142,8 +140,7 @@ class LoreManifest:
 
     def get(self, category: str, sub_key: str = None) -> Any:
         cat_key = category.lower()
-        data = self._cache.setdefault(cat_key,
-                                      self._load_from_disk(cat_key) or {})
+        data = self._cache.setdefault(cat_key, self._load_from_disk(cat_key) or {})
         if not sub_key:
             return data
         return data.get(sub_key) if isinstance(data, dict) else None
@@ -159,9 +156,7 @@ class LoreManifest:
             print(f"{Prisma.GRY}[LORE]: Lazy-loaded '{category}'.{Prisma.RST}")
             return data
         except Exception as e:
-            print(
-                f"{Prisma.RED}[LORE]: Corrupt JSON in '{category}': {e}{Prisma.RST}"
-            )
+            print(f"{Prisma.RED}[LORE]: Corrupt JSON in '{category}': {e}{Prisma.RST}")
             return None
 
     def inject(self, category: str, data: Any):
@@ -199,8 +194,7 @@ class TheObserver:
         self.memory_snapshots = deque(maxlen=max_len)
         self.error_counts = Counter()
         self.user_turns = 0
-        self.LATENCY_WARNING = (safe_get(cfg_core, "OBSERVER_LATENCY_WARN",
-                                         5.0))
+        self.LATENCY_WARNING = (safe_get(cfg_core, "OBSERVER_LATENCY_WARN", 5.0))
         self.CYCLE_WARNING = (safe_get(cfg_core, "OBSERVER_CYCLE_WARN", 8.0))
         self.C_EFF = safe_get(cfg_core, "OBSERVER_CYCLE_EFFICIENT", 0.1)
         self.L_EFF = safe_get(cfg_core, "OBSERVER_LLM_EFFICIENT", 0.5)
@@ -264,8 +258,7 @@ class TheObserver:
             "avg_llm_sec": round(avg_llm, 2),
             "status": status_msg,
             "errors": dict(self.error_counts),
-            "graph_size":
-            self.memory_snapshots[-1] if self.memory_snapshots else 0
+            "graph_size": self.memory_snapshots[-1] if self.memory_snapshots else 0
         }
 
 
@@ -283,10 +276,7 @@ class SystemHealth:
     def link_observer(self, observer_ref):
         self.observer = observer_ref
 
-    def report_failure(self,
-                       component: str,
-                       error: Exception,
-                       severity="ERROR"):
+    def report_failure(self, component: str, error: Exception, severity="ERROR"):
         msg = str(error)
         self.errors.append(ErrorLog(component, msg, severity=severity))
         if self.observer:
@@ -343,8 +333,8 @@ class RealityStack:
         depth = self.current_depth
         return {
             "allow_narrative":
-            depth in (RealityLayer.SIMULATION, RealityLayer.DEEP_CX,
-                      RealityLayer.DEBUG),
+            depth
+            in (RealityLayer.SIMULATION, RealityLayer.DEEP_CX, RealityLayer.DEBUG),
             "allow_commands":
             depth >= RealityLayer.SIMULATION,
             "allow_meta":
@@ -367,11 +357,9 @@ class CyberneticGovernor:
                            user_exhaustion: float) -> float:
         coherence_debt = (user_exhaustion**1.5) * (1.0 - phi)
         self.beth_index = max(
-            0.0,
-            min(1.0, (phi * 0.6) + (user_exhaustion * 0.4) +
-                (coherence_debt * 0.3)))
-        if self.beth_index >= 0.75 or (resonance_delta > 0.3
-                                       and user_exhaustion > 0.5):
+            0.0, min(1.0,
+                     (phi * 0.6) + (user_exhaustion * 0.4) + (coherence_debt * 0.3)))
+        if self.beth_index >= 0.75 or (resonance_delta > 0.3 and user_exhaustion > 0.5):
             self.order = 2
         else:
             self.order = 1
@@ -396,11 +384,9 @@ class ArchetypeArbiter:
         target_cfg = config_ref or BoneConfig
         for mandate in council_mandates or ():
             if mandate.get("type") == "LOCKDOWN":
-                return "THE CENSOR", "COUNCIL", ux("core_strings",
-                                                   "arb_martial_law")
+                return "THE CENSOR", "COUNCIL", ux("core_strings", "arb_martial_law")
             if mandate.get("type") == "FORCE_MODE":
-                return "THE MACHINE", "COUNCIL", ux("core_strings",
-                                                    "arb_bureaucratic")
+                return "THE MACHINE", "COUNCIL", ux("core_strings", "arb_bureaucratic")
         if soul_archetype and "/" in soul_archetype:
             msg = ux("core_strings", "arb_diamond")
             return soul_archetype, "SOUL", msg.format(
@@ -411,13 +397,12 @@ class ArchetypeArbiter:
                                                     "_META_RESONANCE_") or []
             for r in rules:
                 if r.get("trigram") == t_name and (
-                        not r.get("lens") or r.get("lens") == physics_lens
-                ) and (not r.get("soul") or r.get("soul") == soul_archetype):
+                        not r.get("lens") or r.get("lens") == physics_lens) and (
+                            not r.get("soul") or r.get("soul") == soul_archetype):
                     msg = r.get("msg") or ux("core_strings", "arb_resonance")
                     return r["result"], r.get("source", "COSMIC"), msg
         cfg_core = getattr(target_cfg, "CORE", None)
-        loud_lenses = safe_get(cfg_core, "LOUD_LENSES",
-                               ("THE MANIC", "THE VOID"))
+        loud_lenses = safe_get(cfg_core, "LOUD_LENSES", ("THE MANIC", "THE VOID"))
         if physics_lens in loud_lenses:
             msg = ux("core_strings", "arb_loud")
             return physics_lens, "PHYSICS", msg.format(
@@ -431,20 +416,18 @@ class TelemetryService:
     def __init__(self, config_ref=None):
         self.cfg = config_ref or BoneConfig
         cfg_core = getattr(self.cfg, "CORE", None)
-        self.log_dir = (safe_get(cfg_core, "TELEMETRY_LOG_DIR",
-                                 "logs/telemetry"))
+        self.log_dir = (safe_get(cfg_core, "TELEMETRY_LOG_DIR", "logs/telemetry"))
         self.BUFFER_SIZE = (safe_get(cfg_core, "TELEMETRY_BUFFER_SIZE", 50))
         self.MAX_ERRORS = (safe_get(cfg_core, "TELEMETRY_MAX_ERRORS", 5))
-        self.trace_buffer: Deque[DecisionTrace] = deque(
-            maxlen=self.BUFFER_SIZE)
+        self.trace_buffer: Deque[DecisionTrace] = deque(maxlen=self.BUFFER_SIZE)
         self.write_buffer: List[str] = []
         self.active_crystal = None
         self.disabled = False
         self._lock = threading.Lock()
         try:
             os.makedirs(self.log_dir, exist_ok=True)
-            self.current_trace_file = os.path.join(
-                self.log_dir, f"trace_{int(time.time())}.jsonl")
+            self.current_trace_file = os.path.join(self.log_dir,
+                                                   f"trace_{int(time.time())}.jsonl")
         except OSError as e:
             msg = ux("core_strings",
                      "tel_disk_denied") or "Disk access denied for Telemetry."
@@ -478,14 +461,14 @@ class TelemetryService:
                      reasoning: str, outcome: str):
         if self.disabled or not self.active_crystal:
             return
-        trace = DecisionTrace(trace_id=self.active_crystal.decision_id,
-                              timestamp=time.time(),
-                              component=component,
-                              decision_type=decision_type,
-                              inputs=inputs if isinstance(inputs, dict) else
-                              {"raw": str(inputs)},
-                              reasoning=reasoning,
-                              outcome=outcome)
+        trace = DecisionTrace(
+            trace_id=self.active_crystal.decision_id,
+            timestamp=time.time(),
+            component=component,
+            decision_type=decision_type,
+            inputs=inputs if isinstance(inputs, dict) else {"raw": str(inputs)},
+            reasoning=reasoning,
+            outcome=outcome)
         self.trace_buffer.append(trace)
         self._buffer_line(trace.to_json())
 
@@ -533,8 +516,7 @@ class TelemetryService:
             return
         lines_to_write = list(self.write_buffer)
         self.write_buffer.clear()
-        self._executor.submit(self._bg_write, lines_to_write,
-                              self.current_trace_file)
+        self._executor.submit(self._bg_write, lines_to_write, self.current_trace_file)
 
     def flush_to_disk(self):
         if not hasattr(self, "_lock"):
@@ -580,12 +562,9 @@ class TelemetryService:
                             prompt_snap = data.get("prompt_snapshot", "")
                             user_text = "Unknown"
                             if "User:" in prompt_snap:
-                                _, _, after_user = prompt_snap.partition(
-                                    "User:")
-                                user_text = after_user.split("\n",
-                                                             1)[0].strip()
-                            history.appendleft(
-                                f"User: {user_text} | System: {resp}")
+                                _, _, after_user = prompt_snap.partition("User:")
+                                user_text = after_user.split("\n", 1)[0].strip()
+                            history.appendleft(f"User: {user_text} | System: {resp}")
                         except (json.JSONDecodeError, IndexError):
                             continue
             except IOError:
@@ -594,10 +573,7 @@ class TelemetryService:
 
     def get_last_thoughts(self, limit=3) -> List[str]:
         history = self.read_recent_history(limit)
-        return [
-            h.partition("System: ")[2].strip() for h in history
-            if "System: " in h
-        ]
+        return [h.partition("System: ")[2].strip() for h in history if "System: " in h]
 
     def get_last_fatal_error(self) -> Optional[str]:
         files = sorted(glob.glob(os.path.join(self.log_dir, "trace_*.jsonl")),
@@ -608,10 +584,8 @@ class TelemetryService:
                 with open(past_file, "r", encoding="utf-8") as f:
                     last_line = json.loads(deque(f, maxlen=1)[0])
                 if "CRITICAL" in str(last_line.get("outcome", "")):
-                    msg = ux("core_strings",
-                             "tel_prev_crash") or "Crash: {reason}"
-                    return msg.format(
-                        reason=last_line.get("reasoning", "Unknown"))
+                    msg = ux("core_strings", "tel_prev_crash") or "Crash: {reason}"
+                    return msg.format(reason=last_line.get("reasoning", "Unknown"))
             except Exception:
                 continue
         return None

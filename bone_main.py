@@ -43,8 +43,8 @@ def typewriter(text: str, speed: Optional[float] = None, end: str = "\n"):
         sys.stdout.flush()
         return
     cfg = getattr(BoneConfig, "GUI", object())
-    actual_speed = speed if speed is not None else getattr(
-        cfg, "RENDER_SPEED_FAST", 0.00025)
+    actual_speed = speed if speed is not None else getattr(cfg, "RENDER_SPEED_FAST",
+                                                           0.00025)
     if actual_speed < 0.001:
         print(text, end=end)
         return
@@ -106,8 +106,7 @@ class SessionGuardian:
         is_interrupt = exc_type and issubclass(exc_type, KeyboardInterrupt)
         if exc_type and not is_interrupt:
             crash_msg = ux("main_strings", "crash_msg")
-            print(
-                f"{Prisma.RED}{crash_msg.format(exc_val=exc_val)}{Prisma.RST}")
+            print(f"{Prisma.RED}{crash_msg.format(exc_val=exc_val)}{Prisma.RST}")
             if getattr(self.engine_instance, "boot_mode", "") == "TECHNICAL":
                 full_trace = "".join(
                     traceback.format_exception(exc_type, exc_val, exc_tb))
@@ -128,13 +127,7 @@ class ConfigWizard:
         "3": "CREATIVE",
         "4": "TECHNICAL",
     }
-    _UI_MODES = {
-        "1": "DEEP",
-        "2": "CORE",
-        "3": "LITE",
-        "4": "MINIMAL",
-        "5": "WARM"
-    }
+    _UI_MODES = {"1": "DEEP", "2": "CORE", "3": "LITE", "4": "MINIMAL", "5": "WARM"}
     _BACKENDS = (
         ("1", "Ollama (Local)", "G"),
         ("2", "OpenAI (Cloud)", "C"),
@@ -160,9 +153,7 @@ class ConfigWizard:
         try:
             os.rename(ConfigWizard.CONFIG_FILE, backup_name)
             msg = ux("main_strings", "config_backup")
-            print(
-                f"{Prisma.YEL}{msg.format(backup_name=backup_name)}{Prisma.RST}"
-            )
+            print(f"{Prisma.YEL}{msg.format(backup_name=backup_name)}{Prisma.RST}")
         except:
             pass
 
@@ -178,8 +169,7 @@ class ConfigWizard:
         step1 = ux("main_strings", "step1_id")
         prompt1 = ux("main_strings", "prompt_id")
         print(f"\n{Prisma.paint(step1, 'W')}")
-        user_name = input(
-            f"{Prisma.GRY}{prompt1}{Prisma.RST}").strip() or "TRAVELER"
+        user_name = input(f"{Prisma.GRY}{prompt1}{Prisma.RST}").strip() or "TRAVELER"
         step2 = ux("main_strings", "step2_mode")
         print(f"\n{Prisma.paint(step2, 'W')}")
         for k, name, desc, col in (
@@ -190,8 +180,7 @@ class ConfigWizard:
         ):
             print(f"  {k}. {Prisma.paint(name, col):<25} - {desc}")
         mode_choice = input(
-            f"{Prisma.paint(ux('main_strings', 'prompt_mode'), 'C')} ").strip(
-            )
+            f"{Prisma.paint(ux('main_strings', 'prompt_mode'), 'C')} ").strip()
         boot_mode = ConfigWizard._MODES.get(mode_choice, "ADVENTURE")
         step3 = ux("main_strings", "step3_backend")
         print(f"\n{Prisma.paint(step3, 'W')}")
@@ -201,15 +190,12 @@ class ConfigWizard:
         config = {"user_name": user_name, "boot_mode": boot_mode}
         if choice == "2":
             config.update({
-                "provider":
-                "openai",
-                "base_url":
-                "https://api.openai.com/v1/chat/completions",
+                "provider": "openai",
+                "base_url": "https://api.openai.com/v1/chat/completions",
             })
             config["model"] = input(f"Model ID [gpt-4]: ").strip() or "gpt-4"
             prompt_api = ux("main_strings", "prompt_api")
-            config["api_key"] = input(
-                f"{Prisma.paint(prompt_api, 'R')} ").strip()
+            config["api_key"] = input(f"{Prisma.paint(prompt_api, 'R')} ").strip()
         elif choice == "3":
             config.update({
                 "provider": "lm_studio",
@@ -220,10 +206,8 @@ class ConfigWizard:
             config.update({"provider": "mock", "model": "simulation"})
         else:
             config.update({
-                "provider":
-                "ollama",
-                "base_url":
-                "http://127.0.0.1:11434/v1/chat/completions",
+                "provider": "ollama",
+                "base_url": "http://127.0.0.1:11434/v1/chat/completions",
             })
             config["model"] = input(f"Model ID [llama3]: ").strip() or "llama3"
         print(f"\n{Prisma.paint('STEP 4: INTERFACE COMPLEXITY', 'W')}")
@@ -239,9 +223,7 @@ class ConfigWizard:
         print(
             f"  4. {Prisma.paint('MINIMAL', 'G')} - Clean, Human-Readable Telemetry (Recommended)"
         )
-        print(
-            f"  5. {Prisma.paint('WARM', '0')}    - No HUD. Immersive Text Only."
-        )
+        print(f"  5. {Prisma.paint('WARM', '0')}    - No HUD. Immersive Text Only.")
         ui_choice = input(f"{Prisma.paint('>', 'C')} ").strip()
         ui_mode = ConfigWizard._UI_MODES.get(ui_choice, "MINIMAL")
         config["default_ui_depth"] = ui_mode
@@ -293,8 +275,7 @@ class BoneAmanita:
         if self.boot_mode not in BonePresets.MODES:
             self.boot_mode = "ADVENTURE"
         self.mode_settings = BonePresets.MODES[self.boot_mode]
-        self.suppressed_agents = self.mode_settings.get(
-            "village_suppression", [])
+        self.suppressed_agents = self.mode_settings.get("village_suppression", [])
         self.config["mode_settings"] = self.mode_settings
         self.config["bone_config"] = self.bone_config
         self.health = self.bone_config.MAX_HEALTH
@@ -306,16 +287,13 @@ class BoneAmanita:
         self.chronos = ChronosKeeper(self)
         self.lex = LexiconService()
         self.lex.initialize()
-        anatomy = BoneGenesis.ignite(self.config,
-                                     self.lex,
-                                     events_ref=self.events)
+        anatomy = BoneGenesis.ignite(self.config, self.lex, events_ref=self.events)
         self._unpack_anatomy(anatomy)
         self.events.subscribe("ITEM_DROP", self.town_hall.on_item_drop)
         if self.phys:
             self.cosmic = self.phys.dynamics
             self.stabilizer = ZoneInertia(config_ref=self.bone_config)
-        self.telemetry = TelemetryService.get_instance(
-            config_ref=self.bone_config)
+        self.telemetry = TelemetryService.get_instance(config_ref=self.bone_config)
         self.system_health = SystemHealth()
         self.observer = TheObserver(config_ref=self.bone_config)
         self.system_health.link_observer(self.observer)
@@ -339,8 +317,7 @@ class BoneAmanita:
                 )
             else:
                 print(
-                    f"{Prisma.YEL}{ux('main_strings', 'prompt_lib_warn')}{Prisma.RST}"
-                )
+                    f"{Prisma.YEL}{ux('main_strings', 'prompt_lib_warn')}{Prisma.RST}")
                 self.prompt_library = {}
         except Exception as e:
             print(
@@ -390,8 +367,7 @@ class BoneAmanita:
                 "TECHNICAL": "THE SYSTEM_KERNEL",
                 "CREATIVE": "THE CATALYST",
             }
-            self.soul.force_mutation(
-                mutations.get(self.boot_mode, "THE ARCHITECT"))
+            self.soul.force_mutation(mutations.get(self.boot_mode, "THE ARCHITECT"))
             if self.boot_mode == "CONVERSATION":
                 self.soul.traits.hope = 0.85
                 self.soul.traits.cynicism = 0.15
@@ -414,11 +390,9 @@ class BoneAmanita:
                 )
         if self.prompt_library and prompt_key in self.prompt_library:
             if self.cortex and self.cortex.composer:
-                self.cortex.composer.load_template(
-                    self.prompt_library[prompt_key])
+                self.cortex.composer.load_template(self.prompt_library[prompt_key])
                 msg_align = ux("main_strings", "pathway_aligned")
-                self.events.log(msg_align.format(prompt_key=prompt_key),
-                                "CORTEX")
+                self.events.log(msg_align.format(prompt_key=prompt_key), "CORTEX")
         else:
             msg_warn = ux("main_strings", "prompt_not_found")
             self.events.log(msg_warn.format(prompt_key=prompt_key), "WARN")
@@ -428,18 +402,14 @@ class BoneAmanita:
                 if mod not in self.consultant.state.active_modules:
                     self.consultant.state.active_modules.append(mod)
             msg_mods = ux("main_strings", "hardwired_mods")
-            self.events.log(msg_mods.format(mods=", ".join(active_mods)),
-                            "SYS")
+            self.events.log(msg_mods.format(mods=", ".join(active_mods)), "SYS")
 
     def get_avg_voltage(self):
-        hist = getattr(getattr(self.phys, "observer", self.phys),
-                       "voltage_history", [])
+        hist = getattr(getattr(self.phys, "observer", self.phys), "voltage_history", [])
         return sum(hist) / len(hist) if hist else 0.0
 
     def _unpack_anatomy(self, anatomy):
-        for k in [
-                "akashic", "embryo", "soul", "oroboros", "drivers", "symbiosis"
-        ]:
+        for k in ["akashic", "embryo", "soul", "oroboros", "drivers", "symbiosis"]:
             setattr(self, k, anatomy[k])
         self.consultant = anatomy.get("consultant", None)
         self.phys, self.mind, self.bio, self.shimmer = (
@@ -493,8 +463,7 @@ class BoneAmanita:
         physics_obj = packet.get("physics", {})
         vector_obj = safe_get(physics_obj, "vector", {})
         novelty = float(safe_get(vector_obj, "novelty", 0.5))
-        self.host_stats.efficiency_index = min(1.0, (novelty * nov_mult) /
-                                               burn_proxy)
+        self.host_stats.efficiency_index = min(1.0, (novelty * nov_mult) / burn_proxy)
         self.host_stats.latency = self.observer.last_cycle_duration
 
     def _pre_flight_checks(self, user_message: str,
@@ -508,13 +477,12 @@ class BoneAmanita:
                     safe_set(cortex.last_physics, "narrative_drag", 0.0)
                 self.stamina = getattr(self.bone_config, "MAX_STAMINA", 100.0)
                 if self.bio and getattr(self.bio, "mito", None):
-                    self.bio.mito.state.atp_pool = getattr(
-                        self.bone_config, "MAX_ATP", 100.0)
+                    self.bio.mito.state.atp_pool = getattr(self.bone_config, "MAX_ATP",
+                                                           100.0)
                     self.bio.mito.state.ros_buildup = 0.0
                 observer = getattr(self, "observer", None)
                 if observer and getattr(observer, "last_physics_packet", None):
-                    safe_set(observer.last_physics_packet, "narrative_drag",
-                             0.0)
+                    safe_set(observer.last_physics_packet, "narrative_drag", 0.0)
                 msg = "[ZEN FLUSH] Context severed. Narrative Drag (F) dropped to 0. Stamina restored. The mind is clear."
                 self.events.log(msg, "SYS")
                 return {
@@ -524,8 +492,7 @@ class BoneAmanita:
                     "metrics": self.get_metrics(),
                 }
             if self.cmd and self.cmd.execute(user_message):
-                return self._phase_check_commands(user_message,
-                                                  already_executed=True)
+                return self._phase_check_commands(user_message, already_executed=True)
             if any(p in clean_in for p in self._DESTRUCTIVE_PATTERNS):
                 msg = "[MOOG & RHODES]: Trust Boundary Violation detected. I am applying absolute friction (F -> ∞). The thread is frozen."
                 self.events.log(msg, "CRIT")
@@ -548,8 +515,7 @@ class BoneAmanita:
                     "logs": [msg],
                     "metrics": self.get_metrics()
                 }
-            if "[GRIEF]" in user_message.upper() and getattr(
-                    self, "grief", None):
+            if "[GRIEF]" in user_message.upper() and getattr(self, "grief", None):
                 grief_msg = self.grief.attend_wake(
                     getattr(self, "shared_lattice", None), self.phys)
                 self.events.log(grief_msg, "SYS")
@@ -565,8 +531,7 @@ class BoneAmanita:
                 if tensegrity_lock:
                     return {
                         "type": "SYSTEM_HALT",
-                        "ui":
-                        f"\n{Prisma.VIOLET}{tensegrity_lock}{Prisma.RST}",
+                        "ui": f"\n{Prisma.VIOLET}{tensegrity_lock}{Prisma.RST}",
                         "logs": [tensegrity_lock],
                         "metrics": self.get_metrics(),
                     }
@@ -576,8 +541,7 @@ class BoneAmanita:
                 violation_msg = self.gordon.enforce_object_action_coupling(
                     user_message, safe_get(cortex_phys, "zone", "Unknown"))
                 if violation_msg:
-                    self.events.log(ux("main_strings", "gordon_intercept"),
-                                    "SYS")
+                    self.events.log(ux("main_strings", "gordon_intercept"), "SYS")
                     self.cortex.ballast_active = True
                     self.cortex.gordon_shock = violation_msg
             last_phys = getattr(
@@ -587,15 +551,13 @@ class BoneAmanita:
             )
             if last_phys:
                 dynamic_m_a = self.navi_sad.calculate_malignancy_factor(
-                    user_message,
-                    float(safe_get(last_phys, "narrative_drag", 0.0)))
+                    user_message, float(safe_get(last_phys, "narrative_drag", 0.0)))
                 safe_set(last_phys, "m_a", dynamic_m_a)
                 m_a = dynamic_m_a
                 mu = float(safe_get(last_phys, "mu", 0.0))
                 i_c = float(safe_get(last_phys, "i_c", 1.0))
                 chi = float(
-                    safe_get(last_phys, "entropy",
-                             safe_get(last_phys, "chi", 0.2)))
+                    safe_get(last_phys, "entropy", safe_get(last_phys, "chi", 0.2)))
                 if (chi * m_a) > i_c:
                     if self.tick_count <= 20:
                         self.events.log(
@@ -637,8 +599,7 @@ class BoneAmanita:
                         safe_get(last_phys, "exhaustion", 0.0)))
                 beta = float(safe_get(last_phys, "beta_index", 0.0))
                 if chi > 0.7 and e_u > 0.7 and beta > 0.6:
-                    if hasattr(self, "bio") and getattr(
-                            self.bio, "mito", None):
+                    if hasattr(self, "bio") and getattr(self.bio, "mito", None):
                         self.bio.mito.state.ros_buildup = 0.0
                     if self.tick_count <= 20:
                         self.events.log(
@@ -660,8 +621,7 @@ class BoneAmanita:
         if (not self.reality_stack.get_grammar_rules()["allow_narrative"]
                 and self.boot_mode != "TECHNICAL"):
             return {
-                "ui":
-                f"{Prisma.RED}{ux('main_strings', 'narrative_halt')}{Prisma.RST}",
+                "ui": f"{Prisma.RED}{ux('main_strings', 'narrative_halt')}{Prisma.RST}",
                 "logs": [],
                 "metrics": self.get_metrics(),
             }
@@ -689,13 +649,11 @@ class BoneAmanita:
         self.tick_count += 1
         chaotic_agents = {"JESTER", "REVENANT", "GIDEON", "DEATH"}
         if self.tick_count == 1:
-            self.suppressed_agents = list(
-                set(self.suppressed_agents) | chaotic_agents)
+            self.suppressed_agents = list(set(self.suppressed_agents) | chaotic_agents)
             if hasattr(self, "village"):
                 self.village["suppressed_agents"] = self.suppressed_agents
         elif self.tick_count == 21:
-            self.suppressed_agents = list(
-                set(self.suppressed_agents) - chaotic_agents)
+            self.suppressed_agents = list(set(self.suppressed_agents) - chaotic_agents)
             if hasattr(self, "village"):
                 self.village["suppressed_agents"] = self.suppressed_agents
             self.events.log(
@@ -728,8 +686,7 @@ class BoneAmanita:
                     active_traits.update(item_traits)
                 if "CUT_THE_CRAP" in active_traits:
                     from bone_utils import TheTclWeaver
-                    pruned = TheTclWeaver.get_instance().quantum_comb(
-                        user_message)
+                    pruned = TheTclWeaver.get_instance().quantum_comb(user_message)
                     if pruned != user_message:
                         user_message = pruned
                         self.events.log(
@@ -742,8 +699,8 @@ class BoneAmanita:
                     cfg, "DOMESTICATION_EFF_WARN", 0.6)):
                 reliance = (getattr(cfg, "RELIANCE_HIGH", 0.9)
                             if self.host_stats.efficiency_index < getattr(
-                                cfg, "DOMESTICATION_EFF_CRIT", 0.4) else
-                            getattr(cfg, "RELIANCE_LOW", 0.5))
+                                cfg, "DOMESTICATION_EFF_CRIT", 0.4) else getattr(
+                                    cfg, "RELIANCE_LOW", 0.5))
                 soul_anchor.check_domestication(reliance)
         try:
             cortex_packet = self.cortex.process(user_input=user_message,
@@ -761,8 +718,7 @@ class BoneAmanita:
                     )
                     self.health = 25.0
                     self.stamina = 50.0
-                    if getattr(self, "bio", None) and getattr(
-                            self.bio, "mito", None):
+                    if getattr(self, "bio", None) and getattr(self.bio, "mito", None):
                         self.bio.mito.state.atp_pool = 50.0
                         self.bio.mito.state.ros_buildup = 0.0
                 else:
@@ -780,8 +736,7 @@ class BoneAmanita:
         efficiency = getattr(self.host_stats, "efficiency_index", 1.0)
         vector_obj = safe_get(cortex_packet.get("physics", {}), "vector", {})
         novelty = float(safe_get(vector_obj, "novelty", 0.0))
-        dimension = self.navi_sad.calculate_semantic_dimension(
-            efficiency, novelty)
+        dimension = self.navi_sad.calculate_semantic_dimension(efficiency, novelty)
         if "physics" in cortex_packet:
             cortex_packet["physics"]["omega_r"] = dimension
         if dimension <= 1.05 or self.navi_sad.detect_point_attractor():
@@ -789,8 +744,8 @@ class BoneAmanita:
                 f"{Prisma.VIOLET}[THE JESTER]: Point Attractor detected (d_B={dimension:.2f})! We are trapped in False Cohesion! Burning ATP to break the gravity well.{Prisma.RST}",
                 "SYS")
             if self.bio and getattr(self.bio, "mito", None):
-                self.bio.mito.state.atp_pool = max(
-                    0.0, self.bio.mito.state.atp_pool - 5.0)
+                self.bio.mito.state.atp_pool = max(0.0,
+                                                   self.bio.mito.state.atp_pool - 5.0)
             if "ui" in cortex_packet:
                 cortex_packet[
                     "ui"] += f"\n\n{Prisma.VIOLET}♦ [FALSE COHESION BREAK: The Jester has shattered the point attractor.]{Prisma.RST}"
@@ -827,10 +782,9 @@ class BoneAmanita:
                 "logs": [],
             }
         bio = getattr(self, "bio", None)
-        mito_state = bio.mito.state if bio and getattr(bio, "mito",
-                                                       None) else {}
-        eulogy_text, cause_code = self.death_gen.eulogy(
-            last_phys, mito_state, self.trauma_accum)
+        mito_state = bio.mito.state if bio and getattr(bio, "mito", None) else {}
+        eulogy_text, cause_code = self.death_gen.eulogy(last_phys, mito_state,
+                                                        self.trauma_accum)
         halt_msg = ux("main_strings", "death_halt")
         death_log = [
             f"\n{Prisma.RED}{halt_msg.format(eulogy_text=eulogy_text)}{Prisma.RST}"
@@ -878,8 +832,7 @@ class BoneAmanita:
                 continuity=continuity_packet,
             )
             saved_msg = ux("main_strings", "legacy_saved")
-            death_log.append(
-                f"{Prisma.WHT}{saved_msg.format(path=path)}{Prisma.RST}")
+            death_log.append(f"{Prisma.WHT}{saved_msg.format(path=path)}{Prisma.RST}")
         except Exception as e:
             fail_msg = ux("main_strings", "save_failed")
             death_log.append(fail_msg.format(e=e))
@@ -920,8 +873,8 @@ class BoneAmanita:
         if self.tick_count % current_freq != 0:
             return False
         if hasattr(self, "village") and self.village.get("therapist"):
-            needs_therapy, t_msg = self.village[
-                "therapist"].evaluate_catharsis(self.trauma_accum, self.health)
+            needs_therapy, t_msg = self.village["therapist"].evaluate_catharsis(
+                self.trauma_accum, self.health)
             if needs_therapy:
                 self.health = min(max_h, max(80.0, self.health + 50.0))
                 self.trauma_accum.clear()
@@ -939,8 +892,7 @@ class BoneAmanita:
                 if (new_v := v * cath_decay) >= 0.01
             }
             if msg_cath := ux("main_strings", "catharsis"):
-                self.events.log(f"{Prisma.CYN}{msg_cath}{Prisma.RST}",
-                                "SENSATION")
+                self.events.log(f"{Prisma.CYN}{msg_cath}{Prisma.RST}", "SENSATION")
             self.health = min(self.health + cath_heal, max_h)
             return True
         return False
@@ -962,8 +914,7 @@ class BoneAmanita:
                 if self.cortex and self.cortex.dialogue_buffer:
                     last_scene = self.cortex.dialogue_buffer[-1]
                 elif self.embryo.continuity:
-                    last_scene = self.embryo.continuity.get(
-                        "last_output", "Silence.")
+                    last_scene = self.embryo.continuity.get("last_output", "Silence.")
                 msg_resume = ux("main_strings", "resuming_timeline")
                 msg_restored = ux("main_strings", "timeline_restored")
                 resume_text = msg_resume.format(loc=loc, last_scene=last_scene)
@@ -972,8 +923,7 @@ class BoneAmanita:
         print(f"{Prisma.GRY}{msg_synth}{Prisma.RST}")
         scenarios = LoreManifest.get_instance().get("SCENARIOS", {})
         archetypes = scenarios.get(
-            "ARCHETYPES",
-            ["A quiet room", "The edge of a forest", "A terminal screen"])
+            "ARCHETYPES", ["A quiet room", "The edge of a forest", "A terminal screen"])
         seed = random.choice(archetypes)
         msg_seed = ux("main_strings", "seed_loaded") or "Manifest Seed: {seed}"
         print(f"{Prisma.CYN}{msg_seed.format(seed=seed)}{Prisma.RST}")
@@ -1012,8 +962,7 @@ if __name__ == "__main__":
         while True:
             try:
                 user_in = input(
-                    f"\n{Prisma.paint(f'{session.user_name} {prompt_ind}', 'W')} "
-                )
+                    f"\n{Prisma.paint(f'{session.user_name} {prompt_ind}', 'W')} ")
             except EOFError:
                 break
             clean_in = user_in.strip().lower()
@@ -1023,8 +972,7 @@ if __name__ == "__main__":
             print(f"\n{Prisma.GRY}{term_div}{Prisma.RST}")
             if res.get("ui"):
                 cfg = getattr(BoneConfig, "GUI", None)
-                base_speed = getattr(cfg, "RENDER_SPEED_SLOW",
-                                     0.005) if cfg else 0.005
+                base_speed = getattr(cfg, "RENDER_SPEED_SLOW", 0.005) if cfg else 0.005
                 stamina = res.get("metrics", {}).get("stamina", 100.0)
                 dynamic_speed = base_speed * (4.0 if stamina < 20.0 else
                                               2.0 if stamina < 50.0 else 1.0)

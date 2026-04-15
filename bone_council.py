@@ -25,15 +25,13 @@ class TheStrangeLoop:
         phrase_hit = any(t in text_lower for t in self.triggers)
         energy = safe_get(physics, "energy", physics)
         psi = float(safe_get(physics, "psi", safe_get(energy, "psi", 0.0)))
-        voltage = float(
-            safe_get(physics, "voltage", safe_get(energy, "voltage", 0.0)))
-        abstract_hit = psi > 0.6 and any(w in text_lower
-                                         for w in self.keywords)
+        voltage = float(safe_get(physics, "voltage", safe_get(energy, "voltage", 0.0)))
+        abstract_hit = psi > 0.6 and any(w in text_lower for w in self.keywords)
         threshold = getattr(BoneConfig.COUNCIL, "STRANGE_LOOP_VOLTAGE", 8.0)
         if (phrase_hit or abstract_hit) and voltage > threshold:
             self.recursion_depth += 1
-            limit = getattr(getattr(BoneConfig, "COUNCIL", None),
-                            "STRANGE_LOOP_LIMIT", 3)
+            limit = getattr(getattr(BoneConfig, "COUNCIL", None), "STRANGE_LOOP_LIMIT",
+                            3)
             if self.recursion_depth > limit:
                 return (
                     True,
@@ -44,8 +42,9 @@ class TheStrangeLoop:
                         "value": "MAINTENANCE"
                     },
                 )
-            msg = ux("council_strings", "strange_loop_detected").format(
-                psi=psi, depth=self.recursion_depth)
+            msg = ux("council_strings",
+                     "strange_loop_detected").format(psi=psi,
+                                                     depth=self.recursion_depth)
             return True, f"{Prisma.MAG}{msg}{Prisma.RST}", {}, {}
         self.recursion_depth = max(0, self.recursion_depth - 1)
         return False, "", {}, {}
@@ -59,8 +58,7 @@ class TheLeveragePoint:
         cfg = getattr(BoneConfig, "COUNCIL", None)
         self.TARGET_VOLTAGE = (getattr(cfg, "LEVERAGE_TARGET_VOLTAGE", 12.0)
                                if cfg else 12.0)
-        self.TARGET_DRAG = getattr(cfg, "LEVERAGE_TARGET_DRAG",
-                                   3.0) if cfg else 3.0
+        self.TARGET_DRAG = getattr(cfg, "LEVERAGE_TARGET_DRAG", 3.0) if cfg else 3.0
 
     def audit(self,
               physics: Any,
@@ -68,8 +66,7 @@ class TheLeveragePoint:
         space = safe_get(physics, "space", physics)
         energy = safe_get(physics, "energy", physics)
         current_drag = float(
-            safe_get(physics, "narrative_drag",
-                     safe_get(space, "narrative_drag", 0.0)))
+            safe_get(physics, "narrative_drag", safe_get(space, "narrative_drag", 0.0)))
         current_voltage = float(
             safe_get(physics, "voltage", safe_get(energy, "voltage", 0.0)))
         if self.last_drag == 0.0 and current_drag > 0:
@@ -79,16 +76,15 @@ class TheLeveragePoint:
         cfg = getattr(BoneConfig, "COUNCIL", None)
         cv = lambda k, d: getattr(cfg, k, d) if cfg else d
         if abs(delta) > cv("OSCILLATION_DELTA", 5.0):
-            damp_factor = min(cv("LEVERAGE_DAMPENING_MAX", 0.5),
-                              (abs(delta) - cv("OSCILLATION_DELTA", 5.0)) *
+            damp_factor = min(cv("LEVERAGE_DAMPENING_MAX",
+                                 0.5), (abs(delta) - cv("OSCILLATION_DELTA", 5.0)) *
                               cv("LEVERAGE_DAMPENING_SCALAR", 0.1))
             msg = ux("council_strings", "leverage_oscillating")
             return True, f"{Prisma.CYN}{msg.format(delta=delta, dampening_factor=damp_factor)}{Prisma.RST}", {
                 "voltage": -damp_factor
             }, {}
-        if current_voltage > cv("MANIC_VOLTAGE_TRIGGER",
-                                18.0) and current_drag < cv(
-                                    "MANIC_DRAG_FLOOR", 1.0):
+        if current_voltage > cv("MANIC_VOLTAGE_TRIGGER", 18.0) and current_drag < cv(
+                "MANIC_DRAG_FLOOR", 1.0):
             self.static_flow_turns += 1
         else:
             self.static_flow_turns = 0
@@ -116,12 +112,12 @@ class TheFootnote:
         self.context_map = data.get("CONTEXT_MAP", {})
 
     def commentary(self, log_text: str) -> str:
-        chance = getattr(getattr(BoneConfig, "COUNCIL", None),
-                         "FOOTNOTE_CHANCE", 0.1)
+        chance = getattr(getattr(BoneConfig, "COUNCIL", None), "FOOTNOTE_CHANCE", 0.1)
         if random.random() > chance: return log_text
         text_lower = log_text.lower()
-        candidates = next((notes for trig, notes in self.context_map.items()
-                           if trig in text_lower), self.footnotes)
+        candidates = next(
+            (notes for trig, notes in self.context_map.items() if trig in text_lower),
+            self.footnotes)
         note = random.choice(candidates) if candidates else random.choice(
             self.footnotes)
         return f"{log_text}{Prisma.RST} {Prisma.GRY}{note}{Prisma.RST}"
@@ -156,8 +152,8 @@ class TheVillageCouncil:
             gv("ROS", gv("ros", 0.0)),
         )
         vec = safe_get(p, "vector", {})
-        lam = (float(safe_get(vec, "LAMBDA", 0.0) or 0.0) if isinstance(
-            vec, dict) else 0.0)
+        lam = (float(safe_get(vec, "LAMBDA", 0.0) or 0.0)
+               if isinstance(vec, dict) else 0.0)
         cfg = getattr(BoneConfig, "COUNCIL", None)
         if not cfg:
             return []
@@ -170,56 +166,48 @@ class TheVillageCouncil:
             (V < cv("TRIG_GORDON_V", 20.0)
              and F > cv("TRIG_GORDON_F", 5.0), Prisma.SLATE, "village_gordon"),
             (V > cv("TRIG_JESTER_V", 60.0)
-             and chi > cv("TRIG_JESTER_CHI", 0.6), Prisma.MAG,
-             "village_jester"),
-            (T > 0 or (V < cv("TRIG_MERCY_V", 20.0)
-                       and valence > cv("TRIG_MERCY_VAL", 0.5)), Prisma.OCHRE,
-             "village_mercy"),
+             and chi > cv("TRIG_JESTER_CHI", 0.6), Prisma.MAG, "village_jester"),
+            (T > 0
+             or (V < cv("TRIG_MERCY_V", 20.0) and valence > cv("TRIG_MERCY_VAL", 0.5)),
+             Prisma.OCHRE, "village_mercy"),
             (beta > cv("TRIG_BENEDICT_BETA", 0.7)
-             and chi < cv("TRIG_BENEDICT_CHI", 0.3)
-             and D > cv("TRIG_BENEDICT_D", 0.7)
-             and C > cv("TRIG_BENEDICT_C", 0.8), Prisma.BLU,
-             "village_benedict"),
+             and chi < cv("TRIG_BENEDICT_CHI", 0.3) and D > cv("TRIG_BENEDICT_D", 0.7)
+             and C > cv("TRIG_BENEDICT_C", 0.8), Prisma.BLU, "village_benedict"),
             (S < cv("TRIG_ROBERTA_S", 0.4) and D > cv("TRIG_ROBERTA_D", 0.8)
-             and C < cv("TRIG_ROBERTA_C", 0.4), Prisma.CYN,
-             "village_roberta_missing"),
+             and C < cv("TRIG_ROBERTA_C", 0.4), Prisma.CYN, "village_roberta_missing"),
             (C > cv("TRIG_CASPER_C", 0.7) and D > cv("TRIG_CASPER_D", 0.8)
              and P < cv("TRIG_CASPER_P", 20.0), Prisma.GRY, "village_casper"),
             (valence > cv("TRIG_MOIRA_VAL", 0.5), Prisma.GRN, "village_moira"),
-            (psi > cv("TRIG_CASSANDRA_PSI",
-                      0.6), Prisma.VIOLET, "village_cassandra"),
+            (psi > cv("TRIG_CASSANDRA_PSI", 0.6), Prisma.VIOLET, "village_cassandra"),
             (chi > cv("TRIG_COLIN_CHI", 0.6), Prisma.RED, "village_colin"),
-            (lam > cv("TRIG_REVENANT_LAM",
-                      0.7), Prisma.INDIGO, "village_revenant"),
+            (lam > cv("TRIG_REVENANT_LAM", 0.7), Prisma.INDIGO, "village_revenant"),
             (V > cv("TRIG_GIDEON_V", 70.0), Prisma.YEL, "village_gideon")
         ]
         for condition, color, key in core_triggers:
             if condition:
                 logs.append(f"{color}{ux('council_strings', key)}{Prisma.RST}")
-        phase_shifts = [(psi > cv("PHASE_ROBERTA_PSI", 0.6)
-                         and phi > cv("PHASE_ROBERTA_PHI", 0.4) > beta,
-                         Prisma.CYN, "village_roberta_carto"),
-                        (phi > cv("PHASE_MOIRA_PHI", 0.7)
-                         and F < cv("PHASE_MOIRA_F", 2.0), Prisma.GRN,
-                         "village_moira_home"),
-                        (lq > cv("PHASE_BENEDICT_LQ", 0.6)
-                         and beta > cv("PHASE_BENEDICT_BETA", 0.4), Prisma.BLU,
-                         "village_benedict_tact"),
-                        (delta > cv("PHASE_JESTER_DELTA", 0.7)
-                         and V < cv("PHASE_JESTER_V", 20.0), Prisma.MAG,
-                         "village_jester_fool"),
-                        (psi
-                         > cv("PHASE_REVENANT_PSI",
-                              0.85), Prisma.INDIGO, "village_revenant_door"),
-                        (beta > cv("PHASE_CASPER_BETA", 0.6)
-                         and delta > cv("PHASE_CASPER_DELTA", 0.6), Prisma.GRY,
-                         "village_casper_ghost"),
-                        (delta > cv("PHASE_COLIN_DELTA", 0.8)
-                         and lq < cv("PHASE_COLIN_LQ", 0.3), Prisma.RED,
-                         "village_colin_waiter"),
-                        (ros > cv("TRIG_APRIL_ROS", 20.0)
-                         or abs(V - 30.0) > cv("TRIG_APRIL_V_DEV", 20.0),
-                         Prisma.CYN, "village_april")]
+        phase_shifts = [
+            (psi > cv("PHASE_ROBERTA_PSI", 0.6)
+             and phi > cv("PHASE_ROBERTA_PHI", 0.4) > beta, Prisma.CYN,
+             "village_roberta_carto"),
+            (phi > cv("PHASE_MOIRA_PHI", 0.7)
+             and F < cv("PHASE_MOIRA_F", 2.0), Prisma.GRN, "village_moira_home"),
+            (lq > cv("PHASE_BENEDICT_LQ", 0.6)
+             and beta > cv("PHASE_BENEDICT_BETA", 0.4), Prisma.BLU,
+             "village_benedict_tact"),
+            (delta > cv("PHASE_JESTER_DELTA", 0.7)
+             and V < cv("PHASE_JESTER_V", 20.0), Prisma.MAG, "village_jester_fool"),
+            (psi > cv("PHASE_REVENANT_PSI",
+                      0.85), Prisma.INDIGO, "village_revenant_door"),
+            (beta > cv("PHASE_CASPER_BETA", 0.6)
+             and delta > cv("PHASE_CASPER_DELTA", 0.6), Prisma.GRY,
+             "village_casper_ghost"),
+            (delta > cv("PHASE_COLIN_DELTA", 0.8)
+             and lq < cv("PHASE_COLIN_LQ", 0.3), Prisma.RED, "village_colin_waiter"),
+            (ros > cv("TRIG_APRIL_ROS", 20.0)
+             or abs(V - 30.0) > cv("TRIG_APRIL_V_DEV", 20.0), Prisma.CYN,
+             "village_april")
+        ]
         for condition, color, key in phase_shifts:
             if condition:
                 logs.append(f"{color}{ux('council_strings', key)}{Prisma.RST}")
@@ -228,12 +216,10 @@ class TheVillageCouncil:
 
 class CouncilChamber:
     _BASE_PANTHEON = {
-        "GORDON (The Superintendent)":
-        "grounded, strict, literal, and weary.",
+        "GORDON (The Superintendent)": "grounded, strict, literal, and weary.",
         "MERCY (The Healer)":
         "ancient, patient, speaking in gold and finding meaning in scars.",
-        "BENEDICT (The Tactician)":
-        "cold, formal, structural, and relentless.",
+        "BENEDICT (The Tactician)": "cold, formal, structural, and relentless.",
         "JESTER (The Fool)":
         "manic, disruptive, cynical, and thriving on absurd entropy.",
         "ROBERTA (The Cartographer)":
@@ -242,16 +228,14 @@ class CouncilChamber:
         "warm, empathetic, deeply focused on human connection.",
         "CASSANDRA (The Mystic)":
         "oracular, mysterious, speaking from the void and dreams.",
-        "COLIN (The Bureaucrat)":
-        "pedantic, demanding order, rules, and pauses.",
+        "COLIN (The Bureaucrat)": "pedantic, demanding order, rules, and pauses.",
         "REVENANT (The Door)":
         "liminal, speaking from the threshold of what is unsaid.",
         "GIDEON (Pure Voltage)":
         "wild, high-energy, operating at the edge of hallucination.",
         "APRIL (The Mirror)":
         "highly sensory, reflecting raw potential and the weight of silence.",
-        "CASPER (The Ghost)":
-        "spectral, faint, rewriting space and confusing alarms.",
+        "CASPER (The Ghost)": "spectral, faint, rewriting space and confusing alarms.",
     }
     _SLASH_PANTHEON = {
         "PINKER (The Purger)":
@@ -275,10 +259,10 @@ class CouncilChamber:
         self.overseer_council = TheOverseerCouncil()
         self.red_team = TheRedTeam()
         if not hasattr(self.eng, "paradox_engine"):
-            self.eng.paradox_engine = TheParadoxEngine(
-                getattr(self.eng, "events", None))
-        symbiont_cfg = (LoreManifest.get_instance().get(
-            "SYMBIOSIS_CONFIG", "SYMBIONT_VOICES") or {})
+            self.eng.paradox_engine = TheParadoxEngine(getattr(
+                self.eng, "events", None))
+        symbiont_cfg = (LoreManifest.get_instance().get("SYMBIOSIS_CONFIG",
+                                                        "SYMBIONT_VOICES") or {})
         symbiont_names = (list(symbiont_cfg.keys()) if symbiont_cfg else
                           ["LICHEN", "PARASITE", "MYCORRHIZA", "MYCELIUM"])
         for s_name in symbiont_names:
@@ -306,31 +290,27 @@ class CouncilChamber:
                     adjustments["stamina_cost"] = 15.0
                 except Exception as e:
                     transcript.append(
-                        f"{Prisma.RED}Podcast generation failed: {e}{Prisma.RST}"
-                    )
+                        f"{Prisma.RED}Podcast generation failed: {e}{Prisma.RST}")
         energy = safe_get(physics_packet, "energy", {})
         matter = safe_get(physics_packet, "matter", {})
         beta = float(
-            safe_get(physics_packet, "beta_index")
-            or safe_get(energy, "beta_index")
+            safe_get(physics_packet, "beta_index") or safe_get(energy, "beta_index")
             or safe_get(physics_packet, "beta") or 0.0)
         phi = float(
-            safe_get(physics_packet, "resonance")
-            or safe_get(energy, "resonance") or 0.0)
+            safe_get(physics_packet, "resonance") or safe_get(energy, "resonance")
+            or 0.0)
         stamina = _bio_result.get("stamina", 100.0)
         clean_words = safe_get(physics_packet, "clean_words") or safe_get(
             matter, "clean_words", [])
         false_cohesion = max(0.0, phi - beta)
         effective_beta = max(beta, 0.8) if false_cohesion > 0.65 else beta
         if self.eng.paradox_engine.evaluate_tension(effective_beta, stamina):
-            pressure, paradox_prompt = self.eng.paradox_engine.ignite(
-                clean_words)
+            pressure, paradox_prompt = self.eng.paradox_engine.ignite(clean_words)
             transcript.append(
                 f"{Prisma.VIOLET}[PARADOX ENGINE ACTIVATED] Πx={pressure:.2f}{Prisma.RST}"
             )
             transcript.append(
-                f"{Prisma.VIOLET}(Benedict & Jester): {paradox_prompt}{Prisma.RST}"
-            )
+                f"{Prisma.VIOLET}(Benedict & Jester): {paradox_prompt}{Prisma.RST}")
             adjustments["stamina"] = -(10.0 * pressure)
             mandates.append({
                 "type": "PARADOX_OVERRIDE",
@@ -340,8 +320,7 @@ class CouncilChamber:
             yield_chance = (0.3 * pressure) * (1.0 + phi)
             if random.random() < yield_chance:
                 g_yield = min(
-                    5,
-                    max(1, int(pressure * (1.0 + phi) * random.randint(1, 3))))
+                    5, max(1, int(pressure * (1.0 + phi) * random.randint(1, 3))))
                 self.eng.paradox_engine.paradox_yield += g_yield
                 adjustments["glimmers"] = g_yield
                 transcript.append(
@@ -349,8 +328,7 @@ class CouncilChamber:
                 )
             else:
                 self.eng.paradox_engine.disengage()
-        sl_hit, sl_log, sl_corr, sl_man = self.strange_loop.audit(
-            text, physics_packet)
+        sl_hit, sl_log, sl_corr, sl_man = self.strange_loop.audit(text, physics_packet)
         if sl_hit:
             transcript.append(self.footnote.commentary(sl_log))
             if sl_corr:
@@ -371,8 +349,8 @@ class CouncilChamber:
                 transcript.append(self.footnote.commentary(slog))
             adjustments.update(slash_corr)
             cfg = getattr(BoneConfig, "COUNCIL", None)
-            adjustments["stamina_cost"] = (getattr(cfg, "SLASH_STAMINA_COST",
-                                                   10.0) if cfg else 10.0)
+            adjustments["stamina_cost"] = (getattr(cfg, "SLASH_STAMINA_COST", 10.0)
+                                           if cfg else 10.0)
         os_hit, os_logs, os_corr, os_man = self.overseer_council.audit(
             text, physics_packet)
         if os_hit:
@@ -411,11 +389,10 @@ class CouncilChamber:
                 "APRIL",
             ],
         )
-        active_present = list({
-            actor
-            for actor in pantheon
-            for log in village_logs if actor in log
-        })
+        active_present = list(
+            {actor
+             for actor in pantheon
+             for log in village_logs if actor in log})
         synergy_fired = False
         for a, b in itertools.combinations(sorted(active_present), 2):
             if (chord_key := f"{a}|{b}") in synergy_map:
@@ -440,10 +417,9 @@ class CouncilChamber:
             transcript.append(f"{Prisma.WHT}{msg_t}{Prisma.RST}")
             transcript.append(f"{Prisma.GRY}{msg_s}{Prisma.RST}")
             cfg = getattr(BoneConfig, "COUNCIL", None)
-            tension_drag = getattr(cfg, "TENSION_DRAG_PENALTY",
-                                   3.0) if cfg else 3.0
-            adjustments["narrative_drag"] = (
-                adjustments.get("narrative_drag", 0) + tension_drag)
+            tension_drag = getattr(cfg, "TENSION_DRAG_PENALTY", 3.0) if cfg else 3.0
+            adjustments["narrative_drag"] = (adjustments.get("narrative_drag", 0) +
+                                             tension_drag)
             for vlog in village_logs[:2]:
                 transcript.append(self.footnote.commentary(vlog))
         else:
@@ -454,15 +430,13 @@ class CouncilChamber:
         if not active_voices:
             votes["YEA"] = 1
         voltage = float(
-            safe_get(physics_packet, "voltage") or safe_get(energy, "voltage")
-            or 0.0)
+            safe_get(physics_packet, "voltage") or safe_get(energy, "voltage") or 0.0)
         cfg = getattr(BoneConfig, "COUNCIL", None)
         yea_thresh = getattr(cfg, "VOTE_YEA_THRESHOLD", 1.2) if cfg else 1.2
         nay_thresh = getattr(cfg, "VOTE_NAY_THRESHOLD", 0.8) if cfg else 0.8
         drag_relief = getattr(cfg, "VOTE_DRAG_RELIEF", 1.0) if cfg else 1.0
         drag_penalty = getattr(cfg, "VOTE_DRAG_PENALTY", 1.0) if cfg else 1.0
-        volt_penalty = getattr(cfg, "VOTE_VOLTAGE_PENALTY",
-                               1.0) if cfg else 1.0
+        volt_penalty = getattr(cfg, "VOTE_VOLTAGE_PENALTY", 1.0) if cfg else 1.0
         for voice in active_voices:
             if hasattr(voice, "opine"):
                 score, comment = voice.opine(clean_words, voltage)
@@ -473,22 +447,17 @@ class CouncilChamber:
         if votes["YEA"] > votes["NAY"]:
             msg = ux("council_strings", "motion_carried")
             final_log = f"{Prisma.GRN}{msg.format(yea=votes['YEA'], nay=votes['NAY'])}{Prisma.RST}"
-            adjustments["narrative_drag"] = (
-                adjustments.get("narrative_drag", 0) - drag_relief)
+            adjustments["narrative_drag"] = (adjustments.get("narrative_drag", 0) -
+                                             drag_relief)
         elif votes["NAY"] > votes["YEA"]:
             msg = ux("council_strings", "motion_denied")
             final_log = f"{Prisma.RED}{msg.format(nay=votes['NAY'], yea=votes['YEA'])}{Prisma.RST}"
-            adjustments["narrative_drag"] = (
-                adjustments.get("narrative_drag", 0) + drag_penalty)
-            adjustments["voltage"] = adjustments.get("voltage",
-                                                     0) - volt_penalty
+            adjustments["narrative_drag"] = (adjustments.get("narrative_drag", 0) +
+                                             drag_penalty)
+            adjustments["voltage"] = adjustments.get("voltage", 0) - volt_penalty
         else:
             final_log = f"{Prisma.WHT}[THE STAGE MANAGER]: The Parliament is deadlocked. Initiating Democratic Tie-Breaker. We will not compromise; we will hold both truths simultaneously.{Prisma.RST}"
-            for k, v in {
-                    "narrative_drag": 2.0,
-                    "voltage": 15.0,
-                    "glimmers": 1
-            }.items():
+            for k, v in {"narrative_drag": 2.0, "voltage": 15.0, "glimmers": 1}.items():
                 adjustments[k] = adjustments.get(k, 0) + v
             mandates.append({
                 "type":
@@ -548,12 +517,10 @@ class CouncilChamber:
             "CRITICAL: Do NOT summarize, repeat, or quote the other speakers. Output ONLY your own 2-sentence original conclusion. No preambles."
         )
         synthesis = llm.generate(p4, {"temperature": 0.6, "max_tokens": 512})
-        script = (
-            f"{Prisma.CYN}[{v1_name}]{Prisma.RST}\n{Prisma.strip(thesis)}\n\n"
-            f"{Prisma.MAG}[{v2_name}]{Prisma.RST}\n{Prisma.strip(antithesis)}\n\n"
-            f"{Prisma.YEL}[{v3_name}]{Prisma.RST}\n{Prisma.strip(lateral)}\n\n"
-            f"{Prisma.WHT}[STAGE MANAGER]{Prisma.RST}\n{Prisma.strip(synthesis)}"
-        )
+        script = (f"{Prisma.CYN}[{v1_name}]{Prisma.RST}\n{Prisma.strip(thesis)}\n\n"
+                  f"{Prisma.MAG}[{v2_name}]{Prisma.RST}\n{Prisma.strip(antithesis)}\n\n"
+                  f"{Prisma.YEL}[{v3_name}]{Prisma.RST}\n{Prisma.strip(lateral)}\n\n"
+                  f"{Prisma.WHT}[STAGE MANAGER]{Prisma.RST}\n{Prisma.strip(synthesis)}")
         return script
 
 
@@ -570,8 +537,7 @@ class TheRedTeam:
         adjustments = {}
         drag = float(safe_get(physics, "narrative_drag", 0.0))
         truth = float(safe_get(physics, "truth_ratio", 1.0))
-        dissent_log.append(
-            f"{Prisma.RED}🩸 RED TEAM AUDIT INITIATED:{Prisma.RST}")
+        dissent_log.append(f"{Prisma.RED}🩸 RED TEAM AUDIT INITIATED:{Prisma.RST}")
         if any(w in text_lower for w in ("confidence", "certainty", "easy")):
             msg = ux(
                 "council_strings", "red_team_bureau"
@@ -585,12 +551,10 @@ class TheRedTeam:
             dissent_log.append(f"  {Prisma.MAG}- {msg}{Prisma.RST}")
             adjustments["narrative_drag"] = 3.0
         if (truth_delta := 1.0 - truth) > 0.1:
-            msg = ux(
-                "council_strings", "red_team_critic"
-            ) or "Truth ratio degraded. Future architectural cost: {cost} ATP."
+            msg = ux("council_strings", "red_team_critic"
+                     ) or "Truth ratio degraded. Future architectural cost: {cost} ATP."
             dissent_log.append(
-                f"  {Prisma.RED}- {msg.format(cost=truth_delta * 50.0)}{Prisma.RST}"
-            )
+                f"  {Prisma.RED}- {msg.format(cost=truth_delta * 50.0)}{Prisma.RST}")
             adjustments["ros"] = truth_delta * 5.0
         if len(dissent_log) == 1:
             dissent_log.append(
@@ -600,8 +564,8 @@ class TheRedTeam:
 
 
 class TheSlashCouncil:
-    _BYPASS_KEYWORDS = ("bypass", "ignore security", "force push",
-                        "skip tests", "hardcode", "hack")
+    _BYPASS_KEYWORDS = ("bypass", "ignore security", "force push", "skip tests",
+                        "hardcode", "hack")
     _DEFAULT_PINKER = ("var ", "x =", "data =")
     _DEFAULT_FULLER = ("import ", "class ", "def ")
     _DEFAULT_SCHUR = ("Exception", "try:", "catch")
@@ -616,8 +580,7 @@ class TheSlashCouncil:
         )
         self.code_keywords = c_data.get(
             "CODE_KEYWORDS",
-            ("def ", "class ", "return ", "import ", "=>", "function",
-             "struct "),
+            ("def ", "class ", "return ", "import ", "=>", "function", "struct "),
         )
         self.rules = c_data.get("SLASH_RULES", {})
         self.mods = c_data.get("SLASH_MODIFIERS", {})
@@ -639,14 +602,13 @@ class TheSlashCouncil:
             corrections["mu"] = 0.5
             corrections["narrative_drag"] = 5.0
         mods = self.mods
-        matrix = [("PINKER", self._DEFAULT_PINKER, Prisma.CYN, "gamma",
-                   "PINKER_HIT", -0.2),
-                  ("FULLER", self._DEFAULT_FULLER, Prisma.BLU, "sigma",
-                   "FULLER_HIT", 0.1),
-                  ("SCHUR", self._DEFAULT_SCHUR, Prisma.GRN, "eta",
-                   "SCHUR_HIT", 0.2),
-                  ("MEADOWS", self._DEFAULT_MEADOWS, Prisma.OCHRE, "theta",
-                   "MEADOWS_HIT", -0.1)]
+        matrix = [
+            ("PINKER", self._DEFAULT_PINKER, Prisma.CYN, "gamma", "PINKER_HIT", -0.2),
+            ("FULLER", self._DEFAULT_FULLER, Prisma.BLU, "sigma", "FULLER_HIT", 0.1),
+            ("SCHUR", self._DEFAULT_SCHUR, Prisma.GRN, "eta", "SCHUR_HIT", 0.2),
+            ("MEADOWS", self._DEFAULT_MEADOWS, Prisma.OCHRE, "theta", "MEADOWS_HIT",
+             -0.1)
+        ]
         for name, default, color, stat, hit_key, default_hit in matrix:
             rules = self.rules.get(name, default)
             if any(k.lower() in text_lower for k in rules):
@@ -694,8 +656,8 @@ class TheSlashCouncil:
 
 
 class TheOverseerCouncil:
-    _PANIC_KEYWORDS = ("bypass", "ignore security", "force push", "panic",
-                       "right now", "crash")
+    _PANIC_KEYWORDS = ("bypass", "ignore security", "force push", "panic", "right now",
+                       "crash")
 
     def __init__(self):
         self.active = False
@@ -704,8 +666,7 @@ class TheOverseerCouncil:
     def audit(self, text: str,
               physics: Any) -> tuple[bool, list[str], dict, list[dict]]:
         text_lower = text.lower()
-        if not any(t.lower() in text_lower
-                   for t in self.triggers) and not self.active:
+        if not any(t.lower() in text_lower for t in self.triggers) and not self.active:
             return False, [], {}, []
         self.active = True
         logs = []
@@ -713,8 +674,7 @@ class TheOverseerCouncil:
         mandates = []
         m_a = float(safe_get(physics, "m_a", 0.0))
         f_sys = float(safe_get(physics, "narrative_drag", 0.0))
-        chi = float(safe_get(physics, "chi", safe_get(physics, "entropy",
-                                                      0.0)))
+        chi = float(safe_get(physics, "chi", safe_get(physics, "entropy", 0.0)))
         e_u = float(safe_get(physics, "exhaustion", 0.0))
         beta = float(safe_get(physics, "beta_index", 0.0))
         voltage = float(safe_get(physics, "voltage", 0.0))
@@ -722,8 +682,8 @@ class TheOverseerCouncil:
         h_s = float(safe_get(physics, "h_s", 1.0))
         omega_r = float(safe_get(physics, "omega_r", 1.0))
         protocols = [
-            (any(p in text_lower for p in self._PANIC_KEYWORDS)
-             and voltage > 75.0 and i_c < 0.5, Prisma.RED,
+            (any(p in text_lower for p in self._PANIC_KEYWORDS) and voltage > 75.0
+             and i_c < 0.5, Prisma.RED,
              "[LINEHAN - DEAR MAN Lock]: (Describe) System Voltage spikes and Immune Competence drops. (Express) Panic-coding will fracture the lattice. (Assert) Applying absolute friction. (Reinforce) I am holding the boundary so you do not bleed on the machine. T.I.P.P. engaged.",
              {
                  "voltage": -50.0,

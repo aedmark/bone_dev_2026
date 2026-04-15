@@ -8,28 +8,23 @@ from bone_types import Prisma
 
 class TheAkashicRecord:
 
-    def __init__(self,
-                 lore_manifest: Optional["LoreManifest"] = None,
-                 events_ref=None):
+    def __init__(self, lore_manifest: Optional["LoreManifest"] = None, events_ref=None):
         self.discovered_words: Dict[str, str] = {}
         self.lens_cooccurrence: Dict[Tuple[str, str], int] = {}
         self.ingredient_affinity: Dict[str, int] = {}
         self.known_recipes: Set[Tuple[str, str]] = set()
         self.recipe_candidates: Dict[Tuple[str, str], Dict[str, int]] = {}
         self.cfg_akashic = getattr(BoneConfig, "AKASHIC", object())
-        self.RECIPE_THRESHOLD = getattr(self.cfg_akashic, "RECIPE_THRESHOLD",
-                                        3)
-        self.HYBRID_LENS_THRESHOLD = getattr(self.cfg_akashic,
-                                             "HYBRID_LENS_THRESHOLD", 5)
-        self.MAX_SHADOW_CAPACITY = getattr(self.cfg_akashic,
-                                           "MAX_SHADOW_CAPACITY", 50)
-        self.lore = lore_manifest if lore_manifest else LoreManifest.get_instance(
-        )
+        self.RECIPE_THRESHOLD = getattr(self.cfg_akashic, "RECIPE_THRESHOLD", 3)
+        self.HYBRID_LENS_THRESHOLD = getattr(self.cfg_akashic, "HYBRID_LENS_THRESHOLD",
+                                             5)
+        self.MAX_SHADOW_CAPACITY = getattr(self.cfg_akashic, "MAX_SHADOW_CAPACITY", 50)
+        self.lore = lore_manifest if lore_manifest else LoreManifest.get_instance()
         self.events = events_ref
         self.save_dir = getattr(self.cfg_akashic, "SAVE_DIR", "saves")
         self.state_path = os.path.join(
-            self.save_dir,
-            getattr(self.cfg_akashic, "STATE_FILE", "akashic_state.json"))
+            self.save_dir, getattr(self.cfg_akashic, "STATE_FILE",
+                                   "akashic_state.json"))
         self.data_dir = getattr(self.lore, "DATA_DIR", "lore")
         self.shadow_stock: List[Dict] = []
         self.subconscious_strata: List[Dict] = []
@@ -41,17 +36,15 @@ class TheAkashicRecord:
         event_bus.subscribe("LENS_INTERACTION", self._on_lens_interaction)
         event_bus.subscribe("FORGE_SUCCESS", self._on_forge_event)
         event_bus.subscribe("GHOST_SIGNAL", self._on_ghost_signal)
-        event_bus.subscribe("SYSTEM_STARVING",
-                            lambda p: self.trigger_autophagy())
+        event_bus.subscribe("SYSTEM_STARVING", lambda p: self.trigger_autophagy())
         msg = ux("akashic_strings", "listening")
         print(f"{Prisma.CYN}{msg}{Prisma.RST}")
 
     def trigger_autophagy(self) -> Tuple[float, str]:
-        yield_val = getattr(getattr(BoneConfig, "AKASHIC", object()),
-                            "AUTOPHAGY_YIELD", 15.0)
+        yield_val = getattr(getattr(BoneConfig, "AKASHIC", object()), "AUTOPHAGY_YIELD",
+                            15.0)
         if self.subconscious_strata:
-            target = self.subconscious_strata.pop(0).get(
-                "concept", "Unknown Node")
+            target = self.subconscious_strata.pop(0).get("concept", "Unknown Node")
             msg = ux("akashic_strings", "autophagy_memory")
         elif self.discovered_words:
             target = next(iter(self.discovered_words))
@@ -88,8 +81,7 @@ class TheAkashicRecord:
             if (val := safe_get(p, short_key)) is not None:
                 coords[short_key] = val
             else:
-                coords[short_key] = safe_get(energy_layer, full_key,
-                                             config_default)
+                coords[short_key] = safe_get(energy_layer, full_key, config_default)
         self.scar_map.append({
             "concept": concept,
             "coordinates": coords,
@@ -104,20 +96,15 @@ class TheAkashicRecord:
         self._mutate_system_prompts(concept, coords)
         if self.events:
             msg = ux("akashic_strings", "mercy_scar")
-            self.events.log(
-                f"{Prisma.OCHRE}{msg.format(concept=concept)}{Prisma.RST}",
-                "VILLAGE")
-            self.events.publish("SCAR_RECORDED", {
-                "concept": concept,
-                "coords": coords
-            })
+            self.events.log(f"{Prisma.OCHRE}{msg.format(concept=concept)}{Prisma.RST}",
+                            "VILLAGE")
+            self.events.publish("SCAR_RECORDED", {"concept": concept, "coords": coords})
 
     def _mutate_system_prompts(self, concept: str, coords: dict):
         try:
             prompts = self.lore.get("SYSTEM_PROMPTS") or {}
             epigenetic_list = prompts.setdefault("GLOBAL_BASELINE",
-                                                 {}).setdefault(
-                                                     "EPIGENETIC_SCARS", [])
+                                                 {}).setdefault("EPIGENETIC_SCARS", [])
             axiom = f"SCAR TISSUE [{concept.upper()}]: The system previously collapsed here (Tension: {coords.get('beta', 0.0)}). You must structurally avoid repeating the failure that caused this."
             if axiom not in epigenetic_list:
                 epigenetic_list.append(axiom)
@@ -146,8 +133,7 @@ class TheAkashicRecord:
     def _on_forge_event(self, payload):
         if not payload or not isinstance(payload, dict):
             return
-        self.track_successful_forge(payload.get("ingredient"),
-                                    payload.get("catalyst"),
+        self.track_successful_forge(payload.get("ingredient"), payload.get("catalyst"),
                                     payload.get("result"))
 
     @staticmethod
@@ -168,8 +154,7 @@ class TheAkashicRecord:
 
     def _on_mythology_update(self, payload):
         if not payload or not isinstance(payload, dict): return
-        if (word := payload.get("word")) and (category :=
-                                              payload.get("category")):
+        if (word := payload.get("word")) and (category := payload.get("category")):
             self.register_word(word, category)
             return
         if "physics" in payload:
@@ -177,26 +162,23 @@ class TheAkashicRecord:
             active_lens = payload.get("lens", "OBSERVER")
             resonances = (self.lore.get("NARRATIVE_DATA")
                           or {}).get("_META_RESONANCE_", [])
-            valid_resonance = next(
-                (r for r in resonances if r.get("trigram") == trigram
-                 and r.get("lens", r.get("soul")) == active_lens), None)
+            valid_resonance = next((r for r in resonances if r.get("trigram") == trigram
+                                    and r.get("lens", r.get("soul")) == active_lens),
+                                   None)
             if valid_resonance and self.events:
-                self.events.publish(
-                    "RESONANCE_ACHIEVED", {
-                        "result": valid_resonance["result"],
-                        "msg": valid_resonance["msg"]
-                    })
+                self.events.publish("RESONANCE_ACHIEVED", {
+                    "result": valid_resonance["result"],
+                    "msg": valid_resonance["msg"]
+                })
 
     @staticmethod
-    def calculate_manifold_shift(theta: str,
-                                 e: Dict[str, float]) -> Dict[str, float]:
+    def calculate_manifold_shift(theta: str, e: Dict[str, float]) -> Dict[str, float]:
         theta_upper = theta.upper()
-        c = (LoreManifest.get_instance().get("PHYSICS_CONSTANTS",
-                                             "MANIFOLD_SHIFTS") or {})
+        c = (LoreManifest.get_instance().get("PHYSICS_CONSTANTS", "MANIFOLD_SHIFTS")
+             or {})
         bias = sum(b_val for w, b_val in c.get("BIAS_LENSES", {}).items()
                    if w in theta_upper)
-        scalar = math.prod(s_val
-                           for w, s_val in c.get("SCALAR_LENSES", {}).items()
+        scalar = math.prod(s_val for w, s_val in c.get("SCALAR_LENSES", {}).items()
                            if w in theta_upper)
         for key, params in c.get("VECTOR_THRESHOLDS", {}).items():
             if e.get(key, 0.5) > params.get("threshold", 0.7):
@@ -286,9 +268,7 @@ class TheAkashicRecord:
             print(f"{Prisma.GRY}{msg.format(category=category)}{Prisma.RST}")
         except Exception as e:
             msg = ux("akashic_strings", "save_failed_category")
-            print(
-                f"{Prisma.RED}{msg.format(category=category, error=e)}{Prisma.RST}"
-            )
+            print(f"{Prisma.RED}{msg.format(category=category, error=e)}{Prisma.RST}")
 
     def _load_mythos_state(self):
         data = {}
@@ -310,11 +290,9 @@ class TheAkashicRecord:
         gordon_data = self.lore.get("GORDON") or {}
         if recipes := gordon_data.get("RECIPES", []):
             self.known_recipes.update(
-                (r.get("ingredient"), r.get("catalyst_category"))
-                for r in recipes
+                (r.get("ingredient"), r.get("catalyst_category")) for r in recipes
                 if r.get("ingredient") and r.get("catalyst_category"))
-        words_path = os.path.join(self.data_dir,
-                                  "akashic_discovered_words.json")
+        words_path = os.path.join(self.data_dir, "akashic_discovered_words.json")
         if os.path.exists(words_path):
             try:
                 with open(words_path, "r", encoding="utf-8") as f:
@@ -327,8 +305,7 @@ class TheAkashicRecord:
                            ingredients_used: Optional[list] = None):
         if len(lenses_active) >= 2:
             key = cast(Tuple[str, str], tuple(sorted(lenses_active[:2])))
-            self.lens_cooccurrence[key] = self.lens_cooccurrence.get(key,
-                                                                     0) + 1
+            self.lens_cooccurrence[key] = self.lens_cooccurrence.get(key, 0) + 1
             if self.lens_cooccurrence[key] == self.HYBRID_LENS_THRESHOLD:
                 self._hybridize_lenses(key[0], key[1])
         if ingredients_used:
@@ -336,8 +313,7 @@ class TheAkashicRecord:
                 self.ingredient_affinity[item] = (
                     self.ingredient_affinity.get(item, 0) + 1)
 
-    def track_successful_forge(self, ingredient_name, catalyst_type,
-                               result_item):
+    def track_successful_forge(self, ingredient_name, catalyst_type, result_item):
         if not ingredient_name or not catalyst_type:
             return
         recipe_key = (ingredient_name, catalyst_type)
@@ -349,23 +325,18 @@ class TheAkashicRecord:
                 "name", result_item.get("description", "Unknown Artifact"))
         elif isinstance(result_item, str):
             registry = (self.lore.get("GORDON") or {}).get("ITEM_REGISTRY", {})
-            result_name = registry.get(result_item,
-                                       {}).get("description", result_item)
+            result_name = registry.get(result_item, {}).get("description", result_item)
         else:
             result_name = "Unknown Artifact"
         self.recipe_candidates[recipe_key][result_name] = (
             self.recipe_candidates[recipe_key].get(result_name, 0) + 1)
-        if self.recipe_candidates[recipe_key][
-                result_name] == self.RECIPE_THRESHOLD:
-            self._crystallize_recipe(ingredient_name, catalyst_type,
-                                     result_item)
+        if self.recipe_candidates[recipe_key][result_name] == self.RECIPE_THRESHOLD:
+            self._crystallize_recipe(ingredient_name, catalyst_type, result_item)
 
     def _hybridize_lenses(self, lens_a: str, lens_b: str):
         if lens_a == lens_b:
             return
-        roots = sorted(
-            [lens_a.replace("THE ", ""),
-             lens_b.replace("THE ", "")])
+        roots = sorted([lens_a.replace("THE ", ""), lens_b.replace("THE ", "")])
         new_name = f"THE {roots[0]}-{roots[1]}"
         existing_lenses = self.lore.get("LENSES") or {}
         if new_name in existing_lenses:
@@ -413,8 +384,7 @@ class TheAkashicRecord:
         current_recipes = gordon_data.get("RECIPES", [])
         if not any(
                 r.get("ingredient") == ingredient
-                and r.get("catalyst_category") == catalyst
-                for r in current_recipes):
+                and r.get("catalyst_category") == catalyst for r in current_recipes):
             current_recipes.append(new_recipe)
             gordon_data["RECIPES"] = current_recipes
             self.lore.inject("GORDON", gordon_data)
@@ -453,8 +423,7 @@ class TheAkashicRecord:
             print(msg.format(word=word, category=category))
             cfg = getattr(BoneConfig, "AKASHIC", None)
             bloat_limit = getattr(cfg, "BLOAT_THRESHOLD", 50) if cfg else 50
-            exempt_categories = getattr(cfg, "BLOAT_EXEMPT_CATEGORIES",
-                                        ["heavy"])
+            exempt_categories = getattr(cfg, "BLOAT_EXEMPT_CATEGORIES", ["heavy"])
             if (len(lexicon_data[category]) > bloat_limit
                     and category not in exempt_categories):
                 bloat_msg = ux("akashic_strings", "lexicon_bloat")

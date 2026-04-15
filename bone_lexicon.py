@@ -189,15 +189,13 @@ class LinguisticAnalyzer:
             return 0.0
         lengths = [len(w) for w in words]
         avg_len = sum(lengths) / n
-        return round(
-            min(1.0, (sum((l - avg_len)**2 for l in lengths) / n) / 10.0), 2)
+        return round(min(1.0, (sum((l - avg_len)**2 for l in lengths) / n) / 10.0), 2)
 
     def vectorize(self, text: str) -> Dict[str, float]:
         if not (words := self.sanitize(text)): return {}
         dims = {
             k: 0.0
-            for k in ("VEL", "STR", "CHI", "PHI", "PSI", "BET", "DEL",
-                      "LAMBDA", "ENT")
+            for k in ("VEL", "STR", "CHI", "PHI", "PSI", "BET", "DEL", "LAMBDA", "ENT")
         }
         for w in words:
             for cat in self.store.get_categories_for_word(w):
@@ -206,13 +204,11 @@ class LinguisticAnalyzer:
         total = max(1.0, sum(dims.values()))
         result = {k: round(v / total, 3) for k, v in dims.items()}
         result["ENT"] = round(
-            (result.get("CHI", 0.0) + min(1.0, total / max(1, len(words)))) /
-            2.0, 3)
+            (result.get("CHI", 0.0) + min(1.0, total / max(1, len(words)))) / 2.0, 3)
         return result
 
     @staticmethod
-    def calculate_flux(vec_a: Dict[str, float], vec_b: Dict[str,
-                                                            float]) -> float:
+    def calculate_flux(vec_a: Dict[str, float], vec_b: Dict[str, float]) -> float:
         if not vec_a or not vec_b:
             return 0.0
         keys = set(vec_a.keys()) | set(vec_b.keys())
@@ -233,16 +229,17 @@ class LinguisticAnalyzer:
         if not text:
             return []
         try:
-            normalized = (unicodedata.normalize("NFKD", text).encode(
-                "ASCII", "ignore").decode("utf-8"))
+            normalized = (unicodedata.normalize("NFKD",
+                                                text).encode("ASCII",
+                                                             "ignore").decode("utf-8"))
         except (TypeError, AttributeError):
             normalized = text
         xlate = self._TRANSLATOR if self._TRANSLATOR else str.maketrans("", "")
         cleaned_text = normalized.translate(xlate).lower()
         if getattr(self, "ANTIGEN_REGEX", None):
             cleaned_text = self.ANTIGEN_REGEX.sub(
-                lambda m: self.store.ANTIGEN_REPLACEMENTS.get(
-                    m.group(0).lower(), ""), cleaned_text)
+                lambda m: self.store.ANTIGEN_REPLACEMENTS.get(m.group(0).lower(), ""),
+                cleaned_text)
         bias_set = getattr(self.store, "USER_FLAGGED_BIAS", set())
         return [w for w in cleaned_text.split() if w not in bias_set]
 
@@ -258,8 +255,8 @@ class LinguisticAnalyzer:
         for char in w:
             if sound_type := self.char_to_sound.get(char):
                 counts[sound_type] += 1
-        density_score = (counts.get("PLOSIVE", 0) *
-                         1.5) + (counts.get("NASAL", 0) * 0.8)
+        density_score = (counts.get("PLOSIVE", 0) * 1.5) + (counts.get("NASAL", 0) *
+                                                            0.8)
         flow_score = counts.get("LIQUID", 0) + counts.get("FRICATIVE", 0)
         vitality_score = (counts.get("VOWELS", 0) * 1.2) + (flow_score * 0.8)
         length_mod = 1.0 if len(w) > 5 else 1.5
@@ -267,8 +264,7 @@ class LinguisticAnalyzer:
         final_vitality = (vitality_score / len(w)) * length_mod
         heavy_thresh = self.thresholds["heavy_density"] * self.biases["heavy"]
         play_thresh = self.thresholds["play_vitality"] * self.biases["play"]
-        kinetic_thresh = self.thresholds["kinetic_flow"] * self.biases[
-            "kinetic"]
+        kinetic_thresh = self.thresholds["kinetic_flow"] * self.biases["kinetic"]
         if final_density > heavy_thresh:
             return "heavy", round(final_density, 2)
         if final_vitality > play_thresh:
@@ -374,9 +370,7 @@ class LexiconService:
             self.PRIORITY_ORDER = ling_data.get("PRIORITY_ORDER", [])
             total_words = sum(len(s) for s in self._STORE.VOCAB.values())
             msg = ux("lexicon_strings", "sys_nominal")
-            print(
-                f"{Prisma.GRN}{msg.format(total_words=total_words)}{Prisma.RST}"
-            )
+            print(f"{Prisma.GRN}{msg.format(total_words=total_words)}{Prisma.RST}")
         except Exception as e:
             self._INITIALIZED = False
             msg = ux("lexicon_strings", "sys_init_fail")
@@ -434,8 +428,8 @@ class LexiconService:
         if not self.ANTIGEN_REGEX or not text:
             return text
         return self.ANTIGEN_REGEX.sub(
-            lambda m: self._STORE.ANTIGEN_REPLACEMENTS.get(
-                m.group(0).lower(), ""), text)
+            lambda m: self._STORE.ANTIGEN_REPLACEMENTS.get(m.group(0).lower(), ""),
+            text)
 
     def sanitize(self, text: str) -> List[str]:
         if not self._INITIALIZED:

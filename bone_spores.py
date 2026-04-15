@@ -25,8 +25,7 @@ def _identity(n=8):
 
 def _mat_mul(A, B):
     B_cols = list(zip(*B))
-    return [[sum(a * b for a, b in zip(row, col)) for col in B_cols]
-            for row in A]
+    return [[sum(a * b for a, b in zip(row, col)) for col in B_cols] for row in A]
 
 
 def _reorthogonalize(M):
@@ -57,8 +56,8 @@ def _access_config_path(root, path, value=None, set_mode=False):
     parts = path.split(".")
     try:
         for part in parts[:-1]:
-            target = (target.get(part)
-                      if isinstance(target, dict) else getattr(target, part))
+            target = (target.get(part) if isinstance(target, dict) else getattr(
+                target, part))
             if target is None:
                 return None
         leaf = parts[-1]
@@ -93,8 +92,7 @@ class LocalFileSporeLoader:
             final_path = filename
         os.makedirs(os.path.dirname(final_path), exist_ok=True)
         try:
-            fd, temp_path = tempfile.mkstemp(dir=os.path.dirname(final_path),
-                                             text=True)
+            fd, temp_path = tempfile.mkstemp(dir=os.path.dirname(final_path), text=True)
             with os.fdopen(fd, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2, cls=BoneJSONEncoder)
                 f.flush()
@@ -118,8 +116,7 @@ class LocalFileSporeLoader:
         if not os.path.exists(filepath):
             msg = ux("spore_strings", "loader_not_found")
             if msg:
-                print(
-                    f"{Prisma.RED}{msg.format(filepath=filepath)}{Prisma.RST}")
+                print(f"{Prisma.RED}{msg.format(filepath=filepath)}{Prisma.RST}")
             return None
         try:
             with open(filepath, "r", encoding="utf-8") as f:
@@ -127,23 +124,18 @@ class LocalFileSporeLoader:
         except json.JSONDecodeError as e:
             msg = ux("spore_strings", "loader_corrupt") or ""
             if msg:
-                print(
-                    f"{Prisma.RED}{msg.format(filepath=filepath, e=e)}{Prisma.RST}"
-                )
+                print(f"{Prisma.RED}{msg.format(filepath=filepath, e=e)}{Prisma.RST}")
             return None
         except IOError as e:
             msg = ux("spore_strings", "loader_read_err") or ""
             if msg:
-                print(
-                    f"{Prisma.RED}{msg.format(filepath=filepath, e=e)}{Prisma.RST}"
-                )
+                print(f"{Prisma.RED}{msg.format(filepath=filepath, e=e)}{Prisma.RST}")
             return None
 
     def list_spores(self) -> List[Tuple[str, float, str]]:
         if not os.path.exists(self.directory): return []
         try:
-            files = [(p := os.path.join(self.directory,
-                                        f), os.path.getmtime(p), f)
+            files = [(p := os.path.join(self.directory, f), os.path.getmtime(p), f)
                      for f in os.listdir(self.directory)
                      if f.endswith(".json") and f.startswith("session_")]
             return sorted(files, key=lambda x: x[1], reverse=True)
@@ -265,9 +257,8 @@ class SubconsciousStrata:
     def dredge(self, trigger_word: str) -> Optional[Dict]:
         if trigger_word not in self.index:
             return None
-        return next(
-            (e for e in self._iter_entries() if e.get("word") == trigger_word),
-            None)
+        return next((e for e in self._iter_entries() if e.get("word") == trigger_word),
+                    None)
 
     def dredge_vibe(self, trigger_word: str) -> list:
         Q = _word_to_vector(trigger_word)
@@ -280,11 +271,7 @@ class SubconsciousStrata:
 
 class MemoryCore:
 
-    def __init__(self,
-                 events_ref,
-                 subconscious_ref,
-                 config_ref=None,
-                 lexicon_ref=None):
+    def __init__(self, events_ref, subconscious_ref, config_ref=None, lexicon_ref=None):
         self.events = events_ref
         self.subconscious = subconscious_ref
         self.cfg = config_ref or BoneConfig
@@ -302,9 +289,7 @@ class MemoryCore:
             "BET": {"social", "suburban", "play"},
         }
 
-    def illuminate(self,
-                   vector: Dict[str, float],
-                   limit: int = 5) -> List[str]:
+    def illuminate(self, vector: Dict[str, float], limit: int = 5) -> List[str]:
         if not self.graph:
             return []
         active_dims = {k: v for k, v in vector.items() if v > 0.4}
@@ -318,8 +303,7 @@ class MemoryCore:
         scored_memories = []
         for node, data in self.graph.items():
             resonance_score = 0.0
-            node_cats = self.lex.get_categories_for_word(
-                node) if self.lex else set()
+            node_cats = self.lex.get_categories_for_word(node) if self.lex else set()
             for dim, val in active_dims.items():
                 target_cats = self.dimension_map.get(dim, set())
                 if node_cats & target_cats:
@@ -330,10 +314,8 @@ class MemoryCore:
                 scored_memories.append((resonance_score, node, data))
         scored_memories.sort(key=lambda x: x[0], reverse=True)
         results = []
-        res_prefix = ux("spore_strings",
-                        "core_illuminate_resonant") or "Resonant"
-        assoc_prefix = ux("spore_strings",
-                          "core_illuminate_associated") or "Associated"
+        res_prefix = ux("spore_strings", "core_illuminate_resonant") or "Resonant"
+        assoc_prefix = ux("spore_strings", "core_illuminate_associated") or "Associated"
         fmt = (ux("spore_strings", "core_illuminate_format")
                or "{prefix} Engram: '{name}'{conn_str}")
         for score, name, data in scored_memories[:limit]:
@@ -342,12 +324,11 @@ class MemoryCore:
             if active_dims and hasattr(self, "subconscious"):
                 if not data.get("is_diamond", False):
                     for edge in list(data.get("edges", {}).keys()):
-                        if not self.graph.get(edge, {}).get(
-                                "is_diamond", False):
+                        if not self.graph.get(edge, {}).get("is_diamond", False):
                             data["edges"][edge] *= 0.95
                 top_current_dim = max(active_dims, key=active_dims.get)
-                if dim_words := list(
-                        self.dimension_map.get(top_current_dim, {"static"})):
+                if dim_words := list(self.dimension_map.get(top_current_dim,
+                                                            {"static"})):
                     context_word = random.choice(dim_words)
                     data["edges"][context_word] = (
                         data["edges"].get(context_word, 0.0) + 1.0)
@@ -364,8 +345,7 @@ class MemoryCore:
                     pass
             prefix = res_prefix if score > 0.5 else assoc_prefix
             results.append(
-                fmt.format(prefix=prefix, name=name.upper(),
-                           conn_str=conn_str))
+                fmt.format(prefix=prefix, name=name.upper(), conn_str=conn_str))
         return results
 
     def calculate_mass(self, node):
@@ -411,8 +391,7 @@ class MemoryCore:
             for dead in dead_edges:
                 del edges[dead]
         msg = ux("spore_strings", "core_pruned") or ""
-        return msg.format(total=total_decayed,
-                          pruned=pruned_count) if msg else ""
+        return msg.format(total=total_decayed, pruned=pruned_count) if msg else ""
 
     def cannibalize(self,
                     current_tick,
@@ -428,16 +407,14 @@ class MemoryCore:
         for k, v in self.graph.items():
             if k not in protected and not v.get("is_diamond", False):
                 mass = sum(v.get("edges", {}).values())
-                score = mass + (100.0 /
-                                max(1, current_tick - v.get("last_tick", 0)))
+                score = mass + (100.0 / max(1, current_tick - v.get("last_tick", 0)))
                 candidates.append((k, v, score))
         candidates.sort(key=lambda x: x[2])
         if not candidates:
             return None, ux("spore_strings", "core_lock") or ""
         victim, data, score = candidates[0]
         mass = sum(data["edges"].values())
-        lifespan = current_tick - data.get("strata", {}).get(
-            "birth_tick", current_tick)
+        lifespan = current_tick - data.get("strata", {}).get("birth_tick", current_tick)
         fossil_data = {
             "word": victim,
             "mass": round(mass, 2),
@@ -490,8 +467,7 @@ class MycelialNetwork:
         if seed_file:
             self.ingest(seed_file)
         if hasattr(self.events, "publish"):
-            self.events.publish("Q_MATRIX_UPDATED",
-                                {"q_matrix": self.subconscious.Q_n})
+            self.events.publish("Q_MATRIX_UPDATED", {"q_matrix": self.subconscious.Q_n})
         if hasattr(self.events, "subscribe"):
             self.events.subscribe("SCAR_RECORDED", self._on_scar_recorded)
 
@@ -517,15 +493,12 @@ class MycelialNetwork:
     def calculate_mass(self, node):
         return self.memory_core.calculate_mass(node)
 
-    def run_ecosystem(self, physics: Any, stamina: float,
-                      tick: int) -> List[str]:
+    def run_ecosystem(self, physics: Any, stamina: float, tick: int) -> List[str]:
         logs = []
         matter_node = safe_get(physics, "matter")
-        fallback_words = safe_get(matter_node, "clean_words",
-                                  []) if matter_node else []
+        fallback_words = safe_get(matter_node, "clean_words", []) if matter_node else []
         clean_words = safe_get(physics, "clean_words", fallback_words)
-        sugar, lichen_msg = self.lichen.photosynthesize(
-            physics, clean_words, tick)
+        sugar, lichen_msg = self.lichen.photosynthesize(physics, clean_words, tick)
         if lichen_msg:
             logs.append(lichen_msg)
         for word in clean_words:
@@ -534,8 +507,7 @@ class MycelialNetwork:
                 resp_msg = ux("spore_strings", "net_immune_resp") or ""
                 if resp_msg:
                     logs.append(
-                        f"{Prisma.CYN}{resp_msg.format(msg=toxin_msg)}{Prisma.RST}"
-                    )
+                        f"{Prisma.CYN}{resp_msg.format(msg=toxin_msg)}{Prisma.RST}")
         infected, parasite_msg = self.parasite.infect(physics, stamina)
         if infected and parasite_msg:
             logs.append(parasite_msg)
@@ -563,8 +535,7 @@ class MycelialNetwork:
         if echo_count > 0:
             v_targ = safe_get(physics, "energy") or physics
             d_targ = safe_get(physics, "space") or physics
-            curr_v = safe_get(v_targ, "voltage",
-                              safe_get(physics, "voltage", 0.0))
+            curr_v = safe_get(v_targ, "voltage", safe_get(physics, "voltage", 0.0))
             curr_d = safe_get(d_targ, "narrative_drag",
                               safe_get(physics, "narrative_drag", 0.0))
             safe_set(v_targ, "voltage", curr_v + total_voltage_boost)
@@ -582,8 +553,7 @@ class MycelialNetwork:
         return None
 
     def trigger_autophagy(self) -> Tuple[float, str]:
-        victim, msg = self.memory_core.cannibalize(
-            current_tick=int(time.time()))
+        victim, msg = self.memory_core.cannibalize(current_tick=int(time.time()))
         if victim:
             cfg = getattr(self.cfg, "AKASHIC", object())
             atp_gain = getattr(cfg, "AUTOPHAGY_YIELD", 15.0)
@@ -618,8 +588,7 @@ class MycelialNetwork:
                 safe_get(d_targ, "narrative_drag",
                          safe_get(physics, "narrative_drag", 0.0)))
             safe_set(v_targ, "voltage", max(0.0, curr_v + total_v_shift))
-            safe_set(d_targ, "narrative_drag", max(0.0,
-                                                   curr_d + total_d_shift))
+            safe_set(d_targ, "narrative_drag", max(0.0, curr_d + total_d_shift))
             msg_template = (
                 ux("spore_strings", "net_ghost_haunt") or
                 "The ghosts of [{words}] alter the atmosphere (V:{v:+.2f}, D:{d:+.2f})."
@@ -652,8 +621,7 @@ class MycelialNetwork:
             "timestamp": time.time(),
         }
         cfg = getattr(self.cfg, "SPORES", None)
-        consolidation = getattr(cfg, "CONSOLIDATION_THRESHOLD",
-                                5.0) if cfg else 5.0
+        consolidation = getattr(cfg, "CONSOLIDATION_THRESHOLD", 5.0) if cfg else 5.0
         if significance > consolidation:
             self.memory_core.short_term_buffer.append(engram)
             return True
@@ -704,8 +672,7 @@ class MycelialNetwork:
             if desperation_level < desp_thresh:
                 return ux("spore_strings", "net_sat_high") or "", []
             for _ in range(excess_mass):
-                v, l_msg = self.memory_core.cannibalize(
-                    tick, preserve_current=valuable)
+                v, l_msg = self.memory_core.cannibalize(tick, preserve_current=valuable)
                 if not v: break
                 victims.append(v)
                 log_msg = l_msg
@@ -766,8 +733,7 @@ class MycelialNetwork:
                         new_wells.append(w)
                     else:
                         age = max(1, tick - node_data["strata"]["birth_tick"])
-                        growth = (mass -
-                                  node_data["strata"]["birth_mass"]) / age
+                        growth = (mass - node_data["strata"]["birth_mass"]) / age
                         node_data["strata"]["growth_rate"] = round(growth, 3)
         return new_wells
 
@@ -793,8 +759,7 @@ class MycelialNetwork:
                 loaded_seeds.append(seed)
         except Exception:
             loaded_seeds = [
-                ParadoxSeed("Does the mask eat the face?",
-                            {"mask", "face", "hide"})
+                ParadoxSeed("Does the mask eat the face?", {"mask", "face", "hide"})
             ]
         return loaded_seeds
 
@@ -883,8 +848,7 @@ class MycelialNetwork:
             k: v
             for k, v in data.get("trauma_vector", {}).items() if v > 0.1
         }
-        mutation_count = sum(
-            len(v) for v in data.get("mutations", {}).values())
+        mutation_count = sum(len(v) for v in data.get("mutations", {}).values())
         self.lineage_log.append({
             "source": session_source,
             "age_hours": time_ago,
@@ -910,8 +874,7 @@ class MycelialNetwork:
             msg = ux("spore_strings", "net_mut_integ") or ""
             if msg:
                 self.events.log(
-                    f"{Prisma.CYN}{msg.format(count=accepted_count)}{Prisma.RST}"
-                )
+                    f"{Prisma.CYN}{msg.format(count=accepted_count)}{Prisma.RST}")
 
     def _extract_legacy_traits(self, data):
         if "joy_legacy" in data and isinstance(data["joy_legacy"], dict):
@@ -921,8 +884,7 @@ class MycelialNetwork:
                 msg = ux("spore_strings", "net_glory") or ""
                 if msg:
                     self.events.log(
-                        f"{Prisma.CYN}{msg.format(title=clade['title'])}{Prisma.RST}"
-                    )
+                        f"{Prisma.CYN}{msg.format(title=clade['title'])}{Prisma.RST}")
                 for stat, ancestral_bonus in clade.get("buff", {}).items():
                     if hasattr(self.cfg, stat):
                         setattr(self.cfg, stat, ancestral_bonus)
@@ -957,8 +919,7 @@ class MycelialNetwork:
     ):
         final_vector = {k: min(1.0, v) for k, v in trauma_accum.items()}
         valid_joy = [j for j in joy_history if isinstance(j, dict)]
-        top_joy = sorted(valid_joy,
-                         key=lambda x: x.get("resonance", 0),
+        top_joy = sorted(valid_joy, key=lambda x: x.get("resonance", 0),
                          reverse=True)[:3]
         joy_legacy_data = None
         if top_joy:
@@ -1012,8 +973,7 @@ class MycelialNetwork:
     @staticmethod
     def _generate_future_seed(temp_health, trauma_vec) -> str:
         condition = "BALANCED"
-        max_trauma = max(trauma_vec,
-                         key=trauma_vec.get) if trauma_vec else "NONE"
+        max_trauma = max(trauma_vec, key=trauma_vec.get) if trauma_vec else "NONE"
         if trauma_vec.get(max_trauma, 0) > 0.6 or temp_health < 30:
             condition = "HIGH_TRAUMA"
         seed_high = ux("spore_strings", "future_seed_high_trauma")
@@ -1040,8 +1000,7 @@ class MycelialNetwork:
                 except (OSError, AttributeError):
                     pass
         if removed and (msg := ux("spore_strings", "net_pruned_lines")):
-            self.events.log(
-                f"{Prisma.GRY}{msg.format(removed=removed)}{Prisma.RST}")
+            self.events.log(f"{Prisma.GRY}{msg.format(removed=removed)}{Prisma.RST}")
 
     def report_status(self):
         return len(self.graph)
@@ -1072,10 +1031,9 @@ class MycelialNetwork:
             if scope < 0.3:
                 return results
         k_neighbors = max(1, int(scope * 10))
-        deep_results = self.cortex.query_neighborhood(
-            query_vector=query_vector,
-            k=k_neighbors,
-            resonance_threshold=resonance)
+        deep_results = self.cortex.query_neighborhood(query_vector=query_vector,
+                                                      k=k_neighbors,
+                                                      resonance_threshold=resonance)
         for res in deep_results:
             results.append({"source": "cortex", "data": res})
         return results
@@ -1103,14 +1061,11 @@ class ImmuneMycelium:
                 "fund",
                 "mound",
             ),
-            "KINETIC":
-            ("mot", "mov", "ject", "tract", "pel", "crat", "dynam", "flux"),
+            "KINETIC": ("mot", "mov", "ject", "tract", "pel", "crat", "dynam", "flux"),
         }
         self.name = "MYCELIUM"
         self.color = Prisma.CYN
-        self.archetypes = {
-            "constructive", "kinetic", "abstract", "code", "system"
-        }
+        self.archetypes = {"constructive", "kinetic", "abstract", "code", "system"}
 
     def opine(self, clean_words: list, _voltage: float) -> Tuple[float, str]:
         hits = sum(1 for w in clean_words if w in self.archetypes)
@@ -1128,14 +1083,12 @@ class ImmuneMycelium:
         for roots in self.ROOTS.values():
             for r in roots:
                 if r in w:
-                    if w.startswith(r) or w.endswith(r) or (len(r) / clean_len
-                                                            > 0.5):
+                    if w.startswith(r) or w.endswith(r) or (len(r) / clean_len > 0.5):
                         return None, ""
-        plosive_mass = sum(1
-                           for c in w if c in self.PHONETICS["PLOSIVE"]) * 1.2
+        plosive_mass = sum(1 for c in w if c in self.PHONETICS["PLOSIVE"]) * 1.2
         nasal_mass = sum(1 for c in w if c in self.PHONETICS["NASAL"]) * 0.8
-        density = ((plosive_mass + nasal_mass) /
-                   clean_len) * (1.2 if clean_len <= 4 else 1.0)
+        density = (
+            (plosive_mass + nasal_mass) / clean_len) * (1.2 if clean_len <= 4 else 1.0)
         if density > 1.0:
             msg = ux("spore_strings", "immune_tox_phon")
             return "TOXIN_HEAVY", (msg.format(word=w) if msg else "")
@@ -1276,8 +1229,7 @@ class BioLichen:
             msg = ux("spore_strings", "lichen_photo")
             if msg:
                 msgs.append(
-                    f"{Prisma.GRN}{msg.format(source=source_str, sugar=s)}{Prisma.RST}"
-                )
+                    f"{Prisma.GRN}{msg.format(source=source_str, sugar=s)}{Prisma.RST}")
         if sugar > 0 and self.lex:
             heavy_set = self.lex.get("heavy") or set()
             heavy_words = [w for w in clean_words if w in heavy_set]
@@ -1286,8 +1238,7 @@ class BioLichen:
                 self.lex.teach(h_word, "photo", tick_count)
                 msg = ux("spore_strings", "lichen_sub")
                 if msg:
-                    msgs.append(
-                        f"{Prisma.MAG}{msg.format(word=h_word)}{Prisma.RST}")
+                    msgs.append(f"{Prisma.MAG}{msg.format(word=h_word)}{Prisma.RST}")
         return sugar, " ".join(msgs) if msgs else None
 
 
@@ -1302,8 +1253,8 @@ class LiteraryReproduction:
     def load_genetics(cls, config_ref=None):
         try:
             target_cfg = config_ref or BoneConfig
-            genetics = (LoreManifest.get_instance(
-                config_ref=target_cfg).get("GENETICS") or {})
+            genetics = (LoreManifest.get_instance(config_ref=target_cfg).get("GENETICS")
+                        or {})
             cls.MUTATIONS = genetics.get("MUTATIONS", {})
             cls.JOY_CLADE = genetics.get("JOY_CLADE", {})
         except Exception:
@@ -1332,8 +1283,7 @@ class LiteraryReproduction:
                     current_config, key)
                 if current_val is not None:
                     drift = random.uniform(0.9, 1.1)
-                    mutations[key] = max(min_v, min(max_v,
-                                                    current_val * drift))
+                    mutations[key] = max(min_v, min(max_v, current_val * drift))
         return mutations
 
     @staticmethod
@@ -1343,18 +1293,15 @@ class LiteraryReproduction:
     def mitosis(self, parent_id, bio_state, physics):
         counts = LiteraryReproduction._extract_counts(physics)
         dominant = max(counts, key=counts.get) if counts else "VOID"
-        mutation_data = LiteraryReproduction.MUTATIONS.get(
-            dominant.upper(), {
-                "trait": "NEUTRAL",
-                "mod": {},
-                "lexicon": []
-            })
+        mutation_data = LiteraryReproduction.MUTATIONS.get(dominant.upper(), {
+            "trait": "NEUTRAL",
+            "mod": {},
+            "lexicon": []
+        })
         child_id = f"{parent_id}_({mutation_data['trait']})"
         config_mutations = LiteraryReproduction.mutate_config(self.cfg)
         config_mutations.update(mutation_data["mod"])
-        lexicon_mutations = {
-            dominant.lower(): mutation_data.get("lexicon", [])
-        }
+        lexicon_mutations = {dominant.lower(): mutation_data.get("lexicon", [])}
         trauma_vec = bio_state.get("trauma_vector", {})
         child_genome = {
             "source": "MITOSIS",
@@ -1384,12 +1331,10 @@ class LiteraryReproduction:
         enzymes_a = set()
         if "mito" in parent_a_bio:
             if hasattr(parent_a_bio["mito"], "state"):
-                enzymes_a = set(
-                    getattr(parent_a_bio["mito"].state, "enzymes", []))
+                enzymes_a = set(getattr(parent_a_bio["mito"].state, "enzymes", []))
             elif isinstance(parent_a_bio["mito"], dict):
                 enzymes_a = set(parent_a_bio["mito"].get("enzymes", []))
-        enzymes_b = set(
-            parent_b_data.get("mitochondria", {}).get("enzymes", []))
+        enzymes_b = set(parent_b_data.get("mitochondria", {}).get("enzymes", []))
         child_enzymes = list(enzymes_a | enzymes_b)
         config_mutations = LiteraryReproduction.mutate_config(self.cfg)
         short_a = parent_a_id[-4:] if len(parent_a_id) > 4 else parent_a_id
@@ -1420,15 +1365,13 @@ class LiteraryReproduction:
         phys_packet = {}
         if hasattr(engine_ref, "cortex") and engine_ref.cortex.last_physics:
             phys_packet = engine_ref.cortex.last_physics
-        elif hasattr(engine_ref, "phys") and hasattr(engine_ref.phys,
-                                                     "observer"):
+        elif hasattr(engine_ref, "phys") and hasattr(engine_ref.phys, "observer"):
             if engine_ref.phys.observer.last_physics_packet:
                 phys_packet = engine_ref.phys.observer.last_physics_packet
         genome = {}
         child_id = "UNKNOWN"
         if mode == "MITOSIS":
-            child_id, genome = self.mitosis(mem.session_id, bio_state,
-                                            phys_packet)
+            child_id, genome = self.mitosis(mem.session_id, bio_state, phys_packet)
         elif mode == "CROSSOVER":
             if target_spore:
                 res = self.crossover(mem.session_id, bio_state, target_spore)

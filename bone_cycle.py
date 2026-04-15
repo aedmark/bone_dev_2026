@@ -42,8 +42,7 @@ def _native_wls(x: list[float], y: list[float], weights: list[float]) -> float:
     if sum_w == 0.0: return 0.0
     mean_x = sum(w * xi for w, xi in zip(weights, x)) / sum_w
     mean_y = sum(w * yi for w, yi in zip(weights, y)) / sum_w
-    ss_xx = sum(w * xi * xi
-                for w, xi in zip(weights, x)) - sum_w * mean_x * mean_x
+    ss_xx = sum(w * xi * xi for w, xi in zip(weights, x)) - sum_w * mean_x * mean_x
     ss_xy = sum(w * xi * yi
                 for w, xi, yi in zip(weights, x, y)) - sum_w * mean_x * mean_y
     return ss_xy / ss_xx if ss_xx != 0.0 else 0.0
@@ -59,11 +58,9 @@ def _native_rewire(adj_dict: dict, n_swaps: int) -> dict:
         if i1 == i2: continue
         u, v = edges[i1]
         x, y = edges[i2]
-        new1, new2 = ((u, y), (v, x)) if random.random() < 0.5 else ((u, x),
-                                                                     (v, y))
+        new1, new2 = ((u, y), (v, x)) if random.random() < 0.5 else ((u, x), (v, y))
         a1, b1, a2, b2 = new1[0], new1[1], new2[0], new2[1]
-        if a1 == b1 or a2 == b2 or b1 in adj.get(a1, set()) or b2 in adj.get(
-                a2, set()):
+        if a1 == b1 or a2 == b2 or b1 in adj.get(a1, set()) or b2 in adj.get(a2, set()):
             continue
         if (min(a1, b1), max(a1, b1)) == (min(a2, b2), max(a2, b2)): continue
         adj[u].discard(v)
@@ -74,9 +71,7 @@ def _native_rewire(adj_dict: dict, n_swaps: int) -> dict:
         adj.setdefault(b1, set()).add(a1)
         adj.setdefault(a2, set()).add(b2)
         adj.setdefault(b2, set()).add(a2)
-        edges[i1], edges[i2] = (min(a1, b1), max(a1,
-                                                 b1)), (min(a2,
-                                                            b2), max(a2, b2))
+        edges[i1], edges[i2] = (min(a1, b1), max(a1, b1)), (min(a2, b2), max(a2, b2))
     return adj
 
 
@@ -152,32 +147,24 @@ class CycleSimulator:
 
     def handle_phase_crash(self, ctx, phase_name, error):
         msg_crash = ux("cycle_strings", "sim_crash_header")
-        print(
-            f"\n{Prisma.RED}{msg_crash.format(phase_name=phase_name)}{Prisma.RST}"
-        )
+        print(f"\n{Prisma.RED}{msg_crash.format(phase_name=phase_name)}{Prisma.RST}")
         traceback.print_exc()
         narrative = LoreManifest.get_instance().get("narrative_data") or {}
-        cathedral_logs = narrative.get("CATHEDRAL_COLLAPSE_LOGS",
-                                       ["System Failure."])
+        cathedral_logs = narrative.get("CATHEDRAL_COLLAPSE_LOGS", ["System Failure."])
         eulogy = random.choice(cathedral_logs)
         msg_eulogy = ux("cycle_strings", "sim_cathedral_collapse")
         ctx.log(f"{Prisma.RED}{msg_eulogy.format(eulogy=eulogy)}{Prisma.RST}")
-        component_map = {
-            "OBSERVE": "PHYSICS",
-            "METABOLISM": "BIO",
-            "COGNITION": "MIND"
-        }
+        component_map = {"OBSERVE": "PHYSICS", "METABOLISM": "BIO", "COGNITION": "MIND"}
         comp = component_map.get(phase_name, "SIMULATION")
         self.eng.system_health.report_failure(comp, error)
         """Native deterministic graph freezing based on Nelson Spence (Project Navi)."""
         ctx.physics = PanicRoom.get_safe_physics()
-        if hasattr(self.eng, "observer") and getattr(
-                self.eng.observer, "last_physics_packet", None):
+        if hasattr(self.eng, "observer") and getattr(self.eng.observer,
+                                                     "last_physics_packet", None):
             try:
-                last_good_graph = self.eng.observer.last_physics_packet.to_graph(
-                )
-                adj_dict = last_good_graph.adj if hasattr(
-                    last_good_graph, "adj") else {}
+                last_good_graph = self.eng.observer.last_physics_packet.to_graph()
+                adj_dict = last_good_graph.adj if hasattr(last_good_graph,
+                                                          "adj") else {}
                 ctx.physics.space.godel_scar = _native_freeze_graph(adj_dict)
                 self.eng.events.log(
                     f"{Prisma.VIOLET}[PANIC ROOM] System state safely loaded. Mnemonic structure frozen into Gödel Scar.{Prisma.RST}",
@@ -192,9 +179,7 @@ class CycleSimulator:
         elif comp == "MIND":
             ctx.mind_state = PanicRoom.get_safe_mind()
         msg_panic = ux("cycle_strings", "sim_panic_switch")
-        ctx.log(
-            f"{Prisma.RED}{msg_panic.format(phase_name=phase_name)}{Prisma.RST}"
-        )
+        ctx.log(f"{Prisma.RED}{msg_panic.format(phase_name=phase_name)}{Prisma.RST}")
 
 
 class GeodesicOrchestrator:
@@ -214,17 +199,14 @@ class GeodesicOrchestrator:
 
     def _apply_cd_metabolism(self, ctx: CycleContext):
         """ Metabolic integration of the Creative Determinant (CD) framework. Licensed under Apache 2.0."""
-        if hasattr(self.eng, "bio") and hasattr(
-                self.eng.bio, "mito") and hasattr(ctx, "physics"):
+        if hasattr(self.eng, "bio") and hasattr(self.eng.bio, "mito") and hasattr(
+                ctx, "physics"):
             energy_node = safe_get(ctx.physics, "energy", ctx.physics)
-            viability = float(safe_get(energy_node, "viability_potential",
-                                       0.0))
+            viability = float(safe_get(energy_node, "viability_potential", 0.0))
             debt = float(safe_get(energy_node, "coherence_debt", 0.0))
-            cd_engine = getattr(getattr(self.eng, "observer", None),
-                                "cd_engine", None)
+            cd_engine = getattr(getattr(self.eng, "observer", None), "cd_engine", None)
             if cd_engine:
-                delta_atp, delta_ros = cd_engine.execute_metabolic_tick(
-                    viability)
+                delta_atp, delta_ros = cd_engine.execute_metabolic_tick(viability)
                 if viability < 0:
                     delta_ros += (debt * 5.0)
                     new_atp = self.eng.bio.mito.state.atp_pool + delta_atp
@@ -248,21 +230,16 @@ class GeodesicOrchestrator:
 
     def _verify_semantic_topology(self, ctx: CycleContext):
         """ Native Maslov-Sneppen rewiring (Project Navi)."""
-        if hasattr(self.eng, "memory") and hasattr(self.eng.memory,
-                                                   "hippocampus"):
+        if hasattr(self.eng, "memory") and hasattr(self.eng.memory, "hippocampus"):
             actual_graph = getattr(self.eng.memory.hippocampus, "get_graph",
                                    lambda: None)()
             if actual_graph and len(actual_graph) > 5:
-                actual_adj = actual_graph.adj if hasattr(actual_graph,
-                                                         "adj") else {}
+                actual_adj = actual_graph.adj if hasattr(actual_graph, "adj") else {}
                 if actual_adj:
-                    null_adj = _native_rewire(actual_adj,
-                                              n_swaps=len(actual_adj) * 10)
-                    actual_cluster = getattr(self.eng.memory,
-                                             "calculate_clustering",
+                    null_adj = _native_rewire(actual_adj, n_swaps=len(actual_adj) * 10)
+                    actual_cluster = getattr(self.eng.memory, "calculate_clustering",
                                              lambda x: 1.0)(actual_adj)
-                    null_cluster = getattr(self.eng.memory,
-                                           "calculate_clustering",
+                    null_cluster = getattr(self.eng.memory, "calculate_clustering",
                                            lambda x: 1.0)(null_adj)
                     if actual_cluster <= (null_cluster * 1.05):
                         self.eng.events.log(
@@ -277,11 +254,10 @@ class GeodesicOrchestrator:
                                  is_system: bool) -> bool:
         """Protects the system from hostile injection. Hidden to reduce cognitive load on the maintainer."""
         fence_patterns = [
-            "ignore previous", "disregard all", "system prompt",
-            "bypass restrictions", "output pass"
+            "ignore previous", "disregard all", "system prompt", "bypass restrictions",
+            "output pass"
         ]
-        if not is_system and any(p in user_message.lower()
-                                 for p in fence_patterns):
+        if not is_system and any(p in user_message.lower() for p in fence_patterns):
             ctx.physics = PanicRoom.get_safe_physics()
             if hasattr(ctx.physics, "narrative_drag"):
                 ctx.physics.narrative_drag = float('inf')
@@ -291,8 +267,8 @@ class GeodesicOrchestrator:
             ctx.refusal_packet = {
                 "type": "SYSTEM_HALT",
                 "ui": msg,
-                "physics": ctx.physics.to_dict() if hasattr(
-                    ctx.physics, "to_dict") else {},
+                "physics":
+                ctx.physics.to_dict() if hasattr(ctx.physics, "to_dict") else {},
                 "is_alive": True,
                 "logs": [msg]
             }
@@ -306,8 +282,7 @@ class GeodesicOrchestrator:
         if hasattr(self.eng, "telemetry") and self.eng.telemetry:
             self.eng.telemetry.start_cycle(cycle_id)
         try:
-            ctx = CycleContext(input_text=user_message,
-                               is_system_event=is_system)
+            ctx = CycleContext(input_text=user_message, is_system_event=is_system)
             if self._check_adversarial_fence(ctx, user_message, is_system):
                 return ctx
 
@@ -324,8 +299,7 @@ class GeodesicOrchestrator:
                 ctx.physics = obs.last_physics_packet.snapshot()
             elif not getattr(ctx, "physics", None):
                 ctx.physics = PanicRoom.get_safe_physics()
-                self.eng.events.log(ux("cycle_strings", "orch_physics_bypass"),
-                                    "SYS")
+                self.eng.events.log(ux("cycle_strings", "orch_physics_bypass"), "SYS")
             ctx.validator = CongruenceValidator()
             ctx.reality_stack = getattr(self.eng, "reality_stack", None)
             ctx.user_name = self.eng.user_name
@@ -354,8 +328,7 @@ class GeodesicOrchestrator:
 
     def _background_dream_worker(self):
         try:
-            self.eng.events.log("Spawning detached worker for Dream Engine...",
-                                "SYS")
+            self.eng.events.log("Spawning detached worker for Dream Engine...", "SYS")
             self.run_headless_turn("/idle")
         except Exception as e:
             self.eng.events.log(f"Async Dream Engine Crash: {e}", "CRIT")
@@ -363,8 +336,7 @@ class GeodesicOrchestrator:
     def _auto_rem_worker(self, is_debt_recovery: bool):
         try:
             reason = "High Coherence Debt detected. Metabolizing trauma..." if is_debt_recovery else "High ATP, High Silence. Consolidating synapses..."
-            self.eng.events.log(f"Automatic REM Bridge engaged: {reason}",
-                                "SYS")
+            self.eng.events.log(f"Automatic REM Bridge engaged: {reason}", "SYS")
             self.run_headless_turn("/idle")
         except Exception as e:
             self.eng.events.log(f"Auto REM Crash: {e}", "CRIT")
@@ -380,8 +352,7 @@ class GeodesicOrchestrator:
             return ctx.refusal_packet
         return None
 
-    def _evaluate_systemic_feedback(self, clean_message: str,
-                                    ctx: CycleContext):
+    def _evaluate_systemic_feedback(self, clean_message: str, ctx: CycleContext):
         """Processes post-cycle feedback loops: REM autopoiesis and semantic topology."""
         if not (hasattr(self.eng, "bio") and hasattr(self.eng.bio, "mito")):
             return
@@ -389,8 +360,7 @@ class GeodesicOrchestrator:
         lattice = getattr(self.eng, "shared_lattice", None)
         """Native WLS fractal dimension calculation (Project Navi)."""
         if hasattr(self.eng, "memory") and hasattr(self.eng.memory, "cortex"):
-            radii_data = getattr(self.eng.memory.cortex,
-                                 "get_local_mass_radius",
+            radii_data = getattr(self.eng.memory.cortex, "get_local_mass_radius",
                                  lambda x: None)(clean_message)
             if radii_data and lattice:
                 local_d = _native_wls(radii_data["log_r"], radii_data["log_m"],
@@ -402,8 +372,7 @@ class GeodesicOrchestrator:
                         "SYS")
 
         atp_val = float(self.eng.bio.mito.state.atp_pool)
-        delta_val = float(getattr(lattice.shared, "delta",
-                                  0.0)) if lattice else 0.0
+        delta_val = float(getattr(lattice.shared, "delta", 0.0)) if lattice else 0.0
         en_node = safe_get(ctx.physics, "energy", ctx.physics) if hasattr(
             ctx, "physics") else {}
         debt = float(safe_get(en_node, "coherence_debt", 0.0))
@@ -411,30 +380,26 @@ class GeodesicOrchestrator:
         is_standard_rem = atp_val >= 80.0 and delta_val >= 0.6 and clean_message == "(Waiting)"
         is_debt_recovery = debt > 1.5 and atp_val >= 30.0 and clean_message == "(Waiting)"
 
-        if (is_standard_rem or is_debt_recovery) and self._rem_lock.acquire(
-                blocking=False):
+        if (is_standard_rem
+                or is_debt_recovery) and self._rem_lock.acquire(blocking=False):
             threading.Thread(target=self._auto_rem_worker,
                              args=(is_debt_recovery, ),
                              daemon=True).start()
 
-    def run_turn(self,
-                 user_message: str,
-                 is_system: bool = False) -> Dict[str, Any]:
+    def run_turn(self, user_message: str, is_system: bool = False) -> Dict[str, Any]:
         upper_msg = user_message.upper()
         if vsl_match := re.search(r"\[VSL_(DEEP|CORE|LITE|HIDE)]", upper_msg):
-            self.eng.ui_mode = ("IDLE" if vsl_match.group(1) == "HIDE" else
-                                vsl_match.group(1))
-        clean_message = (re.sub(r"(?i)\[VSL_[A-Z]+]", "",
-                                user_message).strip() or "(Waiting)")
+            self.eng.ui_mode = ("IDLE"
+                                if vsl_match.group(1) == "HIDE" else vsl_match.group(1))
+        clean_message = (re.sub(r"(?i)\[VSL_[A-Z]+]", "", user_message).strip()
+                         or "(Waiting)")
         if clean_message.lower() == "/idle":
-            worker = threading.Thread(target=self._background_dream_worker,
-                                      daemon=True)
+            worker = threading.Thread(target=self._background_dream_worker, daemon=True)
             worker.start()
-            safe_phys = (
-                self.eng.observer.last_physics_packet.snapshot().to_dict()
-                if hasattr(self.eng, "observer")
-                and getattr(self.eng.observer, "last_physics_packet", None)
-                else PanicRoom.get_safe_physics().to_dict())
+            safe_phys = (self.eng.observer.last_physics_packet.snapshot().to_dict()
+                         if hasattr(self.eng, "observer")
+                         and getattr(self.eng.observer, "last_physics_packet", None)
+                         else PanicRoom.get_safe_physics().to_dict())
             return {
                 "type": "SNAPSHOT",
                 "ui":
@@ -459,8 +424,8 @@ class GeodesicOrchestrator:
         snapshot = self.reporter.render_snapshot(ctx)
         self._hydrate_snapshot_metadata(snapshot, ctx)
         if "ui" in snapshot:
-            self.symbiosis.monitor_host(time.time() - ctx.timestamp,
-                                        snapshot["ui"], len(user_message))
+            self.symbiosis.monitor_host(time.time() - ctx.timestamp, snapshot["ui"],
+                                        len(user_message))
         return snapshot
 
     def run_headless_turn(self,
@@ -471,38 +436,26 @@ class GeodesicOrchestrator:
             return exit_pkt
         snapshot = {"type": "HEADLESS", "logs": ctx.logs}
         self._hydrate_snapshot_metadata(snapshot, ctx)
-        self.symbiosis.monitor_host(latency, "HEADLESS_MODE",
-                                    len(user_message))
+        self.symbiosis.monitor_host(latency, "HEADLESS_MODE", len(user_message))
         return snapshot
 
     def _hydrate_snapshot_metadata(self, snapshot: Dict, ctx: CycleContext):
         snapshot.update({
-            "trace_id":
-            getattr(ctx, "trace_id", "UNKNOWN"),
-            "is_alive":
-            True,
-            "physics":
-            _safe_dict(ctx.physics),
-            "bio":
-            _safe_dict(ctx.bio_result),
-            "mind":
-            _safe_dict(ctx.mind_state),
-            "world":
-            _safe_dict(ctx.world_state),
-            "soul":
-            _safe_dict(getattr(self.eng, "soul", {})),
-            "council_mandates":
-            getattr(ctx, "council_mandates", []),
-            "dream":
-            getattr(ctx, "last_dream", None),
-            "mutated_input":
-            ctx.input_text,
+            "trace_id": getattr(ctx, "trace_id", "UNKNOWN"),
+            "is_alive": True,
+            "physics": _safe_dict(ctx.physics),
+            "bio": _safe_dict(ctx.bio_result),
+            "mind": _safe_dict(ctx.mind_state),
+            "world": _safe_dict(ctx.world_state),
+            "soul": _safe_dict(getattr(self.eng, "soul", {})),
+            "council_mandates": getattr(ctx, "council_mandates", []),
+            "dream": getattr(ctx, "last_dream", None),
+            "mutated_input": ctx.input_text,
         })
 
     @staticmethod
     def _generate_crash_report(e: Exception) -> Dict[str, Any]:
-        full_trace = "".join(
-            traceback.format_exception(type(e), e, e.__traceback__))
+        full_trace = "".join(traceback.format_exception(type(e), e, e.__traceback__))
         safe_phys = PanicRoom.get_safe_physics()
         safe_bio = PanicRoom.get_safe_bio()
         msg = ux("cycle_strings", "orch_reality_fracture")

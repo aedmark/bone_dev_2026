@@ -58,8 +58,7 @@ class BonePresets:
     }
     MODES = {
         "ADVENTURE": {
-            "description":
-            "The default experience. Survival, inventory, exploration.",
+            "description": "The default experience. Survival, inventory, exploration.",
             "tuning": "STANDARD",
             "ui_layer": 1,
             "village_suppression": [],
@@ -116,8 +115,7 @@ class BonePresets:
             "description": "High voltage, low drag. Hallucination enabled.",
             "tuning": "MANIC",
             "ui_layer": 1,
-            "village_suppression":
-            ["GORDON", "BENEDICT", "BUREAU", "NAVIGATOR"],
+            "village_suppression": ["GORDON", "BENEDICT", "BUREAU", "NAVIGATOR"],
             "prompt_key": "CREATIVE",
             "show_inventory": False,
             "show_location": False,
@@ -977,14 +975,14 @@ class BoneConfig:
                         if not k.startswith("__") and not callable(v):
                             setattr(
                                 clone, k,
-                                copy.deepcopy(v) if isinstance(
-                                    v, (dict, list, set)) else v)
+                                copy.deepcopy(v) if isinstance(v, (dict, list,
+                                                                   set)) else v)
                     setattr(self, name, clone)
                 elif not callable(val) and not isinstance(val, classmethod):
                     setattr(
                         self, name,
-                        copy.deepcopy(val) if isinstance(
-                            val, (dict, list, set)) else val)
+                        copy.deepcopy(val) if isinstance(val,
+                                                         (dict, list, set)) else val)
 
     def load_preset(self, preset_dict: Dict[str, Any]) -> List[str]:
         logs = []
@@ -1007,8 +1005,7 @@ class BoneConfig:
             else:
                 sector_name = key
                 sector_data = value
-                if hasattr(self, sector_name) and isinstance(
-                        sector_data, dict):
+                if hasattr(self, sector_name) and isinstance(sector_data, dict):
                     target_sector = getattr(self, sector_name)
                     for k, v in sector_data.items():
                         if hasattr(target_sector, k):
@@ -1045,15 +1042,13 @@ class BoneConfig:
         e_obj = safe_get(physics_packet, "energy") or {}
         s_obj = safe_get(physics_packet, "space") or {}
         current_v = float(
-            safe_get(physics_packet, "voltage", safe_get(
-                e_obj, "voltage", 5.0)) or 5.0)
+            safe_get(physics_packet, "voltage", safe_get(e_obj, "voltage", 5.0)) or 5.0)
         current_d = float(
             safe_get(physics_packet, "narrative_drag",
                      safe_get(s_obj, "narrative_drag", 1.0)) or 1.0)
-        new_v = max(self.PHYSICS.VOLTAGE_FLOOR,
-                    min(current_v, self.PHYSICS.VOLTAGE_MAX))
-        new_d = max(self.PHYSICS.DRAG_FLOOR,
-                    min(current_d, self.PHYSICS.DRAG_HALT))
+        new_v = max(self.PHYSICS.VOLTAGE_FLOOR, min(current_v,
+                                                    self.PHYSICS.VOLTAGE_MAX))
+        new_d = max(self.PHYSICS.DRAG_FLOOR, min(current_d, self.PHYSICS.DRAG_HALT))
         safe_set(physics_packet, "voltage", new_v)
         safe_set(physics_packet, "narrative_drag", new_d)
         return physics_packet
@@ -1065,16 +1060,15 @@ class BoneConfig:
             return msg.format(sector=sector)
         target_sector = getattr(self, sector)
         if not hasattr(target_sector, parameter):
-            msg = ux(
-                "config_strings",
-                "tune_param_err") or "Param {parameter} missing in {sector}."
+            msg = ux("config_strings",
+                     "tune_param_err") or "Param {parameter} missing in {sector}."
             return msg.format(parameter=parameter, sector=sector)
         current_val = getattr(target_sector, parameter)
         if type(current_val) != type(value):
-            if not (isinstance(current_val, (int, float))
-                    and isinstance(value, (int, float))):
-                msg = ux("config_strings", "tune_type_err"
-                         ) or "Type mismatch: {curr_type} vs {new_type}."
+            if not (isinstance(current_val,
+                               (int, float)) and isinstance(value, (int, float))):
+                msg = ux("config_strings",
+                         "tune_type_err") or "Type mismatch: {curr_type} vs {new_type}."
                 return msg.format(curr_type=type(current_val).__name__,
                                   new_type=type(value).__name__)
         setattr(target_sector, parameter, value)

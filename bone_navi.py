@@ -31,8 +31,8 @@ class NaviSADProtocol:
         unique_ratio = len(set(words)) / len(words)
         divergence_spike = (1.0 - unique_ratio) * (current_drag / 3.0)
         self.attention_proxy_history.append(divergence_spike)
-        m_a = sum(self.attention_proxy_history) / max(
-            1, len(self.attention_proxy_history))
+        m_a = sum(self.attention_proxy_history) / max(1,
+                                                      len(self.attention_proxy_history))
         return min(1.0, max(0.0, m_a))
 
     def execute_nudge_test(self, engine_ref, prompt: str) -> bool:
@@ -52,6 +52,5 @@ class NaviSADProtocol:
         if len(self.attention_proxy_history) < self.history_size:
             return False
         recent = list(self.attention_proxy_history)
-        variance = sum(
-            (x - sum(recent) / len(recent))**2 for x in recent) / len(recent)
+        variance = sum((x - sum(recent) / len(recent))**2 for x in recent) / len(recent)
         return variance < 0.01 and recent[-1] > 0.0

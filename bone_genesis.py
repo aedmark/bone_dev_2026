@@ -36,8 +36,7 @@ class BoneGenesis:
                events_ref: Any = None) -> Dict[str, Any]:
         events = events_ref or EventBus()
         if events_ref:
-            log_msg = ux("genesis_strings",
-                         "ignite_log") or "Igniting lattice..."
+            log_msg = ux("genesis_strings", "ignite_log") or "Igniting lattice..."
             events.log(f"{Prisma.CYN}{log_msg}{Prisma.RST}", "GENESIS")
         else:
             print(
@@ -55,9 +54,7 @@ class BoneGenesis:
             events,
             embryo,
             akashic,
-            set(
-                config.get("mode_settings", {}).get("village_suppression",
-                                                    [])),
+            set(config.get("mode_settings", {}).get("village_suppression", [])),
             config.get("boot_mode", "ADVENTURE"),
             target_cfg,
             lexicon_ref,
@@ -78,17 +75,18 @@ class BoneGenesis:
             dd = getattr(cfg_gen, "DUMMY_DRAG", 0.0)
             dummy_phys = {"narrative_drag": dd, "voltage": dv}
             safe_bio_proxy = {
-                "trauma_vector": getattr(getattr(embryo.mind, "mem", None),
-                                         "session_trauma_vector", {}) or {}
+                "trauma_vector":
+                getattr(getattr(embryo.mind, "mem", None), "session_trauma_vector", {})
+                or {}
             }
             if logs := oroboros.apply_legacy(dummy_phys, safe_bio_proxy):
-                msg = ux("genesis_strings", "legacy_scars"
-                         ) or "The lattice remembers. Inherited scars: {logs}"
+                msg = ux(
+                    "genesis_strings",
+                    "legacy_scars") or "The lattice remembers. Inherited scars: {logs}"
                 events.log(
                     f"{Prisma.MAG}{msg.format(logs=', '.join(logs))}{Prisma.RST}",
                     "OROBOROS")
-                if (applied_drag :=
-                        dummy_phys.get("narrative_drag", dd) - dd) != 0:
+                if (applied_drag := dummy_phys.get("narrative_drag", dd) - dd) != 0:
                     current_drag = float(
                         safe_get(embryo.physics, "narrative_drag", 0.0) or 0.0)
                     safe_set(embryo.physics, "narrative_drag",
@@ -128,9 +126,8 @@ class BoneGenesis:
         c = config_ref
         gordon = (GordonKnot(events=events, mode=boot_mode, config_ref=c)
                   if "GORDON" not in suppressed else None)
-        navigator = (TheCartographer(embryo.shimmer, config_ref=c) if {
-            "CARTOGRAPHER", "NAVIGATOR"
-        }.isdisjoint(suppressed) else None)
+        navigator = (TheCartographer(embryo.shimmer, config_ref=c)
+                     if {"CARTOGRAPHER", "NAVIGATOR"}.isdisjoint(suppressed) else None)
         death_gen = None
         if "DEATH" not in suppressed:
             death_gen = DeathGen()
@@ -149,29 +146,21 @@ class BoneGenesis:
             "bureau":
             TheBureau(config_ref=c) if "BUREAU" not in suppressed else None,
             "town_hall":
-            TownHall(gordon,
-                     events,
-                     embryo.shimmer,
-                     akashic,
-                     navigator,
-                     config_ref=c) if "TOWN_HALL" not in suppressed else None,
+            TownHall(gordon, events, embryo.shimmer, akashic, navigator, config_ref=c)
+            if "TOWN_HALL" not in suppressed else None,
             "repro":
-            LiteraryReproduction(
-                config_ref=c) if "REPRO" not in suppressed else None,
+            LiteraryReproduction(config_ref=c) if "REPRO" not in suppressed else None,
             "zen":
-            ZenGarden(events, config_ref=c)
-            if "ZEN" not in suppressed else None,
+            ZenGarden(events, config_ref=c) if "ZEN" not in suppressed else None,
             "critics":
             TheCriticsCircle(events, config_ref=c)
             if "CRITICS" not in suppressed else None,
             "therapy":
-            TherapyProtocol(
-                config_ref=c) if "THERAPY" not in suppressed else None,
+            TherapyProtocol(config_ref=c) if "THERAPY" not in suppressed else None,
             "limbo":
             LimboLayer(config_ref=c) if "LIMBO" not in suppressed else None,
             "kintsugi":
-            KintsugiProtocol(
-                config_ref=c) if "KINTSUGI" not in suppressed else None,
+            KintsugiProtocol(config_ref=c) if "KINTSUGI" not in suppressed else None,
             "consultant":
             BoneConsultant(config_ref=c, lexicon_ref=lexicon_ref)
             if "CONSULTANT" not in suppressed else None,

@@ -68,8 +68,7 @@ class Prisma:
     def paint(cls, text: str, color_key: str = "0") -> str:
         code = cls._COLOR_MAP.get(str(color_key)[0].upper(), cls.WHT)
         txt = str(text)
-        return f"{code}{txt}" if txt.endswith(
-            cls.RST) else f"{code}{txt}{cls.RST}"
+        return f"{code}{txt}" if txt.endswith(cls.RST) else f"{code}{txt}{cls.RST}"
 
     @classmethod
     def strip(cls, text: str) -> str:
@@ -112,8 +111,8 @@ class DragProfile:
     trauma: float = 0.0
 
     def total(self) -> float:
-        return (self.semantic + self.emotional + self.structural +
-                self.metabolic + self.trauma)
+        return (self.semantic + self.emotional + self.structural + self.metabolic +
+                self.trauma)
 
 
 @dataclass
@@ -220,15 +219,13 @@ class PhysicsPacket:
             return cls()
         valid_keys = cls.__dataclass_fields__.keys()
         if isinstance(data, dict):
-            return cls(**{
-                k: data.get(k)
-                for k in valid_keys if data.get(k) is not None
-            })
-        return cls(
-            **{
-                k: getattr(data, k)
-                for k in valid_keys if getattr(data, k, None) is not None
-            })
+            return cls(
+                **{k: data.get(k)
+                   for k in valid_keys if data.get(k) is not None})
+        return cls(**{
+            k: getattr(data, k)
+            for k in valid_keys if getattr(data, k, None) is not None
+        })
 
     def __init__(
         self,
@@ -301,8 +298,7 @@ class PhysicsPacket:
         try:
             return getattr(self, key)
         except AttributeError:
-            raise KeyError(
-                f"'{key}' not found in PhysicsPacket or its sub-states.")
+            raise KeyError(f"'{key}' not found in PhysicsPacket or its sub-states.")
 
     def __setitem__(self, key, value):
         setattr(self, key, value)

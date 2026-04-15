@@ -15,8 +15,7 @@ class HippocampalCache:
         self.max_capacity = max_capacity
         self.nodes: Dict[str, Any] = {}
 
-    def encode(self, node_id: str, vector: List[float], metadata: Dict[str,
-                                                                       Any]):
+    def encode(self, node_id: str, vector: List[float], metadata: Dict[str, Any]):
         if node_id in self.nodes:
             del self.nodes[node_id]
         self.nodes[node_id] = {
@@ -37,9 +36,8 @@ class HippocampalCache:
     def extract_for_consolidation(self,
                                   limit: Optional[int] = None
                                   ) -> List[Tuple[str, Dict]]:
-        target_keys = list(
-            self.nodes.keys())[:limit] if limit is not None else list(
-                self.nodes.keys())
+        target_keys = list(self.nodes.keys())[:limit] if limit is not None else list(
+            self.nodes.keys())
         return [(k, self.nodes.pop(k)) for k in target_keys]
 
     def _prune_weakest(self):
@@ -63,8 +61,7 @@ class HippocampalCache:
             v1, v2 = n1["vector"], n2["vector"]
             dot = sum(a * b for a, b in zip(v1, v2))
             mag = (sum(a * a for a in v1)**0.5) * (sum(b * b for b in v2)**0.5)
-            if mag > 0 and (dot /
-                            mag) > 0.75:  # 0.75 Cosine Similarity Threshold
+            if mag > 0 and (dot / mag) > 0.75:  # 0.75 Cosine Similarity Threshold
                 adj[k1].add(k2)
                 adj[k2].add(k1)
         return _Graph(adj)
@@ -80,8 +77,7 @@ class CerebralIndex:
         self._index = faiss.IndexHNSWFlat(self.dimension, 32)
         self._payloads: List[Dict] = []
 
-    def add_memories(self, vectors: List[List[float]],
-                     metadata_payloads: List[Dict]):
+    def add_memories(self, vectors: List[List[float]], metadata_payloads: List[Dict]):
         if not vectors:
             return
         np_vectors = np.ascontiguousarray(np.array(vectors).astype("float32"))
@@ -99,8 +95,7 @@ class CerebralIndex:
         if (not self.is_trained or self.total_nodes == 0
                 or len(query_vector) != self.dimension):
             return []
-        np_query = np.ascontiguousarray(
-            np.array([query_vector]).astype("float32"))
+        np_query = np.ascontiguousarray(np.array([query_vector]).astype("float32"))
         actual_k = min(k, self.total_nodes)
         distances, indices = self._index.search(np_query, actual_k)
         valid_neighbors = []
@@ -109,14 +104,11 @@ class CerebralIndex:
                 continue
             resonance = 1.0 / (1.0 + float(dist))
             if resonance >= resonance_threshold:
-                valid_neighbors.append({
-                    **self._payloads[idx], "resonance":
-                    resonance
-                })
+                valid_neighbors.append({**self._payloads[idx], "resonance": resonance})
         return valid_neighbors
 
-    def get_local_mass_radius(
-            self, query_text: str) -> Optional[Dict[str, List[float]]]:
+    def get_local_mass_radius(self,
+                              query_text: str) -> Optional[Dict[str, List[float]]]:
         if not self.is_trained or self.total_nodes < 5:
             return None
         np_query = np.zeros((1, self.dimension), dtype="float32")
@@ -141,8 +133,7 @@ class MemoryConsolidator:
         self.cortex = cortex
         self.events = events
 
-    def trigger_rem_consolidation(self,
-                                  available_atp: float) -> Tuple[int, float]:
+    def trigger_rem_consolidation(self, available_atp: float) -> Tuple[int, float]:
         if available_atp < 20.0:
             return 0, 0.0
         max_affordable_nodes = int((available_atp - 20.0) / 0.1)

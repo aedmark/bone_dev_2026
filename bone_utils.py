@@ -94,8 +94,7 @@ class RandomRetrievalNavigator:
 
     def retrieve(self, query_coordinates: Coordinates,
                  query_vector: list[float]) -> dict[str, Any]:
-        r_val, mode = self.randomness_dial, self._get_mode(
-            self.randomness_dial)
+        r_val, mode = self.randomness_dial, self._get_mode(self.randomness_dial)
         retrieval_path = self._generate_traversal_path(
             self._find_structural_match(query_coordinates), r_val)
         tagged_results = self._calculate_serendipity(
@@ -112,9 +111,9 @@ class RandomRetrievalNavigator:
 
     def _find_structural_match(self, coords: Coordinates) -> LibraryNode:
         return next(
-            (n for n in self.library.nodes if abs(n.coords.S - coords.S) < 0.15
-             and abs(n.coords.D - coords.D) < 0.2 and abs(n.coords.C -
-                                                          coords.C) < 0.25),
+            (n for n in self.library.nodes
+             if abs(n.coords.S - coords.S) < 0.15 and abs(n.coords.D - coords.D) < 0.2
+             and abs(n.coords.C - coords.C) < 0.25),
             self.library.root,
         )
 
@@ -129,13 +128,11 @@ class RandomRetrievalNavigator:
             if not available: break
             if random.random() < r_val:
                 rb = self._get_random_branch(
-                    path[-1]
-                ) if r_val > 0.7 and random.random() < 0.3 else None
+                    path[-1]) if r_val > 0.7 and random.random() < 0.3 else None
                 next_node = rb if rb and rb.id not in visited else random.choice(
                     available)
             else:
-                next_node = self._most_structural_neighbor(
-                    available, start_node)
+                next_node = self._most_structural_neighbor(available, start_node)
             if next_node:
                 path.append(next_node)
                 visited.add(next_node.id)
@@ -151,24 +148,22 @@ class RandomRetrievalNavigator:
         return [
             n for n in self.library.nodes
             if n.id == node.parent_id or n.parent_id == node.id or (
-                node.parent_id and n.parent_id == node.parent_id
-                and n.id != node.id) or n.id in node.refs
+                node.parent_id and n.parent_id == node.parent_id and n.id != node.id)
+            or n.id in node.refs
         ]
 
     def _most_structural_neighbor(self, neighbors: list[LibraryNode],
                                   target_node: LibraryNode) -> LibraryNode:
         return max(
             neighbors,
-            key=lambda current: self._structural_similarity(
-                current, target_node),
+            key=lambda current: self._structural_similarity(current, target_node),
         )
 
     def _structural_similarity(self, a: LibraryNode, b: LibraryNode) -> float:
         return 1.0 / (1.0 + math.dist((a.coords.S, a.coords.D, a.coords.C),
                                       (b.coords.S, b.coords.D, b.coords.C)))
 
-    def _get_random_branch(self,
-                           current_node: LibraryNode) -> Optional[LibraryNode]:
+    def _get_random_branch(self, current_node: LibraryNode) -> Optional[LibraryNode]:
         lineage = self._get_lineage(current_node)
         c = [
             n for n in self.library.nodes
@@ -184,23 +179,21 @@ class RandomRetrievalNavigator:
             current = self._node_index[current.parent_id]
         return lineage
 
-    def _traverse_and_collect(self, path: list[LibraryNode],
-                              query_vector: list[float],
+    def _traverse_and_collect(self, path: list[LibraryNode], query_vector: list[float],
                               r_val: float) -> list[RetrievalResult]:
         path_len = len(path)
         query_mag = math.hypot(*query_vector) if query_vector else 0.0
         return sorted([
-            RetrievalResult(
-                node_id=n.id,
-                title=n.title,
-                content=n.content,
-                coords=n.coords,
-                path_position=i,
-                relevance_score=(rel := self._vector_similarity(
-                    n.vector, query_vector, query_mag)),
-                serendipity_bonus=(ser := r_val * (i / path_len) * 0.7),
-                final_score=(rel * (1.0 - (i / path_len) * 0.5)) + ser,
-                snippet=n.content[:150] + "...") for i, n in enumerate(path)
+            RetrievalResult(node_id=n.id,
+                            title=n.title,
+                            content=n.content,
+                            coords=n.coords,
+                            path_position=i,
+                            relevance_score=(rel := self._vector_similarity(
+                                n.vector, query_vector, query_mag)),
+                            serendipity_bonus=(ser := r_val * (i / path_len) * 0.7),
+                            final_score=(rel * (1.0 - (i / path_len) * 0.5)) + ser,
+                            snippet=n.content[:150] + "...") for i, n in enumerate(path)
         ],
                       key=lambda x: x.final_score,
                       reverse=True)
@@ -211,13 +204,11 @@ class RandomRetrievalNavigator:
                            v2_mag: float = None) -> float:
         if not v1 or not v2: return 0.5
         dot = sum(a * b for a, b in zip(v1, v2))
-        mag = math.hypot(*v1) * (v2_mag if v2_mag is not None else math.hypot(
-            *v2))
+        mag = math.hypot(*v1) * (v2_mag if v2_mag is not None else math.hypot(*v2))
         return ((dot / mag) + 1.0) / 2.0 if mag != 0 else 0.5
 
-    def _calculate_serendipity(
-            self, results: list[RetrievalResult],
-            query_coords: Coordinates) -> list[RetrievalResult]:
+    def _calculate_serendipity(self, results: list[RetrievalResult],
+                               query_coords: Coordinates) -> list[RetrievalResult]:
         for r in results:
             r.serendipity = r.relevance_score * math.dist(
                 (r.coords.S, r.coords.D, r.coords.C),
@@ -239,11 +230,9 @@ class RandomRetrievalNavigator:
                             results: list[RetrievalResult]) -> str:
         surprising_count = sum(1 for r in results if r.is_surprising)
         notes = {
-            "PURIST":
-            "Staying on the beaten path. Nothing wasted, nothing unexpected.",
+            "PURIST": "Staying on the beaten path. Nothing wasted, nothing unexpected.",
             "TOURIST": "Took a small detour. Found a nice view.",
-            "EXPLORER":
-            "Went where the path was thin. Came back with something odd.",
+            "EXPLORER": "Went where the path was thin. Came back with something odd.",
             "FLANEUR": "The library started talking. I just listened.",
             "CHAOS": "At this point, the books are reading you.",
         }
@@ -257,8 +246,7 @@ class RandomRetrievalNavigator:
         return {
             "new_value": self.randomness_dial,
             "mode": self._get_mode(self.randomness_dial)["name"],
-            "message":
-            f"Random retrieval dial set to {self.randomness_dial:.2f}",
+            "message": f"Random retrieval dial set to {self.randomness_dial:.2f}",
         }
 
     def get_state(self) -> dict[str, Any]:
@@ -307,8 +295,7 @@ class TheSubstrate:
                 if "podcast" in s_name.lower(): self._trigger_tts(s_path)
             except Exception as e:
                 logs.append(
-                    f"{Prisma.RED}SUBSTRATE FAULT: Write failed - {e}{Prisma.RST}"
-                )
+                    f"{Prisma.RED}SUBSTRATE FAULT: Write failed - {e}{Prisma.RST}")
         self.pending_writes.clear()
         return logs, cost
 
@@ -446,9 +433,8 @@ class TheVocalCords:
             if not segments:
                 return
             try:
-                with open(os.devnull,
-                          "w") as fnull, contextlib.redirect_stdout(
-                              fnull), contextlib.redirect_stderr(fnull):
+                with open(os.devnull, "w") as fnull, contextlib.redirect_stdout(
+                        fnull), contextlib.redirect_stderr(fnull):
                     if not self.pipeline:
                         self.pipeline = KPipeline(lang_code="a",
                                                   repo_id="hexgrad/Kokoro-82M")
@@ -458,17 +444,13 @@ class TheVocalCords:
                     for seg in segments:
                         voice = self.voice_map.get(seg["speaker"],
                                                    self.voice_map["DEFAULT"])
-                        generator = self.pipeline(seg["text"],
-                                                  voice=voice,
-                                                  speed=1.0)
+                        generator = self.pipeline(seg["text"], voice=voice, speed=1.0)
                         for _, _, audio in generator:
                             if audio is not None and len(audio) > 0:
-                                combined_audio.append(
-                                    self.np.array(audio).flatten())
+                                combined_audio.append(self.np.array(audio).flatten())
                         combined_audio.append(silence_pad)
                     if combined_audio:
-                        self.sf.write(master_file,
-                                      self.np.concatenate(combined_audio),
+                        self.sf.write(master_file, self.np.concatenate(combined_audio),
                                       24000)
             except Exception as e:
                 error_to_report = str(e)
@@ -540,8 +522,7 @@ class DSPyCritic:
                 cfg_val = lambda k, d: safe_get(
                     self.cfg,
                     k.upper(),
-                    safe_get(self.cfg, k.lower(),
-                             getattr(BoneConfig, k.upper(), d)),
+                    safe_get(self.cfg, k.lower(), getattr(BoneConfig, k.upper(), d)),
                 )
                 provider = cfg_val("provider", "ollama")
                 model_name = cfg_val("model", "vsl-hermes")
@@ -573,15 +554,13 @@ class DSPyCritic:
                                 question=user_query,
                                 answer=generated_response)
             if "true" not in str(result.faithfulness).lower():
-                return False, getattr(result, "reasoning",
-                                      "No reasoning provided.")
+                return False, getattr(result, "reasoning", "No reasoning provided.")
             return True, "Faithful."
         except Exception as e:
             print(f"\n{Prisma.RED}⚖️ DSPy JUDGE FATAL ERROR: {e}{Prisma.RST}")
             return True, f"Judge API Error: {e}"
 
-    def evolve_prompt(self, current_configuration: str,
-                      failure_context: str) -> str:
+    def evolve_prompt(self, current_configuration: str, failure_context: str) -> str:
         if not self.enabled:
             return ""
         try:
@@ -615,7 +594,5 @@ class DSPyCritic:
             )
             return new_rules
         except Exception as e:
-            print(
-                f"\n{Prisma.RED}⚖️ DSPy COMPRESSOR FATAL ERROR: {e}{Prisma.RST}"
-            )
+            print(f"\n{Prisma.RED}⚖️ DSPy COMPRESSOR FATAL ERROR: {e}{Prisma.RST}")
             return directives

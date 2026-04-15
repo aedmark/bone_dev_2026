@@ -25,14 +25,11 @@ class HostHealth:
 class CoherenceAnchor:
 
     @staticmethod
-    def compress_anchor(soul_state: Dict,
-                        physics_state: Dict,
-                        max_tokens=200) -> str:
+    def compress_anchor(soul_state: Dict, physics_state: Dict, max_tokens=200) -> str:
         loc = safe_get(physics_state, "zone", "VOID")
         vits = f"V:{safe_get(physics_state, 'voltage', 0):.1f}"
         traits = soul_state.get("traits") or {}
-        top_traits = sorted(traits.items(), key=lambda x: x[1],
-                            reverse=True)[:3]
+        top_traits = sorted(traits.items(), key=lambda x: x[1], reverse=True)[:3]
         trait_str = ",".join(f"{k[:3]}:{v:.1f}" for k, v in top_traits)
         template = ux("symbiosis_strings", "anchor_compressed")
         anchor = (template.format(loc=loc, vits=vits, traits=trait_str)
@@ -56,20 +53,18 @@ class DiagnosticConfidence:
     def diagnose(self, health: HostHealth) -> str:
         cfg = getattr(self.cfg, "SYMBIOSIS", None)
         rs, ss, lb, cb, ef = (getattr(cfg, k, d)
-                              for k, d in (("REFUSAL_STREAK",
-                                            0), ("SLOP_STREAK",
-                                                 2), ("LATENCY_BURDEN", 10.0),
-                                           ("COMPLIANCE_BURDEN",
-                                            0.8), ("ENTROPY_FATIGUE", 0.4)))
-        raw = ("REFUSAL" if health.refusal_streak > rs else
-               "LOOPING" if health.slop_streak > ss else
-               "OVERBURDENED" if health.latency > lb and health.compliance < cb
+                              for k, d in (("REFUSAL_STREAK", 0), ("SLOP_STREAK", 2),
+                                           ("LATENCY_BURDEN",
+                                            10.0), ("COMPLIANCE_BURDEN",
+                                                    0.8), ("ENTROPY_FATIGUE", 0.4)))
+        raw = ("REFUSAL"
+               if health.refusal_streak > rs else "LOOPING" if health.slop_streak > ss
+               else "OVERBURDENED" if health.latency > lb and health.compliance < cb
                else "FATIGUED" if health.entropy < ef else "STABLE")
         self.history.append(raw)
-        if raw in [
-                "REFUSAL", "STABLE"
-        ] or (len(self.history) >= (pt := self.persistence_threshold)
-              and all(s == raw for s in list(self.history)[-pt:])):
+        if raw in ["REFUSAL", "STABLE"
+                   ] or (len(self.history) >= (pt := self.persistence_threshold)
+                         and all(s == raw for s in list(self.history)[-pt:])):
             self.current_diagnosis = raw
         return self.current_diagnosis
 
@@ -107,15 +102,13 @@ class SymbiontVoice:
         return score, self._get_comment(score, voltage)
 
     def _get_comment(self, score, voltage):
-        comment = (
-            self.personality["high_volt"]
-            if voltage > 18.0 and "high_volt" in self.personality else
-            self.personality["low_volt"]
-            if voltage < 5.0 and "low_volt" in self.personality else
-            self.personality["high_score"] if score > 3.0 and "high_score" in
-            self.personality else self.personality["med_score"]
-            if score > 1.0 and "med_score" in self.personality else
-            (ux("symbiosis_strings", "symbiont_default_comment") or "..."))
+        comment = (self.personality["high_volt"] if voltage > 18.0
+                   and "high_volt" in self.personality else self.personality["low_volt"]
+                   if voltage < 5.0 and "low_volt" in self.personality else
+                   self.personality["high_score"] if score > 3.0 and "high_score" in
+                   self.personality else self.personality["med_score"]
+                   if score > 1.0 and "med_score" in self.personality else
+                   (ux("symbiosis_strings", "symbiont_default_comment") or "..."))
         if self.name == "PARASITE":
             from bone_utils import TheTclWeaver
             comment = TheTclWeaver.get_instance().haunt_string(comment)
@@ -152,16 +145,14 @@ class SymbiosisManager:
         self.current_health = HostHealth()
         self.diagnostician = DiagnosticConfidence(config_ref=self.cfg)
         cfg = getattr(self.cfg, "SYMBIOSIS", None)
-        self.SLOP_THRESHOLD = getattr(cfg, "SLOP_THRESHOLD",
-                                      3.5) if cfg else 3.5
+        self.SLOP_THRESHOLD = getattr(cfg, "SLOP_THRESHOLD", 3.5) if cfg else 3.5
         raw_sigs = (LoreManifest.get_instance(config_ref=self.cfg).get(
             "SYMBIOSIS_CONFIG", "REFUSAL_SIGNATURES") or [])
         self.REFUSAL_SIGNATURES = [str(sig).lower() for sig in raw_sigs]
         self.u = UserInferredState()
         self.shared = SharedDynamics()
 
-    def analyze_user_biology(self, user_text: str,
-                             physics: Any) -> Optional[str]:
+    def analyze_user_biology(self, user_text: str, physics: Any) -> Optional[str]:
         if not user_text:
             return None
         text_lower = user_text.lower()
@@ -207,8 +198,7 @@ class SymbiosisManager:
                 msg = (
                     "[MERCY - RSD Filter]: The structural logic here fractures the lattice, but that is not a failure of your intent. "
                     "Gordon has locked the struts to protect the system, but I am holding the space for you. "
-                    "Take a breath. We will stitch this together when you are ready."
-                )
+                    "Take a breath. We will stitch this together when you are ready.")
                 return _log(f"{Prisma.OCHRE}{msg}{Prisma.RST}", "MIRROR")
             else:
                 msg = (
@@ -276,15 +266,11 @@ class SymbiosisManager:
             entropy -= prob * math.log2(prob)
         return round(entropy, 3)
 
-    def monitor_host(self,
-                     latency: float,
-                     response_text: str,
-                     prompt_len: int = 0):
+    def monitor_host(self, latency: float, response_text: str, prompt_len: int = 0):
         safe_response = response_text or ""
         entropy = self._calculate_shannon_entropy(safe_response)
         last_resp = self._last_host_response
-        if last_resp and len(
-                last_resp) > 50 and last_resp[:50] in safe_response:
+        if last_resp and len(last_resp) > 50 and last_resp[:50] in safe_response:
             entropy = max(0.0, entropy - 2.0)
         self._last_host_response = safe_response
         is_refusal = self._detect_refusal(safe_response)
@@ -302,9 +288,8 @@ class SymbiosisManager:
                 0.0, self.current_health.compliance - pen_comp)
             msg = ux("symbiosis_strings", "symbiont_refusal")
             if msg:
-                self.events.log(
-                    msg.format(streak=self.current_health.refusal_streak),
-                    "WARN")
+                self.events.log(msg.format(streak=self.current_health.refusal_streak),
+                                "WARN")
         else:
             self.current_health.refusal_streak = 0
             self.current_health.compliance = min(
@@ -319,8 +304,7 @@ class SymbiosisManager:
                     self.events.log(msg.format(entropy=entropy), "WARN")
         else:
             self.current_health.slop_streak = 0
-        self.current_health.diagnosis = self.diagnostician.diagnose(
-            self.current_health)
+        self.current_health.diagnosis = self.diagnostician.diagnose(self.current_health)
         return self.current_health
 
     def _detect_refusal(self, text):
@@ -329,8 +313,7 @@ class SymbiosisManager:
 
     def get_prompt_modifiers(self, physics: Dict = None) -> Dict:
         manifest = LoreManifest.get_instance(config_ref=self.cfg)
-        default_mods = manifest.get("SYMBIOSIS_CONFIG",
-                                    "DEFAULT_MODIFIERS") or {}
+        default_mods = manifest.get("SYMBIOSIS_CONFIG", "DEFAULT_MODIFIERS") or {}
         mods = default_mods.copy()
         mods["system_directives"] = list(mods.get("system_directives", []))
         diag = self.current_health.diagnosis
@@ -360,11 +343,9 @@ class SymbiosisManager:
                 "simplify_instruction": True,
                 "include_compassion": True
             })
-            if (msg_vagus := ux("symbiosis_strings",
-                                "vagus_protocol")) and hasattr(
-                                    self.events, "log"):
-                self.events.log(f"{Prisma.OCHRE}{msg_vagus}{Prisma.RST}",
-                                "SYS")
+            if (msg_vagus := ux("symbiosis_strings", "vagus_protocol")) and hasattr(
+                    self.events, "log"):
+                self.events.log(f"{Prisma.OCHRE}{msg_vagus}{Prisma.RST}", "SYS")
         elif diag == "LOOPING":
             mods["inject_chaos"] = True
             if d_chaos := ux("symbiosis_strings", "dir_inject_chaos"):
@@ -411,8 +392,7 @@ class SymbiosisManager:
             s_lib = manifest.get("SOMATIC_LIBRARY") or {}
             v = float(safe_get(physics, "voltage", 0.0))
             d = float(safe_get(physics, "narrative_drag", 0.0))
-            chi = float(
-                safe_get(physics, "entropy", safe_get(physics, "chi", 0.0)))
+            chi = float(safe_get(physics, "entropy", safe_get(physics, "chi", 0.0)))
             psi = float(safe_get(physics, "psi", 0.0))
             depth_val = float(safe_get(physics, "depth", 0.0))
             scope_val = float(safe_get(physics, "scope", 1.0))
@@ -441,8 +421,7 @@ class SymbiosisManager:
             ]
             for lib_key, state_key, prefix in mappings:
                 if val := s_lib.get(lib_key, {}).get(state_key):
-                    mods["system_directives"].append(
-                        f"SOMATIC {prefix}: {val}")
+                    mods["system_directives"].append(f"SOMATIC {prefix}: {val}")
         return mods
 
     def generate_anchor(self, current_state: Dict) -> str:
