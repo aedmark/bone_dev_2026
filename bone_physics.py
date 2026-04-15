@@ -330,7 +330,7 @@ class QuantumObserver:
         self.lex = lexicon_ref
         self.cfg = config_ref or BoneConfig
         self.cd_engine = CreativeDeterminantEngine()
-        self.voltage_history: Deque[float] = deque(maxlen=20)  # Increased for topological embedding
+        self.voltage_history: Deque[float] = deque(maxlen=20)
         self.last_physics_packet: Optional[PhysicsPacket] = None
         self.Q_n = None
         if hasattr(self.events, "subscribe"):
@@ -383,8 +383,8 @@ class QuantumObserver:
         novelty = min(1.0, (e_m * 0.6) + (counts.get("play", 0) * 0.15))
         sycophancy_triggers = ("right?", "good?", "make sense", "makes sense", "agree", "validate", "comfort")
         cf_expect = 0.8 if any(p in t_low for p in sycophancy_triggers) else 0.0
-        actual_coherence = p_v # Resonance as empirical witness (ψ)
-        sustainable_capacity = max(0.1, 1.0 - (sv / 150.0) * e_m) # Spectral capacity witness (ψ_s)
+        actual_coherence = p_v
+        sustainable_capacity = max(0.1, 1.0 - (sv / 150.0) * e_m)
         current_debt = self.cd_engine.update_coherence_debt(actual_coherence, sustainable_capacity)
         viability = self.cd_engine.calculate_viability(kappa=p_v, gamma=gamma_idx, mu=b_v)
         strong_coherence_ideal = p_v * gamma_idx * b_v

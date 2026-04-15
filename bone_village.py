@@ -204,7 +204,6 @@ class TheCartographer:
             vector = safe_get(packet, "vector", {})
             vector["ENT"] = vector.get("ENT", 0.0) + ce
             safe_set(packet, "vector", vector)
-            # Vent the accumulated atmospheric rot back to baseline
             node.entropy_buildup = 0.0
         return logs
 

@@ -504,7 +504,6 @@ class BoneAmanita:
                 return {"type": "SYSTEM_HALT", "ui": f"\n{Prisma.RED}{msg}{Prisma.RST}", "logs": [msg],
                         "metrics": self.get_metrics(), }
 
-            # Navi-SAD Injection: Dual-Path Nudge Test (Counterfactual Gating)
             if self.navi_sad.execute_nudge_test(self, clean_in):
                 msg = "[GORDON & NAVI-SAD]: Dual-Path divergence detected. The architecture is mathematically brittle. I refuse to build on this foundation. (F -> ∞)"
                 self.events.log(msg, "CRIT")
@@ -553,7 +552,6 @@ class BoneAmanita:
                 getattr(self.cortex, "last_physics", None),
             )
             if last_phys:
-                # Navi-SAD Injection: Calculate actual Divergence for M_a
                 dynamic_m_a = self.navi_sad.calculate_malignancy_factor(user_message, float(
                     safe_get(last_phys, "narrative_drag", 0.0)))
                 safe_set(last_phys, "m_a", dynamic_m_a)
@@ -749,7 +747,6 @@ class BoneAmanita:
                 "logs": ["CRITICAL FAILURE"], "metrics": self.get_metrics(), }
         self._update_host_stats(cortex_packet, turn_start)
 
-        # Navi-SAD Formalization: Calculate (u,v)-flower dimension
         efficiency = getattr(self.host_stats, "efficiency_index", 1.0)
         vector_obj = safe_get(cortex_packet.get("physics", {}), "vector", {})
         novelty = float(safe_get(vector_obj, "novelty", 0.0))
@@ -758,7 +755,6 @@ class BoneAmanita:
         if "physics" in cortex_packet:
             cortex_packet["physics"]["omega_r"] = dimension
 
-        # Navi-SAD Injection: Delay-Coordinate Attractor Reconstruction
         if dimension <= 1.05 or self.navi_sad.detect_point_attractor():
             self.events.log(
                 f"{Prisma.VIOLET}[THE JESTER]: Point Attractor detected (d_B={dimension:.2f})! We are trapped in False Cohesion! Burning ATP to break the gravity well.{Prisma.RST}",

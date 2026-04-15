@@ -16,7 +16,6 @@ _THOUGHT_PATTERN = re.compile(
     r"<(?:think|thought)>(.*?)(?:</(?:think|thought)>|$)", re.DOTALL | re.IGNORECASE
 )
 
-
 def beautify_thoughts(text: str) -> str:
     def replacer(match):
         content = match.group(1).strip()

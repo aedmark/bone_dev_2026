@@ -9,6 +9,9 @@ import warnings
 import re
 import threading
 import time
+from kokoro import KPipeline
+import soundfile as sf
+import numpy as np
 from dataclasses import dataclass, field
 from typing import Any, Optional, List, Dict, Tuple
 import importlib.util
@@ -399,10 +402,6 @@ class TheVocalCords:
                 with open(os.devnull, "w") as fnull, contextlib.redirect_stdout(fnull), contextlib.redirect_stderr(
                         fnull):
                     if not self.pipeline:
-                        from kokoro import KPipeline
-                        import soundfile as sf
-                        import numpy as np
-
                         self.pipeline = KPipeline(lang_code="a", repo_id="hexgrad/Kokoro-82M")
                         self.sf = sf
                         self.np = np
