@@ -27,25 +27,19 @@ class CommandStateInterface:
 
     def modify_resource(self, resource: str, delta: float):
         vitals = self.get_vitals()
+
+        def clamp(val, max_val):
+            return max(0.0, min(val, max_val))
+
         if resource == "stamina":
-            self.eng.stamina = max(
-                0.0, min(self.eng.stamina + delta, vitals.get("max_stamina", 100.0)))
-        elif resource == "atp":
-            if hasattr(self.eng, "bio"):
-                self.eng.bio.mito.state.atp_pool = max(
-                    0.0,
-                    min(self.eng.bio.mito.state.atp_pool + delta,
-                        vitals.get("max_atp", 200.0)))
+            self.eng.stamina = clamp(self.eng.stamina + delta,
+                                     vitals.get("max_stamina", 100.0))
+        elif resource == "atp" and hasattr(self.eng, "bio"):
+            state = self.eng.bio.mito.state
+            state.atp_pool = clamp(state.atp_pool + delta, vitals.get("max_atp", 200.0))
 
     def get_resource(self, resource: str) -> float:
-        if resource == "stamina": return getattr(self.eng, "stamina", 0.0)
-        if resource == "health": return getattr(self.eng, "health", 0.0)
-        if resource == "atp":
-            try:
-                return self.eng.bio.mito.state.atp_pool
-            except AttributeError:
-                return 0.0
-        return 0.0
+        return self.get_vitals().get(resource, 0.0)
 
     def save_state(self) -> str:
         mind = getattr(self.eng, "mind", None)
@@ -65,7 +59,7 @@ class CommandStateInterface:
         continuity_packet = {
             "location": loc,
             "last_output": last_out,
-            "inventory": getattr(getattr(self.eng, "gordon", None), "inventory", []),
+            "inventory": self.get_inventory(),
         }
         nav = getattr(self.eng, "navigator", None)
         atlas_data = nav.export_atlas() if nav else None
@@ -99,24 +93,20 @@ class CommandStateInterface:
             "atp": metrics.get("atp", 0.0),
             "max_health": getattr(self.Config, "MAX_HEALTH", 100.0),
             "max_stamina": getattr(self.Config, "MAX_STAMINA", 100.0),
-            "max_atp": getattr(cmd_cfg, "STATUS_MAX_ATP", 200.0) if cmd_cfg else 200.0,
+            "max_atp": getattr(cmd_cfg, "STATUS_MAX_ATP", 200.0),
         }
 
     def get_inventory(self) -> List[str]:
-        if hasattr(self.eng, "gordon"):
-            return getattr(self.eng.gordon, "inventory", [])
-        return []
+        return getattr(getattr(self.eng, "gordon", None), "inventory", [])
 
     def get_navigation_report(self) -> str:
-        if not hasattr(self.eng, "navigator") or not hasattr(self.eng, "phys"):
-            return ux("command_state", "nav_offline")
-        nav = self.eng.navigator
-        packet = None
-        if hasattr(self.eng.phys, "observer"):
-            packet = getattr(self.eng.phys.observer, "last_physics_packet", None)
+        nav = getattr(self.eng, "navigator", None)
+        observer = getattr(getattr(self.eng, "phys", None), "observer", None)
+        packet = getattr(observer, "last_physics_packet", None)
+
         if nav and packet:
             return nav.report_position(packet)
-        return ux("command_state", "nav_unresponsive")
+        return ux("command_state", "nav_offline" if not nav else "nav_unresponsive")
 
     def get_soul_status(self) -> Optional[str]:
         soul = getattr(self.eng, "soul", None)
@@ -155,7 +145,6 @@ class CommandRegistry:
         self.help_text[name] = help_str
 
     def execute(self, text: str) -> bool:
-        if not text.startswith("/"): return False
         try:
             parts = shlex.split(text)
         except ValueError:
@@ -170,6 +159,29 @@ class CommandRegistry:
 
 class CommandProcessor:
 
+    DEFAULT_DESCS = {
+        "hud":
+        "Adjusts the VSL UI depth (warm, lite, core, deep)",
+        "idle":
+        "Enters REM cycle, regenerating ATP and Stamina",
+        "mod":
+        "Engages hardwired mode chips (e.g., slash)",
+        "grief":
+        "Attends the wake for a consumed memory",
+        "layer":
+        "Manipulates the Reality Stack depth",
+        "inject":
+        "Forces payload into the EventBus",
+        "trauma":
+        "DEV: Spikes trauma and drops health to test The Therapist.",
+        "podcast":
+        "Assembles the Parliament to generate a podcast script",
+        "journal":
+        "Generates a narrative diary entry of the session so far",
+        "shuffle":
+        "Explicit intent [ !s ]: The Jester's Gambit. Breaks loops, resets drag, lateral shift."
+    }
+
     def __init__(
         self,
         engine,
@@ -183,32 +195,12 @@ class CommandProcessor:
         self.tax = ResourceTax(self.interface)
         self.registry = CommandRegistry(self.interface)
         self.P = prisma_ref
-        defaults = {
-            "hud":
-            "Adjusts the VSL UI depth (warm, lite, core, deep)",
-            "idle":
-            "Enters REM cycle, regenerating ATP and Stamina",
-            "mod":
-            "Engages hardwired mode chips (e.g., slash)",
-            "grief":
-            "Attends the wake for a consumed memory",
-            "layer":
-            "Manipulates the Reality Stack depth",
-            "inject":
-            "Forces payload into the EventBus",
-            "trauma":
-            "DEV: Spikes trauma and drops health to test The Therapist.",
-            "podcast":
-            "Assembles the Parliament to generate a podcast script",
-            "journal":
-            "Generates a narrative diary entry of the session so far",
-            "shuffle":
-            "Explicit intent [ !s ]: The Jester's Gambit. Breaks loops, resets drag, lateral shift."
-        }
+
         for attr in dir(self):
             if attr.startswith("_cmd_"):
                 name = attr[5:]
-                desc = ux("command_descriptions", name) or defaults.get(name, "")
+                desc = ux("command_descriptions", name) or self.DEFAULT_DESCS.get(
+                    name, "")
                 self.registry.register(f"/{name}", getattr(self, attr), desc)
 
     def execute(self, text: str):
@@ -264,8 +256,9 @@ class CommandProcessor:
 
         def render(lbl_key, default_lbl, curr, max_v, color):
             lbl = menu_cfg.get(lbl_key, default_lbl)
-            filled = int(max(0.0, min(1.0, curr / max(1.0, max_v))) * 10)
-            return f"{lbl}{color}{b_f*filled}{b_e*(10-filled)}{self.P.RST} {curr:.0f}"
+            ratio = curr / max(1.0, max_v)
+            filled = int(max(0.0, min(1.0, ratio)) * 10)
+            return f"{lbl}{color}{b_f * filled}{b_e * (10 - filled)}{self.P.RST} {curr:.0f}"
 
         self.interface.log("\n".join([
             render("health_label", "Health:  ", v['health'], v['max_health'],
@@ -286,7 +279,7 @@ class CommandProcessor:
             self.interface.log(f"{self.P.RED}{msg.format(mode=mode_name)}{self.P.RST}")
             return True
         cmd_cfg = getattr(self.interface.Config, "COMMANDS", None)
-        cost = getattr(cmd_cfg, "COST_MODE", 10.0) if cmd_cfg else 10.0
+        cost = getattr(cmd_cfg, "COST_MODE", 10.0)
         if self.tax.levy("MODE_SWITCH", {"stamina": cost}):
             preset = getattr(BonePresets, mode_name)
             logs = self.interface.Config.load_preset(preset)
@@ -334,7 +327,7 @@ class CommandProcessor:
 
     def _cmd_map(self, _parts):
         cmd_cfg = getattr(self.interface.Config, "COMMANDS", None)
-        cost = getattr(cmd_cfg, "COST_MAP", 2.0) if cmd_cfg else 2.0
+        cost = getattr(cmd_cfg, "COST_MAP", 2.0)
         if not self.tax.levy("MAP", {"stamina": cost}):
             return True
         nav_report = self.interface.get_navigation_report()
@@ -392,7 +385,10 @@ class CommandProcessor:
             return True
         try:
             mode = int(parts[1])
-            if not (0 <= mode <= 3): raise ValueError
+            if mode not in (0, 1, 2, 3):
+                self.interface.log(ux("command_alerts", "truth_invalid"))
+                return True
+
             reporter = getattr(getattr(self.interface.eng, "orchestrator", None),
                                "reporter", None)
             if not reporter:
@@ -471,11 +467,13 @@ class CommandProcessor:
                 dream_log = f"\n\n{self.P.VIOLET}☁️ {dream_text}{self.P.RST}"
                 if effects and effects.get("glimmers"):
                     g_yield = effects["glimmers"]
-                    if hasattr(self.interface.eng, "shared_lattice"):
-                        self.interface.eng.shared_lattice.shared.g_pool += g_yield
-                    elif hasattr(self.interface.eng, "phys"):
-                        self.interface.eng.phys.G = (
-                            getattr(self.interface.eng.phys, "G", 0) + g_yield)
+                    if shared := getattr(
+                            getattr(self.interface.eng, "shared_lattice", None),
+                            "shared", None):
+                        shared.g_pool += g_yield
+                    elif phys := getattr(self.interface.eng, "phys", None):
+                        phys.G = getattr(phys, "G", 0) + g_yield
+
                     dream_log += f"\n{self.P.MAG}✨ The dream yielded a Glimmer (+{g_yield} G_pool).{self.P.RST}"
         self.interface.log(
             f"{self.P.CYN}[SYSTEM] Engine idling. REM cycle initiated. ATP regenerating.{self.P.RST}{dream_log}"
@@ -575,7 +573,7 @@ class CommandProcessor:
             f"{self.P.CYN}🎙️ Assembling the Parliament for topic: '{topic}'...{self.P.RST}"
         )
         cortex = getattr(self.interface.eng, "cortex", None)
-        llm = getattr(cortex, "llm", None) if cortex else None
+        llm = getattr(cortex, "llm", None)
         council = getattr(self.interface.eng, "council", None)
         if not llm or not council or not hasattr(council, "host_podcast"):
             self.interface.log(
@@ -597,7 +595,7 @@ class CommandProcessor:
     def _cmd_journal(self, _parts):
         self.interface.log(f"{self.P.CYN}📖 Compiling narrative journal...{self.P.RST}")
         cortex = getattr(self.interface.eng, "cortex", None)
-        llm = getattr(cortex, "llm", None) if cortex else None
+        llm = getattr(cortex, "llm", None)
         if not llm or not cortex.dialogue_buffer:
             self.interface.log(
                 f"{self.P.RED}Error: Cortex LLM unavailable or memory buffer is empty.{self.P.RST}"
@@ -625,7 +623,7 @@ class CommandProcessor:
 
     def _cmd_shuffle(self, _parts):
         cmd_cfg = getattr(self.interface.Config, "COMMANDS", None)
-        cost = getattr(cmd_cfg, "COST_SHUFFLE", 5.0) if cmd_cfg else 5.0
+        cost = getattr(cmd_cfg, "COST_SHUFFLE", 5.0)
         if not self.tax.levy("SHUFFLE", {"atp": cost}):
             return True
         if hasattr(self.interface.eng, "phys"):

@@ -31,11 +31,15 @@ class SoulDriver:
         for persona, weight in mapping.items():
             if persona in base_weights:
                 base_weights[persona] += weight
-        chaos = min(0.5, (paradox - 5.0) * 0.05) if (paradox := getattr(
-            self.soul, "paradox_accum", 0.0)) > 5.0 else 0.0
-        dignity = max(0.2, self.soul.anchor.dignity_reserve /
-                      100.0) if getattr(self.soul, "anchor", None) and hasattr(
-                          self.soul.anchor, "dignity_reserve") else 1.0
+
+        paradox = getattr(self.soul, "paradox_accum", 0.0)
+        chaos = min(0.5, (paradox - 5.0) * 0.05) if paradox > 5.0 else 0.0
+
+        dignity = 1.0
+        if anchor := getattr(self.soul, "anchor", None):
+            if hasattr(anchor, "dignity_reserve"):
+                dignity = max(0.2, anchor.dignity_reserve / 100.0)
+
         return {
             p: (w + random.uniform(-chaos, chaos)) * dignity
             for p, w in base_weights.items()
@@ -57,29 +61,37 @@ class UserProfile:
             "cryo": 0.0
         }
         self.confidence = 0
-        cfg = getattr(self.cfg, "DRIVERS", None)
-        self.file_path = (getattr(cfg, "PROFILE_FILE_PATH", "user_profile.json")
-                          if cfg else "user_profile.json")
+        self.drivers_cfg = getattr(self.cfg, "DRIVERS", None)
+        self.file_path = getattr(self.drivers_cfg, "PROFILE_FILE_PATH",
+                                 "user_profile.json")
         self.load()
 
     def update(self, counts, total_words):
-        cfg = getattr(self.cfg, "DRIVERS", None)
+        cfg = self.drivers_cfg
         if total_words < safe_get(cfg, "PROFILE_MIN_WORDS", 3):
             return
         self.confidence += 1
-        alpha = safe_get(cfg, "PROFILE_ALPHA_HIGH", 0.2) if self.confidence < safe_get(
-            cfg, "PROFILE_CONFIDENCE_THRESHOLD", 50) else safe_get(
-                cfg, "PROFILE_ALPHA_LOW", 0.05)
+        threshold = safe_get(cfg, "PROFILE_CONFIDENCE_THRESHOLD", 50)
+        alpha = safe_get(cfg, "PROFILE_ALPHA_HIGH",
+                         0.2) if self.confidence < threshold else safe_get(
+                             cfg, "PROFILE_ALPHA_LOW", 0.05)
         density_high = safe_get(cfg, "PROFILE_DENSITY_HIGH", 0.15)
+
         for cat in self.affinities:
-            target = 1.0 if (density := counts.get(cat, 0) /
-                             total_words) > density_high else (
-                                 -0.5 if density == 0 else 0.0)
+            density = counts.get(cat, 0) / total_words
+
+            if density > density_high:
+                target = 1.0
+            elif density == 0:
+                target = -0.5
+            else:
+                target = 0.0
+
             self.affinities[cat] = (alpha * target) + (
                 (1 - alpha) * self.affinities[cat])
 
     def get_preferences(self):
-        cfg = getattr(self.cfg, "DRIVERS", None)
+        cfg = self.drivers_cfg
         like_thresh = safe_get(cfg, "PROFILE_LIKE_THRESH", 0.3)
         hate_thresh = safe_get(cfg, "PROFILE_HATE_THRESH", -0.2)
         return [k for k, v in self.affinities.items() if v > like_thresh
@@ -88,7 +100,12 @@ class UserProfile:
     def save(self):
         try:
             with open(self.file_path, "w") as f:
-                json.dump(self.__dict__, f)
+                json.dump(
+                    {
+                        "name": self.name,
+                        "affinities": self.affinities,
+                        "confidence": self.confidence
+                    }, f)
         except IOError:
             pass
 
@@ -112,8 +129,7 @@ class EnneagramDriver:
         self.pending_persona = None
         self.stability_counter = 0
         cfg = getattr(self.cfg, "DRIVERS", None)
-        self.HYSTERESIS_THRESHOLD = (getattr(cfg, "ENNEAGRAM_HYSTERESIS", 3)
-                                     if cfg else 3)
+        self.HYSTERESIS_THRESHOLD = getattr(cfg, "ENNEAGRAM_HYSTERESIS", 3)
 
     @property
     def weights(self):
@@ -121,10 +137,12 @@ class EnneagramDriver:
             "DRIVER_CONFIG", "ENNEAGRAM_WEIGHTS") or {})
 
     def _calculate_raw_persona(self, physics, soul_ref=None) -> Tuple[str, str, str]:
-        raw_vec = safe_get(physics, "vector", {})
-        p_vec = raw_vec if isinstance(raw_vec, dict) else {}
-        p_vol, p_drag, p_coh = (float(safe_get(physics, k, 0.0) or 0.0)
-                                for k in ("voltage", "narrative_drag", "kappa"))
+        p_vec = safe_get(physics, "vector", {})
+        if not isinstance(p_vec, dict): p_vec = {}
+
+        p_vol = float(safe_get(physics, "voltage", 0.0) or 0.0)
+        p_drag = float(safe_get(physics, "narrative_drag", 0.0) or 0.0)
+        p_coh = float(safe_get(physics, "kappa", 0.0) or 0.0)
         p_zone = str(safe_get(physics, "zone", ""))
         weights_cfg = self.weights
         if not isinstance(weights_cfg, dict) or len(weights_cfg) < 2:
@@ -148,10 +166,14 @@ class EnneagramDriver:
                 scores[persona] += 4.0
             if "coherence_max" in criteria and p_coh < float(criteria["coherence_max"]):
                 scores[persona] += 4.0
-            if isinstance(vectors := criteria.get("vectors", {}), dict):
+
+            vectors = criteria.get("vectors", {})
+            if isinstance(vectors, dict):
                 for dim, weight in vectors.items():
-                    if (val := float(p_vec.get(dim, 0.0))) > 0.2:
+                    val = float(p_vec.get(dim, 0.0))
+                    if val > 0.2:
                         scores[persona] += val * float(weight)
+
         if soul_ref:
             soul_driver = SoulDriver(soul_ref)
             influence = soul_driver.get_influence()
@@ -161,7 +183,7 @@ class EnneagramDriver:
         winner, win_score = sorted_scores[0]
         runner_up, run_score = sorted_scores[1]
         cfg = getattr(self.cfg, "DRIVERS", None)
-        hybrid_gap = getattr(cfg, "ENNEAGRAM_HYBRID_GAP", 0.5) if cfg else 0.5
+        hybrid_gap = getattr(cfg, "ENNEAGRAM_HYBRID_GAP", 0.5)
         msg_winner = ux("driver_strings", "ennea_winner")
         reason = msg_winner.format(winner=winner,
                                    score=scores[winner],
@@ -231,8 +253,10 @@ class LiminalModule:
     def analyze(self, text: str, physics_vector: Dict[str, float]) -> float:
         cfg = getattr(self.cfg, "DRIVERS", None)
         words = text.lower().split()
-        void_hits = sum(1 for w in words
-                        if w in (self.lex.get("liminal") if self.lex else set()))
+
+        liminal_vocab = self.lex.get("liminal") if self.lex else set()
+        void_hits = sum(1 for w in words if w in liminal_vocab)
+
         lexical_lambda = min(1.0,
                              void_hits * safe_get(cfg, "LIMINAL_LEXICAL_WEIGHT", 0.15))
         dark_matter_sparks = 0
@@ -247,14 +271,13 @@ class LiminalModule:
                 if flags[i] and flags[i + 1] and flags[i] != flags[i + 1])
         dark_matter_lambda = min(
             1.0, dark_matter_sparks * safe_get(cfg, "LIMINAL_DARK_MATTER_WEIGHT", 0.25))
-        vector_lambda = 0.0
-        if physics_vector:
-            vector_lambda = ((physics_vector.get("PSI", 0) *
-                              safe_get(cfg, "LIMINAL_VEC_PSI_MULT", 0.5)) +
-                             (physics_vector.get("ENT", 0) *
-                              safe_get(cfg, "LIMINAL_VEC_ENT_MULT", 0.3)) +
-                             (physics_vector.get("DEL", 0) *
-                              safe_get(cfg, "LIMINAL_VEC_DEL_MULT", 0.2)))
+
+        pv = physics_vector or {}
+        vector_lambda = (
+            (pv.get("PSI", 0) * safe_get(cfg, "LIMINAL_VEC_PSI_MULT", 0.5)) +
+            (pv.get("ENT", 0) * safe_get(cfg, "LIMINAL_VEC_ENT_MULT", 0.3)) +
+            (pv.get("DEL", 0) * safe_get(cfg, "LIMINAL_VEC_DEL_MULT", 0.2)))
+
         self.lambda_val = (self.lambda_val * safe_get(cfg, "LIMINAL_DECAY", 0.7)) + (
             (lexical_lambda + dark_matter_lambda + vector_lambda) *
             safe_get(cfg, "LIMINAL_GROWTH", 0.15))
@@ -328,10 +351,11 @@ class CongruenceValidator:
         if not text:
             return 0.0
         cfg = getattr(self.cfg, "DRIVERS", None)
-        default_lens = getattr(cfg, "DEFAULT_LENS", "OBSERVER") if cfg else "OBSERVER"
+        default_lens = getattr(cfg, "DEFAULT_LENS", "OBSERVER")
         raw_lens = getattr(context, "active_lens", default_lens)
         archetype = raw_lens.upper().replace("THE ", "")
-        tone_score = getattr(cfg, "CONGRUENCE_BASE_TONE", 0.8) if cfg else 0.8
+        tone_score = getattr(cfg, "CONGRUENCE_BASE_TONE", 0.8)
+
         target_data = self.map.get(archetype, {})
         if isinstance(target_data, dict):
             target_words = {
@@ -347,7 +371,8 @@ class CongruenceValidator:
                         hits += 1
                 if hits > 0:
                     tone_score += safe_get(cfg, "CONGRUENCE_HIT_BONUS", 0.1) * hits
-                return min(safe_get(cfg, "CONGRUENCE_MAX_TONE", 1.5), tone_score)
+
+        return min(safe_get(cfg, "CONGRUENCE_MAX_TONE", 1.5), tone_score)
 
 
 class BoneConsultant:
@@ -383,13 +408,11 @@ class BoneConsultant:
         self.state.E = min(1.0, self.state.E + (word_count * e_growth))
         if bio_state and "fatigue" in bio_state:
             self.state.E = max(self.state.E, bio_state["fatigue"] * fatigue_mult)
-        phys_beta = 0.0
-        phys_vec = {}
-        drag = 0.0
-        if physics:
-            phys_beta = float(safe_get(physics, "beta", 0.0) or 0.0)
-            phys_vec = safe_get(physics, "vector", {})
-            drag = float(safe_get(physics, "narrative_drag", 0.0) or 0.0)
+
+        phys_beta = float(safe_get(physics, "beta", 0.0) or 0.0)
+        phys_vec = safe_get(physics, "vector", {})
+        drag = float(safe_get(physics, "narrative_drag", 0.0) or 0.0)
+
         self.state.B = (self.state.B * b_decay) + (phys_beta * b_growth)
         self.state.L = self.liminal_mod.analyze(user_text, phys_vec)
         self.state.O = self.syntax_mod.analyze(user_text, drag)
@@ -426,7 +449,8 @@ class BoneConsultant:
         if soul_snapshot:
             arch = soul_snapshot.get("archetype", "UNKNOWN")
             muse = (soul_snapshot.get("obsession") or {}).get("title", "None")
-            msg = ux("driver_strings", "vsl_layer_muse")
+            msg = ux("driver_strings",
+                     "vsl_layer_muse") or "Layer Focus: {arch} | Muse: {muse}"
             directives.append(msg.format(arch=arch, muse=muse))
         return "\n".join(directives)
 

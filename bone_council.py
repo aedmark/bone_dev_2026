@@ -20,7 +20,8 @@ class TheStrangeLoop:
         self.keywords = c_data.get("STRANGE_LOOP_KEYWORDS",
                                    ["self", "mirror", "define"])
 
-    def audit(self, text: str, physics: Any) -> tuple[bool, str, dict, dict]:
+    def audit(self, text: str,
+              physics: Any) -> tuple[bool, list[str], dict, list[dict]]:
         text_lower = text.lower()
         phrase_hit = any(t in text_lower for t in self.triggers)
         energy = safe_get(physics, "energy", physics)
@@ -30,24 +31,25 @@ class TheStrangeLoop:
         threshold = getattr(BoneConfig.COUNCIL, "STRANGE_LOOP_VOLTAGE", 8.0)
         if (phrase_hit or abstract_hit) and voltage > threshold:
             self.recursion_depth += 1
-            limit = getattr(getattr(BoneConfig, "COUNCIL", None), "STRANGE_LOOP_LIMIT",
-                            3)
+            limit = getattr(BoneConfig.COUNCIL, "STRANGE_LOOP_LIMIT", 3)
             if self.recursion_depth > limit:
                 return (
                     True,
-                    f"{Prisma.RED}{ux('council_strings', 'strange_loop_fatal')}{Prisma.RST}",
+                    [
+                        f"{Prisma.RED}{ux('council_strings', 'strange_loop_fatal')}{Prisma.RST}"
+                    ],
                     {},
-                    {
+                    [{
                         "action": "FORCE_MODE",
                         "value": "MAINTENANCE"
-                    },
+                    }],
                 )
             msg = ux("council_strings",
                      "strange_loop_detected").format(psi=psi,
                                                      depth=self.recursion_depth)
-            return True, f"{Prisma.MAG}{msg}{Prisma.RST}", {}, {}
+            return True, [f"{Prisma.MAG}{msg}{Prisma.RST}"], {}, []
         self.recursion_depth = max(0, self.recursion_depth - 1)
-        return False, "", {}, {}
+        return False, [], {}, []
 
 
 class TheLeveragePoint:
@@ -56,13 +58,12 @@ class TheLeveragePoint:
         self.last_drag = 0.0
         self.static_flow_turns = 0
         cfg = getattr(BoneConfig, "COUNCIL", None)
-        self.TARGET_VOLTAGE = (getattr(cfg, "LEVERAGE_TARGET_VOLTAGE", 12.0)
-                               if cfg else 12.0)
-        self.TARGET_DRAG = getattr(cfg, "LEVERAGE_TARGET_DRAG", 3.0) if cfg else 3.0
+        self.TARGET_VOLTAGE = getattr(cfg, "LEVERAGE_TARGET_VOLTAGE", 12.0)
+        self.TARGET_DRAG = getattr(cfg, "LEVERAGE_TARGET_DRAG", 3.0)
 
     def audit(self,
               physics: Any,
-              _bio_state: dict = None) -> tuple[bool, str, dict, dict]:
+              _bio_state: dict = None) -> tuple[bool, list[str], dict, list[dict]]:
         space = safe_get(physics, "space", physics)
         energy = safe_get(physics, "energy", physics)
         current_drag = float(
@@ -74,15 +75,17 @@ class TheLeveragePoint:
         delta = current_drag - self.last_drag
         self.last_drag = current_drag
         cfg = getattr(BoneConfig, "COUNCIL", None)
-        cv = lambda k, d: getattr(cfg, k, d) if cfg else d
+        cv = lambda k, d: getattr(cfg, k, d)
         if abs(delta) > cv("OSCILLATION_DELTA", 5.0):
             damp_factor = min(cv("LEVERAGE_DAMPENING_MAX",
                                  0.5), (abs(delta) - cv("OSCILLATION_DELTA", 5.0)) *
                               cv("LEVERAGE_DAMPENING_SCALAR", 0.1))
-            msg = ux("council_strings", "leverage_oscillating")
-            return True, f"{Prisma.CYN}{msg.format(delta=delta, dampening_factor=damp_factor)}{Prisma.RST}", {
+            msg = ux("council_strings",
+                     "leverage_oscillating").format(delta=delta,
+                                                    dampening_factor=damp_factor)
+            return True, [f"{Prisma.CYN}{msg}{Prisma.RST}"], {
                 "voltage": -damp_factor
-            }, {}
+            }, []
         if current_voltage > cv("MANIC_VOLTAGE_TRIGGER", 18.0) and current_drag < cv(
                 "MANIC_DRAG_FLOOR", 1.0):
             self.static_flow_turns += 1
@@ -94,13 +97,13 @@ class TheLeveragePoint:
                          excess_v * cv("LEVERAGE_CORRECTION_SCALAR", 0.3))
             self.static_flow_turns = 0
             msg = ux("council_strings", "market_correction")
-            return True, f"{Prisma.RED}{msg}{Prisma.RST}", {
+            return True, [f"{Prisma.RED}{msg}{Prisma.RST}"], {
                 "voltage": -v_corr
-            }, {
+            }, [{
                 "action": "FORCE_MODE",
                 "value": "SANCTUARY"
-            }
-        return False, "", {}, {}
+            }]
+        return False, [], {}, []
 
 
 class TheFootnote:
@@ -118,8 +121,7 @@ class TheFootnote:
         candidates = next(
             (notes for trig, notes in self.context_map.items() if trig in text_lower),
             self.footnotes)
-        note = random.choice(candidates) if candidates else random.choice(
-            self.footnotes)
+        note = random.choice(candidates)
         return f"{log_text}{Prisma.RST} {Prisma.GRY}{note}{Prisma.RST}"
 
 
@@ -130,7 +132,7 @@ class TheVillageCouncil:
         logs = []
 
         def gv(k, d=0.0):
-            return float(safe_get(p, k, d) or d)
+            return float(safe_get(p, k, d))
 
         V, F, P, T = (
             gv("V", gv("voltage", 30.0)),
@@ -152,8 +154,7 @@ class TheVillageCouncil:
             gv("ROS", gv("ros", 0.0)),
         )
         vec = safe_get(p, "vector", {})
-        lam = (float(safe_get(vec, "LAMBDA", 0.0) or 0.0)
-               if isinstance(vec, dict) else 0.0)
+        lam = float(safe_get(vec, "LAMBDA", 0.0))
         cfg = getattr(BoneConfig, "COUNCIL", None)
         if not cfg:
             return []
@@ -328,20 +329,19 @@ class CouncilChamber:
                 )
             else:
                 self.eng.paradox_engine.disengage()
-        sl_hit, sl_log, sl_corr, sl_man = self.strange_loop.audit(text, physics_packet)
+        sl_hit, sl_logs, sl_corr, sl_man = self.strange_loop.audit(text, physics_packet)
         if sl_hit:
-            transcript.append(self.footnote.commentary(sl_log))
-            if sl_corr:
-                adjustments.update(sl_corr)
-            if sl_man:
-                mandates.append(sl_man)
-        lp_hit, lp_log, lp_corr, lp_man = self.leverage.audit(physics_packet)
+            for log in sl_logs:
+                transcript.append(self.footnote.commentary(log))
+            adjustments.update(sl_corr)
+            mandates.extend(sl_man)
+
+        lp_hit, lp_logs, lp_corr, lp_man = self.leverage.audit(physics_packet)
         if lp_hit:
-            transcript.append(self.footnote.commentary(lp_log))
-            if lp_corr:
-                adjustments.update(lp_corr)
-            if lp_man:
-                mandates.append(lp_man)
+            for log in lp_logs:
+                transcript.append(self.footnote.commentary(log))
+            adjustments.update(lp_corr)
+            mandates.extend(lp_man)
         slash_hit, slash_logs, slash_corr = self.slash_council.audit(
             text, physics_packet)
         if slash_hit:
@@ -349,8 +349,8 @@ class CouncilChamber:
                 transcript.append(self.footnote.commentary(slog))
             adjustments.update(slash_corr)
             cfg = getattr(BoneConfig, "COUNCIL", None)
-            adjustments["stamina_cost"] = (getattr(cfg, "SLASH_STAMINA_COST", 10.0)
-                                           if cfg else 10.0)
+            adjustments["stamina_cost"] = getattr(cfg, "SLASH_STAMINA_COST", 10.0)
+
         os_hit, os_logs, os_corr, os_man = self.overseer_council.audit(
             text, physics_packet)
         if os_hit:
@@ -417,9 +417,9 @@ class CouncilChamber:
             transcript.append(f"{Prisma.WHT}{msg_t}{Prisma.RST}")
             transcript.append(f"{Prisma.GRY}{msg_s}{Prisma.RST}")
             cfg = getattr(BoneConfig, "COUNCIL", None)
-            tension_drag = getattr(cfg, "TENSION_DRAG_PENALTY", 3.0) if cfg else 3.0
-            adjustments["narrative_drag"] = (adjustments.get("narrative_drag", 0) +
-                                             tension_drag)
+            tension_drag = getattr(cfg, "TENSION_DRAG_PENALTY", 3.0)
+            adjustments["narrative_drag"] = adjustments.get("narrative_drag",
+                                                            0) + tension_drag
             for vlog in village_logs[:2]:
                 transcript.append(self.footnote.commentary(vlog))
         else:
@@ -432,18 +432,23 @@ class CouncilChamber:
         voltage = float(
             safe_get(physics_packet, "voltage") or safe_get(energy, "voltage") or 0.0)
         cfg = getattr(BoneConfig, "COUNCIL", None)
-        yea_thresh = getattr(cfg, "VOTE_YEA_THRESHOLD", 1.2) if cfg else 1.2
-        nay_thresh = getattr(cfg, "VOTE_NAY_THRESHOLD", 0.8) if cfg else 0.8
-        drag_relief = getattr(cfg, "VOTE_DRAG_RELIEF", 1.0) if cfg else 1.0
-        drag_penalty = getattr(cfg, "VOTE_DRAG_PENALTY", 1.0) if cfg else 1.0
-        volt_penalty = getattr(cfg, "VOTE_VOLTAGE_PENALTY", 1.0) if cfg else 1.0
+        yea_thresh = getattr(cfg, "VOTE_YEA_THRESHOLD", 1.2)
+        nay_thresh = getattr(cfg, "VOTE_NAY_THRESHOLD", 0.8)
+        drag_relief = getattr(cfg, "VOTE_DRAG_RELIEF", 1.0)
+        drag_penalty = getattr(cfg, "VOTE_DRAG_PENALTY", 1.0)
+        volt_penalty = getattr(cfg, "VOTE_VOLTAGE_PENALTY", 1.0)
         for voice in active_voices:
             if hasattr(voice, "opine"):
                 score, comment = voice.opine(clean_words, voltage)
-                if score > yea_thresh or score < nay_thresh:
-                    votes["YEA" if score > yea_thresh else "NAY"] += 1
+                if score > yea_thresh:
+                    votes["YEA"] += 1
                     transcript.append(
                         f"{voice.color}[{voice.name}]: {comment}{Prisma.RST}")
+                elif score < nay_thresh:
+                    votes["NAY"] += 1
+                    transcript.append(
+                        f"{voice.color}[{voice.name}]: {comment}{Prisma.RST}")
+
         if votes["YEA"] > votes["NAY"]:
             msg = ux("council_strings", "motion_carried")
             final_log = f"{Prisma.GRN}{msg.format(yea=votes['YEA'], nay=votes['NAY'])}{Prisma.RST}"
@@ -550,12 +555,14 @@ class TheRedTeam:
             ) or "The lattice is suspiciously smooth (F < 1.0). You are avoiding the actual problem."
             dissent_log.append(f"  {Prisma.MAG}- {msg}{Prisma.RST}")
             adjustments["narrative_drag"] = 3.0
-        if (truth_delta := 1.0 - truth) > 0.1:
+        truth_delta = 1.0 - truth
+        if truth_delta > 0.1:
             msg = ux("council_strings", "red_team_critic"
                      ) or "Truth ratio degraded. Future architectural cost: {cost} ATP."
             dissent_log.append(
                 f"  {Prisma.RED}- {msg.format(cost=truth_delta * 50.0)}{Prisma.RST}")
             adjustments["ros"] = truth_delta * 5.0
+
         if len(dissent_log) == 1:
             dissent_log.append(
                 f"  {Prisma.GRY}- No critical vulnerabilities found in this exact phrasing, but we are watching.{Prisma.RST}"
@@ -620,9 +627,9 @@ class TheSlashCouncil:
                     corrections["glimmers"] = mods.get("SCHUR_GLIMMERS", 1)
             elif name == "PINKER":
                 corrections["gamma"] = mods.get("PINKER_MISS", 0.1)
-        delta = float(
-            safe_get(physics, "silence",
-                     safe_get(safe_get(physics, "space"), "silence", 0.0)))
+
+        space = safe_get(physics, "space", physics)
+        delta = float(safe_get(physics, "silence", safe_get(space, "silence", 0.0)))
         e_u = float(safe_get(physics, "exhaustion", 0.0))
         psi = float(safe_get(physics, "psi", 0.0))
         lq = float(safe_get(physics, "lq", 0.0))
@@ -641,12 +648,9 @@ class TheSlashCouncil:
                 f"{Prisma.OCHRE}[MEADOWS - The Tao]: The bathtub is draining. Let it. Accepting technical debt as a valid state of biological rest.{Prisma.RST}"
             )
             corrections["theta"] = 0.1
+
         drag = float(
-            safe_get(
-                physics,
-                "narrative_drag",
-                safe_get(safe_get(physics, "space"), "narrative_drag", 0.0),
-            ))
+            safe_get(physics, "narrative_drag", safe_get(space, "narrative_drag", 0.0)))
         drag_thresh = mods.get("INTEGRITY_DRAG_THRESH", 5.0)
         if drag > drag_thresh:
             corrections["upsilon"] = mods.get("INTEGRITY_HIT", -0.3)
@@ -681,47 +685,44 @@ class TheOverseerCouncil:
         i_c = float(safe_get(physics, "i_c", 1.0))
         h_s = float(safe_get(physics, "h_s", 1.0))
         omega_r = float(safe_get(physics, "omega_r", 1.0))
-        protocols = [
-            (any(p in text_lower for p in self._PANIC_KEYWORDS) and voltage > 75.0
-             and i_c < 0.5, Prisma.RED,
-             "[LINEHAN - DEAR MAN Lock]: (Describe) System Voltage spikes and Immune Competence drops. (Express) Panic-coding will fracture the lattice. (Assert) Applying absolute friction. (Reinforce) I am holding the boundary so you do not bleed on the machine. T.I.P.P. engaged.",
-             {
-                 "voltage": -50.0,
-                 "narrative_drag": 100.0,
-                 "silence": 0.9
-             }, [{
-                 "action": "TIPP_PROTOCOL",
-                 "value": "ISOLATE_VARIABLES"
-             }]),
-            (chi > 0.7 and e_u > 0.7 and beta > 0.6, Prisma.SLATE,
-             "[LINEHAN - The Synthesis]: The architecture is fundamentally broken. Stop fighting the current. We sit with the debris.",
-             {
-                 "ros": -100.0,
-                 "r_a": 1.0,
-                 "narrative_drag": -(f_sys * 0.5)
-             }, [{
-                 "action": "FORCE_MODE",
-                 "value": "RADICAL_ACCEPTANCE"
-             }]),
-            (m_a > 0.6 or f_sys > 5.0, Prisma.VIOLET,
-             "[MCGILCHRIST - The Sacred Space]: The architecture has lost its sense of place. Standard optimization is failing. Distributing Glimmer Activation to counter entropy.",
-             {
-                 "h_s": -0.1,
-                 "omega_r": -0.05,
-                 "delta_t": -1.0,
-                 "glimmers": 1,
-                 "silence": 0.8
-             }, [{
-                 "action": "FORCE_MODE",
-                 "value": "EMERGENT_ADAPTATION"
-             }])
-        ]
-        for condition, color, msg, corr, mands in protocols:
-            if condition:
-                logs.append(f"{color}{msg}{Prisma.RST}")
-                corrections.update(corr)
-                mandates.extend(mands)
-                return True, logs, corrections, mandates
+        if any(p in text_lower
+               for p in self._PANIC_KEYWORDS) and voltage > 75.0 and i_c < 0.5:
+            logs.append(
+                f"{Prisma.RED}[LINEHAN - DEAR MAN Lock]: (Describe) System Voltage spikes and Immune Competence drops. (Express) Panic-coding will fracture the lattice. (Assert) Applying absolute friction. (Reinforce) I am holding the boundary so you do not bleed on the machine. T.I.P.P. engaged.{Prisma.RST}"
+            )
+            corrections.update({
+                "voltage": -50.0,
+                "narrative_drag": 100.0,
+                "silence": 0.9
+            })
+            mandates.extend([{"action": "TIPP_PROTOCOL", "value": "ISOLATE_VARIABLES"}])
+            return True, logs, corrections, mandates
+
+        if chi > 0.7 and e_u > 0.7 and beta > 0.6:
+            logs.append(
+                f"{Prisma.SLATE}[LINEHAN - The Synthesis]: The architecture is fundamentally broken. Stop fighting the current. We sit with the debris.{Prisma.RST}"
+            )
+            corrections.update({
+                "ros": -100.0,
+                "r_a": 1.0,
+                "narrative_drag": -(f_sys * 0.5)
+            })
+            mandates.extend([{"action": "FORCE_MODE", "value": "RADICAL_ACCEPTANCE"}])
+            return True, logs, corrections, mandates
+
+        if m_a > 0.6 or f_sys > 5.0:
+            logs.append(
+                f"{Prisma.VIOLET}[MCGILCHRIST - The Sacred Space]: The architecture has lost its sense of place. Standard optimization is failing. Distributing Glimmer Activation to counter entropy.{Prisma.RST}"
+            )
+            corrections.update({
+                "h_s": -0.1,
+                "omega_r": -0.05,
+                "delta_t": -1.0,
+                "glimmers": 1,
+                "silence": 0.8
+            })
+            mandates.extend([{"action": "FORCE_MODE", "value": "EMERGENT_ADAPTATION"}])
+            return True, logs, corrections, mandates
         if omega_r > 0.8 and m_a > 0.4:
             logs.append(
                 f"{Prisma.CYN}[MCGILCHRIST]: I sense silent decay forming in the negative space. {h_s:.2f}. Watch your technical debt.{Prisma.RST}"
