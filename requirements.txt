@@ -1,7 +1,6 @@
 # ==========================================
 # BONEAMANITA & VSL HYPERVISOR DEPENDENCIES
 # ==========================================
-python3<=3.12.13
 
 markdown
 

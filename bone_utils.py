@@ -9,9 +9,6 @@ import warnings
 import re
 import threading
 import time
-from kokoro import KPipeline
-import soundfile as sf
-import numpy as np
 from dataclasses import dataclass, field
 from typing import Any, Optional, List, Dict, Tuple
 import importlib.util
@@ -385,13 +382,14 @@ class TheVocalCords:
                     f"{Prisma.OCHRE}[AUDIO OFFLINE]: TTS dependencies (kokoro, soundfile, numpy) not found. Skipping podcast synthesis.{Prisma.RST}",
                     "SYS")
             return
-
+        from kokoro import KPipeline
+        import soundfile as sf
+        import numpy as np 
         combined_audio = []
         error_to_report = None
         output_dir = os.path.dirname(file_path)
         base_name = os.path.splitext(os.path.basename(file_path))[0]
         master_file = os.path.join(output_dir, f"{base_name}_MASTER.wav")
-
         with self._synthesis_lock:
             with open(file_path, "r", encoding="utf-8") as f:
                 script_text = f.read()
@@ -405,7 +403,6 @@ class TheVocalCords:
                         self.pipeline = KPipeline(lang_code="a", repo_id="hexgrad/Kokoro-82M")
                         self.sf = sf
                         self.np = np
-
                     silence_pad = self.np.zeros(int(24000 * 0.6))
                     for seg in segments:
                         voice = self.voice_map.get(seg["speaker"], self.voice_map["DEFAULT"])
