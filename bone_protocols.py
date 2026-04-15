@@ -1,5 +1,4 @@
 """bone_protocols.py"""
-
 import json
 import os
 import random
@@ -10,10 +9,7 @@ from typing import Dict, Tuple, Optional, Any
 from bone_core import LoreManifest, ux, safe_get, safe_set
 from bone_presets import BoneConfig
 from bone_types import Prisma
-
 NARRATIVE_DATA = LoreManifest.get_instance().get("narrative_data") or {}
-
-
 class ZenGarden:
     def __init__(self, events_ref, config_ref=None):
         self.events = events_ref
@@ -24,35 +20,28 @@ class ZenGarden:
         self.koans = NARRATIVE_DATA.get(
             "ZEN_KOANS", ["The code that is not written has no bugs."]
         )
-
     def to_dict(self) -> Dict[str, Any]:
         return {
             "stillness_streak": self.stillness_streak,
             "max_streak": self.max_streak,
             "pebbles_collected": self.pebbles_collected,
         }
-
     def load_state(self, data: Dict[str, Any]):
         self.stillness_streak = data.get("stillness_streak", 0)
         self.max_streak = data.get("max_streak", 0)
         self.pebbles_collected = data.get("pebbles_collected", 0)
-
     def raking_the_sand(self, physics: Any, _bio: Dict) -> Tuple[float, Optional[str]]:
         vol = float(safe_get(physics, "voltage", 0.0))
         drag = float(safe_get(physics, "narrative_drag", 0.0))
-
         cfg = getattr(self.cfg, "ZEN", object())
         v_min = getattr(cfg, "VOLTAGE_MIN", 5.0)
         v_max = getattr(cfg, "VOLTAGE_MAX", 12.0)
         d_max = getattr(cfg, "DRAG_MAX", 2.0)
-
         is_stable = (v_min <= vol <= v_max) and (drag <= d_max)
         if is_stable:
             self.stillness_streak += 1
             self.max_streak = max(self.max_streak, self.stillness_streak)
-
             efficiency_boost = min(getattr(cfg, "EFFICIENCY_CAP", 0.5), self.stillness_streak * getattr(cfg, "EFFICIENCY_SCALAR", 0.05))
-
             msg = None
             if self.stillness_streak == getattr(cfg, "ZEN_FIRST_TICK", 1):
                 msg = f"{Prisma.GRY}{ux('protocol_strings', 'zen_enter')}{Prisma.RST}"
@@ -61,7 +50,6 @@ class ZenGarden:
                 koan = random.choice(self.koans)
                 msg = f"{Prisma.CYN}{ux('protocol_strings', 'zen_streak').format(streak=self.stillness_streak, koan=koan, boost=int(efficiency_boost * 100))}{Prisma.RST}"
             return efficiency_boost, msg
-
         if self.stillness_streak > getattr(cfg, "STREAK_BREAK_THRESHOLD", 3):
             break_msg = ux("protocol_strings", "zen_break")
             self.events.log(
@@ -70,8 +58,6 @@ class ZenGarden:
             )
         self.stillness_streak = 0
         return 0.0, None
-
-
 class TheBureau:
     def __init__(self, config_ref=None):
         self.cfg = config_ref or BoneConfig
@@ -106,17 +92,13 @@ class TheBureau:
                     )
         scenarios = LoreManifest.get_instance().get("scenarios") or {}
         self.cliches = {str(c).lower() for c in scenarios.get("BANNED_CLICHES", [])}
-
     def to_dict(self) -> Dict[str, Any]:
         return {"stamp_count": self.stamp_count}
-
     def load_state(self, data: Dict[str, Any]):
         self.stamp_count = data.get("stamp_count", 0)
-
     def audit(self, physics, bio_state, _context=None, origin="USER") -> Optional[Dict]:
         if bio_state.get("health", 100.0) < self.cfg.BUREAU.MIN_HEALTH_TO_AUDIT:
             return None
-
         vol = float(safe_get(physics, "voltage", 0.0) or 0.0)
         clean_words = safe_get(physics, "clean_words", [])
         raw_text = str(safe_get(physics, "raw_text", ""))
@@ -130,11 +112,9 @@ class TheBureau:
         cfg_bureau = getattr(self.cfg, "BUREAU", object())
         tax_std = getattr(cfg_bureau, "TAX_STANDARD", 5.0)
         tax_hvy = getattr(cfg_bureau, "TAX_HEAVY", 10.0)
-
         if raw_text and (crime := next((c for c in self.crimes if c["regex"].search(raw_text)), None)):
             selected_form, tax = f"VIOLATION: {crime['name']}", tax + crime["tax"]
             evidence.append(crime["msg"])
-
         if not selected_form and vol > getattr(cfg_bureau, "HIGH_VOLTAGE_TRIGGER", 18.0):
             if truth < getattr(cfg_bureau, "LOW_TRUTH_TRIGGER", 0.4):
                 selected_form = ux("protocol_strings", "bureau_form_zoning")
@@ -143,10 +123,8 @@ class TheBureau:
             else:
                 selected_form = ux("protocol_strings", "bureau_form_202a")
                 tax = tax_std
-
         chi = float(safe_get(physics, "chi", safe_get(physics, "entropy", 0.0)))
         chaos_thresh = getattr(cfg_bureau, "CHAOS_TAX_THRESHOLD", 0.6)
-
         if not selected_form and chi > chaos_thresh:
             selected_form = ux("protocol_strings", "bureau_form_666")
             evidence = [
@@ -194,7 +172,6 @@ class TheBureau:
             "log": log_msg.format(form=selected_form, origin=origin, tax=tax),
             "atp_gain": -tax,
         }
-
     @staticmethod
     def _apply_correction(text: str, crime: Dict, match: re.Match) -> str:
         action = crime.get("action")
@@ -208,7 +185,6 @@ class TheBureau:
             if not prefix.strip() and suffix: suffix = suffix[0].upper() + suffix[1:]
             return f"{prefix}{suffix}".strip()
         return text
-
     def sanitize(self, text: str) -> Tuple[str, Optional[str]]:
         for crime in self.crimes:
             match = crime["regex"].search(text)
@@ -227,8 +203,6 @@ class TheBureau:
         if result:
             return text, result.get("log")
         return text, None
-
-
 class TherapyProtocol:
     def __init__(self, config_ref=None):
         self.cfg = config_ref or BoneConfig
@@ -237,15 +211,12 @@ class TherapyProtocol:
         self.streaks = {k: 0 for k in vector_keys}
         cfg = getattr(self.cfg, "THERAPY", None)
         self.HEALING_THRESHOLD = getattr(cfg, "HEALING_THRESHOLD", 5) if cfg else 5
-
     def to_dict(self) -> Dict[str, Any]:
         return {"streaks": self.streaks}
-
     def load_state(self, data: Dict[str, Any]):
         self.streaks = data.get(
             "streaks", {k: 0 for k in self.cfg.TRAUMA_VECTOR.keys()}
         )
-
     def check_progress(self, phys, _stamina, current_trauma_accum, _qualia=None):
         counts = safe_get(
             phys, "counts", safe_get(safe_get(phys, "matter"), "counts", {})
@@ -272,26 +243,20 @@ class TherapyProtocol:
                     )
                     healed_types.append(trauma_type)
         return healed_types
-
-
 class KintsugiProtocol:
     PATH_SCAR = "SCAR"
     PATH_INTEGRATION = "KINTSUGI"
     PATH_ALCHEMY = "ALCHEMY"
-
     def __init__(self, config_ref=None):
         self.cfg = config_ref or BoneConfig
         self.active_koan = None
         self.koans = NARRATIVE_DATA.get(
             "KINTSUGI_KOANS", ["The crack is where the light enters."]
         )
-
     def to_dict(self) -> Dict[str, Any]:
         return {"active_koan": self.active_koan}
-
     def load_state(self, data: Dict[str, Any]):
         self.active_koan = data.get("active_koan", None)
-
     def check_integrity(self, stamina):
         target_cfg = getattr(self, "cfg", BoneConfig)
         cfg = getattr(target_cfg, "KINTSUGI", None)
@@ -300,7 +265,6 @@ class KintsugiProtocol:
             self.active_koan = random.choice(self.koans)
             return True, self.active_koan
         return False, None
-
     def attempt_repair(
         self, phys, trauma_accum, soul_ref=None, _qualia=None, lexicon_ref=None
     ):
@@ -335,7 +299,6 @@ class KintsugiProtocol:
         elif vol > in_v and whimsy_score > in_w:
             pathway = self.PATH_INTEGRATION
         return self._execute_pathway(pathway, trauma_accum, soul_ref)
-
     def _execute_pathway(self, pathway, trauma_accum, soul_ref):
         if not trauma_accum:
             return {
@@ -389,8 +352,6 @@ class KintsugiProtocol:
                 healed_log.append(log_scar.format(target=target))
             success = True
         return {"success": success, "msg": msg, "healed": healed_log}
-
-
 class GriefProtocol:
     def __init__(self, events_ref, engine_ref=None, subconscious_ref=None):
         self.events = events_ref
@@ -399,14 +360,12 @@ class GriefProtocol:
         self.recent_loss = None
         if hasattr(self.events, "subscribe"):
             self.events.subscribe("AUTOPHAGY_EVENT", self._hold_wake)
-
     def _hold_wake(self, payload: Dict):
         node = payload.get("node", "an unnamed thought")
         self.recent_loss = node
         msg = f"{Prisma.MAG}[MERCY] The memory of '{node.upper()}' has been cannibalized for ATP to keep the system alive. A hole is left in the matrix. Use [GRIEF] if you have a glimmer to plant a seed in its place.{Prisma.RST}"
         if self.events:
             self.events.log(msg, "VILLAGE")
-
     def attend_wake(self, shared_lattice, phys) -> str:
         g_pool = shared_lattice.shared.g_pool if shared_lattice else 0
         sys_g = int(safe_get(phys, "G", 0))
@@ -437,8 +396,6 @@ class GriefProtocol:
             return f"{Prisma.MAG}[MERCY] The glimmer is planted over the compost of '{node}'. Our capacity for paradox expands. (Trauma -2, β_max increased){Prisma.RST}"
         else:
             return f"{Prisma.GRY}[SYSTEM] Insufficient Glimmers to attend the wake. The hole in the lattice remains empty.{Prisma.RST}"
-
-
 class TheCriticsCircle:
     def __init__(self, events_ref, config_ref=None):
         self.events = events_ref
@@ -446,29 +403,24 @@ class TheCriticsCircle:
         self.critics = NARRATIVE_DATA.get("LITERARY_CRITICS", {})
         self.active_cooldowns = {}
         self.last_review_turn = 0
-
     def to_dict(self):
         return {
             "active_cooldowns": self.active_cooldowns,
             "last_review_turn": self.last_review_turn,
         }
-
     def load_state(self, data):
         self.active_cooldowns = data.get("active_cooldowns", {})
         self.last_review_turn = data.get("last_review_turn", 0)
-
     def audit_performance(self, physics: Any, turn_count: int) -> Optional[str]:
         cfg = getattr(self.cfg, "CRITICS", None)
         rev_cd = getattr(cfg, "REVIEW_COOLDOWN", 10) if cfg else 10
         if turn_count - self.last_review_turn < rev_cd:
             return None
-
         voltage = float(safe_get(physics, "voltage", 0.0))
         drag = float(safe_get(physics, "narrative_drag", 0.0))
         velocity = safe_get(physics, "velocity")
         if velocity is None:
             velocity = voltage * (1.0 / max(0.1, drag))
-
         best_match = None
         review_type = "neutral"
         for key, critic in self.critics.items():
@@ -494,7 +446,6 @@ class TheCriticsCircle:
                     current = velocity
                 else:
                     current = float(safe_get(physics, metric_str, 0.0))
-
                 if target > 0:
                     score += current * target
                 else:
@@ -516,27 +467,21 @@ class TheCriticsCircle:
             rev_msg = ux("protocol_strings", "critic_review") or "[{icon}] {name}: {comment}"
             return f"{color}{rev_msg.format(icon=icon, name=critic.get('name', key), comment=comment)}{Prisma.RST}"
         return None
-
-
 class LimboLayer:
     MAX_ECTOPLASM = 50
     STASIS_SCREAMS = NARRATIVE_DATA.get(
         "CASSANDRA_SCREAMS", ["BANGING ON THE GLASS", "IT'S TOO COLD", "LET ME OUT"]
     )
-
     def __init__(self, config_ref=None):
         self.cfg = config_ref or BoneConfig
         self.ghosts = deque(maxlen=self.MAX_ECTOPLASM)
         self.haunt_chance = 0.05
         self.stasis_leak = 0.0
-
     def to_dict(self) -> Dict[str, Any]:
         return {"ghosts": list(self.ghosts), "stasis_leak": self.stasis_leak}
-
     def load_state(self, data: Dict[str, Any]):
         self.ghosts = deque(data.get("ghosts", []), maxlen=self.MAX_ECTOPLASM)
         self.stasis_leak = data.get("stasis_leak", 0.0)
-
     def absorb_dead_timeline(self, filepath: str) -> None:
         try:
             with open(filepath, "r") as f:
@@ -545,7 +490,6 @@ class LimboLayer:
         except (IOError, json.JSONDecodeError) as e:
             err_msg = ux("protocol_strings", "limbo_absorb_fail")
             print(f"{Prisma.RED}{err_msg.format(filepath=filepath, e=e)}{Prisma.RST}")
-
     def _extract_ghosts(self, data: Dict[str, Any]) -> None:
         if "trauma_vector" in data:
             for k, v in data["trauma_vector"].items():
@@ -555,14 +499,12 @@ class LimboLayer:
         if "mutations" in data and "heavy" in data["mutations"]:
             bones = data["mutations"]["heavy"]
             self.ghosts.extend(random.sample(bones, min(3, len(bones))))
-
     def trigger_stasis_failure(self, intended_thought):
         self.stasis_leak += 1.0
         horror = random.choice(self.STASIS_SCREAMS)
         self.ghosts.append(f"{Prisma.VIOLET}{horror}{Prisma.RST}")
         err_msg = ux("protocol_strings", "limbo_stasis_err")
         return f"{Prisma.CYN}{err_msg.format(thought=intended_thought, horror=horror)}{Prisma.RST}"
-
     def haunt(self, text):
         cfg = getattr(self.cfg, "LIMBO", None)
         l_chance = getattr(cfg, "LEAK_DECAY_CHANCE", 0.2) if cfg else 0.2
@@ -576,24 +518,19 @@ class LimboLayer:
             spirit = random.choice(self.ghosts)
             return f"{text} ...{Prisma.GRY}{spirit}{Prisma.RST}..."
         return text
-
-
 class TheFolly:
     def __init__(self, config_ref=None):
         self.cfg = config_ref or BoneConfig
         self.gut_memory = deque(maxlen=50)
         self.global_tastings = Counter()
-
     def to_dict(self) -> Dict[str, Any]:
         return {
             "gut_memory": list(self.gut_memory),
             "global_tastings": dict(self.global_tastings),
         }
-
     def load_state(self, data: Dict[str, Any]):
         self.gut_memory = deque(data.get("gut_memory", []), maxlen=50)
         self.global_tastings = Counter(data.get("global_tastings", {}))
-
     def audit_desire(self, physics, stamina):
         voltage = float(safe_get(physics, "voltage", 0.0) or 0.0)
         cfg = getattr(self.cfg, "FOLLY", None)
@@ -609,7 +546,6 @@ class TheFolly:
                 None,
             )
         return None, None, 0.0, None
-
     def grind_the_machine(
         self, atp_pool: float, clean_words: list, lexicon: Dict
     ) -> Tuple[Optional[str], Optional[str], float, Optional[str]]:
@@ -629,7 +565,6 @@ class TheFolly:
             )
             return "REGURGITATION", msg, -self.cfg.FOLLY.PENALTY_REGURGITATION, None
         return self._eat_meat(fresh_meat, lexicon)
-
     def _eat_meat(
         self, fresh_meat: list, lexicon_ref: Any
     ) -> Tuple[str, str, float, Optional[str]]:
@@ -674,7 +609,6 @@ class TheFolly:
             f"   {Prisma.WHT}{msg2.format(yield_val=actual_yield)}{Prisma.RST}"
         )
         return "MEAT_GRINDER", msg, actual_yield, loot
-
     @staticmethod
     def _filter_meat_words(clean_words: list, lexicon_ref: Any) -> list:
         if not lexicon_ref:
@@ -682,9 +616,7 @@ class TheFolly:
         heavy = lexicon_ref.get("heavy") or []
         kinetic = lexicon_ref.get("kinetic") or []
         suburban = lexicon_ref.get("suburban") or []
-
         return [w for w in clean_words if w in heavy or w in kinetic or w in suburban]
-
     def _attempt_digest_abstract(
         self, clean_words: list, lexicon_ref: Any
     ) -> Tuple[str, str, float, Optional[str]]:
@@ -701,29 +633,23 @@ class TheFolly:
             f"   {Prisma.RED}{ux('protocol_strings', 'folly_starvation') or ''}{Prisma.RST}"
         )
         return "INDIGESTION", msg, 0.0, None
-
-
 class ChronosKeeper:
     def __init__(self, engine_ref):
         self.eng = engine_ref
         self.SAVE_DIR = "saves"
         self.CRASH_DIR = "crashes"
-
     def _build_continuity_packet(self) -> Dict[str, Any]:
         loc = "Void"
         if (hasattr(self.eng, "phys") and hasattr(self.eng.phys, "observer")
                 and getattr(self.eng.phys.observer, "last_physics_packet", None)):
             last_pkt = self.eng.phys.observer.last_physics_packet
             loc = safe_get(last_pkt, "zone", safe_get(safe_get(last_pkt, "space"), "zone", "Void"))
-
         last_speech = self.eng.cortex.dialogue_buffer[-1] if getattr(self.eng.cortex, "dialogue_buffer", None) else "Silence."
-
         return {
             "location": loc,
             "last_output": last_speech,
             "inventory": self.eng.gordon.inventory if getattr(self.eng, "gordon", None) else [],
         }
-
     def save_checkpoint(self, history: list = None) -> str:
         try:
             if not os.path.exists(self.SAVE_DIR):
@@ -753,7 +679,6 @@ class ChronosKeeper:
                 "SYS_ERR",
             )
             return (ux("protocol_strings", "chronos_save_failed_msg")).format(e=e)
-
     def resume_checkpoint(self) -> Tuple[bool, list]:
         path = os.path.join(self.SAVE_DIR, "quicksave.json")
         if not os.path.exists(path):
@@ -784,7 +709,6 @@ class ChronosKeeper:
             msg3 = ux("protocol_strings", "chronos_resume_failed")
             print(f"{Prisma.RED}{msg3.format(e=e)}{Prisma.RST}")
             return False, []
-
     def perform_shutdown(self):
         msg = ux("protocol_strings", "chronos_halt")
         print(f"{Prisma.GRY}{msg}{Prisma.RST}")
@@ -823,14 +747,12 @@ class ChronosKeeper:
                     if hasattr(self.eng, "events"):
                         self.eng.events.log(f"Subsystem Persistence Error [{name}]: {e}", "SYS_ERR")
                     print(f"{Prisma.OCHRE}{msg5.format(name=name, e='The connection severed before it could be written.')}{Prisma.RST}")
-
     def _gather_village_state(self) -> Dict[str, Any]:
         state = {}
         for name, component in self.eng.village.items():
             if component and hasattr(component, "to_dict"):
                 state[name] = component.to_dict()
         return state
-
     def _restore_village_state(self, state_data: Dict[str, Any]):
         if not state_data:
             return
@@ -847,7 +769,6 @@ class ChronosKeeper:
                     if hasattr(self.eng, "events"):
                         self.eng.events.log(f"Village Hydration Error [{name}]: {e}", "SYS_ERR")
                     print(f"{Prisma.OCHRE}{msg.format(name=name, e='Trauma prevented full recall.')}{Prisma.RST}")
-
     def get_crash_path(self, prefix="crash"):
         os.makedirs(self.CRASH_DIR, exist_ok=True)
         try:
@@ -866,7 +787,6 @@ class ChronosKeeper:
         except Exception:
             pass
         return os.path.join(self.CRASH_DIR, f"{prefix}_{int(time.time())}.json")
-
     @staticmethod
     def emergency_dump(exit_cause="UNKNOWN") -> str:
         msg = ux("protocol_strings", "chronos_emerg_dump")

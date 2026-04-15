@@ -1,5 +1,3 @@
-
-
 import os
 import random
 import tempfile
@@ -24,7 +22,6 @@ from bone_spores import MycelialNetwork, SubconsciousStrata
 from bone_symbiosis import SymbiosisManager
 from bone_types import PhysicsPacket, EnergyState, CycleContext
 from bone_village import DeathGen
-
 class BoneTestCase(unittest.TestCase):
     def setUp(self):
         warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -32,7 +29,6 @@ class BoneTestCase(unittest.TestCase):
         self.engine = BoneAmanita(config=self.test_config)
     def tearDown(self):
         LoreManifest.get_instance().flush_cache()
-
 class TrueEngineTest(BoneTestCase):
     def setUp(self):
         super().setUp()
@@ -274,7 +270,6 @@ class TrueEngineTest(BoneTestCase):
         self.assertIn("favorite color", prompt, "The specific consumed memory was not communicated to the LLM.",)
     def test_dream_defragmentation_pruning(self):
         from bone_brain import DreamEngine
-
         class MockMemorySystem:
             def __init__(self):
                 self.graph = {"Weak Node": {"edges": {"trivial": 1.0}},"Core Strut": {"edges": {"vital": 10.0, "crucial": 5.0}},}
@@ -502,7 +497,6 @@ class TrueEngineTest(BoneTestCase):
                 self.assertEqual(status, "AUTOPHAGY", f"Circuit breaker engaged prematurely on cycle {i + 1}.")
             status_clamp = self.engine.soma.feedback.check_vital_signs({}, 0.0, logs)
             self.assertEqual(status_clamp, "MAUSOLEUM_CLAMP", "Circuit breaker failed to halt infinite autophagy.")
-
 class FractureEngineTest(BoneTestCase):
     def test_fracture_n_turn_runaway_loop(self):
         print("\n--- FRACTURE 1: N-Turn Runaway ---")
@@ -736,7 +730,6 @@ class FractureEngineTest(BoneTestCase):
             self.assertIn("omega_r", result.get("physics", {}),
                           "[FAIL] Right-Brain Coherence (omega_r) was not appended to the physics packet.")
             print("  [SUCCESS] Semantic dimension formalization correctly triggered the False Cohesion break.")
-
 class TopologicalPrimitivesTest(BoneTestCase):
     def test_ordinal_pattern(self):
         self.assertEqual(_native_ordinal_pattern([1.2, 1.8, 1.5]), (0, 2, 1), "[FAIL] Ordinal pattern extraction failed.")
@@ -755,6 +748,5 @@ class TopologicalPrimitivesTest(BoneTestCase):
         orbit_a = [1.0, 2.0, 3.0, 4.0, 5.0]
         orbit_b = [1.0, 2.0, 3.0, 9.0, 9.0]
         self.assertEqual(_native_coincidence_length(orbit_a, orbit_b, tol=0.1), 3, "[FAIL] Orbit coincidence length miscalculated.")
-
 if __name__ == "__main__":
     unittest.main()

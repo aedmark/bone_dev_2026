@@ -1,5 +1,4 @@
 """bone_drivers.py"""
-
 import json
 import os
 import random
@@ -11,7 +10,6 @@ from bone_core import LoreManifest, ux, safe_get, safe_set
 from bone_presets import BoneConfig
 from bone_types import PhysicsPacket
 from bone_types import Prisma, UserInferredState, SharedDynamics
-
 class SoulDriver:
     def __init__(self, soul_ref, config_ref=None):
         self.cfg = config_ref or BoneConfig
@@ -31,7 +29,6 @@ class SoulDriver:
         dignity = max(0.2, self.soul.anchor.dignity_reserve / 100.0) if getattr(self.soul, "anchor", None) and hasattr(
             self.soul.anchor, "dignity_reserve") else 1.0
         return {p: (w + random.uniform(-chaos, chaos)) * dignity for p, w in base_weights.items()}
-
 class UserProfile:
     def __init__(self, name="USER", config_ref=None):
         self.cfg = config_ref or BoneConfig
@@ -73,7 +70,6 @@ class UserProfile:
                     self.confidence = data.get("confidence", 0)
             except (IOError, json.JSONDecodeError):
                 pass
-
 class EnneagramDriver:
     def __init__(self, events_ref, config_ref=None):
         self.cfg = config_ref or BoneConfig
@@ -155,7 +151,6 @@ class EnneagramDriver:
             msg_resisting.format(candidate=candidate,
                 count=self.stability_counter,
                 thresh=self.HYSTERESIS_THRESHOLD,),)
-
 @dataclass
 class VSLState:
     archetype: str = "EXPLORER"
@@ -164,13 +159,11 @@ class VSLState:
     L: float = 0.0
     O: float = 1.0
     active_modules: List[str] = field(default_factory=list)
-
 class DriverRegistry:
     def __init__(self, events_ref, config_ref=None):
         self.cfg = config_ref or BoneConfig
         self.enneagram = EnneagramDriver(events_ref, config_ref=self.cfg)
         self.current_focus = "NONE"
-
 class LiminalModule:
     def __init__(self, config_ref=None, lexicon_ref=None):
         self.cfg = config_ref or BoneConfig
@@ -197,7 +190,6 @@ class LiminalModule:
         if self.lambda_val > safe_get(cfg, "LIMINAL_SCAR_THRESHOLD", 0.85):
             self.godel_scars += 1
         return min(1.0, self.lambda_val)
-
 class SyntaxModule:
     def __init__(self, config_ref=None, lexicon_ref=None):
         self.cfg = config_ref or BoneConfig
@@ -235,7 +227,6 @@ class SyntaxModule:
         omega_growth = safe_get(cfg, "SYNTAX_OMEGA_GROWTH", 0.2)
         self.omega_val = (self.omega_val * omega_decay) + (max(safe_get(cfg, "SYNTAX_OMEGA_MIN", 0.1), target_omega) * omega_growth)
         return self.omega_val
-
 class CongruenceValidator:
     def __init__(self, config_ref=None):
         self.cfg = config_ref or BoneConfig
@@ -270,7 +261,6 @@ class CongruenceValidator:
                 if hits > 0:
                     tone_score += safe_get(cfg, "CONGRUENCE_HIT_BONUS", 0.1) * hits
                 return min(safe_get(cfg, "CONGRUENCE_MAX_TONE", 1.5), tone_score)
-
 class BoneConsultant:
     def __init__(self, config_ref=None, lexicon_ref=None):
         self.cfg = config_ref or BoneConfig
@@ -336,7 +326,6 @@ class BoneConsultant:
             msg = ux("driver_strings", "vsl_layer_muse")
             directives.append(msg.format(arch=arch, muse=muse))
         return "\n".join(directives)
-
 class SharedLatticeDriver:
     def __init__(self):
         self.u = UserInferredState()

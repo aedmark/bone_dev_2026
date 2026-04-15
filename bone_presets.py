@@ -1,16 +1,12 @@
 """ bone_presets.py """
-
 import copy
 from typing import Dict, Any, List
-
 class _ConfigNode:
     pass
-
 def ux(section: str, key: str, default: Any = "") -> Any:
     from bone_core import LoreManifest
     data = LoreManifest.get_instance().get("ux_strings", section)
     return data.get(key, default) if isinstance(data, dict) else default
-
 class BonePresets:
     ZEN_GARDEN = {"PHYSICS.VOLTAGE_FLOOR": 1.0, "PHYSICS.VOLTAGE_MAX": 25.0, "PHYSICS.DRAG_FLOOR": 0.5,
                   "BIO.DECAY_RATE": 0.001, "BIO.STAMINA_EXHAUSTED": 5.0, "COUNCIL.MANIC_VOLTAGE_TRIGGER": 99.0,
@@ -53,7 +49,6 @@ class BonePresets:
     ZEN = {"PHYSICS": {"VOLTAGE_MAX": 10.0, "BASE_DRAG": 0.0}, "BIO": {"METABOLISM_RATE": 0.1}, }
     MANIC = {"PHYSICS": {"VOLTAGE_MAX": 50.0, "BASE_DRAG": 0.5}, "BIO": {"METABOLISM_RATE": 2.0}, }
     DEBUG = {"PHYSICS": {"VOLTAGE_MAX": 100.0, "BASE_DRAG": 0.0}, "BIO": {"METABOLISM_RATE": 0.0}, }
-
 class BoneConfig:
     GRAVITY_WELL_THRESHOLD = 15.0
     SHAPLEY_MASS_THRESHOLD = 5.0
@@ -95,7 +90,6 @@ class BoneConfig:
     API_KEY = "ollama"
     MODEL = "hermes3"
     OLLAMA_MODEL_ID = "hermes3"
-
     class SOUL:
         MEMORY_VOLTAGE_MIN = 14.0
         MEMORY_TRUTH_MIN = 0.8
@@ -129,7 +123,6 @@ class BoneConfig:
         BURNOUT_TENURE_DIV = 10.0
         DREAM_TRAIT_SHIFT = 0.4
         FEELING_THRESH = 0.5
-
     class ANCHOR:
         DIGNITY_MAX = 100.0
         DIGNITY_REGEN = 5.0
@@ -144,13 +137,11 @@ class BoneConfig:
         AUDIT_LEXICAL_MULT = 0.5
         RIDDLE_MIN_WORDS = 4
         UNLOCK_DIGNITY_RESET = 50.0
-
     class OROBOROS:
         MAX_SCARS = 5
         MAX_MYTHS = 10
         TRAUMA_VALUE = 5.0
         VOLTAGE_PENALTY = 5.0
-
     class CORTEX:
         BASE_SENSITIVITY = 0.1
         LATENCY_PENALTY_THRESHOLD = 2.0
@@ -215,13 +206,11 @@ class BoneConfig:
         LLM_TIMEOUT = 180.0
         LLM_FALLBACK_TIMEOUT = 60.0
         VALIDATOR_STUTTER_LENGTH = 5
-
     class WHIMSY:
         ABSURDITY_CONSTANT = 42
         MAX_SARCASM_LEVEL = 11
         LUDICROUS_SPEED = True
         DEPARTMENT_NAME = "The Ministry of Silly Hats & Semantic Vectors"
-
     class METABOLISM:
         BASE_RATE = 2.0
         GENESIS_VOLTAGE = 100.0
@@ -233,7 +222,6 @@ class BoneConfig:
         PHOTOSYNTHESIS_GAIN = 5.0
         TURBULENCE_TAX = 4.0
         BUREAU_ENTROPY_SCALAR = 20.0
-
     class PHYSICS:
         VOLTAGE_FLOOR = 0.0
         VOLTAGE_LOW = 5.0
@@ -274,7 +262,6 @@ class BoneConfig:
         SILENCE_SHORT_LIMIT = 10
         SILENCE_MIN = 0.8
         LQ_SCALAR = 1.5
-
     class INVENTORY:
         CONDUCTIVE_THRESHOLD = 12.0
         HEAVY_LOAD_THRESHOLD = 8.0
@@ -289,7 +276,6 @@ class BoneConfig:
         REFLEX_DRAG_RESET = 0.0
         REFLEX_KAPPA_TRIGGER = 0.2
         REFLEX_KAPPA_RESET = 0.8
-
     class COUNCIL:
         STRANGE_LOOP_VOLTAGE = 8.0
         OSCILLATION_DELTA = 5.0
@@ -347,7 +333,6 @@ class BoneConfig:
         PHASE_CASPER_DELTA = 0.6
         PHASE_COLIN_DELTA = 0.8
         PHASE_COLIN_LQ = 0.3
-
     class BIO:
         REST_HEALTH_RECOVERY = 0.5
         REST_STAMINA_RECOVERY = 1.0
@@ -422,13 +407,11 @@ class BoneConfig:
         NEURAL_SHIFTS = {"PANIC": {"adr": 0.3, "cor": 0.2},
                          "ZEN": {"cor": -0.3, "ser": 0.2},
                          "MANIC": {"atp": -10.0}}
-
     class CHANCE:
         RARE = 0.05
         UNCOMMON = 0.10
         COMMON = 0.20
         FREQUENT = 0.30
-
     class ZEN:
         VOLTAGE_MIN = 2.0
         VOLTAGE_MAX = 12.0
@@ -438,7 +421,6 @@ class BoneConfig:
         STREAK_BREAK_THRESHOLD = 5
         ZEN_FIRST_TICK = 1
         ZEN_MILESTONE_FREQ = 5
-
     class BUREAU:
         MIN_HEALTH_TO_AUDIT = 20.0
         MIN_WORD_COUNT = 4
@@ -448,12 +430,10 @@ class BoneConfig:
         TAX_HEAVY = 15.0
         CHAOS_TAX_THRESHOLD = 0.6
         TAX_CHAOS = 12.0
-
     class THERAPY:
         HEALING_THRESHOLD = 5
         STRENGTH_REQ = 0.3
         TRAUMA_REDUCTION = 0.5
-
     class KINTSUGI:
         STAMINA_TRIGGER = 15.0
         ALCHEMY_VOLTAGE = 15.0
@@ -464,7 +444,6 @@ class BoneConfig:
         REDUCTION_INTEGRATION = 2.0
         REDUCTION_ALCHEMY_FACTOR = 0.8
         ALCHEMY_ATP_FACTOR = 15.0
-
     class MACHINE:
         CRUCIBLE_VOLTAGE_CAP = 20.0
         DAMPENER_TOLERANCE = 15.0
@@ -472,14 +451,12 @@ class BoneConfig:
         THEREMIN_AMBER_THRESHOLD = 20.0
         THEREMIN_SHATTER_POINT = 100.0
         THEREMIN_MELT_THRESHOLD = 5.0
-
     class LIMBO:
         MAX_ECTOPLASM = 50
         HAUNT_CHANCE = 0.05
         STASIS_LEAK_RATE = 1.0
         LEAK_DECAY_CHANCE = 0.2
         LEAK_DECAY_AMOUNT = 0.5
-
     class FOLLY:
         MAUSOLEUM_VOLTAGE = 8.5
         MAUSOLEUM_STAMINA = 45.0
@@ -491,17 +468,14 @@ class BoneConfig:
         YIELD_ABSTRACT = 8.0
         PENALTY_REGURGITATION = 5.0
         PENALTY_INDIGESTION = 2.0
-
     class CRITICS:
         REVIEW_COOLDOWN = 10
         MAX_METRIC_CONTRIB = 5.0
         POSITIVE_REVIEW_THRESH = 15.0
         NEGATIVE_REVIEW_THRESH = -15.0
         CRITIC_COOLDOWN_TICKS = 50
-
     class CHRONOS:
         CRASH_FILES_KEPT = 4
-
     class SPORES:
         MAX_INDEX_SIZE = 1000
         CONSOLIDATION_THRESHOLD = 5.0
@@ -518,7 +492,6 @@ class BoneConfig:
         PARASITE_PSI_MIN = 0.6
         PARASITE_METAPHOR_PSI = 0.7
         PARASITE_WEIGHT = 8.88
-
     class SYMBIOSIS:
         REFUSAL_STREAK = 0
         SLOP_STREAK = 2
@@ -529,7 +502,6 @@ class BoneConfig:
         SLOP_COMPLETION_MIN = 50
         SLOP_WARN_STREAK = 1
         COMPLIANCE_CRIT = 0.6
-
     class VILLAGE:
         TINKER_HEAVY_LOAD_MULT = 0.7
         TINKER_TIME_DILATION_BASE = 0.85
@@ -581,14 +553,12 @@ class BoneConfig:
         ALMANAC_VOLT_HIGH = 15.0
         ALMANAC_DRAG_HIGH = 4.0
         ALMANAC_ENTROPY_HIGH = 0.8
-
     class COMMANDS:
         COST_MODE = 10.0
         COST_MAP = 2.0
         RECOVER_STAMINA = 20.0
         STATUS_MAX_ATP = 200.0
         SAVE_ERROR_FLAGS = ["Error", "Failed", "Exception"]
-
     class AKASHIC:
         RECIPE_THRESHOLD = 3
         HYBRID_LENS_THRESHOLD = 5
@@ -600,7 +570,6 @@ class BoneConfig:
         STATE_FILE = "akashic_state.json"
         BLOAT_EXEMPT_CATEGORIES = ["heavy"]
         DEFAULT_SCAR_COORDS = {"E": 0.2, "beta": 0.4, "S": 0.3, "D": 0.3, "C": 0.2, "T": 0.0, "psi": 0.0, "chi": 0.0, "valence": 0.0, "ROS": 0.0}
-
     class CORE:
         EVENT_MAX_MEMORY = 1024
         OBSERVER_MAX_LEN = 20
@@ -613,7 +582,6 @@ class BoneConfig:
         OBSERVER_LLM_EFFICIENT = 0.5
         LOUD_LENSES = ["THE MANIC", "THE VOID"]
         TELEMETRY_LOG_DIR = "logs/telemetry"
-
     class CYCLE:
         OBSERVE_ATP_WARN = 15.0
         SANCTUARY_TRAUMA_LIMIT = 25.0
@@ -646,7 +614,6 @@ class BoneConfig:
         ARB_SILENCE_HIGH = 0.85
         ARB_CUT_SILENCE = 0.9
         ARB_CUT_DRAG = 2.0
-
     class DRIVERS:
         ENNEAGRAM_HYSTERESIS = 3
         ENNEAGRAM_HYBRID_GAP = 0.5
@@ -692,13 +659,11 @@ class BoneConfig:
         VSL_FATIGUE_MULT = 0.3
         VSL_B_DECAY = 0.8
         VSL_B_GROWTH = 0.2
-
     class GENESIS:
         DUMMY_VOLTAGE = 10.0
         DUMMY_DRAG = 0.0
         LEGACY_STRAIN_SCALAR = 0.1
         STARTING_ATP = 60.0
-
     class GUI:
         RENDER_SPEED_FAST = 0.00025
         RENDER_SPEED_SLOW = 0.005
@@ -718,7 +683,6 @@ class BoneConfig:
         RENDER_SPEED = 0.005
         RENDER_SPEED_BOOT = 0.05
         RENDER_SPEED_SETUP = 0.02
-
     class MAIN:
         ETHICAL_AUDIT_FREQ = 3
         ETHICAL_HEALTH_BYPASS = 0.3
@@ -731,7 +695,6 @@ class BoneConfig:
         RELIANCE_LOW = 0.5
         HOST_BURN_MULT = 5.0
         HOST_NOVELTY_MULT = 10.0
-
     class PHYSICS_DEEP:
         ACCELERATE_VOLTAGE = 160.0
         RECURSIVE_LQ = 0.9
@@ -745,7 +708,6 @@ class BoneConfig:
         HARD_FUSE_VOLTAGE = 200.0
         FUSE_RESET_V = 10.0
         FUSE_RESET_D = 5.0
-
     def __init__(self):
         for name in dir(self.__class__):
             if not name.startswith("__"):
@@ -758,7 +720,6 @@ class BoneConfig:
                     setattr(self, name, clone)
                 elif not callable(val) and not isinstance(val, classmethod):
                     setattr(self, name, copy.deepcopy(val) if isinstance(val, (dict, list, set)) else val)
-
     def load_preset(self, preset_dict: Dict[str, Any]) -> List[str]:
         logs = []
         msg_tuned = ux("config_strings", "preset_tuned") or "Tuned {sector}.{param}: {old_val} -> {new_val}"
@@ -783,7 +744,6 @@ class BoneConfig:
                             setattr(target_sector, k, v)
                             logs.append(msg_tuned.format(sector=sector_name, param=k, old_val=old_val, new_val=v))
         return logs
-
     def validate_integrity(self) -> List[str]:
         errors = []
         if self.PHYSICS.VOLTAGE_FLOOR > self.PHYSICS.VOLTAGE_MAX:
@@ -795,14 +755,12 @@ class BoneConfig:
             msg = ux("config_strings", "repair_drag_halt")
             if msg: errors.append(msg)
         return errors
-
     @staticmethod
     def check_pareidolia(words: List[str]) -> Any:
         if "face" in words and "smoke" in words:
             msg = ux("config_strings", "pareidolia_smoke")
             return True, msg
         return False, ""
-
     def reconcile_state(self, physics_packet: Any):
         from bone_core import safe_get, safe_set
         e_obj = safe_get(physics_packet, "energy") or {}
@@ -814,7 +772,6 @@ class BoneConfig:
         safe_set(physics_packet, "voltage", new_v)
         safe_set(physics_packet, "narrative_drag", new_d)
         return physics_packet
-
     def tune(self, sector: str, parameter: str, value: Any) -> str:
         if not hasattr(self, sector):
             msg = ux("config_strings", "tune_sector_err") or "Sector {sector} not found."

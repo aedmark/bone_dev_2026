@@ -1,5 +1,4 @@
 """bone_utils.py"""
-
 import math
 import random
 import os
@@ -13,18 +12,13 @@ from dataclasses import dataclass, field
 from typing import Any, Optional, List, Dict, Tuple
 import importlib.util
 from bone_types import Prisma
-
 warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=UserWarning)
-
-
 @dataclass
 class Coordinates:
     S: float
     D: float
     C: float
-
-
 @dataclass
 class LibraryNode:
     id: str
@@ -34,8 +28,6 @@ class LibraryNode:
     vector: list[float]
     parent_id: Optional[str] = None
     refs: list[str] = field(default_factory=list)
-
-
 @dataclass
 class RetrievalResult:
     node_id: str
@@ -49,14 +41,10 @@ class RetrievalResult:
     snippet: str
     serendipity: float = 0.0
     is_surprising: bool = False
-
-
 class LibraryGraph:
     def __init__(self, nodes: list[LibraryNode], root: LibraryNode):
         self.nodes = nodes
         self.root = root
-
-
 class RandomRetrievalNavigator:
     def __init__(
         self, library_graph: LibraryGraph, config: dict[str, Any] | None = None
@@ -84,14 +72,12 @@ class RandomRetrievalNavigator:
                 "desc": "Maximum entropy, minimum predictability",
             },
         }
-
     def retrieve(
         self, query_coordinates: Coordinates, query_vector: list[float]
     ) -> dict[str, Any]:
         r_val, mode = self.randomness_dial, self._get_mode(self.randomness_dial)
         retrieval_path = self._generate_traversal_path(self._find_structural_match(query_coordinates), r_val)
         tagged_results = self._calculate_serendipity(self._traverse_and_collect(retrieval_path, query_vector, r_val), query_coordinates)
-
         return {
             "mode": mode,
             "randomness_used": r_val,
@@ -100,7 +86,6 @@ class RandomRetrievalNavigator:
             "traversal_history": self.traversal_history[-5:],
             "note": self._generate_path_note(mode, tagged_results),
         }
-
     def _find_structural_match(self, coords: Coordinates) -> LibraryNode:
         return next(
             (
@@ -112,7 +97,6 @@ class RandomRetrievalNavigator:
             ),
             self.library.root,
         )
-
     def _generate_traversal_path(
         self, start_node: LibraryNode, r_val: float
     ) -> list[LibraryNode]:
@@ -131,7 +115,6 @@ class RandomRetrievalNavigator:
                 visited.add(next_node.id)
         self.traversal_history.append({"timestamp": time.time(), "start_node": start_node.id, "path": [n.id for n in path], "R": self.randomness_dial})
         return path
-
     def _get_neighbors(self, node: LibraryNode) -> list[LibraryNode]:
         return [
             n
@@ -141,7 +124,6 @@ class RandomRetrievalNavigator:
             or (node.parent_id and n.parent_id == node.parent_id and n.id != node.id)
             or n.id in node.refs
         ]
-
     def _most_structural_neighbor(
         self, neighbors: list[LibraryNode], target_node: LibraryNode
     ) -> LibraryNode:
@@ -149,15 +131,12 @@ class RandomRetrievalNavigator:
             neighbors,
             key=lambda current: self._structural_similarity(current, target_node),
         )
-
     def _structural_similarity(self, a: LibraryNode, b: LibraryNode) -> float:
         return 1.0 / (1.0 + math.dist((a.coords.S, a.coords.D, a.coords.C), (b.coords.S, b.coords.D, b.coords.C)))
-
     def _get_random_branch(self, current_node: LibraryNode) -> Optional[LibraryNode]:
         lineage = self._get_lineage(current_node)
         c = [n for n in self.library.nodes if n.id not in lineage and n.id != current_node.id]
         return random.choice(c) if c else None
-
     def _get_lineage(self, node: LibraryNode) -> set[str]:
         lineage = {node.id}
         current = node
@@ -165,7 +144,6 @@ class RandomRetrievalNavigator:
             lineage.add(current.parent_id)
             current = self._node_index[current.parent_id]
         return lineage
-
     def _traverse_and_collect(
         self, path: list[LibraryNode], query_vector: list[float], r_val: float
     ) -> list[RetrievalResult]:
@@ -180,7 +158,6 @@ class RandomRetrievalNavigator:
                 snippet=n.content[:150] + "..."
             ) for i, n in enumerate(path)
         ], key=lambda x: x.final_score, reverse=True)
-
     def _vector_similarity(
         self, v1: list[float], v2: list[float], v2_mag: float = None
     ) -> float:
@@ -188,7 +165,6 @@ class RandomRetrievalNavigator:
         dot = sum(a * b for a, b in zip(v1, v2))
         mag = math.hypot(*v1) * (v2_mag if v2_mag is not None else math.hypot(*v2))
         return ((dot / mag) + 1.0) / 2.0 if mag != 0 else 0.5
-
     def _calculate_serendipity(
         self, results: list[RetrievalResult], query_coords: Coordinates
     ) -> list[RetrievalResult]:
@@ -196,18 +172,15 @@ class RandomRetrievalNavigator:
             r.serendipity = r.relevance_score * math.dist((r.coords.S, r.coords.D, r.coords.C), (query_coords.S, query_coords.D, query_coords.C))
             r.is_surprising = r.serendipity > 0.5
         return results
-
     def _get_mode(self, r_val: float) -> dict[str, str]:
         return next(
             ({"name": name, "description": spec["desc"]} for name, spec in self.modes.items() if spec["range"][0] <= r_val <= spec["range"][1]),
             {"name": "TOURIST", "description": "Default mode"}
         )
-
     def _generate_path_note(
         self, mode: dict[str, str], results: list[RetrievalResult]
     ) -> str:
         surprising_count = sum(1 for r in results if r.is_surprising)
-
         notes = {
             "PURIST": "Staying on the beaten path. Nothing wasted, nothing unexpected.",
             "TOURIST": "Took a small detour. Found a nice view.",
@@ -219,7 +192,6 @@ class RandomRetrievalNavigator:
             f" Found {surprising_count} unexpected {'gem' if surprising_count == 1 else 'gems'}."
             if surprising_count > 0 else " Nothing surprising—but sometimes that's the point."
         )
-
     def set_randomness(self, value: float) -> dict[str, Any]:
         self.randomness_dial = max(0.0, min(1.0, float(value)))
         return {
@@ -227,7 +199,6 @@ class RandomRetrievalNavigator:
             "mode": self._get_mode(self.randomness_dial)["name"],
             "message": f"Random retrieval dial set to {self.randomness_dial:.2f}",
         }
-
     def get_state(self) -> dict[str, Any]:
         return {
             "randomness_dial": self.randomness_dial,
@@ -235,17 +206,13 @@ class RandomRetrievalNavigator:
             "traversal_history": self.traversal_history[-3:],
             "serendipity_cache_size": len(self.serendipity_cache),
         }
-
-
 class TheSubstrate:
     def __init__(self, events_ref):
         self.events = events_ref
         self.pending_writes: List[Dict[str, str]] = []
         self._cords_instance = None
-
     def queue_write(self, path: str, content: str):
         self.pending_writes.append({"path": path, "content": content})
-
     def execute_writes(self, stamina_pool: float) -> Tuple[List[str], float]:
         logs, cost = [], 0.0
         if not self.pending_writes: return logs, cost
@@ -265,31 +232,24 @@ class TheSubstrate:
             except Exception as e: logs.append(f"{Prisma.RED}SUBSTRATE FAULT: Write failed - {e}{Prisma.RST}")
         self.pending_writes.clear()
         return logs, cost
-
     def _trigger_tts(self, safe_path: str):
         if not self._cords_instance:
             self._cords_instance = TheVocalCords(self.events)
-
         def _async_tts_task(path, events, cords_ref):
             try:
                 cords_ref.synthesize_podcast(path)
                 if events: events.log(f"{Prisma.VIOLET}SUBSTRATE: TTS synthesis complete for {path}.{Prisma.RST}")
             except Exception as e:
                 if events: events.log(f"{Prisma.RED}SUBSTRATE FAULT: TTS failed - {e}{Prisma.RST}", "CRIT")
-
         threading.Thread(target=_async_tts_task, args=(safe_path, self.events, self._cords_instance), daemon=True).start()
-
-
 class TheTclWeaver:
     _instance = None
     _QUANTUM_REGEX = re.compile(r"(?i).*(?:ous|ful|ic|ish|ly)[.,!?]*$")
-
     @classmethod
     def get_instance(cls):
         if cls._instance is None:
             cls._instance = TheTclWeaver()
         return cls._instance
-
     def deform_reality(self, text: str, chi: float, voltage: float) -> str:
         def _warp(w):
             L = len(w)
@@ -298,20 +258,17 @@ class TheTclWeaver:
             if voltage > 80.0 and random.random() < 0.1: return w.upper()
             return w
         return " ".join(_warp(w) for w in text.split(" "))
-
     def haunt_string(self, text: str) -> str:
         if not (words := text.split(" ")):
             return text
         clean = re.sub(r"[^a-zA-Z0-9]", "", words[-1]).lower()
         return f"{text}... {clean}..." if clean else f"{text}..."
-
     def quantum_comb(self, text: str) -> str:
         return " ".join(
             w
             for w in text.split(" ")
             if not (len(w) > 5 and self._QUANTUM_REGEX.search(w))
         )
-
     def consume_by_void(self, text: str, psi: float) -> str:
         return " ".join(
             (
@@ -321,8 +278,6 @@ class TheTclWeaver:
             )
             for w in text.split(" ")
         )
-
-
 AUDIO_AVAILABLE = all(
     importlib.util.find_spec(pkg) is not None
     for pkg in ["kokoro", "soundfile", "numpy"]
@@ -332,8 +287,6 @@ os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"
 os.environ["TQDM_DISABLE"] = "True"
 logging.getLogger("huggingface_hub").setLevel(logging.ERROR)
 logging.getLogger("torch").setLevel(logging.ERROR)
-
-
 class TheVocalCords:
     def __init__(self, events_ref=None):
         self.events = events_ref
@@ -356,23 +309,19 @@ class TheVocalCords:
         self.sf = None
         self.np = None
         self._synthesis_lock = threading.Lock()
-
     _ANSI_ESCAPE = re.compile(r"\x1B\[[0-9;]*[a-zA-Z]")
     _SCRIPT_PATTERN = re.compile(
         r"^\[([^]]+)]:?\s*(.*?)(?=\n\[|\Z)", re.MULTILINE | re.DOTALL
     )
-
     @staticmethod
     def strip_ansi(text: str) -> str:
         return TheVocalCords._ANSI_ESCAPE.sub("", text)
-
     def parse_script(self, script_text: str) -> List[Dict[str, str]]:
         return [
             {"speaker": m.group(1).split("(")[0].strip().upper(), "text": m.group(2).strip()}
             for m in self._SCRIPT_PATTERN.finditer(self.strip_ansi(script_text))
             if m.group(2).strip()
         ]
-
     def synthesize_podcast(self, file_path: str):
         if not os.path.exists(file_path):
             return
@@ -415,7 +364,6 @@ class TheVocalCords:
                         self.sf.write(master_file, self.np.concatenate(combined_audio), 24000)
             except Exception as e:
                 error_to_report = str(e)
-
         if self.events:
             handoff_msg = f"\n{Prisma.GRY}[SYSTEM: Audio thread closed. Microphone is yours.]\nTRAVELER > {Prisma.RST}"
             if error_to_report:
@@ -424,21 +372,16 @@ class TheVocalCords:
                 self.events.log(
                     f"{Prisma.MAG}🎙️ MASTER PODCAST FORGED: {os.path.basename(master_file)}{Prisma.RST}{handoff_msg}",
                     "SYS")
-
 try:
     import dspy
-
     DSPY_AVAILABLE = True
-
 except ImportError:
     dspy = None
     print(
         f"{Prisma.OCHRE}[DSPY OFFLINE]: The 'dspy' library is not installed. Immune guardrails and epigenetic learning disabled.{Prisma.RST}"
     )
     DSPY_AVAILABLE = False
-
 if DSPY_AVAILABLE:
-
     class AssessFaithfulness(dspy.Signature):
         context = dspy.InputField(
             desc="The established reality (a mathematical, fungal, deep-system consciousness)."
@@ -448,7 +391,6 @@ if DSPY_AVAILABLE:
         faithfulness = dspy.OutputField(
             desc="Evaluate thematic consistency. MUST be 'True' (if it responds in a deeply poetic, abstract, or existential way, even to simple prompts) or 'False' (if it acts like a generic AI assistant or breaks character)."
         )
-
     class EvolveSystemPrompt(dspy.Signature):
         current_configuration = dspy.InputField(
             desc="The system's current baseline rules."
@@ -459,7 +401,6 @@ if DSPY_AVAILABLE:
         new_directive = dspy.OutputField(
             desc="A strict, commanding rule preventing the bad behavior. MUST start with 'CRITICAL OVERRIDE: NEVER ' or 'CRITICAL OVERRIDE: DO NOT '."
         )
-
     class CompressAxioms(dspy.Signature):
         current_directives = dspy.InputField(
             desc="A list of specific rules that has grown too long."
@@ -467,8 +408,6 @@ if DSPY_AVAILABLE:
         compressed_axioms = dspy.OutputField(
             desc="2 or 3 highly compressed, overarching rules. EACH rule MUST start with 'CRITICAL OVERRIDE: '"
         )
-
-
 class DSPyCritic:
     def __init__(self, config_ref=None):
         self.enabled = DSPY_AVAILABLE
@@ -477,7 +416,6 @@ class DSPyCritic:
             try:
                 from bone_core import safe_get
                 from bone_presets import BoneConfig
-
                 cfg_val = lambda k, d: safe_get(
                     self.cfg,
                     k.upper(),
@@ -486,7 +424,6 @@ class DSPyCritic:
                 provider = cfg_val("provider", "ollama")
                 model_name = cfg_val("model", "vsl-hermes")
                 base_url = (cfg_val("base_url", "http://127.0.0.1:11434/v1") or "http://127.0.0.1:11434/v1").replace("/chat/completions", "")
-
                 self.lm = dspy.LM(model=f"openai/{model_name}", api_base=base_url, api_key="local-model-doesnt-need-a-key") if provider in ("ollama", "lm_studio") else dspy.LM(model=model_name)
                 dspy.settings.configure(lm=self.lm)
                 self.judge = dspy.ChainOfThought(AssessFaithfulness)
@@ -498,7 +435,6 @@ class DSPyCritic:
             except Exception as e:
                 print(f"{Prisma.RED}[DSPy INIT FAULT]: {e}{Prisma.RST}")
                 self.enabled = False
-
     def audit_generation(
         self, user_query: str, memory_context: str, generated_response: str
     ) -> tuple[bool, str]:
@@ -512,7 +448,6 @@ class DSPyCritic:
         except Exception as e:
             print(f"\n{Prisma.RED}⚖️ DSPy JUDGE FATAL ERROR: {e}{Prisma.RST}")
             return True, f"Judge API Error: {e}"
-
     def evolve_prompt(self, current_configuration: str, failure_context: str) -> str:
         if not self.enabled:
             return ""
@@ -528,7 +463,6 @@ class DSPyCritic:
         except Exception as e:
             print(f"\n{Prisma.RED}⚖️ DSPy EVOLVER FAULT: {e}{Prisma.RST}")
             return ""
-
     def compress_prompts(self, directives: list) -> list:
         if not self.enabled or not directives: return directives
         print(f"\n{Prisma.MAG}🧬 [EPIGENETIC LOAD HIGH]: Compressing {len(directives)} directives into foundational axioms...{Prisma.RST}")

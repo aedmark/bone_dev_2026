@@ -1,5 +1,4 @@
 """bone_village.py"""
-
 import heapq
 import math
 import random
@@ -10,8 +9,6 @@ from bone_presets import BoneConfig
 from bone_core import LoreManifest, EventBus, ux, safe_get, safe_set
 from bone_physics import PhysicsDelta
 from bone_types import Prisma, PhysicsPacket
-
-
 class TheTinkerer:
     def __init__(self, gordon_ref, events_ref: EventBus, akashic_ref, config_ref=None):
         self.gordon = gordon_ref
@@ -21,7 +18,6 @@ class TheTinkerer:
         self.tool_resonance: Dict[str, float] = {}
         self._delta_cache = None
         self._inventory_hash = 0
-
     def calculate_passive_deltas(self, inventory_data: List[Dict]) -> List[PhysicsDelta]:
         all_traits = [t for item in inventory_data for t in item.get("passive_traits", [])]
         counts = Counter(all_traits)
@@ -42,7 +38,6 @@ class TheTinkerer:
         self._inventory_hash = current_hash
         self._delta_cache = deltas
         return deltas
-
     def audit_tool_use(self, packet: PhysicsPacket, inventory_list: List[str], _host_health: Any = None):
         if not inventory_list:
             return
@@ -55,7 +50,6 @@ class TheTinkerer:
         e_mult = float(safe_get(cfg, "TINKER_ENTROPY_DRAG_MULT", 0.1))
         entropy_level = ent_val + (packet.narrative_drag * e_mult)
         self._process_single_tool(focus_item, inventory_list, packet, entropy_level)
-
     def _process_single_tool(self, item: str, _inventory: List[str], packet: PhysicsPacket, entropy: float):
         if item not in self.tool_resonance:
             self.tool_resonance[item] = 0.0
@@ -67,7 +61,6 @@ class TheTinkerer:
             self._check_ascension(item, _inventory, packet.vector)
         elif packet.narrative_drag > self.cfg.PHYSICS.DRAG_HALT:
             self._apply_resonance(item, r_temp, "Tempering")
-
     def _apply_resonance(self, item: str, amount: float, _reason: str):
         cfg = getattr(self.cfg, "VILLAGE", None)
         cg = lambda k, d: float(safe_get(cfg, k, d))
@@ -76,7 +69,6 @@ class TheTinkerer:
             if random.random() < cg("TINKER_RESONANCE_ANNOUNCE_CHANCE", 0.05):
                 if msg := ux("village_strings", "tinkerer_resonance"):
                     self.events.log(f"{Prisma.CYN}{msg.format(item=item)}{Prisma.RST}", "VILLAGE")
-
     def _check_ascension(self, old_name: str, inventory_list: List[str], vector: Dict):
         resonance = self.tool_resonance.get(old_name, 0.0)
         cfg = getattr(self.cfg, "VILLAGE", None)
@@ -97,32 +89,27 @@ class TheTinkerer:
                     self.events.log(f"{Prisma.MAG}{msg.format(old=old_name, new=new_name)}{Prisma.RST}", "AKASHIC")
             except ValueError:
                 pass
-
 @dataclass
 class ParadoxSeed:
     question: str
     triggers: Set[str]
     maturity: float = 0.0
     bloomed: bool = False
-
     def water(self, words: List[str], config_ref=None) -> bool:
         if self.bloomed: return False
         cfg = getattr(config_ref or BoneConfig, "VILLAGE", None)
         if hits := sum(1 for w in words if w in self.triggers):
             self.maturity += hits * float(safe_get(cfg, "SEED_MATURITY_STEP", 0.2))
         return self.maturity >= float(safe_get(cfg, "SEED_MATURITY_MAX", 5.0))
-
     def bloom(self) -> str:
         self.bloomed = True
         msg = ux("village_strings", "paradox_bloom")
         return msg.format(question=self.question) if msg else ""
-
 class MirrorGraph:
     def __init__(self, events_ref, config_ref=None):
         self.events = events_ref
         self.cfg = config_ref or BoneConfig
         self.stats = {"WAR": 0.0, "ART": 0.0, "LAW": 0.0, "ROT": 0.0}
-
     def reflect(self, packet: PhysicsPacket):
         txt = getattr(packet.matter, "raw_text", "") if getattr(packet, "matter", None) else getattr(packet, "raw_text", "")
         cfg = getattr(self.cfg, "VILLAGE", None)
@@ -142,7 +129,6 @@ class MirrorGraph:
             for k, v in self.stats.items():
                 decayed = v * compression
                 self.stats[k] = decayed if decayed >= floor else 0.0
-
     def get_reflection_modifiers(self) -> Dict:
         if not self.stats or sum(self.stats.values()) == 0:
             return {"flavor": ux("village_strings", "mirror_neutral"), "drag_mult": 1.0}
@@ -154,7 +140,6 @@ class MirrorGraph:
             "ART": float(safe_get(cfg, "MIRROR_DRAG_ART", 0.9)),}.get(top_stat, 1.0)
         return {"flavor": (ux("village_strings", "mirror_stat") or "").format(stat=top_stat),
             "drag_mult": mult,}
-
 @dataclass
 class GeniusLoci:
     id: str
@@ -164,31 +149,25 @@ class GeniusLoci:
     local_items: List[str] = field(default_factory=list)
     visited_count: int = 0
     entropy_buildup: float = 0.0
-
     def description(self) -> str:
         base = (f"LOCATION: {self.name}\nATMOSPHERE: {self.atmosphere}\nSMELL: {self.smell}")
         if self.local_items:
             items = ", ".join(self.local_items)
             base += f"\nVISIBLE ITEMS: {items}"
         return base
-
     def to_dict(self):
         return asdict(self)
-
     @classmethod
     def from_dict(cls, data):
         return cls(**data)
-
 class TheCartographer:
     MAX_NODES = 50
-
     def __init__(self, shimmer_ref, config_ref=None):
         self.shimmer = shimmer_ref
         self.cfg = config_ref or BoneConfig
         self.world_graph: Dict[str, GeniusLoci] = {}
         self.current_node_id: str = "GENESIS_POINT"
         self._init_genesis()
-
     def apply_environment(self, packet: Any) -> List[str]:
         if not (node := self.world_graph.get(self.current_node_id)): return []
         logs = []
@@ -206,7 +185,6 @@ class TheCartographer:
             safe_set(packet, "vector", vector)
             node.entropy_buildup = 0.0
         return logs
-
     def _init_genesis(self):
         msg_name = ux("village_strings", "genesis_name")
         msg_atmos = ux("village_strings", "genesis_atmos")
@@ -216,14 +194,12 @@ class TheCartographer:
             name=msg_name,
             atmosphere=msg_atmos,
             smell=msg_smell,)
-
     @staticmethod
     def _generate_coord_hash(vector: Dict[str, float]) -> str:
         if not vector:
             return "VOID_DRIFT"
         top_dims = heapq.nlargest(2, vector.items(), key=lambda x: x[1])
         return "-".join([f"{k}{int(v * 100)}" for k, v in top_dims])
-
     def locate(self, packet: PhysicsPacket) -> Tuple[str, Optional[str]]:
         target_id = self._generate_coord_hash(packet.vector or {})
         msg = None
@@ -239,7 +215,6 @@ class TheCartographer:
         self.current_node_id = target_id
         self.world_graph[target_id].visited_count += 1
         return self.world_graph[target_id].name, msg
-
     @staticmethod
     def _generate_loci_data(node_id: str, packet: PhysicsPacket, config_ref=None) -> GeniusLoci:
         rng = random.Random(node_id)
@@ -267,17 +242,14 @@ class TheCartographer:
             name=f"{name} {suffix}".upper(),
             atmosphere=atmosphere,
             smell=smell,)
-
     def _prune_graph(self):
         candidates = [k for k in self.world_graph if k not in ("GENESIS_POINT", self.current_node_id)]
         if candidates:
             victim = min(candidates, key=lambda k: self.world_graph[k].visited_count)
             del self.world_graph[victim]
-
     def export_atlas(self) -> Dict[str, Any]:
         return {"nodes": {k: v.to_dict() for k, v in self.world_graph.items()},
             "current_id": self.current_node_id,}
-
     def import_atlas(self, atlas_data: Dict[str, Any]):
         if not atlas_data:
             return
@@ -291,14 +263,10 @@ class TheCartographer:
         self.current_node_id = atlas_data.get("current_id", "GENESIS_POINT")
         if "GENESIS_POINT" not in self.world_graph:
             self._init_genesis()
-
     def to_dict(self):
         return self.export_atlas()
-
     def load_state(self, data):
         self.import_atlas(data)
-
-
 class TownHall:
     def __init__(self,
         gordon_ref,
@@ -320,10 +288,8 @@ class TownHall:
         for s in seed_data:
             if "question" in s and "triggers" in s:
                 self.sow_seed(s["question"], set(s["triggers"]))
-
     def sow_seed(self, question: str, triggers: Set[str]):
         self.seeds.append(ParadoxSeed(question, triggers))
-
     @staticmethod
     def consult_almanac(physics: PhysicsPacket, config_ref=None) -> str:
         almanac = LoreManifest.get_instance().get("ALMANAC") or {}
@@ -345,7 +311,6 @@ class TownHall:
         flavor_text = random.choice(options)
         strategy = strategies.get(state_key, "Keep breathing.")
         return f"☁️ FORECAST [{state_key}]: {flavor_text} (Strategy: {strategy})"
-
     def tend_garden(self, clean_words: List[str]) -> List[str]:
         blooms = []
         if not self.seeds or not clean_words:
@@ -361,7 +326,6 @@ class TownHall:
                     "VILLAGE_EVENT",)
                 blooms.append(f"{Prisma.MAG}{prefix}{Prisma.RST} {bloom_msg}")
         return blooms
-
     def conduct_census(self, packet: PhysicsPacket, host_stats: Any) -> str:
         latency = getattr(host_stats, "latency", 0.0) if host_stats else 0.0
         forecasts = (LoreManifest.get_instance().get("ALMANAC") or {}).get("FORECASTS", {})
@@ -389,7 +353,6 @@ class TownHall:
         elif status == "BALANCED" and self.rumors and random.random() < cg("TOWN_RUMOR_CHANCE", 0.3):
             if msg := ux("village_strings", "town_rumor"): report.append(f"{Prisma.GRY}{msg.format(rumor=random.choice(self.rumors))}{Prisma.RST}")
         return "\n".join(report).strip()
-
     @staticmethod
     def _get_town_news(latency: float, volt: float, config_ref=None) -> Optional[str]:
         target_cfg = config_ref or BoneConfig
@@ -407,14 +370,12 @@ class TownHall:
             if msg:
                 alerts.append(f"{Prisma.YEL}{msg}{Prisma.RST}")
         return "\n".join(alerts) if alerts else None
-
     def on_item_drop(self, payload):
         item = payload.get("item")
         if item:
             msg = ux("village_strings", "town_item_drop")
             if msg:
                 self.events.log(msg.format(item=item), "VILLAGE")
-
     @staticmethod
     def diagnose_condition(session_data: dict, _host_health: Any = None, soul: Any = None, config_ref=None) -> Tuple[str, str]:
         trauma = session_data.get("trauma_vector", {})
@@ -435,17 +396,14 @@ class TownHall:
         if final_health < cg("TOWN_HEALTH_CRIT", 30):
             return "HIGH_TRAUMA", ux("village_strings", "town_critical") or ""
         return "BALANCED", ux("village_strings", "town_nominal") or ""
-
 class DeathGen:
     _FALLBACK_PROTOCOLS = {"PREFIXES": ["FATAL ERROR", "SYSTEM HALT", "THE END"],
         "CAUSES": {"DEFAULT": ["Unknown Error", "Entropy limit reached"]},
         "VERDICTS": {"DEFAULT": ["End of Line.", "Reboot required."]},}
-
     @classmethod
     def load_protocols(cls):
         if LoreManifest.get_instance().get("DEATH") is None:
             LoreManifest.get_instance().inject("DEATH", cls._FALLBACK_PROTOCOLS)
-
     @staticmethod
     def eulogy(packet: PhysicsPacket,
         mito_state: Any,
@@ -462,7 +420,6 @@ class DeathGen:
         causes = causes_dict.get(cause, causes_dict.get("DEFAULT", ["Error"]))
         verdicts = verdicts_dict.get(verdict_type, verdicts_dict.get("DEFAULT", ["Done."]))
         return (f"{prefix} CAUSE: {random.choice(causes)}. {random.choice(verdicts)}", cause,)
-
     @staticmethod
     def _determine_cause(p: Any, mito_state: Any, trauma_vector: Dict = None, config_ref=None) -> str:
         target_cfg = config_ref or BoneConfig
@@ -484,7 +441,6 @@ class DeathGen:
         if counts.get("antigen", 0) > cg("VILLAGE", "DEATH_TOXICITY_CRIT", 5.0):
             return "TOXICITY"
         return "STARVATION"
-
     @staticmethod
     def _determine_verdict_type(p: PhysicsPacket, cause: str, config_ref=None) -> str:
         target_cfg = config_ref or BoneConfig
@@ -502,12 +458,10 @@ class DeathGen:
         if getattr(p, "valence", 0.0) > val_crit:
             return "JOY_CLADE"
         return "ENTROPY"
-
 class TheTherapist:
     def __init__(self, events_ref, config_ref=None):
         self.events = events_ref
         self.cfg = config_ref or BoneConfig
-
     def evaluate_catharsis(self, trauma_vector: Dict[str, float], health: float) -> Tuple[bool, str]:
         if not trauma_vector: return False, ""
         cg = lambda k, d: float(safe_get(getattr(self.cfg, "VILLAGE", None), k, d))
@@ -517,13 +471,11 @@ class TheTherapist:
             self.events.log(f"{Prisma.VIOLET}{msg}{Prisma.RST}", "THERAPY")
             return True, msg
         return False, ""
-
 class TheGraveDigger:
     def __init__(self, inventory_ref, events_ref, config_ref=None):
         self.inventory = inventory_ref
         self.events = events_ref
         self.cfg = config_ref or BoneConfig
-
     def bury_memory(self, node_id: str, mass: float) -> Optional[str]:
         msg = (ux("village_strings", "gravedigger_bury") or "The Grave Digger turns the soil over '{node_id}'.").format(node_id=node_id)
         self.events.log(f"{Prisma.GRY}{msg}{Prisma.RST}", "VILLAGE")

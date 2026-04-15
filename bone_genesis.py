@@ -1,5 +1,4 @@
 """bone_genesis.py"""
-
 from typing import Dict, Any, Set
 from bone_akashic import TheAkashicRecord
 from bone_presets import BoneConfig
@@ -13,7 +12,6 @@ from bone_spores import LiteraryReproduction
 from bone_symbiosis import SymbiosisManager
 from bone_types import Prisma
 from bone_village import (TownHall, DeathGen, TheCartographer, TheTinkerer, TheTherapist, TheGraveDigger,)
-
 class BoneGenesis:
     @staticmethod
     def ignite(config: Dict[str, Any], lexicon_ref: Any, events_ref: Any = None) -> Dict[str, Any]:

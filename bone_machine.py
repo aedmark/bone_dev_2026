@@ -1,10 +1,8 @@
 """bone_machine.py"""
-
 import random
 import math
 from dataclasses import dataclass
 from typing import Tuple, Optional, List, Dict, Any
-
 from bone_body import (
     BioSystem,
     MitochondrialState,
@@ -22,8 +20,6 @@ from bone_protocols import LimboLayer
 from bone_spores import MycelialNetwork, ImmuneMycelium, BioLichen, BioParasite
 from bone_types import MindSystem, PhysSystem, PhysicsPacket, Prisma
 from bone_village import MirrorGraph, TheCartographer
-
-
 class TheCrucible:
     def __init__(self, config_ref=None):
         self.cfg = config_ref or BoneConfig
@@ -34,31 +30,25 @@ class TheCrucible:
         self.dampener_tolerance = safe_get(cfg, "DAMPENER_TOLERANCE", 15.0)
         self.instability_index = 0.0
         self.logs = self._load_logs()
-
     def _load_logs(self):
         manifest = (
             LoreManifest.get_instance(config_ref=self.cfg).get("PHYSICS_STRINGS") or {}
         )
         return manifest.get("CRUCIBLE_LOGS", {})
-
     def dampener_status(self):
         msg = ux("machine_strings", "crucible_dampener_status")
         return msg.format(charges=self.dampener_charges)
-
     def dampen(self, voltage_spike: float, stability_index: float) -> Tuple[bool, str, float]:
         if self.dampener_charges <= 0:
             return False, self.logs.get("DAMPER_EMPTY", ""), 0.0
-
         if voltage_spike > self.dampener_tolerance:
             factor, reason = 0.7, ux("machine_strings", "dampen_reason_circuit") or "Circuit Breaker"
         elif voltage_spike > 8.0 and stability_index < 0.3:
             factor, reason = 0.4, ux("machine_strings", "dampen_reason_instability") or "Instability"
         else:
             return False, self.logs.get("HOLDING", ""), 0.0
-
         self.dampener_charges -= 1
         return True, self.logs.get("DAMPER_HIT", "").format(reduction=(r := voltage_spike * factor), reason=reason), r
-
     def audit_fire(self, physics: Any) -> Tuple[str, float, Optional[str]]:
         current_drag = float(safe_get(physics, "narrative_drag", 0.0) or 0.0)
         if math.isinf(current_drag) or current_drag > 900.0:
@@ -105,37 +95,29 @@ class TheCrucible:
                 )
         self.active_state = "REGULATED"
         return "REGULATED", adjustment, msg
-
-
 class TheParadoxEngine:
     _DEFAULT_TEMPLATES = (
         "What if '{seed}' and its exact opposite were both non-negotiable truths? Do not resolve the contradiction. Do not compromise. Build the structure that can hold both simultaneously.",
         "[RECURSIVE PARADOX] Apply the concept of '{seed}' to the architecture of this very conversation. How does the act of thinking about '{seed}' alter the physical constraints of our dialogue? Both are non-negotiable truths.",
         "[NEGATIVE SPACE] Define '{seed}' entirely by what it is not. Construct the boundary of the concept without ever naming the center. Both the center and the void are non-negotiable truths.",
     )
-
     def __init__(self, events_ref):
         self.events = events_ref
         self.beta_max: float = 0.0
         self.paradox_yield: int = 0
         self.is_active: bool = False
-
     def evaluate_tension(self, beta: float, stamina: float) -> bool:
         if beta >= 0.7 and stamina >= 30.0:
             self.beta_max = max(self.beta_max, beta)
             return True
         return False
-
     def ignite(self, recent_words: List[str]) -> Tuple[float, str]:
         self.is_active = True
         seed = random.choice([w for w in recent_words if len(w) > 4] or ["the architecture"])
         templates = ux("machine_strings", "paradox_templates") or self._DEFAULT_TEMPLATES
         return 0.4 + (random.random() * 0.6), random.choice(templates).format(seed=seed)
-
     def disengage(self):
         self.is_active = False
-
-
 class TheForge:
     def __init__(self, lex_ref=None):
         self.lex = lex_ref
@@ -148,7 +130,6 @@ class TheForge:
                 if ing not in self.recipe_map:
                     self.recipe_map[ing] = []
                 self.recipe_map[ing].append(r)
-
     @staticmethod
     def hammer_alloy(physics: Any) -> Tuple[bool, Optional[str], Optional[str]]:
         counts = safe_get(physics, "counts", {})
@@ -171,7 +152,6 @@ class TheForge:
                 "SAFETY_SCISSORS",
             )
         return True, ux("machine_strings", "forge_anchor_stone"), "ANCHOR_STONE"
-
     def attempt_crafting(
         self, physics: Any, inventory_list: List[str]
     ) -> Tuple[bool, Optional[str], Optional[str], Optional[str]]:
@@ -179,11 +159,9 @@ class TheForge:
             clean_words := safe_get(physics, "clean_words", [])
         ):
             return False, None, None, None
-
         clean_set = set(clean_words)
         voltage = float(safe_get(physics, "voltage", 0.0))
         lex_srv = self.lex or LexiconService()
-
         for item in inventory_list:
             for recipe in self.recipe_map.get(item, []):
                 raw_cats = lex_srv.get(recipe["catalyst_category"])
@@ -192,7 +170,6 @@ class TheForge:
                 cat_words = raw_cats if isinstance(raw_cats, set) else set(raw_cats)
                 if clean_set.isdisjoint(cat_words):
                     continue
-
                 entanglement = self._calculate_entanglement(
                     len(clean_set & cat_words), voltage
                 )
@@ -219,11 +196,9 @@ class TheForge:
                         None,
                     )
         return False, None, None, None
-
     @staticmethod
     def _calculate_entanglement(hit_count: int, voltage: float) -> float:
         return min(1.0, 0.2 + (hit_count * 0.1) + (voltage / 133.0))
-
     @staticmethod
     def transmute(physics: Any) -> Optional[str]:
         counts = safe_get(physics, "counts", {})
@@ -235,8 +210,6 @@ class TheForge:
             msg = ux("machine_strings", "forge_overheat")
             return msg.format(voltage=voltage)
         return None
-
-
 class TheTheremin:
     def __init__(self, config_ref=None):
         self.cfg = config_ref or BoneConfig
@@ -247,13 +220,11 @@ class TheTheremin:
         self.SHATTER_POINT = safe_get(cfg, "THEREMIN_SHATTER_POINT", 100.0)
         self.is_stuck = False
         self.logs = self._load_logs()
-
     def _load_logs(self):
         manifest = (
             LoreManifest.get_instance(config_ref=self.cfg).get("PHYSICS_STRINGS") or {}
         )
         return manifest.get("THEREMIN_LOGS", {})
-
     def listen(
         self, physics: Any, governor_mode="COURTYARD"
     ) -> Tuple[bool, float, Optional[str], Optional[str]]:
@@ -327,13 +298,10 @@ class TheTheremin:
                 f"{theremin_msg or ''}{ux('machine_strings', 'theremin_free') or ''}"
             )
         return self.is_stuck, resin_flow, theremin_msg, critical_event
-
     def get_readout(self):
         status = "STUCK" if self.is_stuck else "FLOW"
         msg = ux("machine_strings", "theremin_readout")
         return msg.format(resin=self.decoherence_buildup, status=status)
-
-
 @dataclass
 class SystemEmbryo:
     mind: MindSystem
@@ -344,14 +312,11 @@ class SystemEmbryo:
     is_gestating: bool = True
     soul_legacy: Optional[Dict] = None
     continuity: Optional[Dict] = None
-
-
 class PanicRoom:
     _SAFE_VECTOR = {
         k: 0.0
         for k in ["STR", "VEL", "PSI", "ENT", "PHI", "BET", "DEL", "LAMBDA", "CHI"]
     }
-
     @staticmethod
     def get_safe_physics():
         safe_packet = PhysicsPacket.void_state()
@@ -377,7 +342,6 @@ class PanicRoom:
         safe_packet.zone = ux("machine_strings", "panic_zone") or "PANIC_ROOM"
         safe_packet.manifold = ux("machine_strings", "panic_manifold") or "WHITE_ROOM"
         return safe_packet
-
     @staticmethod
     def get_safe_bio(previous_state=None):
         log_msg = ux("machine_strings", "panic_bio_log")
@@ -406,7 +370,6 @@ class PanicRoom:
             chem_state["ADR"] = 0.0
             chem_state["SER"] = max(0.2, float(safe_get(old_chem, "SER", 0.0)))
         return base
-
     @staticmethod
     def get_safe_mind():
         return {
@@ -414,7 +377,6 @@ class PanicRoom:
             "role": "Panic Room Overseer",
             "thought": ux("machine_strings", "panic_mind_thought"),
         }
-
     @staticmethod
     def get_safe_soul():
         default_soul = {
@@ -426,7 +388,6 @@ class PanicRoom:
             "xp": 0,
         }
         return ux("machine_strings", "panic_soul") or default_soul
-
     @staticmethod
     def get_safe_limbo():
         default_limbo = {
@@ -436,47 +397,36 @@ class PanicRoom:
             "glitch_factor": 0.0,
         }
         return ux("machine_strings", "panic_limbo") or default_limbo
-
-
 class ViralTracer:
     def __init__(self, memory_ref):
         self.memory = memory_ref
         self.active_loops = []
-
     def inject(self, start_node: str) -> Optional[List[str]]:
         if random.random() < 0.05:
             loop = [start_node, "echo", "void", start_node]
             self.active_loops.append(loop)
             return loop
         return None
-
     def psilocybin_rewire(self, loop_path: List[str]) -> str:
         msg = ux("machine_strings", "tracer_rewire")
         if loop_path in self.active_loops:
             self.active_loops.remove(loop_path)
         return msg.format(path="->".join(loop_path))
-
-
 class ThePacemaker:
     def __init__(self, config_ref=None):
         self.cfg = config_ref or BoneConfig
         self.boredom_level = 0.0
         self.heart_rate = 60
         self.BOREDOM_THRESHOLD = getattr(self.cfg, "BOREDOM_THRESHOLD", 10.0)
-
     def beat(self, stress: float):
         self.heart_rate = 60 + (stress * 20)
-
     def update(self, repetition_score: float, voltage: float):
         if repetition_score > 0.5 or voltage < 5.0:
             self.boredom_level += 1.0
         else:
             self.boredom_level = max(0.0, self.boredom_level - 2.0)
-
     def is_bored(self) -> bool:
         return self.boredom_level > self.BOREDOM_THRESHOLD
-
-
 class BoneArchitect:
     @staticmethod
     def _construct_mind(events, lex, config_ref=None) -> Tuple[MindSystem, LimboLayer]:
@@ -493,7 +443,6 @@ class BoneArchitect:
             tracer=ViralTracer(_mem),
         )
         return mind, limbo
-
     @staticmethod
     def _construct_bio(events, mind, lex, config_ref=None) -> BioSystem:
         target_cfg = config_ref or BoneConfig
@@ -514,7 +463,6 @@ class BoneArchitect:
             biometrics=bio_metrics,
             config_ref=target_cfg,
         )
-
     @staticmethod
     def _construct_physics(events, bio, mind, lex, config_ref=None) -> PhysSystem:
         target_cfg = config_ref or BoneConfig
@@ -530,7 +478,6 @@ class BoneArchitect:
             tension=SurfaceTension(),
             dynamics=CosmicDynamics(config_ref=target_cfg),
         )
-
     @staticmethod
     def incubate(events, lex, config_ref=None) -> SystemEmbryo:
         target_cfg = config_ref or BoneConfig
@@ -551,7 +498,6 @@ class BoneArchitect:
             physics=physics,
             shimmer=getattr(bio, "shimmer", None),
         )
-
     @staticmethod
     def awaken(embryo: SystemEmbryo) -> SystemEmbryo:
         events = embryo.bio.mito.events
@@ -572,11 +518,9 @@ class BoneArchitect:
         embryo.soul_legacy = {}
         embryo.continuity = None
         recovered_atlas = {}
-
         raw_result = list(load_result) if isinstance(load_result, (list, tuple)) else []
         padded_result = raw_result + [None] * 5
         mito_legacy, immune_legacy, soul_legacy, continuity, atlas = padded_result[:5]
-
         if mito_legacy and hasattr(embryo.bio.mito, "apply_inheritance"):
             embryo.bio.mito.apply_inheritance(mito_legacy)
         if immune_legacy and isinstance(immune_legacy, (list, set)):
@@ -590,7 +534,6 @@ class BoneArchitect:
             embryo.continuity = continuity
         if isinstance(atlas, dict):
             recovered_atlas = atlas
-
         if recovered_atlas and hasattr(embryo.physics, "nav"):
             if hasattr(embryo.physics.nav, "import_atlas"):
                 try:

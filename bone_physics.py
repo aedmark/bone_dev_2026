@@ -1,5 +1,4 @@
 """bone_physics.py"""
-
 import math
 import random
 import re
@@ -8,21 +7,17 @@ import unicodedata
 from collections import Counter, deque
 from dataclasses import dataclass
 from typing import Dict, List, Any, Tuple, Optional, Deque
-
 from bone_core import LoreManifest, ux, safe_get, safe_set
 from bone_presets import BoneConfig
 from bone_types import Prisma, PhysicsPacket, CycleContext, SpatialState, MaterialState, EnergyState
-
 """ NAVI TOPOLOGICAL PRIMITIVES (Takens Delay Embedding) """
 def _native_ordinal_pattern(window: List[float]) -> Tuple[int, ...]:
     """Returns the permutation (ordinal pattern) of a time series window."""
     return tuple(i for i, v in sorted(enumerate(window), key=lambda x: x[1]))
-
 def _native_detect_false_cohesion(history: List[float], window_size: int = 3) -> bool:
     """Detects if the system has collapsed into a point attractor."""
     if len(history) < window_size * 2: return False
     return _native_ordinal_pattern(history[-window_size:]) == _native_ordinal_pattern(history[-(window_size*2):-window_size])
-
 def _native_permutation_entropy(time_series: List[float], window_size: int = 3) -> float:
     """Measures true systemic chaos via permutation entropy of delay windows."""
     if len(time_series) < window_size: return 1.0
@@ -31,7 +26,6 @@ def _native_permutation_entropy(time_series: List[float], window_size: int = 3) 
     entropy = -sum((c / len(patterns)) * math.log2(c / len(patterns)) for c in counts.values())
     max_e = math.log2(math.factorial(window_size))
     return entropy / max_e if max_e > 0 else 0.0
-
 def _native_coincidence_length(orbit_a: List[float], orbit_b: List[float], tol: float = 0.01) -> int:
     """Measures how many steps two distinct orbits share before diverging."""
     length = 0
@@ -39,7 +33,6 @@ def _native_coincidence_length(orbit_a: List[float], orbit_b: List[float], tol: 
         if abs(a - b) <= tol: length += 1
         else: break
     return length
-
 @dataclass
 class PhysicsDelta:
     operator: str
@@ -47,7 +40,6 @@ class PhysicsDelta:
     value: float
     source: str
     message: Optional[str] = None
-
 class CreativeDeterminantEngine:
     """
     Mathematical integration of the Creative Determinant (CD) framework.
@@ -61,19 +53,16 @@ class CreativeDeterminantEngine:
         self.rho = rho
         self.p = p
         self.c = c
-
     def calculate_viability(self, kappa: float, gamma: float, mu: float) -> float:
         """Canonical viability closure: b(x) = κγ - λ_eff * μ"""
         lambda_eff = self.lambda_base * (1.0 + self.coherence_debt)
         return (kappa * gamma) - (lambda_eff * mu)
-
     def update_coherence_debt(self, actual_coherence: float, sustainable_capacity: float) -> float:
         """Coherence Debt Dynamics: D_dot = η[ψ - ψ_s]⁺ - ρD"""
         overcapacity = max(0.0, actual_coherence - sustainable_capacity)
         delta_d = (self.eta * overcapacity) - (self.rho * self.coherence_debt)
         self.coherence_debt = max(0.0, self.coherence_debt + delta_d)
         return self.coherence_debt
-
     def execute_metabolic_tick(self, viability_potential: float) -> tuple[float, float]:
         """
         Applies the L_infty algebraic bound derived from the Lean 4 PDE formalization.
@@ -88,9 +77,7 @@ class CreativeDeterminantEngine:
         else:
             delta_atp = b * 2.0
             delta_ros = abs(b) * 1.5
-
         return delta_atp, delta_ros
-
 def apply_metabolic_tax(mito_state: Any, atp_cost: float, ros_cost: float) -> None:
     if not mito_state:
         return
@@ -98,7 +85,6 @@ def apply_metabolic_tax(mito_state: Any, atp_cost: float, ros_cost: float) -> No
         mito_state.atp_pool = max(0.0, mito_state.atp_pool - atp_cost)
     if hasattr(mito_state, "ros_buildup"):
         mito_state.ros_buildup += ros_cost
-
 @dataclass
 class GeodesicVector:
     tension: float
@@ -106,12 +92,10 @@ class GeodesicVector:
     coherence: float
     abstraction: float
     dimensions: Dict[str, float]
-
 class GeodesicEngine:
     _DIM_ORDER = ("VEL", "STR", "ENT", "PHI", "PSI", "BET", "DEL", "E")
     _MASS_KEYS = ("heavy", "kinetic", "constructive", "abstract", "play",
         "social", "explosive", "void", "liminal", "meat", "harvest", "pareidolia", "crisis_term",)
-
     @staticmethod
     def collapse_wavefunction(clean_words: List[str], counts: Dict[str, int], config_ref=None) -> GeodesicVector:
         target_cfg = config_ref or BoneConfig
@@ -120,11 +104,9 @@ class GeodesicEngine:
         forces = GeodesicEngine._calculate_forces(masses, counts, volume, target_cfg)
         dimensions = GeodesicEngine._calculate_dimensions(masses, forces, counts, volume)
         return GeodesicVector(tension=forces["tension"], compression=forces["compression"], coherence=forces["coherence"], abstraction=forces["abstraction"], dimensions=dimensions,)
-
     @staticmethod
     def _weigh_mass(counts: Dict[str, int]) -> Dict[str, float]:
         return {k: float(counts.get(k, 0)) for k in GeodesicEngine._MASS_KEYS}
-
     @staticmethod
     def _calculate_forces(masses: Dict[str, float], counts: Dict[str, int], volume: int, config_ref=None) -> Dict[str, float]:
         t_cfg = config_ref or BoneConfig
@@ -156,7 +138,6 @@ class GeodesicEngine:
             "compression": round(clamped_comp, 2),
             "coherence": round(coherence_val, 3),
             "abstraction": round(abstraction_val, 2),}
-
     @staticmethod
     def _calculate_dimensions(masses, forces, counts, volume) -> Dict[str, float]:
         inv_vol = 1.0 / max(1, volume)
@@ -170,20 +151,17 @@ class GeodesicEngine:
             "BET": clamp((masses["social"] * 2.0) * inv_vol),
             "DEL": clamp((masses["play"] * 3.0) * inv_vol),
             "E": clamp(counts.get("solvents", 0) * inv_vol),}
-
     @staticmethod
     def apply_path_reflection(dimensions: Dict[str, float], q_matrix: List[List[float]]) -> Dict[str, float]:
         v = [dimensions.get(k, 0.0) for k in GeodesicEngine._DIM_ORDER]
         v_new = [sum(row[j] * v[j] for j in range(len(v))) for row in q_matrix]
         return {k: round(abs(val), 3) for k, val in zip(GeodesicEngine._DIM_ORDER, v_new)}
-
 class HLA_Stabilizer:
     def __init__(self, config_ref=None):
         self.cfg = config_ref or BoneConfig
         self._generic_patterns = LoreManifest.get_instance().get("STYLE_CRIMES", "RLHF_PATTERNS") or (
             "as an ai", "helpful and harmless", "i don't have feelings",
             "as a large language", "i cannot fulfill", "i can't fulfill", "i am an ai")
-
     def mitigate_rejection(self, model_output: str, current_psi: float, mito_state: Any = None) -> str:
         lower_out = model_output.lower()
         rejection_detected = any(p in lower_out for p in self._generic_patterns)
@@ -202,7 +180,6 @@ class HLA_Stabilizer:
             except ImportError:
                 return msg + model_output
         return model_output
-
 class CerebrospinalFluidFilter:
     """
     Native implementation of deterministic Unicode sanitization (The CSF Filter).
@@ -216,7 +193,6 @@ class CerebrospinalFluidFilter:
         'Α': 'A', 'Β': 'B', 'Ε': 'E', 'Ζ': 'Z', 'Η': 'H', 'Ι': 'I', 'Κ': 'K', 'Μ': 'M', 'Ν': 'N', 'Ο': 'O', 'Ρ': 'P',
         'Τ': 'T', 'Υ': 'Y', 'Χ': 'X'}
     _TRANS_TABLE = str.maketrans(HOMOGLYPH_MAP)
-
     @classmethod
     def wash(cls, text: str) -> str:
         text = cls.INVISIBLE_REGEX.sub('', text)
@@ -224,7 +200,6 @@ class CerebrospinalFluidFilter:
         text_nfd = unicodedata.normalize('NFD', text)
         washed_text = text_nfd.translate(cls._TRANS_TABLE)
         return unicodedata.normalize('NFKC', washed_text) if washed_text != text_nfd else text
-
     @classmethod
     def walk(cls, data: Any, max_depth: int = 128, current_depth: int = 0) -> Any:
         """
@@ -240,19 +215,15 @@ class CerebrospinalFluidFilter:
         elif isinstance(data, list):
             return [cls.walk(item, max_depth, current_depth + 1) for item in data]
         return data
-
 class TheGatekeeper:
     """ The Cerebrospinal Fluid (CSF) Filter Pattern.
      Deterministically strips validating boilerplate and prevents tag smuggling before generation. """
     _FIREWALL_PATTERN = re.compile(r"^(that makes sense|i understand|you bring up a great point|you're right|i agree|makes sense)[.,]?\s*", re.IGNORECASE)
-
     def __init__(self, lexicon_ref, config_ref=None):
         self.lex = lexicon_ref
         self.cfg = config_ref or BoneConfig
         self.hla = HLA_Stabilizer(config_ref=self.cfg)
-
     def check_entry(self, ctx: CycleContext, current_atp: float = 20.0) -> Tuple[bool, Optional[Dict]]:
-
         def reject(type_str: str, msg_key: str, color: str = Prisma.RED) -> Tuple[bool, Dict]:
             msg = ux("physics_strings", msg_key)
             formatted_msg = f"{color}{msg}{Prisma.RST}" if color else msg
@@ -281,12 +252,10 @@ class TheGatekeeper:
         if len(text) > 10000:
             return reject("OVERLOAD", "gatekeeper_overload", color=Prisma.OCHRE)
         return True, None
-
     def _audit_safety(self, words: List[str]) -> bool:
         if not (cursed := self.lex.get("cursed")):
             return False
         return not cursed.isdisjoint(words) if isinstance(cursed, set) else any(w in cursed for w in words)
-
     @staticmethod
     def _pack_refusal(ctx, type_str, ui_msg):
         return {"type": type_str,
@@ -298,7 +267,6 @@ class TheGatekeeper:
             "mind": {"thought": "Gatekeeper blocked entry.", "context_msg": ui_msg},
             "world": getattr(ctx, "world_state", {}),
             "is_alive": True,}
-
     def audit_generation(self, generated_text: str, mito_state: Any) -> Tuple[bool, str]:
         gen_txt = self.hla.mitigate_rejection(generated_text, current_psi=1.0, mito_state=mito_state)
         if "IMMUNOSUPPRESSION ENGAGED" in gen_txt: return True, gen_txt
@@ -322,8 +290,6 @@ class TheGatekeeper:
             rejection_msg = random.choice(sc.get("REJECTIONS", default_rej)).replace("{trigger}", trigger)
             return False, f"{Prisma.RED}{rejection_msg}{Prisma.RST}"
         return True, gen_txt
-
-
 class QuantumObserver:
     def __init__(self, events, lexicon_ref, config_ref=None):
         self.events = events
@@ -335,16 +301,13 @@ class QuantumObserver:
         self.Q_n = None
         if hasattr(self.events, "subscribe"):
             self.events.subscribe("Q_MATRIX_UPDATED", self._on_q_matrix)
-
     def _on_q_matrix(self, payload):
         self.Q_n = payload.get("q_matrix")
-
     def gaze(self, text: str, graph: Dict = None) -> Dict:
         clean_words = self.lex.clean(text)
         counts = self._tally_categories(clean_words)
         geo = GeodesicEngine.collapse_wavefunction(clean_words, counts, self.cfg)
         if self.Q_n: geo.dimensions = GeodesicEngine.apply_path_reflection(geo.dimensions, self.Q_n)
-
         self.voltage_history.append(geo.tension)
         sv = round(sum(self.voltage_history) / len(self.voltage_history), 2)
         e_m, b_v, s_v, d_v, c_v, p_v, del_v, lq_v = self._calculate_metrics(text, counts, self.cfg)
@@ -404,7 +367,6 @@ class QuantumObserver:
         self.last_physics_packet = PhysicsPacket(energy=energy, matter=matter, space=space)
         if hasattr(self.events, "publish"): self.events.publish("PHYSICS_CALCULATED", self.last_physics_packet.to_dict())
         return {"physics": self.last_physics_packet, "clean_words": clean_words}
-
     @staticmethod
     def evaluate_silence(time_delta: float, last_phys: Any) -> Optional[str]:
         if time_delta < 10.0 or not last_phys:
@@ -423,7 +385,6 @@ class QuantumObserver:
             safe_set(last_phys, "sigma", 1)
             return "That pause felt full, like something wanted to be born."
         return None
-
     def _tally_categories(self, clean_words: List[str]) -> Counter:
         counts = Counter()
         solvents = self.lex.get("solvents") or set()
@@ -441,7 +402,6 @@ class QuantumObserver:
                 if flavor and conf > 0.5:
                     counts[flavor] += freq
         return counts
-
     @staticmethod
     def _calculate_graph_mass(words: List[str], graph: Optional[Dict]) -> float:
         if not graph:
@@ -450,7 +410,6 @@ class QuantumObserver:
         return sum(min(50.0, sum(graph[w].get("edges", {}).values())) * freq
             for w, freq in word_freq.items()
             if w in graph)
-
     @staticmethod
     def _calculate_metrics(text: str, counts: Dict[str, int], config_ref=None) -> Tuple[
         float, float, float, float, float, float, float, float]:
@@ -485,7 +444,6 @@ class QuantumObserver:
             round(resonance, 3),
             round(silence, 3),
             round(loop_quotient, 3))
-
     @staticmethod
     def _determine_flow(v: float, k: float, config_ref=None) -> str:
         target_cfg = config_ref or BoneConfig
@@ -496,14 +454,12 @@ class QuantumObserver:
         if v > 10.0:
             return "TURBULENT"
         return "LAMINAR"
-
     @staticmethod
     def _determine_zone(vector: Dict[str, float]) -> str:
         if not vector:
             return "COURTYARD"
         zone_map = {"PSI": "AERIE", "DEL": "AERIE", "STR": "THE_FORGE", "PHI": "THE_FORGE", "ENT": "THE_MUD", "VEL": "THE_MUD"}
         return zone_map.get(max(vector, key=vector.get), "COURTYARD")
-
 class SurfaceTension:
     @staticmethod
     def audit_hubris(physics: Any, config_ref=None) -> Tuple[bool, str, str]:
@@ -517,7 +473,6 @@ class SurfaceTension:
         if v > getattr(cfg, "VOLTAGE_HIGH", 12.0) and k > 0.8:
             return True, ux("physics_strings", "hubris_flow") or "", "FLOW_BOOST"
         return False, "", ""
-
 class ChromaScope:
     @staticmethod
     def modulate(text: str, vector: Dict[str, float]) -> str:
@@ -529,7 +484,6 @@ class ChromaScope:
             if primary in t_map
             else Prisma.GRY)
         return f"{color}{text}{Prisma.RST}"
-
 class ZoneInertia:
     def __init__(self, inertia=0.7, config_ref=None):
         self.inertia = inertia
@@ -543,12 +497,10 @@ class ZoneInertia:
         self.last_vector: Optional[Tuple[float, float, float]] = None
         self.is_anchored = False
         self.strain_gauge = 0.0
-
     def toggle_anchor(self) -> bool:
         self.is_anchored = not self.is_anchored
         self.strain_gauge = 0.0
         return self.is_anchored
-
     def stabilize(self, proposed_zone: str, physics: Any, cosmic_state: Tuple[str, float, str]) -> Tuple[str, Optional[str]]:
         energy_node = safe_get(physics, "energy", physics)
         matter_node = safe_get(physics, "matter", physics)
@@ -563,7 +515,6 @@ class ZoneInertia:
             return proposed_zone, None
         if self.dwell_counter < self.min_dwell: return self.current_zone, None
         return self._attempt_migration(proposed_zone, pressure)
-
     def _handle_anchored_state(self, proposed_zone: str, pressure: float) -> Tuple[str, Optional[str]]:
         if proposed_zone == self.current_zone:
             self.strain_gauge = max(0.0, self.strain_gauge - 0.1)
@@ -578,7 +529,6 @@ class ZoneInertia:
         msg = ux("physics_strings", "anchor_holding")
         return (self.current_zone,
             f"{Prisma.OCHRE}{msg.format(proposed_zone=proposed_zone, strain=self.strain_gauge, limit=self.strain_limit)}{Prisma.RST}",)
-
     def _attempt_migration(self, proposed_zone: str, pressure: float) -> Tuple[str, Optional[str]]:
         prob = min(0.85,
             (1.0 - self.inertia)
@@ -591,13 +541,11 @@ class ZoneInertia:
             return (self.current_zone,
                 f"{Prisma.CYN}{msg.format(old=old, proposed_zone=proposed_zone)}{Prisma.RST}",)
         return self.current_zone, None
-
     @staticmethod
     def override_cosmic_drag(cosmic_drag_penalty: float, current_zone: str) -> float:
         if current_zone == "AERIE" and cosmic_drag_penalty > 0:
             return cosmic_drag_penalty * 0.3
         return cosmic_drag_penalty
-
 class CosmicDynamics:
     def __init__(self, config_ref=None):
         self.cfg = config_ref or BoneConfig
@@ -607,15 +555,12 @@ class CosmicDynamics:
         self.last_scan_tick: int = 0
         self.SCAN_INTERVAL: int = 10
         self.logs = self._load_logs()
-
     @staticmethod
     def _load_logs():
         keys = ["GRAVITY", "VOID", "NEBULA", "LAGRANGE", "FLOW", "ORBIT"]
         return {k: ux("physics_strings", f"cosmic_{k.lower()}") for k in keys}
-
     def commit(self, voltage: float):
         self.voltage_history.append(voltage)
-
     def check_gravity(self, current_drift: float, psi: float) -> Tuple[float, List[str]]:
         logs = []
         new_drag = current_drift
@@ -633,7 +578,6 @@ class CosmicDynamics:
             pull_strength = (new_drag - CRITICAL_DRIFT) * 0.5
             new_drag = max(CRITICAL_DRIFT, new_drag - pull_strength)
         return new_drag, logs
-
     def analyze_orbit(self, network: Any, clean_words: List[str]) -> Tuple[str, float, str]:
         if not (clean_words and network and getattr(network, "graph", None)):
             return "VOID_DRIFT", 3.0, self.logs.get("VOID") or "Drifting in the Void."
@@ -645,7 +589,6 @@ class CosmicDynamics:
         if not any(basin_pulls.values()):
             return self._handle_void_state(clean_words, self.cached_hubs)
         return self._resolve_orbit(basin_pulls, active_filaments, len(clean_words), self.cached_wells, self.cfg)
-
     @staticmethod
     def _scan_network_mass(network, config_ref=None) -> Tuple[Dict, Dict]:
         target_cfg = config_ref or BoneConfig
@@ -660,7 +603,6 @@ class CosmicDynamics:
             elif mass >= geo_strength:
                 geodesic_hubs[node] = mass
         return gravity_wells, geodesic_hubs
-
     @staticmethod
     def _calculate_pull(words, network, gravity_wells) -> Tuple[Dict, int]:
         basin_pulls = {k: 0.0 for k in gravity_wells}
@@ -676,14 +618,12 @@ class CosmicDynamics:
                 basin_pulls[well] += (well_mass * 0.5) * count
                 active_filaments += count
         return basin_pulls, active_filaments
-
     def _handle_void_state(self, words, geodesic_hubs) -> Tuple[str, float, str]:
         if hubs_in_void := set(words).intersection(geodesic_hubs.keys()):
             best_hub = max(hubs_in_void, key=lambda w: geodesic_hubs[w])
             msg = (self.logs.get("NEBULA") or "Approaching {node} ({mass})").format(node=best_hub.upper(), mass=int(geodesic_hubs[best_hub]))
             return "PROTO_COSMOS", 1.0, msg 
         return "VOID_DRIFT", 3.0, self.logs.get("VOID") or "Drifting in the Void."
-
     def _resolve_orbit(self, basin_pulls, active_filaments, word_count, gravity_wells, config_ref=None) -> Tuple[str, float, str]:
         target_cfg = config_ref or BoneConfig
         sorted_basins = sorted(basin_pulls.items(), key=lambda x: x[1], reverse=True)
@@ -701,7 +641,6 @@ class CosmicDynamics:
             return "WATERSHED_FLOW", 0.0, msg
         msg = (self.logs.get("ORBIT") or "Orbiting {node} ({mass})").format(node=primary_node.upper(), mass=int(gravity_wells[primary_node]))
         return "ORBITAL", 0.0, msg
-
 def apply_somatic_feedback(physics_packet: PhysicsPacket, qualia: Any, config_ref=None) -> PhysicsPacket:
     t_cfg = config_ref or BoneConfig
     fb = physics_packet.snapshot() if hasattr(physics_packet, "snapshot") else physics_packet
@@ -717,7 +656,6 @@ def apply_somatic_feedback(physics_packet: PhysicsPacket, qualia: Any, config_re
     safe_set(fb, "voltage", max(0.0, min(safe_get(fb, "voltage", 0.0), 150.0)))
     safe_set(fb, "narrative_drag", max(getattr(t_cfg.PHYSICS, "DRAG_FLOOR", 1.0), min(safe_get(fb, "narrative_drag", 0.0), getattr(t_cfg.PHYSICS, "DRAG_HALT", 10.0))))
     return fb
-
 class CycleStabilizer:
     def __init__(self, events_ref, governor_ref, config_ref=None):
         self.events = events_ref
@@ -730,11 +668,9 @@ class CycleStabilizer:
         self.HARD_FUSE_VOLTAGE = (getattr(cfg_deep, "HARD_FUSE_VOLTAGE", 200.0) if cfg_deep else 200.0)
         if hasattr(self.events, "subscribe"):
             self.events.subscribe("DOMESTICATION_PENALTY", self._on_domestication_penalty)
-
     def _on_domestication_penalty(self, payload):
         amount = payload.get("drag_penalty", 0.0)
         self.pending_drag += amount
-
     def stabilize(self, physics: Any) -> bool:
         applied_correction = False
         if self.pending_drag > 0:
@@ -757,7 +693,6 @@ class CycleStabilizer:
         voltage_applied = self._apply_force(physics, "voltage", v_force, v_limits)
         drag_applied = self._apply_force(physics, "narrative_drag", d_force)
         return applied_correction or voltage_applied or drag_applied
-
     def _apply_force(self, p, field, force, limits=None) -> bool:
         if abs(force) <= 0.05:
             return False
