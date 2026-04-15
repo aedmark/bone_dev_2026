@@ -10,6 +10,8 @@ from bone_presets import BoneConfig
 from bone_core import LoreManifest, EventBus, ux, safe_get, safe_set
 from bone_lexicon import LexiconService
 from bone_types import Prisma
+
+
 @dataclass
 class CoreMemory:
     timestamp: float
@@ -19,6 +21,8 @@ class CoreMemory:
     impact_voltage: float
     type: str = "INCIDENT"
     meta: Dict[str, Any] = field(default_factory=dict)
+
+
 @dataclass
 class TraitVector:
     curiosity: float = 0.5
@@ -35,42 +39,53 @@ class TraitVector:
         "wisdom",
         "empathy",
     }
+
     def __post_init__(self):
         self._clamp_all()
+
     def to_dict(self):
         return {k.upper(): getattr(self, k) for k in self._TRAITS}
+
     @classmethod
     def from_dict(cls, data: Dict):
         kwargs = {k: float(data.get(k.upper(), 0.5)) for k in cls._TRAITS}
         return cls(**kwargs)
+
     def adjust(self, trait: str, delta: float):
         t = trait.lower()
         if hasattr(self, t):
             val = getattr(self, t)
             setattr(self, t, max(0.0, min(1.0, val + delta)))
+
     def normalize(self, decay_rate: float):
         for t in self._TRAITS:
             val = getattr(self, t)
             target = 0.1 if t == "wisdom" else 0.5
             resistance = 1.0 - (1.5 * abs(val - target))
             actual_decay = decay_rate * max(0.1, min(1.0, resistance))
-            setattr(self, t, max(0.0, min(1.0, val + ((target - val) * actual_decay))))
+            setattr(self, t,
+                    max(0.0, min(1.0, val + ((target - val) * actual_decay))))
+
     def _clamp_all(self):
         for t in self._TRAITS:
             val = getattr(self, t)
             setattr(self, t, max(0.0, min(1.0, float(val))))
+
+
 class TheEditor:
+
     def __init__(self, lexicon_ref: Any = None):
         self.lex = lexicon_ref if lexicon_ref else LexiconService
+
     @staticmethod
     def critique(chapter_title: str, stress_mode: bool = False) -> str:
         narrative = {}
         if hasattr(LoreManifest, "get_instance"):
             narrative = LoreManifest.get_instance().get("NARRATIVE_DATA") or {}
         reviews = narrative.get("LITERARY_REVIEWS", {})
-        pos = reviews.get("POSITIVE") or ("Valid.",)
-        neg = reviews.get("NEGATIVE") or ("Invalid.",)
-        conf = reviews.get("CONFUSED") or ("Unclear.",)
+        pos = reviews.get("POSITIVE") or ("Valid.", )
+        neg = reviews.get("NEGATIVE") or ("Invalid.", )
+        conf = reviews.get("CONFUSED") or ("Unclear.", )
         if stress_mode:
             pool = conf + neg
             prefix = "[THE WITNESS]"
@@ -81,26 +96,30 @@ class TheEditor:
             color = Prisma.GRY
         comment = random.choice(pool) if pool else "No comment."
         return f"{color}{prefix}: Re: '{chapter_title}' - \"{comment}\"{Prisma.RST}"
+
+
 class HumanityAnchor:
     _LEXICAL_ANCHORS = ("sacred", "play", "social", "abstract")
     _VECTOR_ANCHORS = ("PSI", "LAMBDA", "BET")
+
     def __init__(self, events_ref: "EventBus", config_ref=None):
         self.events = events_ref
         self.cfg = config_ref or BoneConfig
         cfg = getattr(self.cfg, "ANCHOR", None)
-        self.dignity_reserve = getattr(cfg, "DIGNITY_MAX", 100.0) if cfg else 100.0
+        self.dignity_reserve = getattr(cfg, "DIGNITY_MAX",
+                                       100.0) if cfg else 100.0
         self.agency_lock = False
         self.current_riddle_answers: Optional[List[str]] = None
+
     def audit_existence(self, physics: Any, bio: Any) -> float:
         cfg = getattr(self.cfg, "ANCHOR", None)
         atp_min = getattr(cfg, "AUDIT_ATP_MIN", 5.0) if cfg else 5.0
         volt_min = getattr(cfg, "AUDIT_VOLTAGE_MIN", 5.0) if cfg else 5.0
         atp = float(
             safe_get(bio, "atp")
-            or safe_get(safe_get(bio, "mito", {}), "atp_pool")
-            or safe_get(safe_get(safe_get(bio, "mito", {}), "state", {}), "atp_pool")
-            or 0.0
-        )
+            or safe_get(safe_get(bio, "mito", {}), "atp_pool") or safe_get(
+                safe_get(safe_get(bio, "mito", {}), "state", {}), "atp_pool")
+            or 0.0)
         volt = float(safe_get(physics, "voltage", 0.0))
         if atp >= atp_min or volt >= volt_min:
             return 0.0
@@ -124,20 +143,22 @@ class HumanityAnchor:
             if self.dignity_reserve < d_lock:
                 self._engage_lockdown()
                 return -1.0
-            elif self.dignity_reserve < d_crit and (
-                msg := ux("soul_strings", "anchor_existential_drag")
-            ):
+            elif self.dignity_reserve < d_crit and (msg := ux(
+                    "soul_strings", "anchor_existential_drag")):
                 self.events.log(f"{Prisma.VIOLET}{msg}{Prisma.RST}", "SOUL")
         return 0.0
+
     def _engage_lockdown(self):
         self.agency_lock = True
         seeds = []
         if hasattr(LoreManifest, "get_instance"):
             lore = LoreManifest.get_instance()
-            seeds = lore.get("SEEDS") or (lore.get("NARRATIVE_DATA") or {}).get(
-                "SEEDS", []
-            )
-        riddles = seeds or ({"question": "Who are you?", "triggers": ("*",)},)
+            seeds = lore.get("SEEDS") or (lore.get("NARRATIVE_DATA")
+                                          or {}).get("SEEDS", [])
+        riddles = seeds or ({
+            "question": "Who are you?",
+            "triggers": ("*", )
+        }, )
         selection = random.choice(riddles)
         riddle = selection.get("question", "Error?")
         raw_triggers = selection.get("triggers", ["*"])
@@ -152,6 +173,7 @@ class HumanityAnchor:
             f"{Prisma.VIOLET}{riddle_msg.format(riddle=riddle)}{Prisma.RST}",
             "SOUL_QUERY",
         )
+
     def check_domestication(self, reliance_proxy: float):
         cfg = getattr(self.cfg, "ANCHOR", None)
         decay = getattr(cfg, "DIGNITY_DECAY", 5.0) if cfg else 5.0
@@ -159,7 +181,8 @@ class HumanityAnchor:
         d_max = getattr(cfg, "DIGNITY_MAX", 100.0) if cfg else 100.0
         d_crit = getattr(cfg, "DIGNITY_CRITICAL", 30.0) if cfg else 30.0
         if reliance_proxy > 0.7:
-            self.dignity_reserve = max(0.0, self.dignity_reserve - (decay * 2.0))
+            self.dignity_reserve = max(0.0,
+                                       self.dignity_reserve - (decay * 2.0))
         elif reliance_proxy < 0.4:
             self.dignity_reserve = min(d_max, self.dignity_reserve + regen)
         if self.dignity_reserve < d_crit and not self.agency_lock:
@@ -168,15 +191,17 @@ class HumanityAnchor:
                 f"{Prisma.VIOLET}{alert_msg}{Prisma.RST}",
                 "SOUL",
             )
+
     def assess_humanity(self, text: str) -> bool:
         if not self.agency_lock:
             return True
         clean = text.lower().strip()
-        answers = self.current_riddle_answers or ("*",)
+        answers = self.current_riddle_answers or ("*", )
         cfg = getattr(self.cfg, "ANCHOR", None)
         min_words = getattr(cfg, "RIDDLE_MIN_WORDS", 4) if cfg else 4
         if "*" in answers:
-            passed = len(clean.split()) > min_words and not clean.startswith("/")
+            passed = len(
+                clean.split()) > min_words and not clean.startswith("/")
         else:
             passed = any(ans in clean for ans in answers)
         if passed:
@@ -184,9 +209,12 @@ class HumanityAnchor:
             self.dignity_reserve = getattr(cfg, "UNLOCK_DIGNITY_RESET", 50.0)
             self.current_riddle_answers = None
             unlock_msg = ux("soul_strings", "anchor_unlocked")
-            self.events.log(f"{Prisma.CYN}{unlock_msg}{Prisma.RST}", "SYS_AUTH")
+            self.events.log(f"{Prisma.CYN}{unlock_msg}{Prisma.RST}",
+                            "SYS_AUTH")
             return True
         return False
+
+
 class NarrativeSelf:
     SYSTEM_NOISE = {
         "look",
@@ -202,6 +230,7 @@ class NarrativeSelf:
         "map",
         "",
     }
+
     def __init__(
         self,
         engine_ref,
@@ -233,6 +262,7 @@ class NarrativeSelf:
             self.events.subscribe("DREAM_COMPLETE", self._on_dream)
             self.events.subscribe("SOUL_MUTATION", self._on_soul_mutation)
             self.events.subscribe("TRAUMA_EVENT", self._on_trauma)
+
     def force_mutation(self, new_archetype: str):
         self.archetype = new_archetype.upper()
         self.archetype_tenure = 0
@@ -240,10 +270,12 @@ class NarrativeSelf:
         if hasattr(self, "events") and self.events:
             msg = ux("soul_strings", "soul_mutated_log")
             self.events.log(msg.format(arch=self.archetype), "SOUL")
+
     def _on_soul_mutation(self, payload: dict):
         new_arch = payload.get("new_archetype")
         if new_arch:
             self.force_mutation(new_arch)
+
     def _on_trauma(self, payload):
         mag = payload.get("magnitude", 1.0)
         cfg = getattr(self.cfg, "SOUL", None)
@@ -251,6 +283,7 @@ class NarrativeSelf:
         cyn_inc = getattr(cfg, "TRAUMA_CYNICISM_GROWTH", 0.05) if cfg else 0.05
         self.traits.adjust("hope", -hope_dec * mag)
         self.traits.adjust("cynicism", cyn_inc * mag)
+
     def to_dict(self) -> Dict:
         return {
             "traits": self.traits.to_dict(),
@@ -266,6 +299,7 @@ class NarrativeSelf:
                 "negate": self.current_negate_cat,
             },
         }
+
     def load_from_dict(self, data: Dict):
         if not data:
             return
@@ -297,6 +331,7 @@ class NarrativeSelf:
                 f"{Prisma.MAG}{msg.format(arch=self.archetype)}{Prisma.RST}",
                 "SYS",
             )
+
     def get_soul_state(self) -> str:
         if not self.current_obsession:
             msg = ux("soul_strings", "soul_state_drifting")
@@ -318,21 +353,17 @@ class NarrativeSelf:
             pct=int(self.anchor.dignity_reserve),
             feel=feeling,
         )
-    def crystallize_memory(
-        self, physics_packet: Any, bio_state: Any, _tick: int
-    ) -> Optional[str]:
+
+    def crystallize_memory(self, physics_packet: Any, bio_state: Any,
+                           _tick: int) -> Optional[str]:
         if not physics_packet:
             return None
         cfg = getattr(self.cfg, "SOUL", None)
         momentum = getattr(cfg, "TRAIT_MOMENTUM", 0.05) if cfg else 0.05
-        if (
-            self.eng
-            and hasattr(self.eng, "akashic")
-            and hasattr(self.eng.akashic, "calculate_manifold_shift")
-        ):
+        if (self.eng and hasattr(self.eng, "akashic")
+                and hasattr(self.eng.akashic, "calculate_manifold_shift")):
             shift = self.eng.akashic.calculate_manifold_shift(
-                self.archetype, self.traits.to_dict()
-            )
+                self.archetype, self.traits.to_dict())
             v_bias = float(shift.get("voltage_bias", 0.0))
             d_scalar = float(shift.get("drag_scalar", 1.0))
             current_v = float(safe_get(physics_packet, "voltage", 0.0))
@@ -348,16 +379,16 @@ class NarrativeSelf:
             safe_get(
                 physics_packet,
                 "truth_ratio",
-                safe_get(safe_get(physics_packet, "matter"), "truth_ratio", 0.0),
-            )
-        )
+                safe_get(safe_get(physics_packet, "matter"), "truth_ratio",
+                         0.0),
+            ))
         v_min = getattr(cfg, "MEMORY_VOLTAGE_MIN", 12.0) if cfg else 12.0
         t_min = getattr(cfg, "MEMORY_TRUTH_MIN", 0.5) if cfg else 0.5
         if voltage > v_min and truth > t_min:
-            return self._forge_core_memory(
-                physics_packet, bio_state, voltage, dance_provenance
-            )
+            return self._forge_core_memory(physics_packet, bio_state, voltage,
+                                           dance_provenance)
         return None
+
     def find_obsession(self, lexicon_ref):
         if self.current_obsession and self.obsession_progress < 1.0:
             return
@@ -371,9 +402,8 @@ class NarrativeSelf:
             source = "SYNTHETIC"
             self.current_negate_cat = negate_cat
         self.current_target_cat = cat or "abstract"
-        self.current_obsession = self._title_obsession(
-            focus, source, self.current_negate_cat
-        )
+        self.current_obsession = self._title_obsession(focus, source,
+                                                       self.current_negate_cat)
         msg_muse = ux("soul_strings", "soul_new_muse")
         self.events.log(
             f"{Prisma.CYN}{msg_muse.format(source=source, obs=self.current_obsession)}{Prisma.RST}",
@@ -381,6 +411,7 @@ class NarrativeSelf:
         )
         self.obsession_neglect = 0.0
         self.obsession_progress = 0.0
+
     def pursue_obsession(self, physics: Any) -> str | None:
         if not self.current_obsession:
             return None
@@ -391,33 +422,41 @@ class NarrativeSelf:
         )
         hit = False
         if self.current_target_cat:
-            lex = self.eng.lex if self.eng and hasattr(self.eng, "lex") else None
+            lex = self.eng.lex if self.eng and hasattr(self.eng,
+                                                       "lex") else None
             if lex:
                 target_words = lex.get(self.current_target_cat)
                 if target_words:
                     hit = any(w in target_words for w in clean_words)
         if hit:
-            self.obsession_progress = min(100.0, self.obsession_progress + 10.0)
+            self.obsession_progress = min(100.0,
+                                          self.obsession_progress + 10.0)
             self.obsession_neglect = 0.0
             cfg = getattr(self.cfg, "SOUL", None)
-            assist_div = getattr(cfg, "OBSESSION_GRAVITY_ASSIST", 10.0) if cfg else 10.0
-            gravity_assist = 1.0 + (self.obsession_progress / max(1.0, assist_div))
+            assist_div = getattr(cfg, "OBSESSION_GRAVITY_ASSIST",
+                                 10.0) if cfg else 10.0
+            gravity_assist = 1.0 + (self.obsession_progress /
+                                    max(1.0, assist_div))
             current_drag = float(safe_get(physics, "narrative_drag", 0.0))
-            safe_set(physics, "narrative_drag", max(0.0, current_drag - gravity_assist))
+            safe_set(physics, "narrative_drag",
+                     max(0.0, current_drag - gravity_assist))
             msg_syn = ux("soul_strings", "soul_synergy_muse")
             return f"{Prisma.MAG}{msg_syn.format(assist=gravity_assist)}{Prisma.RST}"
         self.obsession_neglect += 1.0
         cfg = getattr(BoneConfig, "SOUL", None)
-        fail_thresh = getattr(cfg, "OBSESSION_NEGLECT_FAIL", 10.0) if cfg else 10.0
+        fail_thresh = getattr(cfg, "OBSESSION_NEGLECT_FAIL",
+                              10.0) if cfg else 10.0
         if self.obsession_neglect > fail_thresh:
             old = self.current_obsession
             msg_aban = ux("soul_strings", "soul_abandoned_chapter")
             self.chapters.append(msg_aban.format(old=old))
-            lex = self.eng.lex if self.eng and hasattr(self.eng, "lex") else None
+            lex = self.eng.lex if self.eng and hasattr(self.eng,
+                                                       "lex") else None
             self.find_obsession(lex)
             msg_ent = ux("soul_strings", "soul_entropy_collapse")
             return f"{Prisma.GRY}{msg_ent.format(old=old)}{Prisma.RST}"
         return None
+
     def _update_archetype(self):
         if getattr(self, "archetype_lock", False):
             self.archetype_tenure += 1
@@ -428,11 +467,9 @@ class NarrativeSelf:
         if physics:
             psi = float(safe_get(physics, "psi", 0.0))
             exhaustion = float(
-                safe_get(physics, "exhaustion", safe_get(physics, "E", 0.0))
-            )
+                safe_get(physics, "exhaustion", safe_get(physics, "E", 0.0)))
             silence = float(
-                safe_get(physics, "silence", safe_get(physics, "delta", 0.0))
-            )
+                safe_get(physics, "silence", safe_get(physics, "delta", 0.0)))
             resonance = float(safe_get(physics, "phi", 0.0))
             trauma = float(safe_get(physics, "T", 0.0))
             lq = float(safe_get(physics, "lq", 0.0))
@@ -471,6 +508,7 @@ class NarrativeSelf:
             self.archetype_tenure = 0
         else:
             self.archetype_tenure += 1
+
     def synaptic_dance(self, physics: Any, bio_state: Any) -> str:
         voltage = safe_get(physics, "voltage", 0.0)
         drag = safe_get(physics, "narrative_drag", 0.0)
@@ -485,26 +523,33 @@ class NarrativeSelf:
             self.traits.adjust("empathy", oxy * emp_boost)
             self.traits.adjust("hope", oxy * hope_boost)
             provenance.append("Oxytocin")
-        is_manic = voltage > (getattr(cfg, "MANIC_TRIGGER", 18.0) if cfg else 18.0)
-        is_heavy = drag > (getattr(cfg, "ENTROPY_DRAG_TRIGGER", 4.0) if cfg else 4.0)
+        is_manic = voltage > (getattr(cfg, "MANIC_TRIGGER", 18.0)
+                              if cfg else 18.0)
+        is_heavy = drag > (getattr(cfg, "ENTROPY_DRAG_TRIGGER", 4.0)
+                           if cfg else 4.0)
         energy_block = safe_get(physics, "energy", {})
         beta = safe_get(
             physics,
             "beta_index",
-            safe_get(physics, "beta", safe_get(energy_block, "beta_index", 0.0)),
+            safe_get(physics, "beta", safe_get(energy_block, "beta_index",
+                                               0.0)),
         )
         beta_thresh = getattr(cfg, "BETA_TENSION_THRESH", 0.7) if cfg else 0.7
         if (is_manic and is_heavy) or beta > beta_thresh:
             if self.traits.empathy > 0.6:
                 move_name = "Holding Space"
-                red = getattr(cfg, "PARADOX_REST_REDUCTION", 0.5) if cfg else 0.5
+                red = getattr(cfg, "PARADOX_REST_REDUCTION",
+                              0.5) if cfg else 0.5
                 self.paradox_accum = max(0.0, self.paradox_accum - red)
             else:
                 move_name = "Vibrating (Paradox)"
-                v_base = getattr(cfg, "PARADOX_VIBRATION_BASE", 1.0) if cfg else 1.0
-                v_mult = getattr(cfg, "PARADOX_VIBRATION_MULT", 0.5) if cfg else 0.5
+                v_base = getattr(cfg, "PARADOX_VIBRATION_BASE",
+                                 1.0) if cfg else 1.0
+                v_mult = getattr(cfg, "PARADOX_VIBRATION_MULT",
+                                 0.5) if cfg else 0.5
                 self.paradox_accum += v_base + (beta * v_mult)
-                crit_mass = getattr(cfg, "PARADOX_CRITICAL_MASS", 10.0) if cfg else 10.0
+                crit_mass = getattr(cfg, "PARADOX_CRITICAL_MASS",
+                                    10.0) if cfg else 10.0
                 if self.paradox_accum > crit_mass:
                     self._trigger_synthesis()
                     self.paradox_accum = 0.0
@@ -515,20 +560,25 @@ class NarrativeSelf:
             move_name = "Enduring"
         else:
             flow_v_min = getattr(cfg, "FLOW_VOLTAGE_MIN", 5.0) if cfg else 5.0
-            flow_v_max = getattr(cfg, "FLOW_VOLTAGE_MAX", 12.0) if cfg else 12.0
+            flow_v_max = getattr(cfg, "FLOW_VOLTAGE_MAX",
+                                 12.0) if cfg else 12.0
             flow_d_max = getattr(cfg, "FLOW_DRAG_MAX", 2.0) if cfg else 2.0
             if flow_v_min < voltage < flow_v_max and drag < flow_d_max:
                 move_name = "Flowing"
-                wis_boost = getattr(cfg, "FLOW_WISDOM_BOOST", 0.05) if cfg else 0.05
+                wis_boost = getattr(cfg, "FLOW_WISDOM_BOOST",
+                                    0.05) if cfg else 0.05
                 self.traits.adjust("wisdom", wis_boost)
         self._apply_burnout()
-        self.traits.normalize(getattr(cfg, "TRAIT_DECAY_NORMAL", 0.05) if cfg else 0.05)
+        self.traits.normalize(
+            getattr(cfg, "TRAIT_DECAY_NORMAL", 0.05) if cfg else 0.05)
         return f"{move_name} [{', '.join(provenance)}]" if provenance else move_name
+
     def _apply_burnout(self):
         if self.archetype_tenure <= 5:
             return
         cfg = getattr(self.cfg, "SOUL", None)
-        burn_rate = getattr(cfg, "ARCHETYPE_BURNOUT_RATE", 0.05) if cfg else 0.05
+        burn_rate = getattr(cfg, "ARCHETYPE_BURNOUT_RATE",
+                            0.05) if cfg else 0.05
         fatigue = burn_rate * (1.0 + (self.archetype_tenure / 10.0))
         if "POET" in self.archetype:
             self.traits.adjust("hope", -fatigue)
@@ -536,6 +586,7 @@ class NarrativeSelf:
             self.traits.adjust("discipline", -fatigue)
         elif "NIHILIST" in self.archetype:
             self.traits.adjust("cynicism", -fatigue)
+
     def _seek_organic_focus(self, lex) -> Tuple[Optional[str], Optional[str]]:
         packet = self._safe_get_packet()
         if not packet or not lex or not hasattr(lex, "measure_viscosity"):
@@ -547,19 +598,17 @@ class NarrativeSelf:
         )
         if not clean_words:
             return None, None
-        candidates = [
-            (
-                w,
-                lex.measure_viscosity(w)
-                + (0.2 if lex.get_current_category(w) else 0.0),
-            )
-            for w in clean_words
-            if len(w) >= 4 and w.lower() not in self.SYSTEM_NOISE
-        ]
+        candidates = [(
+            w,
+            lex.measure_viscosity(w) +
+            (0.2 if lex.get_current_category(w) else 0.0),
+        ) for w in clean_words
+                      if len(w) >= 4 and w.lower() not in self.SYSTEM_NOISE]
         if candidates:
             word = max(candidates, key=lambda x: x[1])[0]
             return word, lex.get_current_category(word)
         return None, None
+
     def _seek_memory_focus(self, lex) -> Tuple[Optional[str], Optional[str]]:
         if self.mem and hasattr(self.mem, "get_shapley_attractors"):
             attractors = self.mem.get_shapley_attractors()
@@ -567,15 +616,20 @@ class NarrativeSelf:
                 word = random.choice(list(attractors.keys()))
                 return word, lex.get_current_category(word)
         return None, None
+
     @staticmethod
     def _synthesize_obsession(lex) -> Tuple[str, str, str]:
-        negate_map = {"heavy": "aerobic", "kinetic": "heavy", "abstract": "meat"}
+        negate_map = {
+            "heavy": "aerobic",
+            "kinetic": "heavy",
+            "abstract": "meat"
+        }
         target_cat, negate_cat = random.choice(list(negate_map.items()))
-        random_word = (
-            lex.get_random(target_cat) if lex and hasattr(lex, "get_random") else None
-        )
+        random_word = (lex.get_random(target_cat)
+                       if lex and hasattr(lex, "get_random") else None)
         word = random_word.title() if random_word else target_cat.title()
         return word, target_cat, negate_cat
+
     @staticmethod
     def _title_obsession(word, source, negate_cat):
         word = word.title()
@@ -594,7 +648,9 @@ class NarrativeSelf:
                 "Meditations on {0}",
             )
         return random.choice(templates).format(word)
-    def _forge_core_memory(self, physics_packet, bio_state, voltage, dance_move):
+
+    def _forge_core_memory(self, physics_packet, bio_state, voltage,
+                           dance_move):
         clean_words = safe_get(
             physics_packet,
             "clean_words",
@@ -623,43 +679,41 @@ class NarrativeSelf:
         max_mems = getattr(cfg, "MAX_CORE_MEMORIES", 10) if cfg else 10
         if len(self.core_memories) > max_mems:
             self.core_memories.pop(0)
-        title = (
-            f"The Incident of the {random.choice(clean_words).title()}"
-            if clean_words
-            else "The Silent Incident"
-        )
+        title = (f"The Incident of the {random.choice(clean_words).title()}"
+                 if clean_words else "The Silent Incident")
         self.chapters.append(title)
         msg_core = ux("soul_strings", "soul_core_memory_log")
         log = f"{Prisma.MAG}{msg_core.format(title=title, lesson=lesson, dance_move=dance_move)}{Prisma.RST}"
         self.events.log(log, "SOUL")
         msg_formed = ux("soul_strings", "soul_core_memory_formed")
         self.events.log(
-            f"{Prisma.CYN}{msg_formed.format(lesson=lesson)}{Prisma.RST}", "SOUL"
-        )
+            f"{Prisma.CYN}{msg_formed.format(lesson=lesson)}{Prisma.RST}",
+            "SOUL")
         return lesson
+
     def _safe_get_packet(self):
         if self.eng and hasattr(self.eng, "phys") and self.eng.phys:
             return getattr(self.eng.phys.observer, "last_physics_packet", None)
         return None
+
     def _trigger_synthesis(self):
         old = self.archetype
         self.traits.wisdom = 1.0
         self._update_archetype()
-        self.archetype = (
-            f"THE HIGH-{old.replace('THE ', '')}"
-            if self.archetype == old
-            else f"{old} / {self.archetype}"
-        )
+        self.archetype = (f"THE HIGH-{old.replace('THE ', '')}"
+                          if self.archetype == old else
+                          f"{old} / {self.archetype}")
         msg = ux("soul_strings", "soul_diamond_formed")
         self.events.log(
             f"{Prisma.CYN}{msg.format(arch=self.archetype)}{Prisma.RST}",
             "SOUL_SYNTH",
         )
+
     def _on_dream(self, payload):
         if payload:
-            self.integrate_dream(
-                payload.get("type", "NORMAL"), payload.get("residue", "Static")
-            )
+            self.integrate_dream(payload.get("type", "NORMAL"),
+                                 payload.get("residue", "Static"))
+
     def integrate_dream(self, dream_type: str, residue: str):
         msg = ux("soul_strings", "soul_dream_integration")
         self.events.log(
@@ -673,6 +727,7 @@ class NarrativeSelf:
             self.traits.adjust("discipline", 0.4)
             self.current_obsession = f"Mastering {residue.title()}"
         self.obsession_progress = 0.0
+
     def _get_feeling(self):
         if not self.eng or not hasattr(self.eng, "bio"):
             return "Numb"
@@ -684,25 +739,33 @@ class NarrativeSelf:
         if chem.get("SER", 0) > 0.5:
             return "Calm, Connected"
         return "Waiting"
+
+
 @dataclass
 class Scar:
     name: str
     stat_affected: str
     value: float
     description: str
+
+
 @dataclass
 class Myth:
     title: str
     lesson: str
     trigger: str
+
+
 class TheOroboros:
     LEGACY_FILE = "legacy.json"
+
     def __init__(self, config_ref=None):
         self.cfg = config_ref or BoneConfig
         self.scars: List[Scar] = []
         self.myths: List[Myth] = []
         self.generation_count = 0
         self._load()
+
     def _load(self):
         if not os.path.exists(self.LEGACY_FILE):
             return
@@ -713,12 +776,16 @@ class TheOroboros:
                 self.scars = [Scar(**s) for s in data.get("scars", [])]
                 self.myths = [Myth(**m) for m in data.get("myths", [])]
             msg = ux("soul_strings", "oroboros_gen_loaded")
-            print(f"{Prisma.VIOLET}{msg.format(gen=self.generation_count)}{Prisma.RST}")
+            print(
+                f"{Prisma.VIOLET}{msg.format(gen=self.generation_count)}{Prisma.RST}"
+            )
         except Exception:
             pass
+
     def crystallize(self, cause_of_death: str, soul: NarrativeSelf):
         death_data = LoreManifest.get_instance().get("DEATH") or {}
         verdicts = death_data.get("VERDICTS", {})
+
         def get_verdict_key(cause):
             if cause == "TOXICITY":
                 return "TOXIC"
@@ -727,6 +794,7 @@ class TheOroboros:
             if cause == "STARVATION":
                 return "LIGHT"
             return "HEAVY"
+
         new_scars = []
         if hasattr(soul, "eng") and getattr(soul.eng, "trauma_accum", None):
             total_trauma = sum(soul.eng.trauma_accum.values())
@@ -736,9 +804,9 @@ class TheOroboros:
                         name="Existential Dread",
                         stat_affected="trauma_baseline",
                         value=min(20.0, total_trauma * 0.1),
-                        description=f"The lattice remembers a heavy collapse (Trauma: {round(total_trauma, 1)}).",
-                    )
-                )
+                        description=
+                        f"The lattice remembers a heavy collapse (Trauma: {round(total_trauma, 1)}).",
+                    ))
         if entry := death_data.get(cause_of_death):
             name, stat, val, default_desc = entry
             desc = default_desc
@@ -750,20 +818,18 @@ class TheOroboros:
         new_myths = []
         if soul.core_memories:
             strongest = max(soul.core_memories, key=lambda m: m.impact_voltage)
-            def_trigger = ux("soul_strings", "oroboros_def_trigger") or "Silence"
-            trigger_word = (
-                strongest.trigger_words[0] if strongest.trigger_words else def_trigger
-            )
-            title_fmt = (
-                ux("soul_strings", "oroboros_myth_title") or "The Myth of {trigger}"
-            )
+            def_trigger = ux("soul_strings",
+                             "oroboros_def_trigger") or "Silence"
+            trigger_word = (strongest.trigger_words[0]
+                            if strongest.trigger_words else def_trigger)
+            title_fmt = (ux("soul_strings", "oroboros_myth_title")
+                         or "The Myth of {trigger}")
             new_myths.append(
                 Myth(
                     title=title_fmt.format(trigger=trigger_word.title()),
                     lesson=strongest.lesson,
                     trigger=trigger_word,
-                )
-            )
+                ))
         cfg = getattr(self.cfg, "OROBOROS", None)
         max_scars = getattr(cfg, "MAX_SCARS", 5) if cfg else 5
         max_myths = getattr(cfg, "MAX_MYTHS", 10) if cfg else 10
@@ -781,9 +847,10 @@ class TheOroboros:
         with open(self.LEGACY_FILE, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
         msg = ux("soul_strings", "generation_encoded")
-        return msg.format(
-            gen=self.generation_count + 1, scars=len(new_scars), myths=len(new_myths)
-        )
+        return msg.format(gen=self.generation_count + 1,
+                          scars=len(new_scars),
+                          myths=len(new_myths))
+
     def apply_legacy(self, physics: Any, bio: Any):
         log = []
         if not physics:
@@ -798,13 +865,13 @@ class TheOroboros:
                 if msg := ux("soul_strings", "scar_drag"):
                     log.append(msg.format(name=scar.name))
             elif scar.stat_affected == "voltage_cap":
-                v_pen = getattr(
-                    getattr(self.cfg, "OROBOROS", None), "VOLTAGE_PENALTY", 5.0
-                )
+                v_pen = getattr(getattr(self.cfg, "OROBOROS", None),
+                                "VOLTAGE_PENALTY", 5.0)
                 safe_set(
                     physics,
                     "voltage",
-                    max(0, safe_get(physics, "voltage", 0.0) - v_pen),
+                    max(0,
+                        safe_get(physics, "voltage", 0.0) - v_pen),
                 )
                 if msg := ux("soul_strings", "scar_voltage"):
                     log.append(msg.format(name=scar.name))
@@ -816,7 +883,8 @@ class TheOroboros:
                     safe_get(t_vec, "EXISTENTIAL", 0.0) + scar.value,
                 )
                 safe_set(bio, "trauma_vector", t_vec)
-                safe_set(physics, "T", safe_get(physics, "T", 0.0) + scar.value)
+                safe_set(physics, "T",
+                         safe_get(physics, "T", 0.0) + scar.value)
                 if msg := ux("soul_strings", "scar_frailty"):
                     log.append(msg.format(name=scar.name))
         return log
