@@ -20,20 +20,18 @@ class BoneGenesis:
     @staticmethod
     def ignite(config: Dict[str, Any], lexicon_ref: Any, events_ref: Any = None) -> Dict[str, Any]:
         events = events_ref or EventBus()
-        if events_ref:
-            log_msg = ux("genesis_strings", "ignite_log") or "Igniting lattice..."
-            events.log(f"{Prisma.CYN}{log_msg}{Prisma.RST}", "GENESIS")
-        else:
-            print(f"{Prisma.CYN}{ux('genesis_strings', 'ignite_print') or 'Igniting BoneAmanita...'}{Prisma.RST}")
+        log_msg = ux("genesis_strings", "ignite_log") or "Igniting lattice..."
+        events.log(f"{Prisma.CYN}{log_msg}{Prisma.RST}", "GENESIS")
         target_cfg = config.get("bone_config") or BoneConfig
         akashic = TheAkashicRecord(lore_manifest=LoreManifest.get_instance(config_ref=target_cfg), events_ref=events)
         akashic.setup_listeners(events)
-        embryo = BoneArchitect.awaken(BoneArchitect.incubate(events, lexicon_ref, config_ref=target_cfg))
+        seed = BoneArchitect.incubate(events, lexicon_ref, config_ref=target_cfg)
+        embryo = BoneArchitect.awaken(seed)
         village_bundle = BoneGenesis._summon_village(
             events,
             embryo,
             akashic,
-            set(config.get("mode_settings", {}).get("village_suppression", [])),
+            set((config.get("mode_settings") or {}).get("village_suppression", [])),
             config.get("boot_mode", "ADVENTURE"),
             target_cfg,
             lexicon_ref,
@@ -46,23 +44,28 @@ class BoneGenesis:
         oroboros = TheOroboros(config_ref=target_cfg)
         if hasattr(embryo.physics, "observer"):
             cfg_gen = getattr(target_cfg, "GENESIS", object())
-            dv = getattr(cfg_gen, "DUMMY_VOLTAGE", 10.0)
-            dd = getattr(cfg_gen, "DUMMY_DRAG", 0.0)
+            dv, dd = getattr(cfg_gen, "DUMMY_VOLTAGE", 10.0), getattr(cfg_gen, "DUMMY_DRAG", 0.0)
             dummy_phys = {"narrative_drag": dd, "voltage": dv}
-            safe_bio_proxy = {
-                "trauma_vector": getattr(getattr(embryo.mind, "mem", None), "session_trauma_vector", {}) or {}
-            }
+            mem = getattr(embryo.mind, "mem", None)
+            safe_bio_proxy = {"trauma_vector": getattr(mem, "session_trauma_vector", {}) if mem else {}}
             if logs := oroboros.apply_legacy(dummy_phys, safe_bio_proxy):
                 msg = ux("genesis_strings", "legacy_scars") or "The lattice remembers. Inherited scars: {logs}"
                 events.log(f"{Prisma.MAG}{msg.format(logs=', '.join(logs))}{Prisma.RST}", "OROBOROS")
-                if (applied_drag := dummy_phys.get("narrative_drag", dd) - dd) != 0:
-                    current_drag = float(safe_get(embryo.physics, "narrative_drag", 0.0))
-                    safe_set(embryo.physics, "narrative_drag", current_drag + applied_drag)
+                if applied_drag := dummy_phys.get("narrative_drag", dd) - dd:
+                    safe_set(
+                        embryo.physics,
+                        "narrative_drag",
+                        float(safe_get(embryo.physics, "narrative_drag", 0.0)) + applied_drag,
+                    )
                 if (volt_penalty := dv - dummy_phys.get("voltage", dv)) > 0:
-                    current_volt = float(safe_get(embryo.physics, "voltage", 0.0))
-                    safe_set(embryo.physics, "voltage", max(0.0, current_volt - volt_penalty))
-                if hasattr(embryo.mind, "mem"):
-                    embryo.mind.mem.session_trauma_vector = safe_bio_proxy.get("trauma_vector", {})
+                    safe_set(
+                        embryo.physics,
+                        "voltage",
+                        max(0.0, float(safe_get(embryo.physics, "voltage", 0.0)) - volt_penalty),
+                    )
+
+            if mem:
+                mem.session_trauma_vector = safe_bio_proxy.get("trauma_vector", {})
         drivers = DriverRegistry(events, config_ref=target_cfg)
         symbiosis = SymbiosisManager(events, config_ref=target_cfg)
         return {
@@ -73,7 +76,7 @@ class BoneGenesis:
             "soul": soul,
             "oroboros": oroboros,
             "drivers": drivers,
-            "consultant": village_bundle["consultant"],
+            "consultant": village_bundle.get("consultant"),
             "symbiosis": symbiosis,
         }
 
@@ -83,21 +86,17 @@ class BoneGenesis:
     ) -> Dict[str, Any]:
         c = config_ref
         gordon = GordonKnot(events=events, mode=boot_mode, config_ref=c) if "GORDON" not in suppressed else None
-        navigator = (
-            TheCartographer(embryo.shimmer, config_ref=c)
-            if {"CARTOGRAPHER", "NAVIGATOR"}.isdisjoint(suppressed)
-            else None
-        )
-        death_gen = None
+        navigator = None
+        if "CARTOGRAPHER" not in suppressed and "NAVIGATOR" not in suppressed:
+            navigator = TheCartographer(embryo.shimmer, config_ref=c)
         if "DEATH" not in suppressed:
-            death_gen = DeathGen()
             DeathGen.load_protocols()
         LiteraryReproduction.load_genetics(config_ref=c)
         return {
             "gordon": gordon,
             "navigator": navigator,
             "tinkerer": TheTinkerer(gordon, events, akashic, config_ref=c) if "TINKERER" not in suppressed else None,
-            "death_gen": death_gen,
+            "death_gen": DeathGen() if "DEATH" not in suppressed else None,
             "bureau": TheBureau(config_ref=c) if "BUREAU" not in suppressed else None,
             "town_hall": (
                 TownHall(gordon, events, embryo.shimmer, akashic, navigator, config_ref=c)

@@ -50,11 +50,11 @@ class Projector:
 
     @staticmethod
     def _extract(physics_obj: Any, field: str, sub_field: str, default: Any = 0.0):
-        val = safe_get(physics_obj, sub_field)
-        if val is None:
-            field_obj = safe_get(physics_obj, field)
-            val = safe_get(field_obj, sub_field)
-        return default if val is None else val
+        if (val := safe_get(physics_obj, sub_field)) is not None:
+            return val
+        if (val := safe_get(safe_get(physics_obj, field), sub_field)) is not None:
+            return val
+        return default
 
     def _render_clear_hud(self, physics: Any, data_ctx: Dict, mind: tuple) -> str:
         energy = float(data_ctx.get("stamina", 100.0))
@@ -129,21 +129,13 @@ class Projector:
             loc_str = f"{sym.get('loc', '')} {data_ctx.get('world_loc', 'UNKNOWN').upper()[:20]} [{zone}]  "
         context_line = f"{Prisma.GRY}  {loc_str}{i_lens} {lens:<12}  {depth_marker}{Prisma.RST}"
         div = f"{Prisma.GRY}{i_div * self.width}{Prisma.RST}"
-        mid_lines = []
-        if physics_line:
-            mid_lines.append(physics_line)
-        if vsl_line:
-            mid_lines.append("  " + vsl_line)
-        mid_section = "\n".join(mid_lines) if mid_lines else ""
+        mid_section = "\n".join(line for line in (physics_line, f"  {vsl_line}" if vsl_line else "") if line)
         return f"{div}\n{status_line}\n{mid_section}\n{context_line}\n{div}"
 
     @staticmethod
     def _get_role(mind: tuple) -> str:
-        role = (
-            str(mind[2]).upper()
-            if mind and len(mind) > 2 and mind[2]
-            else (ux("projector", "default_role") or "OBSERVER")
-        )
+        raw_role = mind[2] if mind and len(mind) > 2 else None
+        role = str(raw_role).upper() if raw_role else (ux("projector", "default_role") or "OBSERVER")
         return role.replace(ux("projector", "role_redundancy") or "THE THE ", "THE ")
 
     @staticmethod
@@ -344,10 +336,8 @@ class GeodesicRenderer:
         mode_settings = getattr(self.eng, "mode_settings", {})
         world_loc = "UNKNOWN"
         if mode_settings.get("show_location", True):
-            if hasattr(self.eng, "navigator") and self.eng.navigator:
-                node = self.eng.navigator.world_graph.get(self.eng.navigator.current_node_id)
-                if node:
-                    world_loc = node.name
+            if nav := getattr(self.eng, "navigator", None):
+                world_loc = getattr(nav.world_graph.get(nav.current_node_id), "name", "UNKNOWN")
         else:
             world_loc = "OMNIPRESENT"
         current_ui_depth = getattr(self.eng, "ui_mode", mode_settings.get("default_ui_depth", "WARM"))
@@ -378,7 +368,8 @@ class GeodesicRenderer:
                 "L": getattr(c_state, "L", 0.0),
                 "O": getattr(c_state, "O", 1.0),
             }
-        q_matrix = getattr(getattr(getattr(self.eng, "phys", None), "observer", None), "Q_n", None)
+        phys_obs = getattr(getattr(self.eng, "phys", None), "observer", None)
+        q_matrix = getattr(phys_obs, "Q_n", None) if phys_obs else None
         strain = 0.0
         if isinstance(q_matrix, list) and q_matrix and isinstance(q_matrix[0], list):
             strain = sum(float(abs(v)) for i, row in enumerate(q_matrix) for j, v in enumerate(row) if i != j)
@@ -461,12 +452,13 @@ class CachedRenderer:
             self._cached_ui_content = frame["ui"]
             self._last_tick = tick
             return frame
-        bio = getattr(ctx, "bio_result", {}) or {}
+        bio = getattr(ctx, "bio_result", None)
+        atp = bio.get("atp", 0.0) if isinstance(bio, dict) else 0.0
         return {
             "type": "GEODESIC_FRAME",
             "ui": self._cached_ui_content,
             "logs": self._base.compose_logs(ctx.logs, events, tick),
-            "metrics": self._base.eng.get_metrics(bio.get("atp", 0.0)),
+            "metrics": self._base.eng.get_metrics(atp),
         }
 
 
@@ -500,7 +492,7 @@ class TruthRenderer(GeodesicRenderer):
         h_pal = ux("truth_renderer", "palimpsest_header")
         if self.dial_setting == AmbiguityDial.BOARDROOM:
             return f"{Prisma.paint(h_board, 'W')}\n{ui_text}\n"
-        elif self.dial_setting == AmbiguityDial.WORKSHOP:
+        if self.dial_setting == AmbiguityDial.WORKSHOP:
             metrics = self.engine.get_metrics()
             l_conf = ux("truth_renderer", "workshop_confidence") or "Confidence"
             l_drag = ux("truth_renderer", "workshop_drag") or "Drag"
@@ -510,7 +502,7 @@ class TruthRenderer(GeodesicRenderer):
                 f"{l_drag} {metrics['stamina']:.1f}\n"
                 f"---------------------\n{ui_text}\n"
             )
-        elif self.dial_setting == AmbiguityDial.RED_TEAM:
+        if self.dial_setting == AmbiguityDial.RED_TEAM:
             dissent = [l for l in council_log if "CRITIC" in l or "WARN" in l]
             l_warn = ux("truth_renderer", "red_team_warning")
             l_cost = ux("truth_renderer", "red_team_cost")
@@ -522,7 +514,7 @@ class TruthRenderer(GeodesicRenderer):
                 f"{l_conf}\n" + "\n".join(f"  > {d}" for d in dissent) + "\n"
                 f"---------------------\n{ui_text}\n"
             )
-        elif self.dial_setting == AmbiguityDial.PALIMPSEST:
+        if self.dial_setting == AmbiguityDial.PALIMPSEST:
             drafts = cortex_packet.get("drafts", [])
             layer_view = ""
             l_draft = ux("truth_renderer", "palimpsest_draft")
@@ -552,7 +544,9 @@ class PulseReader:
     @staticmethod
     def analyze_voltage(voltage: float, config_ref=None) -> Tuple[str, str]:
         cfg = getattr(config_ref or BoneConfig, "GUI", None)
-        vc, vh, vl = (getattr(cfg, k, d) for k, d in (("V_CRIT", 20.0), ("V_HIGH", 15.0), ("V_LOW", 5.0)))
+        vc = getattr(cfg, "V_CRIT", 20.0)
+        vh = getattr(cfg, "V_HIGH", 15.0)
+        vl = getattr(cfg, "V_LOW", 5.0)
         if voltage > vc:
             key = "voltage_critical"
         elif voltage > vh:
@@ -572,12 +566,10 @@ class SoulDashboard:
         self.cfg = getattr(self.eng, "bone_config", BoneConfig)
 
     def render(self) -> str:
-        if not hasattr(self.eng, "soul") or not self.eng.soul:
+        if not (soul := getattr(self.eng, "soul", None)):
             return ""
-        if not hasattr(self.eng.soul, "anchor"):
+        if not (anchor := getattr(soul, "anchor", None)):
             return f"{Prisma.GRY}{ux('soul_dashboard', 'anchor_lost') or 'No Anchor.'}{Prisma.RST}"
-        anchor = self.eng.soul.anchor
-        soul = self.eng.soul
         dig = anchor.dignity_reserve
         cfg = getattr(self.cfg, "GUI", None)
         d_high = getattr(cfg, "DIGNITY_HIGH", 80.0) if cfg else 80.0
@@ -625,7 +617,7 @@ class CycleReporter:
             return
         if mode not in self.renderers:
             self.renderers[mode] = get_renderer(
-                self.eng, self.vsl_chroma, getattr(self.eng, "bureau", None), getattr(self, "valve", None), mode=mode
+                self.eng, self.vsl_chroma, getattr(self.eng, "bureau", None), getattr(self.eng, "valve", None), mode=mode
             )
         self.renderer = self.renderers[mode]
         self.current_mode = mode
@@ -642,9 +634,12 @@ class CycleReporter:
             return self.renderer.render_frame(ctx, self.eng.tick_count, self.eng.events.flush())
         except Exception as e:
             l_crash = ux("cycle_reporter", "crash_prefix") or "CRITICAL FAILURE:"
+            err_msg = f"{l_crash} {e}"
+            if hasattr(self.eng, "events"):
+                self.eng.events.log(f"{Prisma.RED}{err_msg}{Prisma.RST}", "CRIT")
             return {
                 "type": "CRITICAL_RENDER_FAIL",
-                "ui": f"{Prisma.RED}{l_crash} {e}{Prisma.RST}",
+                "ui": f"{Prisma.RED}{err_msg}{Prisma.RST}",
                 "logs": ctx.logs,
                 "metrics": self.eng.get_metrics(),
             }
@@ -700,9 +695,7 @@ class CycleReporter:
             ctx.logs[:0] = flux_block
 
     def _package_bureaucracy(self, ctx):
-        if not getattr(self.eng, "bureau", None):
-            return None
-        if ctx.is_bureaucratic or ctx.bureau_ui:
+        if getattr(self.eng, "bureau", None) and (ctx.is_bureaucratic or ctx.bureau_ui):
             base = getattr(self.renderer, "base_renderer", self.renderer)
             return {
                 "type": "BUREAUCRACY",

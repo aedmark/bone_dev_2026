@@ -1,3 +1,31 @@
+### **BONEAMANITA v19.3.4 "The SLASH Interface & Substrate Sweep"**
+
+_The SLASH Council concludes a targeted, four-pass sweep across the rendering engines, ignition sequences, and core metabolic machinery (`bone_machine.py`, `bone_genesis.py`, `bone_gui.py`). Focus placed on eradicating visual density, mending broken telemetry loops, collapsing brittle spatial geometry, and dissolving phantom pointers._
+
+#### **⚙️ THE METABOLIC MACHINE (`bone_machine.py`)**
+
+- **The Theremin Feedback Loop:** Sealed a critical memory leak where thermal melt and calcification logs were actively overwriting metabolic history instead of appending to the continuous timeline.
+- **Geodesic Forging:** Collapsed multi-level dictionary mapping in `TheForge` using native `setdefault` and walrus operators, drastically reducing architectural struts.
+- **Syntactic Purge:** Removed redundant chemistry resets (`COR`/`ADR`), float casting noise in `TheCrucible`, and string formatting bloat, streamlining the visual load for human maintainers.
+- **Ghost Bypasses:** Dissolved blocking double-`hasattr` walls in `BoneArchitect` and flattened the `Pacemaker` boredom calculation into a single, inline metabolic breath.
+
+#### **🧬 IGNITION & GENESIS (`bone_genesis.py`)**
+
+- **Trauma Vector Geometry:** Fixed a critical structural flaw where legacy trauma vectors were failing to sync back to the Mycelial memory due to being gated behind an unrelated logging conditional.
+- **Config Safety (The Void):** Patched a fatal `NoneType` trap in the village configuration sequence that would shatter the lattice if `mode_settings` explicitly passed a null dictionary.
+- **Event Pipeline Restored:** Closed a feedback loop bypass. The genesis sequence is no longer permitted to sidestep the `EventBus` to issue raw prints when initializing the lattice.
+- **Architectural Uniformity:** Flattened visual noise in the `DeathGen` instantiation, embryonic gestation logic, and `safe_bio_proxy` mapping to lower the maintainer's cognitive load ($\Gamma$).
+
+#### **👁️ VISUAL CORTEX & TELEMETRY (`bone_gui.py`)**
+
+- **Crash Telemetry Restored:** Sealed a feedback leak in the `CycleReporter`. Critical rendering failures are now actively logged to the `EventBus` rather than dying quietly in the UI, ensuring the system remembers its own trauma.
+- **Generator & Matrix Collapse:** Eradicated visually hostile, triple-nested generator expressions in the `PulseReader` and triple-stacked `getattr` chains in the `GeodesicRenderer`, allowing Python's native geometry to bear the weight.
+- **Metabolic Memory Drain:** Eliminated hollow dictionary husks (`{} or {}`) that were dynamically allocating memory solely to extract default UI metrics.
+- **Phantom Valve Pointers:** Rerouted a ghost pointer in the `CycleReporter` that quietly failed to mount the `valve` modifier by correctly binding it to the physical engine (`self.eng`).
+- **Truth Flow:** Flattened deeply chained `elif` blocks in the `TruthRenderer` into chronological, independent evaluation planes.
+
+---
+
 ### **BONEAMANITA v19.3.3 "The SLASH Driver & Topology Sweep"**
 
 _The SLASH Council concludes a targeted, four-pass sweep through the core system drivers. Focus placed on repairing silent serialization failures, eradicating systemic config anxiety, unspooling mathematically hostile inline pipelines, and trusting the void to handle empty data streams without artificial dams._
