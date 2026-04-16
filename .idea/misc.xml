@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="Black">
-    <option name="sdkName" value="Python 3.12 (bone_dev_2026)" />
+    <option name="cmdArguments" value="--line-length 120 --skip-magic-trailing-comma --skip-string-normalization" />
+    <option name="enabledOnReformat" value="true" />
+    <option name="pathToExecutable" value="$USER_HOME$/.local/bin/black" />
+    <option name="sdkName" value="Python 3.12 (bone_dev_2026) (2)" />
   </component>
 </project>
