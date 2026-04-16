@@ -241,8 +241,8 @@ class TherapyProtocol:
         default_vector = {"SEPTIC": 0, "EXHAUSTION": 0, "PARANOIA": 0}
         vector_keys = getattr(self.cfg, "TRAUMA_VECTOR", default_vector).keys()
         self.streaks = {k: 0 for k in vector_keys}
-        cfg = getattr(self.cfg, "THERAPY", None)
-        self.HEALING_THRESHOLD = getattr(cfg, "HEALING_THRESHOLD", 5) if cfg else 5
+        cfg = getattr(self.cfg, "THERAPY", object())
+        self.HEALING_THRESHOLD = getattr(cfg, "HEALING_THRESHOLD", 5)
 
     def to_dict(self) -> Dict[str, Any]:
         return {"streaks": self.streaks}
@@ -257,9 +257,9 @@ class TherapyProtocol:
                           safe_get(safe_get(phys, "matter"), "counts", {}))
         vector = safe_get(phys, "vector",
                           safe_get(safe_get(phys, "matter"), "vector", {}))
-        cfg_therapy = getattr(self.cfg, "THERAPY", None)
-        str_req = getattr(cfg_therapy, "STRENGTH_REQ", 0.3) if cfg_therapy else 0.3
-        t_reduct = getattr(cfg_therapy, "TRAUMA_REDUCTION", 0.5) if cfg_therapy else 0.5
+        cfg_therapy = getattr(self.cfg, "THERAPY", object())
+        str_req = getattr(cfg_therapy, "STRENGTH_REQ", 0.3)
+        t_reduct = getattr(cfg_therapy, "TRAUMA_REDUCTION", 0.5)
         healed_types = []
         is_clean = counts.get("toxin", 0) == 0
         has_strength = vector.get("STR", 0.0) > str_req
@@ -295,9 +295,8 @@ class KintsugiProtocol:
         self.active_koan = data.get("active_koan", None)
 
     def check_integrity(self, stamina):
-        target_cfg = getattr(self, "cfg", BoneConfig)
-        cfg = getattr(target_cfg, "KINTSUGI", None)
-        s_trig = getattr(cfg, "STAMINA_TRIGGER", 15.0) if cfg else 15.0
+        cfg = getattr(self.cfg, "KINTSUGI", object())
+        s_trig = getattr(cfg, "STAMINA_TRIGGER", 15.0)
         if stamina < s_trig and not self.active_koan:
             self.active_koan = random.choice(self.koans)
             return True, self.active_koan
@@ -326,12 +325,11 @@ class KintsugiProtocol:
             play_count = 0
         whimsy_score = play_count / max(1, len(clean))
         pathway = self.PATH_SCAR
-        target_cfg = getattr(self, "cfg", BoneConfig)
-        cfg = getattr(target_cfg, "KINTSUGI", None)
-        al_v = getattr(cfg, "ALCHEMY_VOLTAGE", 15.0) if cfg else 15.0
-        al_w = getattr(cfg, "ALCHEMY_WHIMSY", 0.4) if cfg else 0.4
-        in_v = getattr(cfg, "INTEGRATION_VOLTAGE", 8.0) if cfg else 8.0
-        in_w = getattr(cfg, "INTEGRATION_WHIMSY", 0.2) if cfg else 0.2
+        cfg = getattr(self.cfg, "KINTSUGI", object())
+        al_v = getattr(cfg, "ALCHEMY_VOLTAGE", 15.0)
+        al_w = getattr(cfg, "ALCHEMY_WHIMSY", 0.4)
+        in_v = getattr(cfg, "INTEGRATION_VOLTAGE", 8.0)
+        in_w = getattr(cfg, "INTEGRATION_WHIMSY", 0.2)
         if vol > al_v and whimsy_score > al_w:
             pathway = self.PATH_ALCHEMY
         elif vol > in_v and whimsy_score > in_w:
@@ -347,50 +345,37 @@ class KintsugiProtocol:
         target = max(trauma_accum, key=trauma_accum.get)
         severity = trauma_accum[target]
         healed_log = []
-        cfg = getattr(self.cfg, "KINTSUGI", None)
+        cfg = getattr(self.cfg, "KINTSUGI", object())
+        atp_gain = 0.0
         if pathway == self.PATH_ALCHEMY:
-            r_alc = getattr(cfg, "REDUCTION_ALCHEMY_FACTOR", 0.8) if cfg else 0.8
-            a_fac = getattr(cfg, "ALCHEMY_ATP_FACTOR", 15.0) if cfg else 15.0
+            r_alc = getattr(cfg, "REDUCTION_ALCHEMY_FACTOR", 0.8)
             reduction = severity * r_alc
-            trauma_accum[target] = max(0.0, severity - reduction)
-            atp_boost = reduction * a_fac
+            atp_gain = reduction * getattr(cfg, "ALCHEMY_ATP_FACTOR", 15.0)
             msg_raw = ux("protocol_strings", "kintsugi_alchemy")
-            msg = f"{Prisma.VIOLET}{msg_raw.format(target=target, boost=atp_boost)}{Prisma.RST}"
+            msg = f"{Prisma.VIOLET}{msg_raw.format(target=target, boost=atp_gain)}{Prisma.RST}"
             log_alc = ux("protocol_strings", "kintsugi_log_alchemy")
-            if log_alc:
-                healed_log.append(log_alc.format(target=target))
-            return {
-                "success": True,
-                "msg": msg,
-                "healed": healed_log,
-                "atp_gain": atp_boost,
-            }
+            if log_alc: healed_log.append(log_alc.format(target=target))
         elif pathway == self.PATH_INTEGRATION:
-            r_int = getattr(cfg, "REDUCTION_INTEGRATION", 2.0) if cfg else 2.0
-            reduction = r_int
-            trauma_accum[target] = max(0.0, severity - reduction)
+            reduction = getattr(cfg, "REDUCTION_INTEGRATION", 2.0)
             if soul_ref:
                 soul_ref.traits.adjust("WISDOM", 0.1)
                 log_wis = ux("protocol_strings", "kintsugi_log_wisdom")
-                if log_wis:
-                    healed_log.append(log_wis)
+                if log_wis: healed_log.append(log_wis)
             msg_raw = ux("protocol_strings", "kintsugi_mercy")
             msg = f"{Prisma.OCHRE}{msg_raw.format(target=target)}{Prisma.RST}"
             log_int = ux("protocol_strings", "kintsugi_log_integration")
-            if log_int:
-                healed_log.append(log_int.format(target=target))
-            success = True
+            if log_int: healed_log.append(log_int.format(target=target))
         else:
-            r_scar = getattr(cfg, "REDUCTION_SCAR", 0.5) if cfg else 0.5
-            reduction = r_scar
-            trauma_accum[target] = max(0.0, severity - reduction)
+            reduction = getattr(cfg, "REDUCTION_SCAR", 0.5)
             msg_raw = ux("protocol_strings", "kintsugi_scar")
             msg = f"{Prisma.GRY}{msg_raw}{Prisma.RST}"
             log_scar = ux("protocol_strings", "kintsugi_log_scar")
-            if log_scar:
-                healed_log.append(log_scar.format(target=target))
-            success = True
-        return {"success": success, "msg": msg, "healed": healed_log}
+            if log_scar: healed_log.append(log_scar.format(target=target))
+
+        trauma_accum[target] = max(0.0, severity - reduction)
+        result = {"success": True, "msg": msg, "healed": healed_log}
+        if atp_gain > 0: result["atp_gain"] = atp_gain
+        return result
 
 
 class GriefProtocol:
@@ -459,8 +444,8 @@ class TheCriticsCircle:
         self.last_review_turn = data.get("last_review_turn", 0)
 
     def audit_performance(self, physics: Any, turn_count: int) -> Optional[str]:
-        cfg = getattr(self.cfg, "CRITICS", None)
-        rev_cd = getattr(cfg, "REVIEW_COOLDOWN", 10) if cfg else 10
+        cfg = getattr(self.cfg, "CRITICS", object())
+        rev_cd = getattr(cfg, "REVIEW_COOLDOWN", 10)
         if turn_count - self.last_review_turn < rev_cd:
             return None
         voltage = float(safe_get(physics, "voltage", 0.0))
@@ -482,8 +467,7 @@ class TheCriticsCircle:
                     counts = safe_get(physics, "counts", {})
                     raw_count = (counts.get(category, 0) if isinstance(counts, dict)
                                  else getattr(counts, category, 0))
-                    max_contrib = (getattr(cfg, "MAX_METRIC_CONTRIB", 5.0)
-                                   if cfg else 5.0)
+                    max_contrib = getattr(cfg, "MAX_METRIC_CONTRIB", 5.0)
                     current = min(max_contrib, raw_count * 0.5)
                 elif metric_str == "velocity":
                     current = velocity
@@ -493,8 +477,8 @@ class TheCriticsCircle:
                     score += current * target
                 else:
                     score -= current * abs(target)
-            pos_thresh = getattr(cfg, "POSITIVE_REVIEW_THRESH", 15.0) if cfg else 15.0
-            neg_thresh = getattr(cfg, "NEGATIVE_REVIEW_THRESH", -15.0) if cfg else -15.0
+            pos_thresh = getattr(cfg, "POSITIVE_REVIEW_THRESH", 15.0)
+            neg_thresh = getattr(cfg, "NEGATIVE_REVIEW_THRESH", -15.0)
             if score > pos_thresh:
                 best_match = (key, critic)
                 review_type = "high"
@@ -561,9 +545,9 @@ class LimboLayer:
         return f"{Prisma.CYN}{err_msg.format(thought=intended_thought, horror=horror)}{Prisma.RST}"
 
     def haunt(self, text):
-        cfg = getattr(self.cfg, "LIMBO", None)
-        l_chance = getattr(cfg, "LEAK_DECAY_CHANCE", 0.2) if cfg else 0.2
-        l_amount = getattr(cfg, "LEAK_DECAY_AMOUNT", 0.5) if cfg else 0.5
+        cfg = getattr(self.cfg, "LIMBO", object())
+        l_chance = getattr(cfg, "LEAK_DECAY_CHANCE", 0.2)
+        l_amount = getattr(cfg, "LEAK_DECAY_AMOUNT", 0.5)
         if self.stasis_leak > 0:
             if random.random() < l_chance:
                 self.stasis_leak = max(0.0, self.stasis_leak - l_amount)
@@ -831,11 +815,11 @@ class ChronosKeeper:
                     )
 
     def _gather_village_state(self) -> Dict[str, Any]:
-        state = {}
-        for name, component in self.eng.village.items():
-            if component and hasattr(component, "to_dict"):
-                state[name] = component.to_dict()
-        return state
+        return {
+            name: comp.to_dict()
+            for name, comp in self.eng.village.items()
+            if comp and hasattr(comp, "to_dict")
+        }
 
     def _restore_village_state(self, state_data: Dict[str, Any]):
         if not state_data:
@@ -859,10 +843,9 @@ class ChronosKeeper:
         try:
             files = sorted(
                 [f for f in os.listdir(self.CRASH_DIR) if f.startswith(prefix)])
-            target_cfg = (self.eng.bone_config if self.eng
-                          and hasattr(self.eng, "bone_config") else BoneConfig)
-            cfg = getattr(target_cfg, "CHRONOS", None)
-            kept = getattr(cfg, "CRASH_FILES_KEPT", 4) if cfg else 4
+            target_cfg = getattr(self.eng, "bone_config", BoneConfig) if self.eng else BoneConfig
+            cfg = getattr(target_cfg, "CHRONOS", object())
+            kept = getattr(cfg, "CRASH_FILES_KEPT", 4)
             for oldest in files[:-kept] if kept > 0 else files:
                 os.remove(os.path.join(self.CRASH_DIR, oldest))
         except Exception:
