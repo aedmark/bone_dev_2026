@@ -946,7 +946,7 @@ class MycelialNetwork:
         } for s in self.seeds if not s.bloomed]
         seed_list.append({"q": future_seed_q, "m": 0.0, "b": False})
         data = {
-            "genome": "BA_01930",
+            "genome": "BA_01935",
             "session_id": self.session_id,
             "parent_id": self.session_id,
             "meta": {

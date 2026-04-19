@@ -1,3 +1,30 @@
+### **BONEAMANITA v19.3.5 "The SLASH Substrate Sweep: Protocols, Inventory, & GUI"**
+
+_The SLASH Council concludes a rigorous, four-pass architectural sweep over `bone_protocols.py`, `bone_inventory.py`, and `bone_gui.py`. Focus was placed on eradicating syntactic noise, collapsing redundant spatial geometries, flattening execution planes, and optimizing $O(N)$ list traversals into $O(1)$ set lookups to drastically reduce systemic metabolic load._
+
+#### **⚖️ PROTOCOLS & GOVERNANCE (`bone_protocols.py`)**
+
+- **Syntactic Purge:** Replaced defensive `if cfg else` cascading ternary statements with clean `object()` fallbacks across `THERAPY`, `KINTSUGI`, and `BUREAU` modules, eradicating configuration visual noise.
+- **Cascade Untangling:** Flattened `TheBureau`'s nested, state-dependent audit checks into strict mutually exclusive `if/elif` structures to reduce cognitive and CPU branching load.
+- **$O(1)$ Substrate Iteration:** Converted `_filter_meat_words` and abstract digestion pools from heavy $O(N \times M)$ nested list iterations into native, instantaneous `set()` lookups.
+- **Spatial Compression:** Dissolved redundant dummy classes into native dictionaries and aggregated `ChronosKeeper` village states utilizing direct dictionary comprehensions.
+
+#### **🎒 INVENTORY & METABOLISM (`bone_inventory.py`)**
+
+- **Pre-computed Geometry:** Moved expensive string manipulation (`.lower()`, `.replace()`) and state filtering entirely outside of the nested `parse_loot` loops, computing the candidate array only once per cycle.
+- **Lazy Evaluation Engine:** Re-ordered `enforce_object_action_coupling` to execute cheap native boolean array checks (`in`) _before_ executing expensive regular expression string sweeps.
+- **Redundancy Collapse:** Eliminated duplicate `ITEM_ACQUIRED` event emissions and phantom variable assignments in `acquire()`.
+- **Execution Flattening:** Dissolved heavy inner function definitions into inline lambdas (`normalize`), combined multiple regex substitution passes into single geometric $OR$ sweeps, and hoisted configuration fetching outside of iterative loops.
+
+#### **👁️ THE PROJECTOR & GUI (`bone_gui.py`)**
+
+- **Domain Pre-computation:** Engineered `_render_lattice_strip` to map its target physics domains once per tick, rather than dynamically recalculating them 15 distinct times during variable extraction.
+- **Continuous State Evaluation:** Replaced discrete iteration loops with native Python generator consumption (`next()`) in the `PulseReader` mood derivation, allowing the system to find truth in a single breath.
+- **C-Level Routing:** Substituted deep `if/elif` reality-depth cascades with direct dictionary memory routing, and implemented `.update()` / `.setdefault()` for zero-friction state assignments.
+- **Ordered Deduplication:** Removed manual loop-and-set tracking in `compose_logs`, utilizing `list(dict.fromkeys(...))` to maintain exact chronological order with zero architectural waste.
+
+---
+
 ### **BONEAMANITA v19.3.4 "The SLASH Interface & Substrate Sweep"**
 
 _The SLASH Council concludes a targeted, four-pass sweep across the rendering engines, ignition sequences, and core metabolic machinery (`bone_machine.py`, `bone_genesis.py`, `bone_gui.py`). Focus placed on eradicating visual density, mending broken telemetry loops, collapsing brittle spatial geometry, and dissolving phantom pointers._

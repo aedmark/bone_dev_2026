@@ -17,17 +17,10 @@ _THOUGHT_PATTERN = re.compile(r"<(?:think|thought)>(.*?)(?:</(?:think|thought)>|
 
 
 def beautify_thoughts(text: str) -> str:
-
     def replacer(match):
-        content = match.group(1).strip()
-        if not content:
-            return ""
-        lines = content.split("\n")
-        fmt = [f"{Prisma.CYN}  │ {Prisma.GRY}{line.strip()}{Prisma.RST}" for line in lines if line.strip()]
-        header = f"{Prisma.CYN}  ┌─ {Prisma.MAG}[ COGNITIVE SUBSTRATE ]{Prisma.RST}"
-        footer = f"{Prisma.CYN}  └─{Prisma.RST}"
-        inner_content = "\n".join(fmt)
-        return f"<div class='substrate-block'>{header}\n{inner_content}\n{footer}</div>"
+        if not (content := match.group(1).strip()): return ""
+        inner = "\n".join(f"{Prisma.CYN}  │ {Prisma.GRY}{line.strip()}{Prisma.RST}" for line in content.split("\n") if line.strip())
+        return f"<div class='substrate-block'>{Prisma.CYN}  ┌─ {Prisma.MAG}[ COGNITIVE SUBSTRATE ]{Prisma.RST}\n{inner}\n{Prisma.CYN}  └─{Prisma.RST}</div>"
 
     return _THOUGHT_PATTERN.sub(replacer, text)
 
@@ -40,11 +33,8 @@ class Projector:
 
     @staticmethod
     def _safe_val(obj, k, default):
-        v = safe_get(obj, k)
-        if v is None:
-            return default
         try:
-            return float(v)
+            return float(v) if (v := safe_get(obj, k)) is not None else default
         except (ValueError, TypeError):
             return default
 
@@ -146,10 +136,10 @@ class Projector:
     def _render_vital_strip(self, data: Dict, mind: tuple, labels: Dict) -> str:
         max_h = float(getattr(self.cfg, "MAX_HEALTH", 100.0) or 100.0)
         max_s = float(getattr(self.cfg, "MAX_STAMINA", 100.0) or 100.0)
-        cfg = getattr(self.cfg, "GUI", None)
-        d_med = getattr(cfg, "DIGNITY_MED", 50.0) if cfg else 50.0
-        d_high = getattr(cfg, "DIGNITY_HIGH", 80.0) if cfg else 80.0
-        r_len = getattr(cfg, "ROLE_TRUNC_LEN", 30) if cfg else 30
+        cfg = getattr(self.cfg, "GUI", object())
+        d_med = getattr(cfg, "DIGNITY_MED", 50.0)
+        d_high = getattr(cfg, "DIGNITY_HIGH", 80.0)
+        r_len = getattr(cfg, "ROLE_TRUNC_LEN", 30)
         health = float(data.get("health") or max_h)
         stamina = float(data.get("stamina") or max_s)
         atp = float(data.get("bio", {}).get("atp") or 0.0)
@@ -160,8 +150,7 @@ class Projector:
         sym = ux("projector", "symbols", {})
         dig_icon = sym.get("dig_high", "") if dignity > d_high else sym.get("dig_low", "")
         role = self._get_role(mind)
-        if len(role) > r_len:
-            role = role[: r_len - 3] + "..."
+        role = f"{role[:r_len - 3]}..." if len(role) > r_len else role
         l_hp = labels.get("HP", "HP")
         l_stm = labels.get("STM", "STM")
         i_role = sym.get("role", "")
@@ -196,8 +185,7 @@ class Projector:
         dom_val = float(vectors.get(dom_vec, 0.0) or 0.0) if vectors else 0.0
         return f"  {Prisma.CYN}VOLT:{Prisma.RST} {volt:04.1f}v   {Prisma.SLATE}DRAG:{Prisma.RST} {drag:04.1f}{dp_str}   {Prisma.MAG}VEC:{Prisma.RST} {dom_vec} ({dom_val:.2f})"
 
-    def _get_lattice_val(self, physics: Any, keys: List[str], default: float) -> float:
-        domains = [physics] + [safe_get(physics, sub) for sub in ("energy", "space", "matter")]
+    def _get_lattice_val(self, domains: List[Any], keys: List[str], default: float) -> float:
         for k in keys:
             for dom in domains:
                 if dom and (val := safe_get(dom, k)) is not None:
@@ -210,23 +198,23 @@ class Projector:
     def _render_lattice_strip(self, physics: Any, data_ctx: Dict = None, depth: str = "DEEP") -> str:
         if depth == "IDLE" or not physics:
             return ""
-        if data_ctx is None:
-            data_ctx = {}
-        E = self._get_lattice_val(physics, ["exhaustion", "E"], 0.2)
-        beta = self._get_lattice_val(physics, ["beta_index", "contradiction", "beta"], 0.4)
-        V = self._get_lattice_val(physics, ["voltage", "V"], 30.0)
-        F = self._get_lattice_val(physics, ["narrative_drag", "friction", "F"], 0.6)
-        H = self._get_lattice_val(physics, ["health", "H"], 100.0)
-        P = max(0.0, self._get_lattice_val(physics, ["stamina", "P"], 100.0))
-        T = self._get_lattice_val(physics, ["trauma", "T"], 0.0)
-        psi = self._get_lattice_val(physics, ["psi", "PSI"], 0.0)
-        chi = self._get_lattice_val(physics, ["entropy", "chi", "CHI"], 0.0)
-        valence = self._get_lattice_val(physics, ["valence", "VALENCE"], 0.0)
-        gamma = self._get_lattice_val(physics, ["gamma"], 0.0)
-        sigma = self._get_lattice_val(physics, ["sigma"], 0.0)
-        eta = self._get_lattice_val(physics, ["eta"], 0.0)
-        theta = self._get_lattice_val(physics, ["theta"], 0.0)
-        upsilon = self._get_lattice_val(physics, ["upsilon"], 0.0)
+        data_ctx = data_ctx or {}
+        doms = [physics] + [safe_get(physics, sub) for sub in ("energy", "space", "matter")]
+        E = self._get_lattice_val(doms, ["exhaustion", "E"], 0.2)
+        beta = self._get_lattice_val(doms, ["beta_index", "contradiction", "beta"], 0.4)
+        V = self._get_lattice_val(doms, ["voltage", "V"], 30.0)
+        F = self._get_lattice_val(doms, ["narrative_drag", "friction", "F"], 0.6)
+        H = self._get_lattice_val(doms, ["health", "H"], 100.0)
+        P = max(0.0, self._get_lattice_val(doms, ["stamina", "P"], 100.0))
+        T = self._get_lattice_val(doms, ["trauma", "T"], 0.0)
+        psi = self._get_lattice_val(doms, ["psi", "PSI"], 0.0)
+        chi = self._get_lattice_val(doms, ["entropy", "chi", "CHI"], 0.0)
+        valence = self._get_lattice_val(doms, ["valence", "VALENCE"], 0.0)
+        gamma = self._get_lattice_val(doms, ["gamma"], 0.0)
+        sigma = self._get_lattice_val(doms, ["sigma"], 0.0)
+        eta = self._get_lattice_val(doms, ["eta"], 0.0)
+        theta = self._get_lattice_val(doms, ["theta"], 0.0)
+        upsilon = self._get_lattice_val(doms, ["upsilon"], 0.0)
         sym = ux("projector", "symbols", {})
         i_core = sym.get("core", "")
         i_volt = sym.get("volt", "")
@@ -254,14 +242,11 @@ class Projector:
         slash_str = ""
         if gamma > 0 or sigma > 0 or eta > 0 or theta > 0 or upsilon > 0:
             slash_str = f" {Prisma.BLU}[SLASH Γ:{gamma:.1f} Σ:{sigma:.1f} Η:{eta:.1f} Θ:{theta:.1f} Υ:{upsilon:.1f}]{Prisma.RST}"
-        if depth == "DEEP":
-            return core + deep + shared_str + paradox_str + strain_str + slash_str
-        if depth == "CORE":
-            return core + shared_str + strain_str + slash_str
-        if depth == "LITE":
-            vitals = f" | {i_hlth} H:{H:.0f} P:{P:.0f}" if data_ctx.get("show_vitals", True) else ""
-            return f"{Prisma.CYN}[{i_volt} V:{V:.0f}{vitals}]{Prisma.RST}{shared_str}"
-        return ""
+        return {
+            "DEEP": core + deep + shared_str + paradox_str + strain_str + slash_str,
+            "CORE": core + shared_str + strain_str + slash_str,
+            "LITE": f"{Prisma.CYN}[{i_volt} V:{V:.0f}{f' | {i_hlth} H:{H:.0f} P:{P:.0f}' if data_ctx.get('show_vitals', True) else ''}]{Prisma.RST}{shared_str}",
+        }.get(depth, "")
 
     def render_technical(self, physics: Dict, data: Dict, mind: tuple) -> str:
         v = self._extract(physics, "energy", "voltage", 0.0)
@@ -309,15 +294,14 @@ class GeodesicRenderer:
         bio = ctx.bio_result
         raw_dashboard = self.render_dashboard(ctx)
         colored_ui = self.vsl_chroma.modulate(raw_dashboard, physics.get("vector", {}))
+        clean_ui = colored_ui
         if self.strunk_white:
             clean_ui, style_log = self.strunk_white.sanitize(colored_ui)
             if style_log:
                 self._punish_style_crime(style_log)
-        else:
-            clean_ui = colored_ui
+
         ignore_msg = ux("renderer", "ignore_msg") or "The system is listening."
-        if ignore_msg in clean_ui:
-            clean_ui = clean_ui.replace(ignore_msg, "")
+        clean_ui = clean_ui.replace(ignore_msg, "")
         structured_logs = self.compose_logs(ctx.logs, current_events, tick)
         return {
             "type": "GEODESIC_FRAME",
@@ -334,12 +318,10 @@ class GeodesicRenderer:
         metrics = self.eng.get_metrics()
         bio_data["atp"] = metrics.get("atp", 0.0)
         mode_settings = getattr(self.eng, "mode_settings", {})
-        world_loc = "UNKNOWN"
+        world_loc = "OMNIPRESENT"
         if mode_settings.get("show_location", True):
-            if nav := getattr(self.eng, "navigator", None):
-                world_loc = getattr(nav.world_graph.get(nav.current_node_id), "name", "UNKNOWN")
-        else:
-            world_loc = "OMNIPRESENT"
+            nav = getattr(self.eng, "navigator", None)
+            world_loc = getattr(nav.world_graph.get(nav.current_node_id) if nav else None, "name", "UNKNOWN")
         current_ui_depth = getattr(self.eng, "ui_mode", mode_settings.get("default_ui_depth", "WARM"))
         if current_ui_depth == "IDLE":
             current_ui_depth = "WARM"
@@ -357,8 +339,7 @@ class GeodesicRenderer:
             "show_location": mode_settings.get("show_location", True),
         }
         if hasattr(ctx, "shared_dyn"):
-            data_ctx["shared_dyn"] = ctx.shared_dyn
-            data_ctx["user_state"] = ctx.user_state
+            data_ctx.update({"shared_dyn": ctx.shared_dyn, "user_state": ctx.user_state})
         if pe := getattr(self.eng, "paradox_engine", None):
             data_ctx["paradox"] = {"active": pe.is_active, "yield": pe.paradox_yield, "beta_max": pe.beta_max}
         if c_state := getattr(getattr(self.eng, "consultant", None), "state", None):
@@ -386,9 +367,7 @@ class GeodesicRenderer:
 
     @staticmethod
     def render_soul_strip(soul_ref) -> str:
-        if not soul_ref:
-            return ""
-        if not soul_ref.current_obsession:
+        if not soul_ref or not soul_ref.current_obsession:
             return ""
         strip_format = ux("soul_dashboard", "obsession_strip")
         formatted_strip = strip_format.replace("{obs}", str(soul_ref.current_obsession))
@@ -403,15 +382,9 @@ class GeodesicRenderer:
             all_logs = [l for l in all_logs if not any(tag in l for tag in muted_tags)]
         if not all_logs:
             return []
-        unique_logs = []
-        seen = set()
-        for l in all_logs:
-            clean_l = Prisma.strip(l).lower()
-            if any(pattern in clean_l for pattern in self.NOISE_PATTERNS):
-                continue
-            if l not in seen:
-                unique_logs.append(l)
-                seen.add(l)
+        unique_logs = list(
+            dict.fromkeys(l for l in all_logs if not any(p in Prisma.strip(l).lower() for p in self.NOISE_PATTERNS))
+        )
         structured = []
         prefixes = ux("log_composer", "log_prefixes") or {}
         mappings = [
@@ -445,9 +418,8 @@ class CachedRenderer:
 
     def render_frame(self, ctx, tick: int, events: List[Dict]) -> Dict:
         voltage = float(safe_get(ctx.physics, "voltage", 0.0))
-        cfg = getattr(self.cfg, "GUI", None)
-        v_refresh = getattr(cfg, "HIGH_VOLTAGE_REFRESH", 15.0) if cfg else 15.0
-        if voltage > v_refresh or tick != self._last_tick:
+        cfg = getattr(self.cfg, "GUI", object())
+        if voltage > getattr(cfg, "HIGH_VOLTAGE_REFRESH", 15.0) or tick != self._last_tick:
             frame = self._base.render_frame(ctx, tick, events)
             self._cached_ui_content = frame["ui"]
             self._last_tick = tick
@@ -492,7 +464,7 @@ class TruthRenderer(GeodesicRenderer):
         h_pal = ux("truth_renderer", "palimpsest_header")
         if self.dial_setting == AmbiguityDial.BOARDROOM:
             return f"{Prisma.paint(h_board, 'W')}\n{ui_text}\n"
-        if self.dial_setting == AmbiguityDial.WORKSHOP:
+        elif self.dial_setting == AmbiguityDial.WORKSHOP:
             metrics = self.engine.get_metrics()
             l_conf = ux("truth_renderer", "workshop_confidence") or "Confidence"
             l_drag = ux("truth_renderer", "workshop_drag") or "Drag"
@@ -502,7 +474,7 @@ class TruthRenderer(GeodesicRenderer):
                 f"{l_drag} {metrics['stamina']:.1f}\n"
                 f"---------------------\n{ui_text}\n"
             )
-        if self.dial_setting == AmbiguityDial.RED_TEAM:
+        elif self.dial_setting == AmbiguityDial.RED_TEAM:
             dissent = [l for l in council_log if "CRITIC" in l or "WARN" in l]
             l_warn = ux("truth_renderer", "red_team_warning")
             l_cost = ux("truth_renderer", "red_team_cost")
@@ -514,7 +486,7 @@ class TruthRenderer(GeodesicRenderer):
                 f"{l_conf}\n" + "\n".join(f"  > {d}" for d in dissent) + "\n"
                 f"---------------------\n{ui_text}\n"
             )
-        if self.dial_setting == AmbiguityDial.PALIMPSEST:
+        elif self.dial_setting == AmbiguityDial.PALIMPSEST:
             drafts = cortex_packet.get("drafts", [])
             layer_view = ""
             l_draft = ux("truth_renderer", "palimpsest_draft")
@@ -522,7 +494,7 @@ class TruthRenderer(GeodesicRenderer):
             l_final = ux("truth_renderer", "palimpsest_final")
             for i, draft in enumerate(drafts):
                 layer_view += f"{Prisma.GRY}[{l_draft} {i}]: {draft} {Prisma.RED}{l_redact}{Prisma.RST}\n"
-            return f"{Prisma.paint(h_pal, 'M')}\n" f"{layer_view}" f"{Prisma.paint(l_final, 'W')}\n{ui_text}\n"
+            return f"{Prisma.paint(h_pal, 'M')}\n{layer_view}{Prisma.paint(l_final, 'W')}\n{ui_text}\n"
         return None
 
 
@@ -530,31 +502,33 @@ class PulseReader:
 
     @staticmethod
     def derive_mood(bio_state: Dict, config_ref=None) -> str:
-        cfg = getattr(config_ref or BoneConfig, "GUI", None)
+        cfg = getattr(config_ref or BoneConfig, "GUI", object())
         c_warn, a_warn = getattr(cfg, "CHEM_HIGH_WARN", 0.6), getattr(cfg, "ATP_EXHAUSTED_WARN", 20.0)
-        chem = bio_state.get("chem", {})
-        hierarchy = (("COR", "defensive"), ("DA", "manic"), ("OXY", "affectionate"))
-        for hormone, mood in hierarchy:
-            if chem.get(hormone, 0) > c_warn:
-                return ux("pulse_reader", f"mood_{mood}")
-        if bio_state.get("mito", {}).get("atp", 100) < a_warn:
-            return ux("pulse_reader", "mood_exhausted")
-        return ux("pulse_reader", "mood_neutral")
+        if mood := next(
+            (
+                m
+                for h, m in (("COR", "defensive"), ("DA", "manic"), ("OXY", "affectionate"))
+                if bio_state.get("chem", {}).get(h, 0) > c_warn
+            ),
+            None,
+        ):
+            return ux("pulse_reader", f"mood_{mood}")
+        return ux(
+            "pulse_reader", "mood_exhausted" if bio_state.get("mito", {}).get("atp", 100) < a_warn else "mood_neutral"
+        )
 
     @staticmethod
     def analyze_voltage(voltage: float, config_ref=None) -> Tuple[str, str]:
-        cfg = getattr(config_ref or BoneConfig, "GUI", None)
-        vc = getattr(cfg, "V_CRIT", 20.0)
-        vh = getattr(cfg, "V_HIGH", 15.0)
-        vl = getattr(cfg, "V_LOW", 5.0)
-        if voltage > vc:
-            key = "voltage_critical"
-        elif voltage > vh:
-            key = "voltage_high"
-        elif voltage < vl:
-            key = "voltage_low"
-        else:
-            key = "voltage_nominal"
+        cfg = getattr(config_ref or BoneConfig, "GUI", object())
+        key = (
+            "voltage_critical"
+            if voltage > getattr(cfg, "V_CRIT", 20.0)
+            else (
+                "voltage_high"
+                if voltage > getattr(cfg, "V_HIGH", 15.0)
+                else "voltage_low" if voltage < getattr(cfg, "V_LOW", 5.0) else "voltage_nominal"
+            )
+        )
         res = ux("pulse_reader", key)
         return res[0], res[1]
 
@@ -571,13 +545,13 @@ class SoulDashboard:
         if not (anchor := getattr(soul, "anchor", None)):
             return f"{Prisma.GRY}{ux('soul_dashboard', 'anchor_lost') or 'No Anchor.'}{Prisma.RST}"
         dig = anchor.dignity_reserve
-        cfg = getattr(self.cfg, "GUI", None)
-        d_high = getattr(cfg, "DIGNITY_HIGH", 80.0) if cfg else 80.0
-        d_med = getattr(cfg, "DIGNITY_MED", 50.0) if cfg else 50.0
-        d_low = getattr(cfg, "DIGNITY_LOW", 30.0) if cfg else 30.0
-        d_ratio = getattr(cfg, "DIGNITY_BAR_RATIO", 5) if cfg else 5
-        t_warn = getattr(cfg, "TENURE_WARN", 5) if cfg else 5
-        t_crit = getattr(cfg, "TENURE_CRIT", 8) if cfg else 8
+        cfg = getattr(self.cfg, "GUI", object())
+        d_high = getattr(cfg, "DIGNITY_HIGH", 80.0)
+        d_med = getattr(cfg, "DIGNITY_MED", 50.0)
+        d_low = getattr(cfg, "DIGNITY_LOW", 30.0)
+        d_ratio = getattr(cfg, "DIGNITY_BAR_RATIO", 5)
+        t_warn = getattr(cfg, "TENURE_WARN", 5)
+        t_crit = getattr(cfg, "TENURE_CRIT", 8)
         color = Prisma.GRN if dig > d_high else Prisma.OCHRE if dig > d_low else Prisma.RED
         filled = int(dig / d_ratio)
         c_fill, c_empty = ux("status_menu", "bar_filled"), ux("status_menu", "bar_empty")
@@ -615,11 +589,16 @@ class CycleReporter:
     def switch_renderer(self, mode: str):
         if self.current_mode == mode and self.renderer:
             return
-        if mode not in self.renderers:
-            self.renderers[mode] = get_renderer(
-                self.eng, self.vsl_chroma, getattr(self.eng, "bureau", None), getattr(self.eng, "valve", None), mode=mode
-            )
-        self.renderer = self.renderers[mode]
+        self.renderer = self.renderers.setdefault(
+            mode,
+            get_renderer(
+                self.eng,
+                self.vsl_chroma,
+                getattr(self.eng, "bureau", None),
+                getattr(self.eng, "valve", None),
+                mode=mode,
+            ),
+        )
         self.current_mode = mode
 
     def render_snapshot(self, ctx) -> Dict[str, Any]:
@@ -645,12 +624,8 @@ class CycleReporter:
             }
 
     def _inject_diagnostics(self, ctx):
-        if hasattr(self.eng, "system_health"):
-            fb = self.eng.system_health.flush_feedback()
-            i_hint, i_warn = (
-                ux("cycle_reporter", "diagnostic_hint_icon") or "[!]",
-                ux("cycle_reporter", "diagnostic_warn_icon") or "[*]",
-            )
+        if sh := getattr(self.eng, "system_health", None):
+            fb, i_hint, i_warn = sh.flush_feedback(), ux("cycle_reporter", "diagnostic_hint_icon") or "[!]", ux("cycle_reporter", "diagnostic_warn_icon") or "[*]"
             ctx.logs.extend(f"{Prisma.CYN}{i_hint} {h}{Prisma.RST}" for h in fb["hints"])
             ctx.logs.extend(f"{Prisma.OCHRE}{i_warn} {w}{Prisma.RST}" for w in fb["warnings"])
 
