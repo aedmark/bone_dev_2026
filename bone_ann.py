@@ -8,9 +8,7 @@ import faiss
 import numpy as np
 from bone_core import EventBus
 
-
 class HippocampalCache:
-
     def __init__(self, max_capacity: int = 500):
         self.max_capacity = max_capacity
         self.nodes: Dict[str, Any] = {}
@@ -18,11 +16,7 @@ class HippocampalCache:
     def encode(self, node_id: str, vector: List[float], metadata: Dict[str, Any]):
         if node_id in self.nodes:
             del self.nodes[node_id]
-        self.nodes[node_id] = {
-            "vector": vector,
-            "meta": metadata,
-            "timestamp": time.time(),
-        }
+        self.nodes[node_id] = {"vector": vector, "meta": metadata, "timestamp": time.time(),}
         if len(self.nodes) > self.max_capacity:
             self._prune_weakest()
 
@@ -33,9 +27,7 @@ class HippocampalCache:
             return val
         return None
 
-    def extract_for_consolidation(self,
-                                  limit: Optional[int] = None
-                                  ) -> List[Tuple[str, Dict]]:
+    def extract_for_consolidation(self, limit: Optional[int] = None) -> List[Tuple[str, Dict]]:
         target_keys = list(self.nodes.keys())[:limit] if limit is not None else list(
             self.nodes.keys())
         return [(k, self.nodes.pop(k)) for k in target_keys]
@@ -49,7 +41,6 @@ class HippocampalCache:
     def get_graph(self) -> Any:
 
         class _Graph:
-
             def __init__(self, adj):
                 self.adj = adj
 
@@ -66,9 +57,7 @@ class HippocampalCache:
                 adj[k2].add(k1)
         return _Graph(adj)
 
-
 class CerebralIndex:
-
     def __init__(self, dimension: int = 8, index_type: str = "HNSW"):
         self.dimension = dimension
         self.index_type = index_type
