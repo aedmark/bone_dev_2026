@@ -1101,7 +1101,33 @@ class SimulationPreflightPhase(SimulationPhase):
                     "log": msg
                 })
                 break
-        user_input_lower = (ctx.input_text or "").lower()
+
+        raw_input = ctx.input_text or ""
+        if "?!" in raw_input:
+            safe_set(phys_obj, "scope", 0.0)
+            safe_set(phys_obj, "depth", 0.0)
+            ctx.council_mandates.append({"action": "SYSTEM_DIRECTIVE", "value": "URGENT_QUERY", "log": f"{Prisma.CYN}?! (Urgent Query): Scope/Depth capped. Exact-match Hippocampal only.{Prisma.RST}"})
+        if "?⤓" in raw_input:
+            safe_set(phys_obj, "omega_r", min(1.0, float(getattr(phys_obj, "omega_r", 0.5)) + 0.5))
+            ctx.council_mandates.append({"action": "SYSTEM_DIRECTIVE", "value": "DEEP_RETRIEVAL", "log": f"{Prisma.MAG}?⤓ (Deep Retrieval): Ω_r spiked. ANN ghosts summoned.{Prisma.RST}"})
+        if "?↗" in raw_input:
+            safe_set(phys_obj, "scope", min(1.0, float(getattr(phys_obj, "scope", 0.5)) + 0.5))
+            ctx.council_mandates.append({"action": "SYSTEM_DIRECTIVE", "value": "BROAD_RETRIEVAL", "log": f"{Prisma.CYN}?↗ (Broad Retrieval): Scope widened. Shadow Cast explicitly triggered.{Prisma.RST}"})
+        if "?↺" in raw_input:
+            safe_set(phys_obj, "beta_index", min(1.0, float(getattr(phys_obj, "beta_index", 0.5)) + 0.5))
+            ctx.council_mandates.append({"action": "SYSTEM_DIRECTIVE", "value": "CONTRADICTION_FLAG", "log": f"{Prisma.YEL}?↺ (Contradiction Flag): Paradox Engine override active.{Prisma.RST}"})
+        if "[CASCADE]" in upper_input:
+            ctx.council_mandates.append({"action": "SYSTEM_DIRECTIVE", "value": "CASCADE_AWARENESS", "log": f"{Prisma.OCHRE}[CASCADE]: Counterfactual math explicitly demanded.{Prisma.RST}"})
+        if "[AUDIT]" in upper_input:
+            ctx.council_mandates.append({"action": "SYSTEM_DIRECTIVE", "value": "AUDIT_TRAIL", "log": f"{Prisma.GRY}[AUDIT]: Narrative illusion dropped. Coordinates exposed.{Prisma.RST}"})
+        if "[NO_JUMP]" in upper_input or "[SILENCE]" in upper_input:
+            phys_obj.silence = 1.0
+            msg = "[EXECUTIVE LAYER]: The Nabla Trigger (∇) engaged. Stopping token prediction. Waiting for mathematical rupture."
+            ctx.log(f"{Prisma.GRY}{msg}{Prisma.RST}")
+            ctx.refusal_triggered = True
+            ctx.refusal_packet = self._build_refusal(ctx, phys_obj, "NABLA_SILENCE", msg)
+            return ctx
+        user_input_lower = raw_input.lower()
         if is_slash:
             has_code = ("```" in user_input_lower or "def " in user_input_lower
                         or "class " in user_input_lower or "{" in user_input_lower)

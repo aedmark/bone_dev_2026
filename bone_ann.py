@@ -77,12 +77,30 @@ class CerebralIndex:
         self.total_nodes += len(vectors)
         self.is_trained = True
 
-    def query_neighborhood(self,
-                           query_vector: List[float],
-                           k: int = 5,
-                           resonance_threshold: float = 0.5) -> List[Dict]:
-        if (not self.is_trained or self.total_nodes == 0
-                or len(query_vector) != self.dimension):
+    def lateral_ofc_retrieval(self, physics_state: Dict[str, float], k: int = 2) -> List[Dict]:
+        """Bypasses cosine similarity. Selects nodes that maximize: Ω² + 2Ω_r + F."""
+        if not self._payloads:
+            return []
+        omega = physics_state.get("omega", 0.5)
+        omega_r = physics_state.get("omega_r", 0.5)
+
+        def _score(payload):
+            f_cost = payload.get("narrative_drag", 1.0)
+            return (omega ** 2) + (2 * omega_r) + f_cost
+
+        scored = sorted(self._payloads, key=_score, reverse=True)
+        return scored[:k]
+
+    def query_neighborhood(self, query_vector: List[float], k: int = 5, resonance_threshold: float = 0.5,
+                           physics_state: Optional[Dict[str, float]] = None) -> List[Dict]:
+        if not self.is_trained or self.total_nodes == 0:
+            return []
+        if physics_state:
+            voltage = physics_state.get("voltage", 0.0)
+            chi = physics_state.get("chi", 0.0)
+            if voltage > 80.0 and chi > 0.7:
+                return self.lateral_ofc_retrieval(physics_state, k=k)
+        if len(query_vector) != self.dimension:
             return []
         np_query = np.ascontiguousarray(np.array([query_vector]).astype("float32"))
         actual_k = min(k, self.total_nodes)
@@ -96,8 +114,7 @@ class CerebralIndex:
                 valid_neighbors.append({**self._payloads[idx], "resonance": resonance})
         return valid_neighbors
 
-    def get_local_mass_radius(self,
-                              query_text: str) -> Optional[Dict[str, List[float]]]:
+    def get_local_mass_radius(self, query_text: str) -> Optional[Dict[str, List[float]]]:
         if not self.is_trained or self.total_nodes < 5:
             return None
         np_query = np.zeros((1, self.dimension), dtype="float32")
@@ -113,11 +130,8 @@ class CerebralIndex:
             return None
         return {"log_r": log_r, "log_m": log_m, "weights": weights}
 
-
 class MemoryConsolidator:
-
-    def __init__(self, hippocampus: HippocampalCache, cortex: CerebralIndex,
-                 events: EventBus):
+    def __init__(self, hippocampus: HippocampalCache, cortex: CerebralIndex, events: EventBus):
         self.hippocampus = hippocampus
         self.cortex = cortex
         self.events = events

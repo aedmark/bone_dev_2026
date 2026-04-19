@@ -1,3 +1,5 @@
 /.vscode/
 /.venv/
 clean.sh
+/.idea/
+/.idea/misc.xml
