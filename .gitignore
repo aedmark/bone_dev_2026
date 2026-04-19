@@ -3,3 +3,4 @@
 clean.sh
 /.idea/
 /.idea/misc.xml
+.gitignore
