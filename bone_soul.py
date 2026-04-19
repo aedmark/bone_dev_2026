@@ -44,11 +44,13 @@ class TraitVector:
         kwargs = {k: float(data.get(k.upper(), 0.5)) for k in cls._TRAITS}
         return cls(**kwargs)
 
+    def _clamp(self, val: float) -> float:
+        return max(0.0, min(1.0, float(val)))
+
     def adjust(self, trait: str, delta: float):
         t = trait.lower()
         if hasattr(self, t):
-            val = getattr(self, t)
-            setattr(self, t, max(0.0, min(1.0, val + delta)))
+            setattr(self, t, self._clamp(getattr(self, t) + delta))
 
     def normalize(self, decay_rate: float):
         for t in self._TRAITS:
@@ -56,12 +58,11 @@ class TraitVector:
             target = 0.1 if t == "wisdom" else 0.5
             resistance = 1.0 - (1.5 * abs(val - target))
             actual_decay = decay_rate * max(0.1, min(1.0, resistance))
-            setattr(self, t, max(0.0, min(1.0, val + ((target - val) * actual_decay))))
+            setattr(self, t, self._clamp(val + ((target - val) * actual_decay)))
 
     def _clamp_all(self):
         for t in self._TRAITS:
-            val = getattr(self, t)
-            setattr(self, t, max(0.0, min(1.0, float(val))))
+            setattr(self, t, self._clamp(getattr(self, t)))
 
 
 class TheEditor:
@@ -688,6 +689,10 @@ class TheOroboros:
         self.generation_count = 0
         self._load()
 
+    def _cfg(self, key: str, default: Any) -> Any:
+        cfg_obj = getattr(self.cfg, "OROBOROS", None)
+        return getattr(cfg_obj, key, default) if cfg_obj else default
+
     def _load(self):
         if not os.path.exists(self.LEGACY_FILE):
             return
@@ -736,14 +741,10 @@ class TheOroboros:
             title_fmt = (ux("soul_strings", "oroboros_myth_title")
                          or "The Myth of {trigger}")
             new_myths.append(
-                Myth(
-                    title=title_fmt.format(trigger=trigger_word.title()),
-                    lesson=strongest.lesson,
-                    trigger=trigger_word,
-                ))
-        cfg = getattr(self.cfg, "OROBOROS", None)
-        max_scars = getattr(cfg, "MAX_SCARS", 5) if cfg else 5
-        max_myths = getattr(cfg, "MAX_MYTHS", 10) if cfg else 10
+                Myth(title=title_fmt.format(trigger=trigger_word.title()), lesson=strongest.lesson,
+                     trigger=trigger_word, ))
+        max_scars = self._cfg("MAX_SCARS", 5)
+        max_myths = self._cfg("MAX_MYTHS", 10)
         scars_payload = [vars(s) for s in self.scars + new_scars]
         myths_payload = [vars(m) for m in self.myths + new_myths]
         if len(scars_payload) > max_scars:
@@ -768,31 +769,17 @@ class TheOroboros:
             return log
         for scar in self.scars:
             if scar.stat_affected == "narrative_drag":
-                safe_set(
-                    physics,
-                    "narrative_drag",
-                    safe_get(physics, "narrative_drag", 0.0) + scar.value,
-                )
+                safe_set(physics, "narrative_drag", safe_get(physics, "narrative_drag", 0.0) + scar.value, )
                 if msg := ux("soul_strings", "scar_drag"):
                     log.append(msg.format(name=scar.name))
             elif scar.stat_affected == "voltage_cap":
-                v_pen = getattr(getattr(self.cfg, "OROBOROS", None), "VOLTAGE_PENALTY",
-                                5.0)
-                safe_set(
-                    physics,
-                    "voltage",
-                    max(0,
-                        safe_get(physics, "voltage", 0.0) - v_pen),
-                )
+                v_pen = self._cfg("VOLTAGE_PENALTY", 5.0)
+                safe_set(physics, "voltage", max(0.0, safe_get(physics, "voltage", 0.0) - v_pen))
                 if msg := ux("soul_strings", "scar_voltage"):
                     log.append(msg.format(name=scar.name))
             elif scar.stat_affected == "trauma_baseline":
                 t_vec = safe_get(bio, "trauma_vector") or {}
-                safe_set(
-                    t_vec,
-                    "EXISTENTIAL",
-                    safe_get(t_vec, "EXISTENTIAL", 0.0) + scar.value,
-                )
+                safe_set(t_vec, "EXISTENTIAL", safe_get(t_vec, "EXISTENTIAL", 0.0) + scar.value, )
                 safe_set(bio, "trauma_vector", t_vec)
                 safe_set(physics, "T", safe_get(physics, "T", 0.0) + scar.value)
                 if msg := ux("soul_strings", "scar_frailty"):
