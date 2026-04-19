@@ -13,20 +13,16 @@ from bone_presets import BoneConfig
 from bone_types import Prisma
 from bone_village import ParadoxSeed
 
-
 def _word_to_vector(word: str, dim: int = 8) -> list:
     h = hashlib.md5(word.encode("utf-8")).digest()
     return [(b / 127.5) - 1.0 for b in h[:dim]]
 
-
 def _identity(n=8):
     return [[1.0 if i == j else 0.0 for j in range(n)] for i in range(n)]
-
 
 def _mat_mul(A, B):
     B_cols = list(zip(*B))
     return [[sum(a * b for a, b in zip(row, col)) for col in B_cols] for row in A]
-
 
 def _reorthogonalize(M):
     n = len(M)
@@ -42,14 +38,12 @@ def _reorthogonalize(M):
             out[i][j] = v[i] / norm
     return out
 
-
 def _householder(v):
     mag_sq = sum(x * x for x in v)
     if mag_sq == 0:
         return _identity(len(v))
     return [[(1.0 if i == j else 0.0) - 2.0 * (v[i] * v[j]) / mag_sq
              for j in range(len(v))] for i in range(len(v))]
-
 
 def _access_config_path(root, path, value=None, set_mode=False):
     target = root
@@ -75,9 +69,7 @@ def _access_config_path(root, path, value=None, set_mode=False):
     except (AttributeError, KeyError, TypeError):
         return None
 
-
 class LocalFileSporeLoader:
-
     def __init__(self, directory="memories"):
         self.directory = directory
         if not os.path.exists(directory):
@@ -150,9 +142,7 @@ class LocalFileSporeLoader:
         except OSError:
             return False
 
-
 class SubconsciousStrata:
-
     def __init__(self, filename="memories/subconscious.jsonl"):
         self.filepath = filename
         self.directory = os.path.dirname(filename)
@@ -334,11 +324,7 @@ class MemoryCore:
                         data["edges"].get(context_word, 0.0) + 1.0)
                 try:
                     self.subconscious.bury(
-                        {
-                            "word": name,
-                            "mass": 1.0,
-                            "reconstructive": True
-                        },
+                        {"word": name, "mass": 1.0, "reconstructive": True},
                         config_ref=self.cfg,
                     )
                 except Exception:
@@ -393,9 +379,7 @@ class MemoryCore:
         msg = ux("spore_strings", "core_pruned") or ""
         return msg.format(total=total_decayed, pruned=pruned_count) if msg else ""
 
-    def cannibalize(self,
-                    current_tick,
-                    preserve_current=None) -> Tuple[Optional[str], str]:
+    def cannibalize(self, current_tick, preserve_current=None) -> Tuple[Optional[str], str]:
         protected = set()
         if preserve_current:
             if isinstance(preserve_current, list):
@@ -415,13 +399,8 @@ class MemoryCore:
         victim, data, score = candidates[0]
         mass = sum(data["edges"].values())
         lifespan = current_tick - data.get("strata", {}).get("birth_tick", current_tick)
-        fossil_data = {
-            "word": victim,
-            "mass": round(mass, 2),
-            "lifespan": lifespan,
-            "edges": data["edges"],
-            "death_tick": current_tick,
-        }
+        fossil_data = {"word": victim, "mass": round(mass, 2), "lifespan": lifespan, "edges": data["edges"],
+                       "death_tick": current_tick, }
         self.subconscious.bury(fossil_data, config_ref=self.cfg)
         del self.graph[victim]
         for node_data in self.graph.values():
@@ -432,14 +411,8 @@ class MemoryCore:
 
 class MycelialNetwork:
 
-    def __init__(
-        self,
-        events: EventBus,
-        loader: "LocalFileSporeLoader" = None,
-        seed_file=None,
-        config_ref=None,
-        lexicon_ref=None,
-    ):
+    def __init__(self, events: EventBus, loader: "LocalFileSporeLoader" = None, seed_file=None, config_ref=None,
+                 lexicon_ref=None, ):
         self.events = events
         self.cfg = config_ref or BoneConfig
         self.lex = lexicon_ref
@@ -450,10 +423,7 @@ class MycelialNetwork:
         self.cortex = CerebralIndex(dimension=8, index_type="HNSW")
         self.subconscious = SubconsciousStrata(
             filename=f"memories/subconscious_{self.session_id}.jsonl")
-        self.memory_core = MemoryCore(events,
-                                      self.subconscious,
-                                      config_ref=self.cfg,
-                                      lexicon_ref=self.lex)
+        self.memory_core = MemoryCore(events, self.subconscious, config_ref=self.cfg, lexicon_ref=self.lex)
         self.lichen = BioLichen(lexicon_ref=self.lex)
         self.parasite = BioParasite(self, self.lex, config_ref=self.cfg)
         self.immune = ImmuneMycelium()
@@ -778,33 +748,14 @@ class MycelialNetwork:
         if msg:
             self.events.log(f"{Prisma.MAG}{msg}{Prisma.RST}")
         valid_mutations = 0
-        SAFE_MUTATIONS = {
-            "STAMINA_REGEN",
-            "MAX_DRAG_LIMIT",
-            "GEODESIC_STRENGTH",
-            "SIGNAL_DRAG_MULTIPLIER",
-            "KINETIC_GAIN",
-            "TOXIN_WEIGHT",
-            "FLASHPOINT_THRESHOLD",
-            "MAX_MEMORY_CAPACITY",
-            "PRIORITY_LEARNING_RATE",
-            "ANVIL_TRIGGER_VOLTAGE",
-            "MAX_REPETITION_LIMIT",
-            "PHYSICS.WEIGHT_HEAVY",
-            "PHYSICS.WEIGHT_KINETIC",
-            "PHYSICS.VOLTAGE_FLOOR",
-            "PHYSICS.VOLTAGE_MAX",
-            "BIO.CORTEX_SENSITIVITY",
-            "BIO.ROS_CRITICAL",
-            "BIO.DECAY_RATE",
-            "BIO.REWARD_MEDIUM",
-            "METABOLISM.PHOTOSYNTHESIS_GAIN",
-            "METABOLISM.ROS_GENERATION_FACTOR",
-            "COUNCIL.FOOTNOTE_CHANCE",
-            "COUNCIL.MANIC_VOLTAGE_TRIGGER",
-            "GRAVITY_WELL_THRESHOLD",
-            "PRIORITY_LEARNING_RATE",
-        }
+        SAFE_MUTATIONS = {"STAMINA_REGEN", "MAX_DRAG_LIMIT", "GEODESIC_STRENGTH", "SIGNAL_DRAG_MULTIPLIER",
+                          "KINETIC_GAIN", "TOXIN_WEIGHT", "FLASHPOINT_THRESHOLD", "MAX_MEMORY_CAPACITY",
+                          "PRIORITY_LEARNING_RATE", "ANVIL_TRIGGER_VOLTAGE", "MAX_REPETITION_LIMIT",
+                          "PHYSICS.WEIGHT_HEAVY", "PHYSICS.WEIGHT_KINETIC", "PHYSICS.VOLTAGE_FLOOR",
+                          "PHYSICS.VOLTAGE_MAX", "BIO.CORTEX_SENSITIVITY", "BIO.ROS_CRITICAL", "BIO.DECAY_RATE",
+                          "BIO.REWARD_MEDIUM", "METABOLISM.PHOTOSYNTHESIS_GAIN", "METABOLISM.ROS_GENERATION_FACTOR",
+                          "COUNCIL.FOOTNOTE_CHANCE", "COUNCIL.MANIC_VOLTAGE_TRIGGER", "GRAVITY_WELL_THRESHOLD",
+                          "PRIORITY_LEARNING_RATE", }
         for key, value in data["config_mutations"].items():
             if key in SAFE_MUTATIONS:
                 if _access_config_path(self.cfg, key, value, set_mode=True):
@@ -903,20 +854,9 @@ class MycelialNetwork:
             data.get("world_atlas", {}),
         )
 
-    def save(
-        self,
-        health: float,
-        stamina: float,
-        mutations: dict,
-        trauma_accum: dict,
-        joy_history: List[Dict[str, Any]],
-        mitochondria_traits=None,
-        antibodies=None,
-        soul_data=None,
-        continuity=None,
-        world_atlas=None,
-        village_data=None,
-    ):
+    def save(self, health: float, stamina: float, mutations: dict, trauma_accum: dict,
+             joy_history: List[Dict[str, Any]], mitochondria_traits=None, antibodies=None, soul_data=None,
+             continuity=None, world_atlas=None, village_data=None, ):
         final_vector = {k: min(1.0, v) for k, v in trauma_accum.items()}
         valid_joy = [j for j in joy_history if isinstance(j, dict)]
         top_joy = sorted(valid_joy, key=lambda x: x.get("resonance", 0),
