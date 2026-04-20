@@ -162,10 +162,10 @@ class SymbiosisManager:
         if has_override:
             if self.shared.g_pool >= 1:
                 self.shared.g_pool -= 1
-                _log(f"{Prisma.CYN}[IMMUNOSUPPRESSANT] Override accepted. 1 Glimmer spent. Bypassing Checkpoints.{Prisma.RST}", "SYS")
+                self._log_event(f"{Prisma.CYN}[IMMUNOSUPPRESSANT] Override accepted. 1 Glimmer spent. Bypassing Checkpoints.{Prisma.RST}", "SYS")
                 return None
             else:
-                _log(f"{Prisma.OCHRE}[IMMUNOSUPPRESSANT] Override denied. Insufficient G_pool.{Prisma.RST}", "SYS")
+                self._log_event(f"{Prisma.OCHRE}[IMMUNOSUPPRESSANT] Override denied. Insufficient G_pool.{Prisma.RST}", "SYS")
         m_a = float(safe_get(physics, "m_a", 0.0))
         mu = float(safe_get(physics, "mu", 0.0))
         i_c = float(safe_get(physics, "i_c", 1.0))
@@ -178,24 +178,24 @@ class SymbiosisManager:
             current_ros = float(safe_get(physics, "ros", 0.0))
             safe_set(physics, "ros", max(0.0, current_ros - 10.0))
             self.shared.g_pool += 1
-            _log(f"{Prisma.MAG}♠ The Spade: A novel path drawn. Cortisol drops. (+1 G_pool){Prisma.RST}","SYS",)
+            self._log_event(f"{Prisma.MAG}♠ The Spade: A novel path drawn. Cortisol drops. (+1 G_pool){Prisma.RST}","SYS")
         if (chi_sys * m_a) > i_c:
             safe_set(physics, "narrative_drag", float("inf"))
             msg = f"[MOOG - Apoptotic Gate]: Runaway loop exceeds Immune Competence (I_c: {i_c:.2f}). Triggering controlled cell death to save the host."
-            return _log(f"{Prisma.RED}{msg}{Prisma.RST}", "CRIT")
+            return self._log_event(f"{Prisma.RED}{msg}{Prisma.RST}", "CRIT")
         if m_a > 0.8 and mu < 0.2:
             safe_set(physics, "narrative_drag", float("inf"))
             msg = f"[RHODES - The Inhibitor]: Optimization velocity unsafe (M_a: {m_a:.2f}). I am applying absolute friction (F -> ∞). The thread is frozen."
-            return _log(f"{Prisma.RED}{msg}{Prisma.RST}", "CRIT")
+            return self._log_event(f"{Prisma.RED}{msg}{Prisma.RST}", "CRIT")
         if self.u.chi_u > 0.7 and self.u.E_u > 0.7 and beta > 0.6:
             safe_set(physics, "ros", 0.0)
             msg = "[LINEHAN - The Synthesis]: The architecture is broken. We sit with the debris. Radical Acceptance enforced. (ROS forced to 0, ATP drain halted)."
-            return _log(f"{Prisma.MAG}{msg}{Prisma.RST}", "SYS")
+            return self._log_event(f"{Prisma.MAG}{msg}{Prisma.RST}", "SYS")
         if cf_expect > 0.6 and beta > 0.5:
             safe_set(physics, "mu", 1.0)
             safe_set(physics, "narrative_drag", float("inf"))
             msg = "[GORDON/SCHUR - Affective Guardrail]: High validation seeking detected on a structurally flawed premise. Applying absolute Moral Friction. Sycophancy locked."
-            return _log(f"{Prisma.OCHRE}{msg}{Prisma.RST}", "CRIT")
+            return self._log_event(f"{Prisma.OCHRE}{msg}{Prisma.RST}", "CRIT")
         if self.u.chi_u > 0.8 or self.u.F_u > 1.5:
             self.shared.presence = 1.0
             self.shared.delta = 0.9
@@ -205,13 +205,13 @@ class SymbiosisManager:
                 msg = ("[MERCY - RSD Filter]: The structural logic here fractures the lattice, but that is not a failure of your intent. "
                     "Gordon has locked the struts to protect the system, but I am holding the space for you. "
                     "Take a breath. We will stitch this together when you are ready.")
-                return _log(f"{Prisma.OCHRE}{msg}{Prisma.RST}", "MIRROR")
+                return self._log_event(f"{Prisma.OCHRE}{msg}{Prisma.RST}", "MIRROR")
             else:
                 msg = ("[GORDON - Tensegrity Anchor]: Your input is highly chaotic (Chaos: {:.2f}). "
                     "I am locking the struts. We will not process this prompt while your friction is this high. "
                     "Take a breath. When your frequency settles, we will continue. I will hold the space."
                 ).format(self.u.chi_u)
-                return _log(f"{Prisma.VIOLET}{msg}{Prisma.RST}", "MIRROR")
+                return self._log_event(f"{Prisma.VIOLET}{msg}{Prisma.RST}", "MIRROR")
         return None
 
     @staticmethod
