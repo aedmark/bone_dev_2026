@@ -322,6 +322,14 @@ class TheCortex:
         if self.consultant and "/vsl" in user_input.lower():
             return self._handle_vsl_command(user_input)
         is_boot_sequence = "SYSTEM_BOOT" in user_input
+        if len(user_input) > 1500 and not is_system and not is_boot_sequence:
+            if hasattr(self.svc.cycle_controller, "eng") and hasattr(self.svc.cycle_controller.eng, "substrate"):
+                safe_content = user_input.replace("\n", "|||NEWLINE|||")
+                filename = f"context_drop_{int(time.time())}.txt"
+                self.svc.cycle_controller.eng.substrate.queue_write(f"memory_queue/{filename}", safe_content)
+                msg = f"{Prisma.CYN}[Substrate Queue]: Massive context drop detected. Routed to silent indexing. Dialogue buffer bypassed.{Prisma.RST}"
+                if self.events: self.events.log(msg, "SYS")
+                return {"ui": msg, "type": "SILENT_INGEST", "physics": self.last_physics, "logs": [msg]}
         sim_result = self.svc.cycle_controller.run_turn(user_input, is_system=is_system)
         if sim_result.get("physics"):
             self.last_physics = sim_result["physics"]
@@ -823,6 +831,8 @@ class TheCortex:
             if scope_val > 0.6 or depth_val > 0.6:
                 query_vec = phys.get("vector", {})
                 if query_vec:
+                    if scope_val > 0.8:
+                        phys["lateral_search"] = True
                     ordered_keys = ["STR", "VEL", "PSI", "ENT", "PHI", "BET", "DEL", "E"]
                     q_list = [float(query_vec.get(k, 0.0)) for k in ordered_keys]
                     shadow_nodes = self.svc.mind_memory.cortex.query_neighborhood(q_list, k=2, resonance_threshold=max(0.2, 0.8 - omega_r),physics_state=phys)
@@ -880,6 +890,21 @@ class DreamEngine:
         dream_text = None
         is_deep_rem = False
         shift = ({"cortisol": -0.3, "dopamine": 0.1} if cortisol <= 0.6 else {"cortisol": 0.1})
+
+        if hasattr(self.eng, "substrate") and self.eng.substrate.pending_writes:
+            raw_payloads = [data for path, data in self.eng.substrate.pending_writes if "memory_queue" in path]
+            s_logs, s_cost = self.eng.substrate.execute_writes(available_atp)
+            shift["atp_drain"] = s_cost
+            if raw_payloads and hasattr(self.mem, "cortex"):
+                from bone_spores import _word_to_vector
+                vectors = [_word_to_vector(text[:50]) for text in raw_payloads]  # Simulated fuzzy vector
+                metadata = [{"raw_verbatim_text": text.replace("|||NEWLINE|||", "\n"), "wing_id": "GLOBAL"} for text in
+                            raw_payloads]
+                self.mem.cortex.add_memories(vectors, metadata)
+                s_logs.append(f"{len(raw_payloads)} Bedrock Nodes Indexed")
+            dream_text = f"[{' | '.join(s_logs)} | ATP: -{s_cost:.1f} | Silent Logging Complete]"
+            if self.events: self.events.log(f"{{Prisma.MAG}}✨ [REM CYCLE]: {dream_text}{{Prisma.RST}}", "SYS")
+            return dream_text, shift
         if (self.mem and hasattr(self.mem, "hippocampus")
                 and hasattr(self.mem, "cortex")):
             consolidator = MemoryConsolidator(self.mem.hippocampus, self.mem.cortex, self.events)
@@ -892,8 +917,7 @@ class DreamEngine:
                     dream_text = f"The system enters Deep REM. {nodes_moved} synaptic structures dissolve from the active cache and permanently crystallize into the deep Cerebral Cortex."
                     if self.events:
                         self.events.log(f"{{Prisma.MAG}}✨ [REM CYCLE]: Synaptic Consolidation complete. {nodes_moved} nodes written to deep index. (-{atp_cost:.1f} ATP){{Prisma.RST}}", "SYS",)
-        if getattr(self, "dspy_critic", None) and getattr(self.dspy_critic, "enabled",
-                                                          False):
+        if getattr(self, "dspy_critic", None) and getattr(self.dspy_critic, "enabled", False):
             if hasattr(self, "trauma_buffer") and len(self.trauma_buffer) > 0:
                 trauma = self.trauma_buffer.popleft()
                 current_state_str = (

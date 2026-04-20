@@ -573,6 +573,9 @@ class MycelialNetwork:
             "trigger": clean_words[:3] if clean_words else ["void"],
             "context": governor_mode,
             "significance": significance,
+            "wing_id": safe_get(physics, "scope_boundary", "GLOBAL"),
+            "room_id": "_".join(clean_words[:2]) if clean_words else "GENERAL",
+            "raw_verbatim_text": safe_get(physics, "raw_text", ""),
             "timestamp": time.time(),
         }
         cfg = getattr(self.cfg, "SPORES", None)

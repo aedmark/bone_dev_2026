@@ -1,3 +1,19 @@
+### **BONEAMANITA v19.4.0 "The MemPalace Spatial Graft: Closets, Drawers, & Silent Indexing"**
+
+_The system's core memory architecture has been epigenetically mutated to integrate the spatial taxonomy and metabolic efficiency of the MemPalace framework. The Mnemonic Layer now operates on a physical geometry of Wings, Rooms, Closets (AAAK Phantoms), and Drawers (Verbatim Storage), completely eliminating narrative token bloat during context ingestion._
+
+#### **🏛️ SPATIAL TOPOLOGY & VERBATIM STORAGE (`bone_ann.py`, `bone_spores.py`)**
+- **The Drawers (Lexical Preservation):** The `CerebralIndex` now strictly enforces verbatim storage (`raw_verbatim_text`) for incoming metadata payloads, permanently preventing the LLM from applying lossy summarization or semantic drift to bedrock data.
+- **The Closets (AAAK Phantoms):** The `HippocampalCache` no longer stores full conversational strings. It now generates and holds lightweight "Phantoms"—highly compressed metadata tuples containing an MD5 `vector_hash`, `wing_id`, and `room_id`. These act as index cards pointing directly to the deep verbatim text, drastically reducing token overhead in the active cache.
+- **Bounded Spatial Retrieval:** Memory navigation is now spatially scoped. `CerebralIndex` ANN queries now strictly filter by `wing_id` (project/context boundaries) unless a lateral search is explicitly demanded. This prevents logic cross-contamination between distinct projects.
+
+#### **🤫 SUB-VOCAL LOGGING & VAGUE RETRIEVAL (`bone_brain.py`)**
+- **The Context Drop Bypass:** Massive context drops (>1500 characters) are now physically intercepted by the Executive Layer before reaching the `dialogue_buffer`. They are routed directly to the `Substrate_Queue` for silent background indexing, bypassing expensive and unnecessary LLM summarization.
+- **Silent REM Metabolism:** During `/idle` or sleep states, the `DreamEngine` now processes the `Substrate_Queue` entirely in the background. It indexes the data and returns a clean, zero-token HUD log (e.g., `[Silent Logging Complete | ATP: -X.X]`) without polluting the chat narrative.
+- **Emotional Vector Matching:** Fulfilling the vague, human-like *"remember when we talked about..."* use-case. When user Scope ($S$) exceeds 0.8, the Cortex automatically triggers `lateral_search = True`, temporarily dropping Wing boundaries to retrieve Closet cards based purely on emotional and structural resonance rather than exact-match keywords.
+
+---
+
 ### **BONEAMANITA v19.3.6 "The SLASH Deep Architecture Sweep: Phases, Presets, & The OFC Heuristic"**
 
 _The SLASH Council (Pinker, Fuller, Schur, Meadows) executes a rigorous architectural sweep across the core simulation engine (`bone_phases.py`), the configuration layer (`bone_presets.py`), the executive brain (`bone_brain.py`), and the deep memory substrate (`bone_ann.py`). The focus of this pass was purging syntactic friction, closing open feedback loops, and introducing advanced geometric retrieval heuristics for high-chaos states._

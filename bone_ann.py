@@ -2,6 +2,7 @@
 
 import math
 import time
+import hashlib
 from itertools import combinations
 from typing import Dict, List, Any, Tuple, Optional
 import faiss
@@ -16,7 +17,12 @@ class HippocampalCache:
     def encode(self, node_id: str, vector: List[float], metadata: Dict[str, Any]):
         if node_id in self.nodes:
             del self.nodes[node_id]
-        self.nodes[node_id] = {"vector": vector, "meta": metadata, "timestamp": time.time(),}
+        phantom = {
+            "vector_hash": hashlib.md5(str(vector).encode('utf-8')).hexdigest()[:8],
+            "wing_id": metadata.get("wing_id", "GLOBAL"),
+            "room_id": metadata.get("room_id", "GENERAL")
+        }
+        self.nodes[node_id] = {"phantom": phantom, "vector": vector, "meta": metadata, "timestamp": time.time()}
         if len(self.nodes) > self.max_capacity:
             self._prune_weakest()
 
@@ -66,6 +72,15 @@ class CerebralIndex:
         self._index = faiss.IndexHNSWFlat(self.dimension, 32)
         self._payloads: List[Dict] = []
 
+    def resolve_phantom(self, vector_hash: str) -> str:
+        """Instantly resolves an AAAK Phantom hash to its verbatim Drawer text."""
+        if not self._payloads:
+            return ""
+        for payload in self._payloads:
+            if payload.get("vector_hash") == vector_hash:
+                return payload.get("raw_verbatim_text", "")
+        return ""
+
     def add_memories(self, vectors: List[List[float]], metadata_payloads: List[Dict]):
         if not vectors:
             return
@@ -73,6 +88,8 @@ class CerebralIndex:
         if np_vectors.shape[1] != self.dimension:
             return
         self._index.add(np_vectors)
+        for p in metadata_payloads:
+            p.setdefault("raw_verbatim_text", "")
         self._payloads.extend(metadata_payloads)
         self.total_nodes += len(vectors)
         self.is_trained = True
@@ -106,12 +123,17 @@ class CerebralIndex:
         actual_k = min(k, self.total_nodes)
         distances, indices = self._index.search(np_query, actual_k)
         valid_neighbors = []
+        target_wing = physics_state.get("wing_id", "GLOBAL") if physics_state else None
+        is_lateral = physics_state.get("lateral_search", False) if physics_state else False
         for dist, idx in zip(distances[0], indices[0]):
             if idx == -1:
                 continue
+            payload = self._payloads[idx]
+            if target_wing and payload.get("wing_id", "GLOBAL") != target_wing and not is_lateral:
+                continue
             resonance = 1.0 / (1.0 + float(dist))
             if resonance >= resonance_threshold:
-                valid_neighbors.append({**self._payloads[idx], "resonance": resonance})
+                valid_neighbors.append({**payload, "resonance": resonance})
         return valid_neighbors
 
     def get_local_mass_radius(self, query_text: str) -> Optional[Dict[str, List[float]]]:
