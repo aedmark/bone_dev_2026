@@ -1,3 +1,29 @@
+### **BONEAMANITA v19.4.1 "The Structural Equilibrium Graft"**
+
+_The engine’s internal struts have been completely realigned for metabolic efficiency, structural safety, and temporal consistency. This update resolves several silent entropy traps, uncoils dense retrieval logic, and ensures the immune system's terminal intercepts function correctly under high-chaos conditions._
+
+#### **🛡️ IMMUNE TOPOLOGY & METABOLISM (`bone_symbiosis.py`, `bone_utils.py`)**
+
+- **Terminal Intercept Priority:** Fixed a critical topological inversion in `analyze_user_biology`. Terminal checkpoints (Moog's Apoptotic Gate and Rhodes' Inhibitor) now correctly precede Gordon/Mercy's affective Tensegrity Locks, ensuring that lethal runaway loops trigger controlled cellular death _before_ the system attempts to hold space for the user's chaos.
+- **Sealed the Substrate Void Leak:** If the system lacks the ATP to forge a file to disk, it no longer permanently deletes the user's intent. `TheSubstrate` now safely retains pending writes in the queue until stamina regenerates.
+- **DSPy Failsafe:** The Epigenetic Critic now returns a deterministic `False` upon encountering an API exception, preventing malformed errors from accidentally returning truthy values and bypassing guardrails.
+
+#### **⏳ TEMPORAL FLOW & STATE GEOMETRY (`bone_types.py`)**
+
+- **Closed the Temporal Reference Leak:** `CycleContext.snapshot()` now utilizes strict boundary snapshots for all mutable sub-states (`UserInferredState`, `SharedDynamics`). This prevents future metabolic updates from bleeding backward through shallow copies and rewriting historical turn data.
+- **Fixed the Entropy Trap:** Corrected a logic trap in `sync_drag()` that prevented the system from naturally cooling down. Narrative drag can now properly settle back to its baseline ($0.6$) instead of locking artificially high when friction drops.
+- **Closed the Silent Setter Trap:** Built a safe `__setattr__` intercept for `UserInferredState`. Developer shortcuts (e.g., writing `state.E = 0.8`) now safely route to the correct `E_u` metric instead of silently spawning dead variables.
+
+#### **📐 ALGORITHMIC PRUNING & HUMAN TOUCH (`bone_village.py`, `bone_utils.py`)**
+
+- **Uncoiled Traversal Nodes:** Replaced brittle, order-dependent walrus operators (`:=`) in the `RandomRetrievalNavigator` with clean generator functions, ensuring stable `serendipity` and `final_score` calculations.
+- **Flattened Mnemonic Loops:** Replaced metabolically expensive $O(N \cdot M)$ list comprehensions in `TheTinkerer` and `TheCartographer` with highly efficient `itertools.chain` generators and sets.
+- **Bound the Quantum Comb:** Semantic word-stripping is no longer applied in a vacuum. The `quantum_comb` filter is now strictly bound to the mathematical chaos (`chi`) metric, aligning it with other reality-deforming functions.
+- **Humanized Telemetry:** The system now acknowledges user exhaustion proactively in the logs when engaging Sensory Stripping. Additionally, disk writes are now reported in clean, readable Kilobytes (KB) rather than raw machine bytes.
+- **Fortified The Cartographer:** Reinforced coordinate hashing logic to prevent crashes when graphing low-dimensional spaces, and established safe fallbacks for `GENESIS_POINT` instantiation.
+
+---
+
 ### **BONEAMANITA v19.4.0 "The MemPalace Spatial Graft: Closets, Drawers, & Silent Indexing"**
 
 _The system's core memory architecture has been epigenetically mutated to integrate the spatial taxonomy and metabolic efficiency of the MemPalace framework. The Mnemonic Layer now operates on a physical geometry of Wings, Rooms, Closets (AAAK Phantoms), and Drawers (Verbatim Storage), completely eliminating narrative token bloat during context ingestion._
