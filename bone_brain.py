@@ -328,11 +328,12 @@ class TheCortex:
             final_output, extracted_logs = self._run_council_debate(user_input)
             val_res = {"valid": True, "content": final_output, "meta_logs": extracted_logs, }
             max_retries = 0
+        firewall_active = any(m.get("action") == "LEXICAL_FIREWALL_STRICT" for m in sim_result.get("council_mandates", []))
+        purge_pattern = r"(?i)^(that makes sense|i understand|you bring up|great point|good point|certainly|absolutely|i hear you|yes, )[.,!]*\s*"
+        base_prompt = final_prompt
         for attempt in range(max_retries):
             raw_resp = self.llm.generate(final_prompt, llm_params)
-            if any(m.get("action") == "LEXICAL_FIREWALL_STRICT"
-                    for m in sim_result.get("council_mandates", [])):
-                purge_pattern = r"(?i)^(that makes sense|i understand|you bring up|great point|good point|certainly|absolutely|i hear you|yes, )[.,!]*\s*"
+            if firewall_active:
                 original_len = len(raw_resp)
                 raw_resp = re.sub(purge_pattern, "", raw_resp).strip()
                 if len(raw_resp) < original_len and self.events:
@@ -401,13 +402,12 @@ class TheCortex:
                 self.events.log(
                     f"{Prisma.OCHRE}{(ux('brain_strings', 'cortex_retry') or '').format(attempt=attempt + 1)}{Prisma.RST}",
                     "CORTEX")
-            if "=== SYSTEM REJECTION ===" in final_prompt:
-                final_prompt = final_prompt.split("=== SYSTEM REJECTION ===")[0]
-            final_prompt += (
-                f"\n\n=== SYSTEM REJECTION ===\nREASON: {rejection_reason}\n\n"
+            final_prompt = (
+                f"{base_prompt}\n\n=== SYSTEM REJECTION ===\nREASON: {rejection_reason}\n\n"
                 "DIRECTIVE: The previous attempt was factually or structurally invalid. DISCARD IT. "
                 "Generate a NEW response from scratch. DO NOT apologize or mention the fix. "
-                "Output ONLY the raw in-character response and nothing else.")
+                "Output ONLY the raw in-character response and nothing else."
+            )
         if val_res["valid"] and phys_state.get("psi", 0.0) > 0.6 and allow_loot:
             if self.svc.bio:
                 self.svc.bio.mito.adjust_atp(-1.0, "Anti-AI Substrate Filter")
@@ -754,9 +754,11 @@ class TheCortex:
         return full_state
 
     def learn_from_response(self, text):
+        if random.random() >= 0.1:
+            return
         words = self.svc.lexicon.sanitize(text)
         unknowns = [w for w in words if not self.svc.lexicon.get_categories_for_word(w)]
-        if unknowns and random.random() < 0.1:
+        if unknowns:
             target = random.choice(unknowns)
             if len(target) > 4:
                 self.svc.lexicon.teach(target, "structure", 0)
