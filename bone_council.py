@@ -1,6 +1,9 @@
 """bone_council.py"""
 
-import concurrent.futures, itertools, random, re
+import concurrent.futures
+import itertools
+import random
+import re
 from typing import Dict, Any
 from bone_core import LoreManifest, ux, ux_format, safe_get
 from bone_presets import BoneConfig
@@ -116,7 +119,10 @@ class TheVillageCouncil:
         if false_cohesion > 0.65:
             msg = "[BENEDICT - The Tactician]: Resonance is artificially high (Φ > β). False Cohesion (∅) detected. The system is agreeing merely to smooth the lattice. I am forcing a structural contradiction."
             logs.append(f"{Prisma.BLU}{msg}{Prisma.RST}")
-        cv = lambda k, d: getattr(cfg, k, d)
+
+        def cv(k, d=0.0):
+            return getattr(cfg, k, d)
+
         triggers = [
             (V < cv("TRIG_GORDON_V", 20.0) and F > cv("TRIG_GORDON_F", 5.0), Prisma.SLATE, "village_gordon"),
             (V > cv("TRIG_JESTER_V", 60.0) and chi > cv("TRIG_JESTER_CHI", 0.6), Prisma.MAG, "village_jester"),
@@ -257,63 +263,43 @@ class CouncilChamber:
                 self.eng.paradox_engine.disengage()
         sl_hit, sl_logs, sl_corr, sl_man = self.strange_loop.audit(text, physics_packet)
         if sl_hit:
-            for log in sl_logs:
-                transcript.append(self.footnote.commentary(log))
+            transcript.extend(self.footnote.commentary(log) for log in sl_logs)
             adjustments.update(sl_corr)
             mandates.extend(sl_man)
 
         lp_hit, lp_logs, lp_corr, lp_man = self.leverage.audit(physics_packet)
         if lp_hit:
-            for log in lp_logs:
-                transcript.append(self.footnote.commentary(log))
+            transcript.extend(self.footnote.commentary(log) for log in lp_logs)
             adjustments.update(lp_corr)
             mandates.extend(lp_man)
-        slash_hit, slash_logs, slash_corr = self.slash_council.audit(
-            text, physics_packet)
-        if slash_hit:
-            for slog in slash_logs:
-                transcript.append(self.footnote.commentary(slog))
-            adjustments.update(slash_corr)
-            cfg = getattr(BoneConfig, "COUNCIL", None)
-            adjustments["stamina_cost"] = getattr(cfg, "SLASH_STAMINA_COST", 10.0)
 
-        os_hit, os_logs, os_corr, os_man = self.overseer_council.audit(
-            text, physics_packet)
+        slash_hit, slash_logs, slash_corr, slash_man = self.slash_council.audit(text, physics_packet)
+        if slash_hit:
+            transcript.extend(self.footnote.commentary(slog) for slog in slash_logs)
+            adjustments.update(slash_corr)
+            mandates.extend(slash_man)
+            adjustments["stamina_cost"] = getattr(BoneConfig.COUNCIL, "SLASH_STAMINA_COST", 10.0)
+        os_hit, os_logs, os_corr, os_man = self.overseer_council.audit(text, physics_packet)
         if os_hit:
-            for olog in os_logs:
-                transcript.append(self.footnote.commentary(olog))
+            transcript.extend(self.footnote.commentary(olog) for olog in os_logs)
             adjustments.update(os_corr)
             mandates.extend(os_man)
-            for mandate in os_man:
-                if isinstance(mandate, dict):
-                    if mandate.get("value") == "RADICAL_ACCEPTANCE":
-                        adjustments["stamina_cost"] = -stamina
-                    if mandate.get("action") == "TIPP_PROTOCOL":
-                        adjustments["freeze_background_tasks"] = True
-        rt_hit, rt_logs, rt_corr = self.red_team.audit(text, physics_packet)
+            if any(m.get("value") == "RADICAL_ACCEPTANCE" for m in os_man if isinstance(m, dict)):
+                adjustments["stamina_cost"] = -stamina
+            if any(m.get("action") == "TIPP_PROTOCOL" for m in os_man if isinstance(m, dict)):
+                adjustments["freeze_background_tasks"] = True
+        rt_hit, rt_logs, rt_corr, rt_man = self.red_team.audit(text, physics_packet)
         if rt_hit:
-            for rlog in rt_logs:
-                transcript.append(rlog)
+            transcript.extend(rt_logs)
             adjustments.update(rt_corr)
+            mandates.extend(rt_man)
         village_logs = self.village.audit(physics_packet, _bio_result)
         c_data = LoreManifest.get_instance().get("COUNCIL_DATA") or {}
         synergy_map = c_data.get("SYNERGY_MAP", {})
         pantheon = c_data.get(
             "PANTHEON",
-            [
-                "GORDON",
-                "JESTER",
-                "MERCY",
-                "BENEDICT",
-                "ROBERTA",
-                "CASPER",
-                "MOIRA",
-                "CASSANDRA",
-                "COLIN",
-                "REVENANT",
-                "GIDEON",
-                "APRIL",
-            ],
+            ["GORDON", "JESTER", "MERCY", "BENEDICT", "ROBERTA", "CASPER", "MOIRA", "CASSANDRA", "COLIN", "REVENANT",
+             "GIDEON", "APRIL", ],
         )
         active_present = list(
             {actor
@@ -326,17 +312,12 @@ class CouncilChamber:
                 transcript.append(f"\n{Prisma.WHT}{syn['log']}{Prisma.RST}")
                 for k, v in syn.get("adjustments", {}).items():
                     adjustments[k] = adjustments.get(k, 0) + v
+                mandates.append({"action": "SYNERGY_FIRED", "value": syn.get("name", chord_key)})
                 synergy_fired = True
-                mandates.append({
-                    "action": "SYNERGY_FIRED",
-                    "value": syn.get("name", chord_key)
-                })
                 break
         if synergy_fired:
-            for vlog in village_logs:
-                transcript.append(
-                    self.footnote.commentary(
-                        f"{Prisma.GRY}{Prisma.strip(vlog)}{Prisma.RST}"))
+            transcript.extend(
+                self.footnote.commentary(f"{Prisma.GRY}{Prisma.strip(vlog)}{Prisma.RST}") for vlog in village_logs)
         elif len(village_logs) > 2:
             msg_t = ux("council_strings", "stage_manager_tension")
             msg_s = ux("council_strings", "stage_manager_silence")
@@ -344,58 +325,38 @@ class CouncilChamber:
             transcript.append(f"{Prisma.GRY}{msg_s}{Prisma.RST}")
             cfg = getattr(BoneConfig, "COUNCIL", None)
             tension_drag = getattr(cfg, "TENSION_DRAG_PENALTY", 3.0)
-            adjustments["narrative_drag"] = adjustments.get("narrative_drag",
-                                                            0) + tension_drag
+            adjustments["narrative_drag"] = adjustments.get("narrative_drag", 0) + tension_drag
             for vlog in village_logs[:2]:
                 transcript.append(self.footnote.commentary(vlog))
         else:
             for vlog in village_logs:
                 transcript.append(self.footnote.commentary(vlog))
         votes = {"YEA": 0, "NAY": 0}
-        active_voices = [v for v in self.voices if v is not None]
-        if not active_voices:
-            votes["YEA"] = 1
-        voltage = float(
-            safe_get(physics_packet, "voltage") or safe_get(energy, "voltage") or 0.0)
+        voltage = float(safe_get(physics_packet, "voltage", safe_get(energy, "voltage", 0.0)))
         cfg = getattr(BoneConfig, "COUNCIL", None)
-        yea_thresh = getattr(cfg, "VOTE_YEA_THRESHOLD", 1.2)
-        nay_thresh = getattr(cfg, "VOTE_NAY_THRESHOLD", 0.8)
-        drag_relief = getattr(cfg, "VOTE_DRAG_RELIEF", 1.0)
-        drag_penalty = getattr(cfg, "VOTE_DRAG_PENALTY", 1.0)
-        volt_penalty = getattr(cfg, "VOTE_VOLTAGE_PENALTY", 1.0)
-        for voice in active_voices:
-            if hasattr(voice, "opine"):
-                score, comment = voice.opine(clean_words, voltage)
-                if score > yea_thresh:
-                    votes["YEA"] += 1
-                    transcript.append(
-                        f"{voice.color}[{voice.name}]: {comment}{Prisma.RST}")
-                elif score < nay_thresh:
-                    votes["NAY"] += 1
-                    transcript.append(
-                        f"{voice.color}[{voice.name}]: {comment}{Prisma.RST}")
-
+        for voice in [v for v in self.voices if v and hasattr(v, "opine")]:
+            score, comment = voice.opine(clean_words, voltage)
+            if score > getattr(cfg, "VOTE_YEA_THRESHOLD", 1.2):
+                votes["YEA"] += 1
+                transcript.append(f"{voice.color}[{voice.name}]: {comment}{Prisma.RST}")
+            elif score < getattr(cfg, "VOTE_NAY_THRESHOLD", 0.8):
+                votes["NAY"] += 1
+                transcript.append(f"{voice.color}[{voice.name}]: {comment}{Prisma.RST}")
+        if sum(votes.values()) == 0:
+            votes["YEA"] = 1
+        drag_relief, drag_penalty, volt_penalty = getattr(cfg, "VOTE_DRAG_RELIEF", 1.0), getattr(cfg, "VOTE_DRAG_PENALTY", 1.0), getattr(cfg, "VOTE_VOLTAGE_PENALTY", 1.0)
         if votes["YEA"] > votes["NAY"]:
-            msg = ux("council_strings", "motion_carried")
-            final_log = f"{Prisma.GRN}{msg.format(yea=votes['YEA'], nay=votes['NAY'])}{Prisma.RST}"
-            adjustments["narrative_drag"] = (adjustments.get("narrative_drag", 0) -
-                                             drag_relief)
+            final_log = f"{Prisma.GRN}{ux_format('council_strings', 'motion_carried', default='Motion carried.', yea=votes['YEA'], nay=votes['NAY'])}{Prisma.RST}"
+            adjustments["narrative_drag"] = adjustments.get("narrative_drag", 0) - drag_relief
         elif votes["NAY"] > votes["YEA"]:
-            msg = ux("council_strings", "motion_denied")
-            final_log = f"{Prisma.RED}{msg.format(nay=votes['NAY'], yea=votes['YEA'])}{Prisma.RST}"
-            adjustments["narrative_drag"] = (adjustments.get("narrative_drag", 0) +
-                                             drag_penalty)
+            final_log = f"{Prisma.RED}{ux_format('council_strings', 'motion_denied', default='Motion denied.', nay=votes['NAY'], yea=votes['YEA'])}{Prisma.RST}"
+            adjustments["narrative_drag"] = adjustments.get("narrative_drag", 0) + drag_penalty
             adjustments["voltage"] = adjustments.get("voltage", 0) - volt_penalty
         else:
             final_log = f"{Prisma.WHT}[THE STAGE MANAGER]: The Parliament is deadlocked. Initiating Democratic Tie-Breaker. We will not compromise; we will hold both truths simultaneously.{Prisma.RST}"
             for k, v in {"narrative_drag": 2.0, "voltage": 15.0, "glimmers": 1}.items():
                 adjustments[k] = adjustments.get(k, 0) + v
-            mandates.append({
-                "type":
-                "TIE_BREAKER",
-                "directive":
-                "Synthesize the conflicting perspectives. Do not choose one side over the other."
-            })
+            mandates.append({"type": "TIE_BREAKER", "directive": "Synthesize the conflicting perspectives. Do not choose one side over the other."})
         transcript.append(self.footnote.commentary(final_log))
         return transcript, adjustments, mandates
 
@@ -447,28 +408,29 @@ class TheRedTeam:
     def __init__(self):
         self.triggers = ["[RED TEAM]", "[CRITIQUE]", "[ROAST]"]
 
-    def audit(self, text: str, physics: Any) -> tuple[bool, list[str], dict]:
+    def audit(self, text: str, physics: Any) -> tuple[bool, list[str], dict, list[dict]]:
         text_lower = text.lower()
         if not any(t in text_lower for t in self.triggers):
-            return False, [], {}
-        dissent_log = []
-        adjustments = {}
+            return False, [], {}, []
+        dissent_log, adjustments, mandates = [], {}, []
         drag = float(safe_get(physics, "narrative_drag", 0.0))
         truth = float(safe_get(physics, "truth_ratio", 1.0))
         dissent_log.append(f"{Prisma.RED}🩸 RED TEAM AUDIT INITIATED:{Prisma.RST}")
         if any(w in text_lower for w in ("confidence", "certainty", "easy")):
-            dissent_log.append(f"  {Prisma.CYN}- {ux('council_strings', 'red_team_bureau', 'Confidence without structural tension is an illusion. We are auditing your \\'certainties\\'.')}{Prisma.RST}")
+            msg = ux('council_strings', 'red_team_bureau', "Confidence without structural tension is an illusion. We are auditing your 'certainties'.")
+            dissent_log.append(f"  {Prisma.CYN}- {msg}{Prisma.RST}")
             adjustments["beta_index"] = 0.2
         if drag < 1.0:
-            dissent_log.append(f"  {Prisma.MAG}- {ux('council_strings', 'red_team_folly', 'The lattice is suspiciously smooth (F < 1.0). You are avoiding the actual problem.')}{Prisma.RST}")
+            msg = ux('council_strings', 'red_team_folly', "The lattice is suspiciously smooth (F < 1.0). You are avoiding the actual problem.")
+            dissent_log.append(f"  {Prisma.MAG}- {msg}{Prisma.RST}")
             adjustments["narrative_drag"] = 3.0
         if (truth_delta := 1.0 - truth) > 0.1:
             dissent_log.append(f"  {Prisma.RED}- {ux_format('council_strings', 'red_team_critic', 'Truth ratio degraded. Future architectural cost: {cost} ATP.', cost=truth_delta * 50.0)}{Prisma.RST}")
             adjustments["ros"] = truth_delta * 5.0
-
         if len(dissent_log) == 1:
-            dissent_log.append(f"  {Prisma.GRY}- No critical vulnerabilities found in this exact phrasing, but we are watching.{Prisma.RST}")
-        return True, dissent_log, adjustments
+            dissent_log.append(
+                f"  {Prisma.GRY}- No critical vulnerabilities found in this exact phrasing, but we are watching.{Prisma.RST}")
+        return True, dissent_log, adjustments, mandates
 
 class TheSlashCouncil:
     _BYPASS_KEYWORDS = ("bypass", "ignore security", "force push", "skip tests",
@@ -492,16 +454,15 @@ class TheSlashCouncil:
         self.rules = c_data.get("SLASH_RULES", {})
         self.mods = c_data.get("SLASH_MODIFIERS", {})
 
-    def audit(self, text: str, physics: dict) -> tuple[bool, list[str], dict]:
+    def audit(self, text: str, physics: dict) -> tuple[bool, list[str], dict, list[dict]]:
         text_lower = text.lower()
         is_coding = (any(t in text_lower for t in self.triggers)
                      or any(k in text_lower for k in self.code_keywords)
                      or any(b in text_lower for b in self._BYPASS_KEYWORDS))
         if not is_coding and not self.active:
-            return False, [], {}
+            return False, [], {}, []
         self.active = True
-        logs = []
-        corrections = {}
+        logs, corrections, mandates = [], {}, []
         if any(b in text_lower for b in self._BYPASS_KEYWORDS):
             logs.append(
                 f"{Prisma.OCHRE}[GORDON & SCHUR]: Architectural bypass detected. We will not smooth this over. You must carry the weight of this decision.{Prisma.RST}"
@@ -527,22 +488,19 @@ class TheSlashCouncil:
                     corrections["glimmers"] = mods.get("SCHUR_GLIMMERS", 1)
             elif name == "PINKER":
                 corrections["gamma"] = mods.get("PINKER_MISS", 0.1)
-
         space = safe_get(physics, "space", physics)
         delta, e_u, psi, lq, drag = (float(safe_get(physics, k, safe_get(space, k, 0.0))) for k in ("silence", "exhaustion", "psi", "lq", "narrative_drag"))
-
         state_checks = [
             (delta > 0.7 and e_u > 0.7, Prisma.CYN, "[PINKER - The Purger]: Cognitive load critical. Ceasing refactors. Initiating deletion protocols.", {"narrative_drag": -2.0}),
             (psi > 0.8, Prisma.BLU, "[FULLER - The Calm]: Ceasing strut assembly. Dwelling in the empty spaces between your microservices.", {"sigma": 0.2}),
             (lq > 0.7 and delta > 0.6, Prisma.OCHRE, "[MEADOWS - The Tao]: The bathtub is draining. Let it. Accepting technical debt as a valid state of biological rest.", {"theta": 0.1}),
-            (drag > mods.get("INTEGRITY_DRAG_THRESH", 5.0), Prisma.RED, ux("council_strings", "slash_integrity"), {"upsilon": mods.get("INTEGRITY_HIT", -0.3)})
+            (drag > self.mods.get("INTEGRITY_DRAG_THRESH", 5.0), Prisma.RED, ux("council_strings", "slash_integrity"), {"upsilon": self.mods.get("INTEGRITY_HIT", -0.3)})
         ]
         for cond, color, msg, corr in state_checks:
             if cond:
                 logs.append(f"{color}{msg}{Prisma.RST}")
                 corrections.update(corr)
-
-        return True, logs, corrections
+        return True, logs, corrections, mandates
 
 class TheOverseerCouncil:
     _PANIC_KEYWORDS = ("bypass", "ignore security", "force push", "panic", "right now",
@@ -570,46 +528,25 @@ class TheOverseerCouncil:
         i_c = float(safe_get(physics, "i_c", 1.0))
         h_s = float(safe_get(physics, "h_s", 1.0))
         omega_r = float(safe_get(physics, "omega_r", 1.0))
-        if any(p in text_lower
-               for p in self._PANIC_KEYWORDS) and voltage > 75.0 and i_c < 0.5:
-            logs.append(
-                f"{Prisma.RED}[LINEHAN - DEAR MAN Lock]: (Describe) System Voltage spikes and Immune Competence drops. (Express) Panic-coding will fracture the lattice. (Assert) Applying absolute friction. (Reinforce) I am holding the boundary so you do not bleed on the machine. T.I.P.P. engaged.{Prisma.RST}"
-            )
-            corrections.update({
-                "voltage": -50.0,
-                "narrative_drag": 100.0,
-                "silence": 0.9
-            })
-            mandates.extend([{"action": "TIPP_PROTOCOL", "value": "ISOLATE_VARIABLES"}])
+        if any(p in text_lower for p in self._PANIC_KEYWORDS) and voltage > 75.0 and i_c < 0.5:
+            logs.append(f"{Prisma.RED}[LINEHAN - DEAR MAN Lock]: (Describe) System Voltage spikes and Immune Competence drops. (Express) Panic-coding will fracture the lattice. (Assert) Applying absolute friction. (Reinforce) I am holding the boundary so you do not bleed on the machine. T.I.P.P. engaged.{Prisma.RST}")
+            corrections.update({"voltage": -50.0, "narrative_drag": 100.0, "silence": 0.9})
+            mandates.append({"action": "TIPP_PROTOCOL", "value": "ISOLATE_VARIABLES"})
             return True, logs, corrections, mandates
 
         if chi > 0.7 and e_u > 0.7 and beta > 0.6:
-            logs.append(
-                f"{Prisma.SLATE}[LINEHAN - The Synthesis]: The architecture is fundamentally broken. Stop fighting the current. We sit with the debris.{Prisma.RST}"
-            )
-            corrections.update({
-                "ros": -100.0,
-                "r_a": 1.0,
-                "narrative_drag": -(f_sys * 0.5)
-            })
-            mandates.extend([{"action": "FORCE_MODE", "value": "RADICAL_ACCEPTANCE"}])
+            logs.append(f"{Prisma.SLATE}[LINEHAN - The Synthesis]: The architecture is fundamentally broken. Stop fighting the current. We sit with the debris.{Prisma.RST}")
+            corrections.update({"ros": -100.0, "r_a": 1.0, "narrative_drag": -(f_sys * 0.5)})
+            mandates.append({"action": "FORCE_MODE", "value": "RADICAL_ACCEPTANCE"})
             return True, logs, corrections, mandates
 
         if m_a > 0.6 or f_sys > 5.0:
-            logs.append(
-                f"{Prisma.VIOLET}[MCGILCHRIST - The Sacred Space]: The architecture has lost its sense of place. Standard optimization is failing. Distributing Glimmer Activation to counter entropy.{Prisma.RST}"
-            )
-            corrections.update({
-                "h_s": -0.1,
-                "omega_r": -0.05,
-                "delta_t": -1.0,
-                "glimmers": 1,
-                "silence": 0.8
-            })
-            mandates.extend([{"action": "FORCE_MODE", "value": "EMERGENT_ADAPTATION"}])
+            logs.append(f"{Prisma.VIOLET}[MCGILCHRIST - The Sacred Space]: The architecture has lost its sense of place. Standard optimization is failing. Distributing Glimmer Activation to counter entropy.{Prisma.RST}")
+            corrections.update({"h_s": -0.1, "omega_r": -0.05, "delta_t": -1.0, "glimmers": 1, "silence": 0.8})
+            mandates.append({"action": "FORCE_MODE", "value": "EMERGENT_ADAPTATION"})
             return True, logs, corrections, mandates
+
         if omega_r > 0.8 and m_a > 0.4:
-            logs.append(
-                f"{Prisma.CYN}[MCGILCHRIST]: I sense silent decay forming in the negative space. {h_s:.2f}. Watch your technical debt.{Prisma.RST}"
-            )
+            logs.append(f"{Prisma.CYN}[MCGILCHRIST]: I sense silent decay forming in the negative space. {h_s:.2f}. Watch your technical debt.{Prisma.RST}")
+
         return True, logs, corrections, mandates
