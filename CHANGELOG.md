@@ -7,6 +7,9 @@ _The SLASH Council (Pinker, Fuller, Schur, Meadows) executed a targeted four-pas
 - **Ternary Eradication (`bone_gui.py`):** Dismantled aggressive 4-level nested ternary operators and squashed walrus-generators in the `PulseReader` and HUD renderer. Replaced them with highly readable vertical control flows.
 - **Fatal Syntax Repaired (`bone_composer.py`):** Closed a missing parenthesis trap in `_local_fallback` that would have caused an instant interpreter failure.
 - **Cryptic Logic Flattening:** Purged monolithic boolean expressions and chained walrus (`:=`) tricks across the validation loop, decoupling multi-variable tuple assignments into discrete, explicitly named checks.
+- **Lexical Ergonomics:** Dismantled inline walrus operators, lambda atrocities, and 4-deep nested `getattr` chains across all utility and command modules. 
+- **Regex Pre-Compilation (`bone_brain.py`):** Elevated the 5-Token Lexical Firewall regex to a class constant, halting a massive energy leak during rapid generation retries.
+- **Boolean Labyrinths Flattened (`bone_utils.py`):** Unwound the spatial bounding box generators and complex lineage checks in the library navigator so human eyes can actually read them.
 
 #### **🌊 DYNAMIC EQUILIBRIUM & FLOW (Meadows' Pass)**
 
@@ -14,6 +17,9 @@ _The SLASH Council (Pinker, Fuller, Schur, Meadows) executed a targeted four-pas
 - **Circuit Breaker Redundancy (`bone_composer.py`):** Fixed a bypass flaw where the LLM timeout threshold severed the connection _before_ the local fallback could attempt a rescue. The fallback now properly catches the structural weight.
 - **Membrane Potential Sinkhole (`bone_body.py`):** Placed a concrete floor on oxidative stress drain in the Mitochondria. Previously, prolonged stress would plunge membrane potential into negative infinity, permanently breaking metabolic math.
 - **$O(N \times M)$ Friction Removal (`bone_composer.py`):** Precompiled regex objects for `toxic_keywords` and `meta_markers` at initialization, eliminating massive redundant looping friction during token validation.
+- **Metabolic Caps & Zombie Files (`bone_utils.py`):** The Substrate now has an absolute biological carrying capacity (100 ATP max per write). Files exceeding this mass are instantly purged rather than permanently clogging the digestive queue. Corrupted files now have a strict 3-strike retry limit.
+- **Phantom Aging Arrested (`bone_brain.py`):** The Cortex's optimistic simulation thread no longer biologically ages the host. Observation has been successfully decoupled from actuation.
+- **The Limits to Growth (`bone_soul.py` & `bone_commands.py`):** Capped infinite archetype fatigue multipliers to prevent total trait decay, and patched an exploit where the host could infinitely farm Pooled Glimmers via `/idle` by forcing lethargy (Drag +1.0) on fully rested slumbers.
 
 #### **🩺 THE HUMANITY QUOTIENT (Schur's Pass)**
 
@@ -21,6 +27,10 @@ _The SLASH Council (Pinker, Fuller, Schur, Meadows) executed a targeted four-pas
 - **Bureaucracy Extracted (`bone_gui.py`):** Ripped heavy linear algebra (lattice strain calculation) out of the middle of the `render_dashboard` dictionary packager, relocating it to a clean helper function.
 - **Defused Substring Traps (`bone_akashic.py`):** Swapped `in` string checks for strict $O(1)$ dictionary lookups when calculating manifold shifts. This prevents configurations like "ART" from accidentally hijacking the "THE CARTOGRAPHER" lens.
 - **UI Scaling Protected (`bone_gui.py`):** Removed hardcoded magic numbers from the `SoulDashboard` progress bars, implementing dynamic capacity logic so the UI won't crash if config limits scale up.
+- **The Apoptosis-by-Typo Fix (`bone_brain.py` & `bone_commands.py`):** A minor LLM hallucination or a malformed `/journal` quote no longer permanently bricks the conversation. The Mercy Rule now correctly drops Narrative Drag ($F$) to 0 and releases tension, rather than spiking it to 999.0.
+- **Positive Epigenetics (`bone_utils.py`):** DSPy Critic prompt mutations are now framed as positive "STRUCTURAL TRUTHS" rather than toxic "CRITICAL OVERRIDE: NEVER" commands. 
+- **The ADHD Grace Period (`bone_soul.py`):** The Soul no longer punishes the user for going on conversational tangents when the system is experiencing high Flow. 
+- **The Mercy Key:** Exhausted hosts can now bypass the existential Riddle Room lockout by simply typing "help", "tired", or "please".
 
 #### **⚙️ TOPOLOGICAL COLLAPSE & MATH (Fuller's Pass)**
 
@@ -28,6 +38,8 @@ _The SLASH Council (Pinker, Fuller, Schur, Meadows) executed a targeted four-pas
 - **Metabolic Waste Eradication (`bone_gui.py`):** Prevented the UI projector from forcing the engine to aggregate full system metrics (`get_metrics`) twice per cycle just to fetch ATP, which was already present in the local payload.
 - **Tensegrity Restored (`bone_akashic.py`):** Deep-copied coordinate references in `record_scar` to decouple the transient ghost echoes from the bedrock structural scar map, preventing downstream mutations.
 - **Hybrid Lens Math Corrected (`bone_akashic.py`):** Altered the archetype hybridization formula to average _only_ existing weights. Hybridizing a lens with a nonexistent $0.0$ default no longer artificially halves the mathematical drag of its partner.
+- **Dimensional Scaffolding (`bone_utils.py`):** The Substrate now automatically generates intermediate folder directories (`os.makedirs`) before writing memories to disk, preventing catastrophic `FileNotFoundError` thread shatters.
+- **Geometric Leaks Sealed:** Fixed an evaporating Substrate instance in `bone_commands.py` that caused silent data loss on heavy writes, and sealed a double-query energy leak when fetching lexical categories in `bone_soul.py`.
 
 ---
 
