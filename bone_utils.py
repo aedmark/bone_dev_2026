@@ -424,7 +424,7 @@ class DSPyCritic:
                     if val_lower is not None: return val_lower
                     return getattr(BoneConfig, key.upper(), default)
                 provider = get_cfg("provider", "ollama")
-                model_name = get_cfg("model", "vsl-hermes")
+                model_name = get_cfg("model", "gemma4")
                 raw_url = get_cfg("base_url", "http://127.0.0.1:11434/v1") or "http://127.0.0.1:11434/v1"
                 clean_url = raw_url.replace("/chat/completions", "")
                 if provider in ("ollama", "lm_studio"):
