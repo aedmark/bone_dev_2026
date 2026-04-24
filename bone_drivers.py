@@ -335,7 +335,7 @@ class BoneConsultant:
         return ux("driver_strings", "vsl_disengage")
 
     def update_coordinates(self, user_text: str, bio_state: Optional[Dict] = None,
-                           physics: Optional[PhysicsPacket] = None, ):
+                           physics: Optional[Any] = None, ):
         cfg = getattr(self.cfg, "DRIVERS", None)
         e_growth = safe_get(cfg, "VSL_E_GROWTH_MULT", 0.002)
         fatigue_mult = safe_get(cfg, "VSL_FATIGUE_MULT", 0.3)
@@ -345,9 +345,9 @@ class BoneConsultant:
         self.state.E = min(1.0, self.state.E + (word_count * e_growth))
         if bio_state and "fatigue" in bio_state:
             self.state.E = max(self.state.E, bio_state["fatigue"] * fatigue_mult)
-        phys_beta = physics.beta if physics else 0.0
-        phys_vec = physics.vector if physics else {}
-        drag = physics.narrative_drag if physics else 0.0
+        phys_beta = float(safe_get(physics, "beta", safe_get(physics, "beta_index", 0.0))) if physics else 0.0
+        phys_vec = safe_get(physics, "vector", {}) if physics else {}
+        drag = float(safe_get(physics, "narrative_drag", 0.0)) if physics else 0.0
         self.state.B = (self.state.B * b_decay) + (phys_beta * b_growth)
         self.state.L = self.liminal_mod.analyze(user_text, phys_vec)
         self.state.O = self.syntax_mod.analyze(user_text, drag)
@@ -420,11 +420,11 @@ class SharedLatticeDriver:
         dp_trauma = 0.0
         if sys_phys.drag_profile is not None:
             dp = sys_phys.drag_profile
-            dp["semantic"] = (sys_beta * 2.0) + (sys_chi * 1.5)
-            dp["emotional"] = abs(sys_val) * 1.5 if abs(sys_val) > 0.5 else 0.0
-            dp["metabolic"] = 3.0 if atp_pool < 30.0 else (1.0 if atp_pool < 50.0 else 0.0)
+            dp.semantic = (sys_beta * 2.0) + (sys_chi * 1.5)
+            dp.emotional = abs(sys_val) * 1.5 if abs(sys_val) > 0.5 else 0.0
+            dp.metabolic = 3.0 if atp_pool < 30.0 else (1.0 if atp_pool < 50.0 else 0.0)
             dp_trauma = min(5.0, self.u.T_u) if sys_psi > 0.6 else 0.0
-            dp["trauma"] = dp_trauma
+            dp.trauma = dp_trauma
             if hasattr(sys_phys, "sync_drag"):
                 sys_phys.sync_drag()
         psi_diff = abs(sys_psi - self.u.psi_u)
