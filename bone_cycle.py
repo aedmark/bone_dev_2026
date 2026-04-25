@@ -78,8 +78,9 @@ def _native_freeze_graph(adj_dict: dict) -> tuple:
     return tuple(tuple(sorted(neighbors, key=str)) for _, neighbors in sorted(adj_dict.items(), key=lambda x: str(x[0])))
 
 def _safe_dict(obj):
-    return obj.to_dict() if hasattr(
-        obj, "to_dict") else (obj if isinstance(obj, dict) else {})
+    if hasattr(obj, "to_dict"):
+        return obj.to_dict()
+    return obj if isinstance(obj, dict) else {}
 
 class PhaseExecutor:
     def execute_phases(self, simulator, ctx):
@@ -131,17 +132,16 @@ class CycleSimulator:
         return ctx
 
     def check_circuit_breaker(self, phase_name: str) -> bool:
-        h = self.eng.system_health
-        if phase_name == "OBSERVE":
-            return h.physics_online
-        if phase_name == "COGNITION":
-            return h.mind_online
-        return True
+        breakers = {
+            "OBSERVE": self.eng.system_health.physics_online,
+            "COGNITION": self.eng.system_health.mind_online
+        }
+        return breakers.get(phase_name, True)
 
     def handle_phase_crash(self, ctx, phase_name, error):
         msg_crash = ux("cycle_strings", "sim_crash_header")
-        print(f"\n{Prisma.RED}{msg_crash.format(phase_name=phase_name)}{Prisma.RST}")
-        traceback.print_exc()
+        formatted_trace = traceback.format_exc()
+        self.eng.events.log(f"{Prisma.RED}{msg_crash.format(phase_name=phase_name)}\n{formatted_trace}{Prisma.RST}", "CRIT")
         narrative = LoreManifest.get_instance().get("narrative_data") or {}
         cathedral_logs = narrative.get("CATHEDRAL_COLLAPSE_LOGS", ["System Failure."])
         eulogy = random.choice(cathedral_logs)
@@ -149,6 +149,7 @@ class CycleSimulator:
         ctx.log(f"{Prisma.RED}{msg_eulogy.format(eulogy=eulogy)}{Prisma.RST}")
         comp = _CRASH_COMPONENT_MAP.get(phase_name, "SIMULATION")
         self.eng.system_health.report_failure(comp, error)
+
         """Native deterministic graph freezing based on Nelson Spence (Project Navi)."""
         ctx.physics = PanicRoom.get_safe_physics()
         if hasattr(self.eng, "observer") and getattr(self.eng.observer, "last_physics_packet", None):
@@ -288,6 +289,7 @@ class GeodesicOrchestrator:
             full_trace = traceback.format_exc()
             self.eng.events.log(f"CYCLE CRASH: {e}\n{full_trace}", "CRIT")
             ctx = CycleContext(input_text=user_message)
+            ctx.trace_id = cycle_id
             ctx.physics = PanicRoom.get_safe_physics()
             ctx.is_alive = False
             ctx.crash_error = e
