@@ -54,6 +54,8 @@ _The S.L.A.S.H. Council (Pinker, Fuller, Meadows, Schur) executed a comprehensiv
 - **UX Red Tape Shredded (`bone_machine.py`):** Eliminated an overly engineered localized string fallback that was dynamically parsing its own variable name. Replaced it with a standard hardcoded default.
 - **Linear Logic Restored (`bone_machine.py`):** Reordered state instantiation in `PanicRoom.get_safe_bio` to evaluate variables linearly before dictionary insertion, and stopped `TheTheremin` from aggressively overwriting its own diagnostic paperwork.
 
+---
+
 ### **BONEAMANITA v19.4.8 "The SLASH Syntactic & Tensegrity Sweep"**
 
 #### **🧠 SYNTACTIC PURGE (Pinker's Pass)**
