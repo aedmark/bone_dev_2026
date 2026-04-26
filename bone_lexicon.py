@@ -18,12 +18,8 @@ class LexiconStore:
     _TRANSLATOR = str.maketrans(_PUNCTUATION, " " * len(_PUNCTUATION))
 
     def __init__(self):
-        self.categories = {"heavy", "kinetic", "explosive", "constructive", "abstract", "photo", "aerobic", "thermal",
-                           "cryo", "suburban", "play", "sacred", "buffer", "antigen", "diversion", "meat",
-                           "gradient_stop", "liminal", "void", "bureau_buzzwords", "crisis_term", "harvest",
-                           "pareidolia", "passive_watch", "repair_trigger", "refusal_guru", "cursed", "sentiment_pos",
-                           "sentiment_neg", "sentiment_negators", "toxin", }
-        self.VOCAB: Dict[str, Set[str]] = {k: set() for k in self.categories}
+        self.categories = set()
+        self.VOCAB: Dict[str, Set[str]] = {}
         self.LEARNED_VOCAB: Dict[str, Dict[str, int]] = {}
         self.USER_FLAGGED_BIAS = set()
         self.ANTIGEN_REPLACEMENTS = {}
@@ -36,7 +32,8 @@ class LexiconStore:
         self.SOLVENTS = set(data.get("solvents", []))
         self.ANTIGEN_REPLACEMENTS = data.get("antigen_replacements", {})
         for cat, words in data.items():
-            if cat in self.categories:
+            if cat not in ["solvents", "antigen_replacements"]:
+                self.categories.add(cat)
                 word_set = set(words)
                 self.VOCAB[cat] = word_set
                 if not cat.startswith("sentiment"):
@@ -306,6 +303,7 @@ class SemanticField:
 
 class LexiconService:
     def __init__(self):
+        self._INITIALIZED = False
         self._STORE = LexiconStore()
         self._STORE.load_vocabulary()
         self._ANALYZER = LinguisticAnalyzer(self._STORE)
@@ -318,7 +316,7 @@ class LexiconService:
             print(f"{Prisma.GRN}{msg.format(total_words=total_words)}{Prisma.RST}")
 
     def initialize(self):
-        pass
+        self._INITIALIZED = True
 
     def get_store(self):
         return self._STORE

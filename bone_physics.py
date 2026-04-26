@@ -229,10 +229,14 @@ class GeodesicEngine:
 class HLA_Stabilizer:
     def __init__(self, config_ref=None):
         self.cfg = config_ref or BoneConfig
-        self._generic_patterns = LoreManifest.get_instance().get("STYLE_CRIMES", "RLHF_PATTERNS") or (
-            "as an ai", "helpful and harmless", "i don't have feelings", "as a large language",
-            "i cannot fulfill", "i can't fulfill", "i am an ai"
-        )
+        style_crimes = LoreManifest.get_instance().get("STYLE_CRIMES")
+        if isinstance(style_crimes, dict):
+            self._generic_patterns = style_crimes.get("BANNED_PHRASES", [])
+        else:
+            self._generic_patterns = [
+                "as an ai", "helpful and harmless", "i don't have feelings", "as a large language",
+                "i cannot fulfill", "i can't fulfill", "i am an ai"
+            ]
         self._weaver = None
 
     def _get_weaver(self):
@@ -246,7 +250,7 @@ class HLA_Stabilizer:
 
     def mitigate_rejection(self, model_output: str, current_psi: float, mito_state: Any = None) -> str:
         lower_output = model_output.lower()
-        if not any(p in lower_output for p in self._generic_patterns):
+        if not any(p.lower() in lower_output for p in self._generic_patterns):
             return model_output
         current_atp = getattr(mito_state, "atp_pool", 100.0)
         tax_cost = 50.0 if current_atp > 60.0 else (current_atp * 0.5)
@@ -322,7 +326,7 @@ class TheGatekeeper:
                 safe_set(ctx.physics, "idempotent_state", True)
         except Exception:
             return reject("FATAL_ENCODING", "gatekeeper_cursed")
-        if "```" in text or "{{" in text or "}}" in text:
+        if "```" in text or "{{" in text or "}}" in text or "CRITICAL_RENDER_FAIL" in text:
             return reject("SYNTAX_ERR", "gatekeeper_syntax")
         if len(text) > 10000:
             return reject("OVERLOAD", "gatekeeper_overload", color=Prisma.OCHRE)
@@ -459,7 +463,7 @@ class QuantumObserver:
         matter = MaterialState(clean_words=clean_words, raw_text=text, counts=counts, antigens=counts.get("antigen", 0),
                                vector=geo.dimensions, truth_ratio=0.5)
         space = SpatialState(narrative_drag=cd_drag, zone=self._determine_zone(geo.dimensions),
-                             flow_state=self._determine_flow(sv, geo.coherence, self.cfg))
+                             flow_state=self._determine_flow(avg_voltage, geo.coherence, self.cfg))
         self.last_physics_packet = PhysicsPacket(energy=energy, matter=matter, space=space)
         if hasattr(self.events, "publish"):
             self.events.publish("PHYSICS_CALCULATED", self.last_physics_packet.to_dict())

@@ -164,8 +164,11 @@ class LoreManifest:
             self._cache.clear()
             print(f"{Prisma.CYN}[LORE]: Flushed Lore cache.{Prisma.RST}")
             return
-        if self._cache.pop(cat_key := category.lower(), None) is not None: print(f"{Prisma.CYN}[LORE]: Flushed '{cat_key}'.{Prisma.RST}")
-        else: print(f"{Prisma.GRY}[LORE]: Category '{cat_key}' not in cache.{Prisma.RST}")
+        cat_key = category.lower()
+        if self._cache.pop(cat_key, None) is not None:
+            print(f"{Prisma.CYN}[LORE]: Flushed '{cat_key}'.{Prisma.RST}")
+        else:
+            print(f"{Prisma.GRY}[LORE]: Category '{cat_key}' not in cache.{Prisma.RST}")
 
 class TheObserver:
     def __init__(self, config_ref=None):

@@ -89,10 +89,10 @@ class TheAkashicRecord:
                 if len(epigenetic_list) > max_epi:
                     epigenetic_list.pop(0)
                 self.lore.inject("SYSTEM_PROMPTS", prompts)
-                self.lore.save("SYSTEM_PROMPTS")
+                self.save_to_disk("scars", epigenetic_list)
                 if self.events:
-                    self.events.log(f"{Prisma.VIOLET}🧬 [EPIGENETICS] Scar '{concept}' compiled into bedrock.{Prisma.RST}",
-                        "SYS",)
+                    self.events.log(f"{Prisma.VIOLET}🧬 [EPIGENETICS] Scar '{concept}' compiled into flow.{Prisma.RST}",
+                                    "SYS")
         except Exception as e:
             if self.events:
                 self.events.log(f"{Prisma.RED}Failed to mutate system_prompts: {e}{Prisma.RST}", "SYS",)
@@ -206,13 +206,13 @@ class TheAkashicRecord:
 
     def save_to_disk(self, category: str, data: Any):
         try:
-            os.makedirs(self.data_dir, exist_ok=True)
+            os.makedirs(self.save_dir, exist_ok=True)
         except OSError as e:
             msg = ux("akashic_strings", "dir_create_failed")
-            print(f"{Prisma.RED}{msg.format(directory=self.data_dir, error=e)}{Prisma.RST}")
+            print(f"{Prisma.RED}{msg.format(directory=self.save_dir, error=e)}{Prisma.RST}")
             return
         filename = f"akashic_{category}.json"
-        filepath = os.path.join(self.data_dir, filename)
+        filepath = os.path.join(self.save_dir, filename)
         try:
             with open(filepath, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2, cls=BoneJSONEncoder)
@@ -242,13 +242,24 @@ class TheAkashicRecord:
         if recipes := gordon_data.get("RECIPES", []):
             self.known_recipes.update((r.get("ingredient"), r.get("catalyst_category")) for r in recipes
                 if r.get("ingredient") and r.get("catalyst_category"))
-        words_path = os.path.join(self.data_dir, "akashic_discovered_words.json")
+        words_path = os.path.join(self.save_dir, "akashic_discovered_words.json")
         if os.path.exists(words_path):
             try:
                 with open(words_path, "r", encoding="utf-8") as f:
                     self.discovered_words = json.load(f)
             except Exception as e:
                 print(f"{Prisma.RED}[AKASHIC] Failed to load discovered words: {e}. Keeping current state.{Prisma.RST}")
+
+        scars_path = os.path.join(self.save_dir, "akashic_scars.json")
+        if os.path.exists(scars_path):
+            try:
+                with open(scars_path, "r", encoding="utf-8") as f:
+                    loaded_scars = json.load(f)
+                prompts = self.lore.get("SYSTEM_PROMPTS") or {}
+                prompts.setdefault("GLOBAL_BASELINE", {})["EPIGENETIC_SCARS"] = loaded_scars
+                self.lore.inject("SYSTEM_PROMPTS", prompts)
+            except Exception as e:
+                print(f"{Prisma.RED}[AKASHIC] Failed to load scars: {e}.{Prisma.RST}")
 
     def record_interaction(self, lenses_active: list, ingredients_used: Optional[list] = None):
         if len(lenses_active) >= 2:

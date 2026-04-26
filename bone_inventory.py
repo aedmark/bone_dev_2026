@@ -101,7 +101,7 @@ class GordonKnot:
             self.loot_triggers = data.get("LOOT_TRIGGERS", [])
         self.interaction_verbs = data.get("INTERACTION_VERBS", [])
         self.acquisition_verbs = data.get("ACQUISITION_VERBS", [])
-        lexicon_data = LoreManifest.get_instance().get("lexicon") or {}
+        lexicon_data = LoreManifest.get_instance().get("LEXICON") or {}
         if not lexicon_data and hasattr(LoreManifest, "get_raw"):
             lexicon_data = LoreManifest.get_raw("lexicon.json") or {}
         self.abandonment_phrases = lexicon_data.get("abandonment_phrases", ["put back", "leave", "drop", "ignore"])
@@ -334,14 +334,14 @@ class GordonKnot:
                     True,
                     f"{Prisma.CYN}{(ux('gordon_strings', 'reflex_voltage') or '').format(name=name)}{Prisma.RST}",
                 )
-            if t == "DRIFT_CRITICAL" and d > getattr(cfg, "REFLEX_DRAG_TRIGGER", 6.0):
+            if trigger_type == "DRIFT_CRITICAL" and d > getattr(cfg, "REFLEX_DRAG_TRIGGER", 6.0):
                 self.safe_remove_item(name)
                 safe_set(physics_ref, "narrative_drag", getattr(cfg, "REFLEX_DRAG_RESET", 0.0))
                 return (
                     True,
                     f"{Prisma.OCHRE}{(ux('gordon_strings', 'reflex_drift') or '').format(name=name)}{Prisma.RST}",
                 )
-            if t == "KAPPA_CRITICAL" and k < getattr(cfg, "REFLEX_KAPPA_TRIGGER", 0.2):
+            if trigger_type == "KAPPA_CRITICAL" and k < getattr(cfg, "REFLEX_KAPPA_TRIGGER", 0.2):
                 self.safe_remove_item(name)
                 safe_set(physics_ref, "kappa", getattr(cfg, "REFLEX_KAPPA_RESET", 0.8))
                 return True, f"{Prisma.GRN}{(ux('gordon_strings', 'reflex_kappa') or '').format(name=name)}{Prisma.RST}"

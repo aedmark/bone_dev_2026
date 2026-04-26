@@ -65,7 +65,7 @@ class HostStats:
 class SessionGuardian:
     _HEADERS = (
         ("term_header_top", "┌──────────────────────────────────────────┐"),
-        ("term_header_mid", "│ BONEAMANITA TERMINAL // VERSION 19.5.0   │"),
+        ("term_header_mid", "│ BONEAMANITA TERMINAL // VERSION 19.6.0   │"),
         ("term_header_bot", "└──────────────────────────────────────────┘"),
     )
 
@@ -264,15 +264,13 @@ class BoneAmanita:
         self._apply_boot_mode()
 
     def _load_system_prompts(self):
-        p = "lore/system_prompts.json"
         try:
-            if os.path.exists(p):
-                with open(p, "r", encoding="utf-8") as f:
-                    self.prompt_library = json.load(f)
+            self.prompt_library = LoreManifest.get_instance().get("system_prompts") or {}
+            if self.prompt_library:
+                p = "lore/system_prompts.json"
                 print(f"{Prisma.GRY}{ux('main_strings', 'prompt_lib_loaded').format(p=p)}{Prisma.RST}")
             else:
                 print(f"{Prisma.YEL}{ux('main_strings', 'prompt_lib_warn')}{Prisma.RST}")
-                self.prompt_library = {}
         except Exception as e:
             print(f"{Prisma.RED}{ux('main_strings', 'prompt_lib_crit').format(e=e)}{Prisma.RST}")
             self.prompt_library = {}
