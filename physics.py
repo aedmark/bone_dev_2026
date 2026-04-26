@@ -1,4 +1,4 @@
-"""bone_physics.py"""
+"""physics.py"""
 
 import math
 import random
@@ -8,9 +8,9 @@ import unicodedata
 from collections import Counter, deque
 from dataclasses import dataclass
 from typing import Dict, List, Any, Tuple, Optional, Deque
-from bone_core import LoreManifest, ux, safe_get, safe_set
-from bone_presets import BoneConfig
-from bone_types import Prisma, PhysicsPacket, CycleContext, SpatialState, MaterialState, EnergyState
+from core import LoreManifest, ux, safe_get, safe_set
+from presets import BoneConfig
+from types import Prisma, PhysicsPacket, CycleContext, SpatialState, MaterialState, EnergyState
 
 def _native_ordinal_pattern(window: List[float]) -> Tuple[int, ...]:
     return tuple(i for i, v in sorted(enumerate(window), key=lambda x: x[1]))
@@ -242,7 +242,7 @@ class HLA_Stabilizer:
     def _get_weaver(self):
         if self._weaver is None:
             try:
-                from bone_utils import TheTclWeaver
+                from utils import TheTclWeaver
                 self._weaver = TheTclWeaver.get_instance()
             except ImportError:
                 self._weaver = False

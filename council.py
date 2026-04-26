@@ -1,15 +1,15 @@
-"""bone_council.py"""
+"""council.py"""
 
 import concurrent.futures
 import itertools
 import random
 import re
 from typing import Dict, Any
-from bone_core import LoreManifest, ux, ux_format, safe_get
-from bone_presets import BoneConfig
-from bone_symbiosis import get_symbiont
-from bone_types import Prisma
-from bone_machine import TheParadoxEngine
+from core import LoreManifest, ux, ux_format, safe_get
+from presets import BoneConfig
+from symbiosis import get_symbiont
+from types import Prisma
+from machine import TheParadoxEngine
 
 class TheStrangeLoop:
     def __init__(self):

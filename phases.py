@@ -1,13 +1,13 @@
-"""bone_phases.py"""
+"""phases.py"""
 
-from bone_types import CycleContext, Prisma
+from types import CycleContext, Prisma
 import random
 from typing import List, Dict, Any
-from bone_presets import BoneConfig, BonePresets
-from bone_physics import TheGatekeeper, apply_somatic_feedback, QuantumObserver
-from bone_core import ArchetypeArbiter, LoreManifest, ux, safe_get, safe_set
-from bone_gui import SoulDashboard
-from bone_utils import TheTclWeaver
+from presets import BoneConfig, BonePresets
+from physics import TheGatekeeper, apply_somatic_feedback, QuantumObserver
+from core import ArchetypeArbiter, LoreManifest, ux, safe_get, safe_set
+from gui import SoulDashboard
+from utils import TheTclWeaver
 
 def _safe_dict(obj):
     return obj.to_dict() if hasattr(

@@ -1,4 +1,4 @@
-"""bone_types.py"""
+"""types.py"""
 
 import copy
 import json

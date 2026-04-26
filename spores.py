@@ -1,4 +1,4 @@
-"""bone_spores.py"""
+"""spores.py"""
 
 import hashlib
 import json
@@ -8,11 +8,11 @@ import tempfile
 import time
 from collections import deque
 from typing import List, Tuple, Optional, Dict, Any
-from bone_core import EventBus, LoreManifest, BoneJSONEncoder, ux, ux_format, safe_get, safe_set
-from bone_ann import HippocampalCache, CerebralIndex
-from bone_presets import BoneConfig
-from bone_types import Prisma
-from bone_village import ParadoxSeed
+from core import EventBus, LoreManifest, BoneJSONEncoder, ux, ux_format, safe_get, safe_set
+from ann import HippocampalCache, CerebralIndex
+from presets import BoneConfig
+from types import Prisma
+from village import ParadoxSeed
 
 def _word_to_vector(word: str, dim: int = 8) -> list:
     h = hashlib.md5(word.encode("utf-8")).digest()
@@ -636,7 +636,7 @@ class MycelialNetwork:
 
     @staticmethod
     def _load_seeds():
-        from bone_village import ParadoxSeed
+        from village import ParadoxSeed
         loaded_seeds = []
         try:
             raw_seeds = LoreManifest.get_instance().get("SEEDS") or []

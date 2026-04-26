@@ -1,4 +1,4 @@
-"""bone_composer.py"""
+"""composer.py"""
 
 import json
 import os
@@ -8,8 +8,8 @@ import time
 import urllib.error
 import urllib.request
 from typing import Dict, Any, Optional
-from bone_presets import BoneConfig
-from bone_core import Prisma, EventBus, ux, ux_format, BoneJSONEncoder, safe_get, safe_set
+from presets import BoneConfig
+from core import Prisma, EventBus, ux, ux_format, BoneJSONEncoder, safe_get, safe_set
 
 class SynapseError(Exception):
     pass

@@ -1,4 +1,4 @@
-""" bone_presets.py """
+""" presets.py """
 
 import copy
 from typing import Dict, Any, List
@@ -9,7 +9,7 @@ class _ConfigNode:
 
 def ux(section: str, key: str, default: Any = "") -> Any:
     try:
-        from bone_core import LoreManifest
+        from core import LoreManifest
         manifest = LoreManifest.get_instance()
         data = manifest.get("ux_strings", section) if manifest else {}
         return data.get(key, default) if isinstance(data, dict) else default
@@ -842,7 +842,7 @@ class BoneConfig:
         return False, ""
 
     def reconcile_state(self, physics_packet: Any):
-        from bone_core import safe_get, safe_set
+        from core import safe_get, safe_set
 
         def _clamp(val, floor, ceil):
             return max(floor, min(float(val), ceil))

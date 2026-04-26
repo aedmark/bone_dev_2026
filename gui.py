@@ -1,12 +1,12 @@
-"""bone_gui.py"""
+"""gui.py"""
 
 import re
 from typing import Any, Dict, List, Tuple
 
 import markdown
-from bone_core import Prisma, safe_get, ux
-from bone_physics import ChromaScope
-from bone_presets import BoneConfig
+from core import Prisma, safe_get, ux
+from physics import ChromaScope
+from presets import BoneConfig
 
 def render_markdown(text: str) -> str:
     return markdown.markdown(text, extensions=["extra"])

@@ -1,12 +1,12 @@
-"""bone_body.py"""
+"""body.py"""
 
 import math, random, time
 from collections import deque, Counter
 from dataclasses import dataclass, field, asdict
 from typing import Optional, Dict, List, Any, Tuple
-from bone_core import Prisma, LoreManifest, ux, safe_get, safe_set, strict_get
-from bone_presets import BoneConfig
-from bone_spores import ImmuneMycelium, BioLichen, BioParasite
+from core import Prisma, LoreManifest, ux, safe_get, safe_set, strict_get
+from presets import BoneConfig
+from spores import ImmuneMycelium, BioLichen, BioParasite
 
 @dataclass
 class Biometrics:

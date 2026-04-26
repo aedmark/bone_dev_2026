@@ -1,4 +1,4 @@
-"""bone_ann.py - The Dual-Tier Semantic Substrate"""
+"""ann.py - The Dual-Tier Semantic Substrate"""
 
 import math
 import time
@@ -7,7 +7,7 @@ from itertools import combinations
 from typing import Dict, List, Any, Tuple, Optional
 import faiss
 import numpy as np
-from bone_core import EventBus
+from core import EventBus
 
 class HippocampalCache:
     def __init__(self, max_capacity: int = 500):

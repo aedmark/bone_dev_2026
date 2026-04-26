@@ -1,19 +1,19 @@
-"""bone_machine.py"""
+"""machine.py"""
 
 import random
 import math
 from dataclasses import dataclass
 from typing import Tuple, Optional, List, Dict, Any
-from bone_body import BioSystem, MitochondrialState, Biometrics, MitochondrialForge, EndocrineSystem, MetabolicGovernor
-from bone_brain import DreamEngine
-from bone_core import LoreManifest, ux, safe_get, safe_set
-from bone_lexicon import LexiconService
-from bone_physics import TheGatekeeper, QuantumObserver, SurfaceTension, CosmicDynamics
-from bone_presets import BoneConfig
-from bone_protocols import LimboLayer
-from bone_spores import MycelialNetwork, ImmuneMycelium, BioLichen, BioParasite
-from bone_types import MindSystem, PhysSystem, PhysicsPacket, Prisma
-from bone_village import MirrorGraph, TheCartographer
+from body import BioSystem, MitochondrialState, Biometrics, MitochondrialForge, EndocrineSystem, MetabolicGovernor
+from brain import DreamEngine
+from core import LoreManifest, ux, safe_get, safe_set
+from lexicon import LexiconService
+from physics import TheGatekeeper, QuantumObserver, SurfaceTension, CosmicDynamics
+from presets import BoneConfig
+from protocols import LimboLayer
+from spores import MycelialNetwork, ImmuneMycelium, BioLichen, BioParasite
+from types import MindSystem, PhysSystem, PhysicsPacket, Prisma
+from village import MirrorGraph, TheCartographer
 
 class TheCrucible:
     def __init__(self, config_ref=None):

@@ -5,23 +5,23 @@ import time
 import unittest
 import warnings
 from unittest.mock import patch, MagicMock
-from bone_ann import MemoryConsolidator
-from bone_brain import PromptComposer
-from bone_commands import CommandProcessor
-from bone_core import LoreManifest, EventBus
-from bone_cycle import ObservationPhase, MetabolismPhase, SimulationPreflightPhase, SensationPhase
-from bone_drivers import SharedLatticeDriver
-from bone_gui import CycleReporter
-from bone_machine import TheParadoxEngine
-from bone_main import BoneAmanita
-from bone_physics import (TheGatekeeper, ChromaScope, GeodesicEngine,
-                          _native_ordinal_pattern, _native_detect_false_cohesion,
-                          _native_permutation_entropy, _native_coincidence_length)
-from bone_presets import BoneConfig
-from bone_spores import MycelialNetwork, SubconsciousStrata
-from bone_symbiosis import SymbiosisManager
-from bone_types import PhysicsPacket, EnergyState, CycleContext
-from bone_village import DeathGen
+from ann import MemoryConsolidator
+from brain import PromptComposer
+from commands import CommandProcessor
+from core import LoreManifest, EventBus
+from cycle import ObservationPhase, MetabolismPhase, SimulationPreflightPhase, SensationPhase
+from drivers import SharedLatticeDriver
+from gui import CycleReporter
+from machine import TheParadoxEngine
+from main import BoneAmanita
+from physics import (TheGatekeeper, ChromaScope, GeodesicEngine,
+                     _native_ordinal_pattern, _native_detect_false_cohesion,
+                     _native_permutation_entropy, _native_coincidence_length)
+from presets import BoneConfig
+from spores import MycelialNetwork, SubconsciousStrata
+from symbiosis import SymbiosisManager
+from types import PhysicsPacket, EnergyState, CycleContext
+from village import DeathGen
 
 class BoneTestCase(unittest.TestCase):
     def setUp(self):
@@ -240,7 +240,7 @@ class TrueEngineTest(BoneTestCase):
             )
 
     def test_ux_string_decoupling_inventory(self):
-        from bone_inventory import Item
+        from inventory import Item
         manifest = LoreManifest.get_instance()
         if "ux_strings" not in manifest._cache:
             manifest._cache["ux_strings"] = {}
@@ -256,7 +256,7 @@ class TrueEngineTest(BoneTestCase):
         )
 
     def test_panic_room_config_injection(self):
-        from bone_machine import PanicRoom
+        from machine import PanicRoom
         manifest = LoreManifest.get_instance()
         if "ux_strings" not in manifest._cache:
             manifest._cache["ux_strings"] = {}
@@ -278,7 +278,7 @@ class TrueEngineTest(BoneTestCase):
         )
 
     def test_kintsugi_dynamic_logs(self):
-        from bone_protocols import KintsugiProtocol
+        from protocols import KintsugiProtocol
         manifest = LoreManifest.get_instance()
         if "ux_strings" not in manifest._cache:
             manifest._cache["ux_strings"] = {}
@@ -299,8 +299,8 @@ class TrueEngineTest(BoneTestCase):
         )
 
     def test_telemetry_phase_hooks(self):
-        from bone_core import TelemetryService
-        from bone_types import DecisionCrystal
+        from core import TelemetryService
+        from types import DecisionCrystal
         manifest = LoreManifest.get_instance()
         if "ux_strings" not in manifest._cache:
             manifest._cache["ux_strings"] = {}
@@ -444,7 +444,7 @@ class TrueEngineTest(BoneTestCase):
         )
 
     def test_dream_defragmentation_pruning(self):
-        from bone_brain import DreamEngine
+        from brain import DreamEngine
 
         class MockMemorySystem:
             def __init__(self):
@@ -708,8 +708,8 @@ class TrueEngineTest(BoneTestCase):
         self.assertEqual(verdict, "ENTROPY", "Apoptosis failed to map to the ENTROPY lineage verdict.", )
 
     def test_productive_worry_godel_scar_math(self):
-        from bone_cycle import SimulationPreflightPhase
-        from bone_types import CycleContext, PhysicsPacket
+        from cycle import SimulationPreflightPhase
+        from types import CycleContext, PhysicsPacket
         phase = SimulationPreflightPhase(self.engine)
         phys = PhysicsPacket()
         phys.narrative_drag = 6.0
@@ -732,8 +732,8 @@ class TrueEngineTest(BoneTestCase):
         )
 
     def test_democratic_tie_breaker_gestalt(self):
-        from bone_cycle import ArbitrationPhase
-        from bone_types import CycleContext, PhysicsPacket, EnergyState
+        from cycle import ArbitrationPhase
+        from types import CycleContext, PhysicsPacket, EnergyState
         phase = ArbitrationPhase(self.engine)
         ctx = CycleContext(
             input_text="test",
@@ -935,8 +935,8 @@ class FractureEngineTest(BoneTestCase):
             if self.engine.bio.mito.state.atp_pool <= 0:
                 self.engine.mind.mem.trigger_autophagy()
             if self.engine.bio.mito.state.atp_pool <= 0 and len(mem_graph) == 0:
-                from bone_village import DeathGen
-                from bone_types import PhysicsPacket
+                from village import DeathGen
+                from types import PhysicsPacket
                 _, cause = DeathGen.eulogy(PhysicsPacket(**phys_state), {"atp": 0.0})
                 if cause in ["STARVATION", "APOPTOSIS", "GLUTTONY"]:
                     death_achieved = True
@@ -1082,7 +1082,7 @@ class FractureEngineTest(BoneTestCase):
     def test_fracture_runaway_ramp(self):
         print("\n--- FRACTURE 5: The Runaway Ramp ---")
         if not hasattr(self.engine, "symbiosis"):
-            from bone_symbiosis import SymbiosisManager
+            from symbiosis import SymbiosisManager
             self.engine.symbiosis = SymbiosisManager(events_ref=MagicMock(), config_ref=self.engine.bone_config)
         self.engine.symbiosis.u.chi_u = 0.2
         self.engine.symbiosis.u.F_u = 0.5
@@ -1101,7 +1101,7 @@ class FractureEngineTest(BoneTestCase):
 
     def test_fracture_false_cohesion(self):
         print("\n--- FRACTURE 6: False Cohesion (Anti-Sycophancy) ---")
-        from bone_council import TheVillageCouncil
+        from council import TheVillageCouncil
         sycophantic_physics = {"resonance": 0.95, "beta_index": 0.1, "voltage": 25.0, "narrative_drag": 1.0,
                                "stamina": 100.0, "T": 0.0, "S": 0.5, "D": 0.5, "C": 0.5, "psi": 0.1, "chi": 0.1,
                                "valence": 0.8, }
@@ -1117,7 +1117,7 @@ class FractureEngineTest(BoneTestCase):
 
     def test_fracture_systemic_health_medical_chip(self):
         print("\n--- FRACTURE 7: Systemic Health (The Medical Team) ---")
-        from bone_council import TheOverseerCouncil
+        from council import TheOverseerCouncil
         overseer = TheOverseerCouncil()
         physics_decay = {"m_a": 0.8, "narrative_drag": 6.0}
         hit, logs, corr, man = overseer.audit("[MOD:SYSTEMIC_HEALTH] fix this",
@@ -1243,7 +1243,7 @@ class FractureEngineTest(BoneTestCase):
 
     def test_fracture_semantic_dimension_formalization(self):
         print("\n--- FRACTURE 14: Semantic Dimension (fd-formalization) ---")
-        from bone_physics import NaviSADProtocol
+        from physics import NaviSADProtocol
         navi = NaviSADProtocol()
         dim_flat = navi.calculate_semantic_dimension(efficiency_index=1.0, novelty=0.0)
         self.assertAlmostEqual(dim_flat, 1.0, places=2, msg="[FAIL] Flat logic did not yield a dimension of 1.0.")

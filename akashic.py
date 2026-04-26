@@ -1,10 +1,10 @@
-"""bone_akashic.py"""
+"""akashic.py"""
 
 import json, math, os, uuid
 from typing import Any, Dict, List, Optional, Set, Tuple, cast
-from bone_core import BoneJSONEncoder, LoreManifest, ux, safe_get
-from bone_presets import BoneConfig
-from bone_types import Prisma
+from core import BoneJSONEncoder, LoreManifest, ux, safe_get
+from presets import BoneConfig
+from types import Prisma
 
 class TheAkashicRecord:
     def __init__(self, lore_manifest: Optional["LoreManifest"] = None, events_ref=None):
@@ -343,6 +343,9 @@ class TheAkashicRecord:
             msg = ux("akashic_strings", "lexicon_expands")
             print(msg.format(category=category_name.upper()))
             self.lore.save("LEXICON")
+            if self.events:
+                for w in new_words:
+                    self.events.publish("MYTHOLOGY_UPDATE", {"word": w, "category": category_name})
 
     def store_ghost_echo(self, memory_data: Dict):
         self.shadow_stock.append(memory_data)

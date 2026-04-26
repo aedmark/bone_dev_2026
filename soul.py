@@ -1,15 +1,15 @@
-"""bone_soul.py"""
+"""soul.py"""
 import json
 import os
 import random
 import time
 from dataclasses import dataclass, field, fields
 from typing import List, Dict, Optional, Any, Tuple, ClassVar
-from bone_akashic import TheAkashicRecord
-from bone_presets import BoneConfig
-from bone_core import LoreManifest, EventBus, ux, ux_format, safe_get, safe_set
-from bone_lexicon import LexiconService
-from bone_types import Prisma
+from akashic import TheAkashicRecord
+from presets import BoneConfig
+from core import LoreManifest, EventBus, ux, ux_format, safe_get, safe_set
+from lexicon import LexiconService
+from types import Prisma
 
 @dataclass
 class CoreMemory:

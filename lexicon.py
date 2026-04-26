@@ -1,4 +1,4 @@
-"""bone_lexicon.py"""
+"""lexicon.py"""
 
 import json
 import os
@@ -10,14 +10,16 @@ import unicodedata
 import functools
 from collections import defaultdict, deque
 from typing import Tuple, Dict, Set, Optional, List
-from bone_core import Prisma, LoreManifest, ux
+from core import Prisma, LoreManifest, ux
 
 class LexiconStore:
-    HIVE_FILENAME = "cortex_hive.json"
     _PUNCTUATION = string.punctuation.replace("_", "")
     _TRANSLATOR = str.maketrans(_PUNCTUATION, " " * len(_PUNCTUATION))
 
     def __init__(self):
+        from presets import BoneConfig
+        self.save_dir = getattr(getattr(BoneConfig, "AKASHIC", object()), "SAVE_DIR", "saves")
+        self.HIVE_FILENAME = os.path.join(self.save_dir, "cortex_hive.json")
         self.categories = set()
         self.VOCAB: Dict[str, Set[str]] = {}
         self.LEARNED_VOCAB: Dict[str, Dict[str, int]] = {}
@@ -302,13 +304,20 @@ class SemanticField:
 
 
 class LexiconService:
-    def __init__(self):
+    def __init__(self, events_ref=None):
         self._INITIALIZED = False
         self._STORE = LexiconStore()
         self._STORE.load_vocabulary()
         self._ANALYZER = LinguisticAnalyzer(self._STORE)
         self.SOLVENTS = self._STORE.SOLVENTS
+        if events_ref:
+            events_ref.subscribe("MYTHOLOGY_UPDATE", self._on_mythology_update)
         ling_data = LoreManifest.get_instance().get("LINGUISTICS") or {}
+
+    def _on_mythology_update(self, payload: dict):
+        if not payload or not isinstance(payload, dict): return
+        if (word := payload.get("word")) and (category := payload.get("category")):
+            self.teach(word, category, tick=int(time.time()))
         self.PRIORITY_ORDER = ling_data.get("PRIORITY_ORDER", [])
         total_words = sum(len(s) for s in self._STORE.VOCAB.values())
         msg = ux("lexicon_strings", "sys_nominal")

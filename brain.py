@@ -1,18 +1,18 @@
-"""bone_brain.py"""
+"""brain.py"""
 
 import math, random, time, os, re, json
 import concurrent.futures
 from collections import deque
 from dataclasses import dataclass
 from typing import Dict, Any, List, Tuple, Optional
-from bone_composer import LLMInterface, PromptComposer, ResponseValidator
-from bone_presets import BoneConfig, BonePresets
-from bone_ann import MemoryConsolidator
-from bone_core import EventBus, TelemetryService, LoreManifest, ux, safe_get, safe_set
-from bone_gui import beautify_thoughts
-from bone_symbiosis import SymbiosisManager
-from bone_types import Prisma, DecisionCrystal
-from bone_utils import RandomRetrievalNavigator, LibraryGraph
+from composer import LLMInterface, PromptComposer, ResponseValidator
+from presets import BoneConfig, BonePresets
+from ann import MemoryConsolidator
+from core import EventBus, TelemetryService, LoreManifest, ux, safe_get, safe_set
+from gui import beautify_thoughts
+from symbiosis import SymbiosisManager
+from types import Prisma, DecisionCrystal
+from utils import RandomRetrievalNavigator, LibraryGraph
 
 @dataclass
 class CortexServices:
@@ -191,7 +191,7 @@ class TheCortex:
         self.symbiosis = services.symbiosis
         self.composer = PromptComposer(self.svc.lore, config_ref=self.cfg)
         self.validator = ResponseValidator(self.svc.lore, config_ref=self.cfg)
-        from bone_utils import DSPyCritic
+        from utils import DSPyCritic
         self.dspy_critic = DSPyCritic(config_ref=self.cfg)
         if getattr(self.cfg, "WEIGHT_CLASS", "HEAVYWEIGHT") == "LIGHTWEIGHT":
             self.dspy_critic.enabled = False
@@ -820,7 +820,7 @@ class DreamEngine:
             s_logs, s_cost = self.eng.substrate.execute_writes(available_atp)
             shift["atp_drain"] = s_cost
             if raw_payloads and hasattr(self.mem, "cortex"):
-                from bone_spores import _word_to_vector
+                from spores import _word_to_vector
                 vectors, metadata = [], []
                 for text in raw_payloads:
                     vectors.append(_word_to_vector(text[:50]))
@@ -981,7 +981,7 @@ class DreamEngine:
             templates = [item for val in templates.values() for item in ([val] if isinstance(val, str) else val)]
         if not templates:
             return "The walls breathe.", 0.1
-        from bone_utils import TheTclWeaver
+        from utils import TheTclWeaver
         weaver = TheTclWeaver.get_instance()
         v = _vector or {}
         active_chi = v.get("chi", v.get("entropy", 0.85))

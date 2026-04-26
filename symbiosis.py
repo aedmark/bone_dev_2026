@@ -1,12 +1,12 @@
-"""bone_symbiosis.py"""
+"""symbiosis.py"""
 import math
 import re
 from collections import deque, Counter
 from dataclasses import dataclass
 from typing import Dict, Tuple, Optional, Any
-from bone_core import LoreManifest, ux, safe_get, safe_set
-from bone_presets import BoneConfig
-from bone_types import Prisma, UserInferredState, SharedDynamics
+from core import LoreManifest, ux, safe_get, safe_set
+from presets import BoneConfig
+from types import Prisma, UserInferredState, SharedDynamics
 
 _MODE_TAGS = {
     "[!l]": "literal_mode",
@@ -119,7 +119,7 @@ class SymbiontVoice:
         else:
             comment = ux("symbiosis_strings", "symbiont_default_comment") or "..."
         if self.name == "PARASITE":
-            from bone_utils import TheTclWeaver
+            from utils import TheTclWeaver
             comment = TheTclWeaver.get_instance().haunt_string(comment)
         return comment
 

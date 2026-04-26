@@ -1,4 +1,4 @@
-"""bone_utils.py"""
+"""utils.py"""
 
 import math
 import random
@@ -12,7 +12,7 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, Optional, List, Dict, Tuple
 import importlib.util
-from bone_types import Prisma
+from types import Prisma
 
 warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=UserWarning)
@@ -209,7 +209,7 @@ class TheSubstrate:
         self.events = events_ref
         self.pending_writes: List[Dict[str, str]] = []
         self._cords_instance = None
-        from bone_core import LoreManifest
+        from core import LoreManifest
         self.config = LoreManifest.get_instance().get("SUBSTRATE_CONFIG") or {
             "ATP_COST_PER_CHAR": 0.02,
             "MAX_ATP_PER_FILE": 100.0,
@@ -329,7 +329,7 @@ class TheVocalCords:
         self.pipeline = None
         self._synthesis_lock = threading.Lock()
 
-        from bone_core import LoreManifest
+        from core import LoreManifest
         manifest_voices = LoreManifest.get_instance().get("VOICE_MAP")
         self.VOICE_MAP = manifest_voices if manifest_voices else {
             "DEFAULT": "af_bella"
@@ -421,8 +421,8 @@ class DSPyCritic:
         self.cfg = config_ref
         if self.enabled:
             try:
-                from bone_core import safe_get
-                from bone_presets import BoneConfig
+                from core import safe_get
+                from presets import BoneConfig
                 def get_cfg(key: str, default: Any) -> Any:
                     val_upper = safe_get(self.cfg, key.upper())
                     if val_upper is not None: return val_upper

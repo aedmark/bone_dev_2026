@@ -1,10 +1,10 @@
-"""bone_commands.py"""
+"""commands.py"""
 
 import time, shlex
 from typing import Dict, Callable, List, Optional
-from bone_presets import BonePresets, BoneConfig
-from bone_core import LoreManifest, Prisma, ux
-from bone_types import RealityLayer
+from presets import BonePresets, BoneConfig
+from core import LoreManifest, Prisma, ux
+from types import RealityLayer
 
 class CommandStateInterface:
     def __init__(self, engine_ref, prisma_ref, config_ref):
@@ -368,7 +368,7 @@ class CommandProcessor:
                 self.interface.log(ux("command_alerts", "truth_no_reporter"))
                 return True
             if not hasattr(getattr(reporter, "renderer", None), "dial_setting"):
-                from bone_gui import TruthRenderer
+                from gui import TruthRenderer
                 self.interface.log(f"{self.P.YEL}{ux('command_alerts', 'truth_transplant')}{self.P.RST}")
                 reporter.renderer = reporter.renderers.setdefault("STANDARD", TruthRenderer(self.interface.eng))
             reporter.renderer.dial_setting = mode
@@ -528,7 +528,7 @@ class CommandProcessor:
     def _execute_substrate_write(self, file_name: str, content: str):
         substrate = getattr(self.interface.eng, "substrate", None)
         if substrate is None:
-            from bone_utils import TheSubstrate
+            from utils import TheSubstrate
             substrate = TheSubstrate(getattr(self.interface.eng, "events", None))
             self.interface.eng.substrate = substrate
         substrate.queue_write(file_name, self.P.strip(content))

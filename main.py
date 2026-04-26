@@ -1,4 +1,4 @@
-"""bone_main.py"""
+"""main.py"""
 
 import json
 import os
@@ -11,11 +11,11 @@ import subprocess
 import uuid
 from dataclasses import dataclass
 from typing import Dict, Any, Optional, Tuple
-from bone_body import SomaticLoop
-from bone_brain import TheCortex, LLMInterface, NoeticLoop
-from bone_commands import CommandProcessor
-from bone_presets import BoneConfig, BonePresets
-from bone_core import (
+from body import SomaticLoop
+from brain import TheCortex, LLMInterface, NoeticLoop
+from commands import CommandProcessor
+from presets import BoneConfig, BonePresets
+from core import (
     EventBus,
     SystemHealth,
     TheObserver,
@@ -26,13 +26,13 @@ from bone_core import (
     safe_get,
     safe_set,
 )
-from bone_council import CouncilChamber
-from bone_cycle import GeodesicOrchestrator
-from bone_genesis import BoneGenesis
-from bone_lexicon import LexiconService
-from bone_physics import ZoneInertia, NaviSADProtocol
-from bone_protocols import ChronosKeeper
-from bone_types import Prisma, RealityLayer
+from council import CouncilChamber
+from cycle import GeodesicOrchestrator
+from genesis import BoneGenesis
+from lexicon import LexiconService
+from physics import ZoneInertia, NaviSADProtocol
+from protocols import ChronosKeeper
+from types import Prisma, RealityLayer
 
 ANSI_SPLIT = re.compile(r"(\x1b\[[0-9;]*m)")
 
@@ -109,7 +109,7 @@ class SessionGuardian:
         return is_interrupt
 
 class ConfigWizard:
-    CONFIG_FILE = "bone_config.json"
+    CONFIG_FILE = "config.json"
     _MODES = {"1": "ADVENTURE", "2": "CONVERSATION", "3": "CREATIVE", "4": "TECHNICAL"}
     _UI_MODES = {"1": "DEEP", "2": "CORE", "3": "LITE", "4": "MINIMAL", "5": "WARM"}
     _BACKENDS = (
@@ -366,8 +366,8 @@ class BoneAmanita:
         )
         for k in v_keys:
             setattr(self, k, v.get(k))
-        from bone_protocols import GriefProtocol
-        from bone_utils import TheSubstrate
+        from protocols import GriefProtocol
+        from utils import TheSubstrate
         self.grief = GriefProtocol(self.events, engine_ref=self)
         self.substrate = TheSubstrate(self.events)
         self.soul.engine = self
@@ -587,7 +587,7 @@ class BoneAmanita:
             except AttributeError:
                 pass
             if has_comb:
-                from bone_utils import TheTclWeaver
+                from utils import TheTclWeaver
                 last_phys = getattr(self.observer, "last_physics_packet", getattr(self.cortex, "last_physics", {}))
                 current_chi = float(safe_get(last_phys, "entropy", safe_get(last_phys, "chi", 0.5)))
                 pruned = TheTclWeaver.get_instance().quantum_comb(user_message, chi=current_chi)

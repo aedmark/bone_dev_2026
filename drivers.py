@@ -1,4 +1,4 @@
-"""bone_drivers.py"""
+"""drivers.py"""
 
 import json
 import os
@@ -7,10 +7,10 @@ import time
 import difflib
 from dataclasses import dataclass, field
 from typing import Dict, Tuple, List, Optional, Any
-from bone_core import LoreManifest, ux, safe_get, safe_set
-from bone_presets import BoneConfig
-from bone_types import PhysicsPacket
-from bone_types import Prisma, UserInferredState, SharedDynamics
+from core import LoreManifest, ux, safe_get, safe_set
+from presets import BoneConfig
+from types import PhysicsPacket
+from types import Prisma, UserInferredState, SharedDynamics
 
 class SoulDriver:
     def __init__(self, soul_ref, config_ref=None):

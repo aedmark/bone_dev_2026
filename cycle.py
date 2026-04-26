@@ -1,4 +1,4 @@
-"""bone_cycle.py"""
+"""cycle.py"""
 
 import random
 import re
@@ -7,11 +7,11 @@ import traceback
 import uuid
 import threading
 from typing import Dict, Any, List, Optional
-from bone_core import LoreManifest, ux, safe_get
-from bone_drivers import CongruenceValidator
-from bone_gui import CycleReporter
-from bone_machine import PanicRoom
-from bone_phases import (
+from core import LoreManifest, ux, safe_get
+from drivers import CongruenceValidator
+from gui import CycleReporter
+from machine import PanicRoom
+from phases import (
     ObservationPhase,
     SanctuaryPhase,
     MaintenancePhase,
@@ -29,10 +29,10 @@ from bone_phases import (
     StabilizationPhase,
     SimulationPhase,
 )
-from bone_physics import CycleStabilizer
-from bone_presets import BoneConfig
-from bone_symbiosis import SymbiosisManager
-from bone_types import Prisma, CycleContext
+from physics import CycleStabilizer
+from presets import BoneConfig
+from symbiosis import SymbiosisManager
+from types import Prisma, CycleContext
 
 _VSL_TAG_PATTERN = re.compile(r"\[VSL_(DEEP|CORE|LITE|HIDE)]", re.IGNORECASE)
 _VSL_STRIP_PATTERN = re.compile(r"\[VSL_[A-Z]+]", re.IGNORECASE)
@@ -182,7 +182,7 @@ class GeodesicOrchestrator:
             self.symbiosis = self.eng.symbiosis
         else:
             self.symbiosis = SymbiosisManager(self.eng.events)
-        from bone_drivers import SharedLatticeDriver
+        from drivers import SharedLatticeDriver
         if not hasattr(self.eng, "shared_lattice"):
             self.eng.shared_lattice = SharedLatticeDriver()
 

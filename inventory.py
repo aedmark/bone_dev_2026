@@ -1,12 +1,12 @@
-"""bone_inventory.py"""
+"""inventory.py"""
 
 import random
 import re
 from dataclasses import dataclass, field
 from typing import List, Dict, Tuple, Optional, Any
-from bone_presets import BoneConfig
-from bone_core import LoreManifest, ux, safe_get, safe_set
-from bone_types import Prisma
+from presets import BoneConfig
+from core import LoreManifest, ux, safe_get, safe_set
+from types import Prisma
 
 @dataclass
 class Item:

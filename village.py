@@ -1,4 +1,4 @@
-"""bone_village.py"""
+"""village.py"""
 
 import heapq
 import math
@@ -7,10 +7,10 @@ from collections import Counter
 from itertools import chain
 from dataclasses import dataclass, field, asdict
 from typing import List, Dict, Any, Tuple, Optional, Set
-from bone_presets import BoneConfig
-from bone_core import LoreManifest, EventBus, ux, safe_get, safe_set
-from bone_physics import PhysicsDelta
-from bone_types import Prisma, PhysicsPacket
+from presets import BoneConfig
+from core import LoreManifest, EventBus, ux, safe_get, safe_set
+from physics import PhysicsDelta
+from types import Prisma, PhysicsPacket
 
 def _cfg_val(cfg_ref, section: str, key: str, default: float) -> float:
     return float(safe_get(getattr(cfg_ref or BoneConfig, section, None), key, default))

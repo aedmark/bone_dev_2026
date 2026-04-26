@@ -1,4 +1,4 @@
-"""bone_protocols.py"""
+"""protocols.py"""
 import json
 import os
 import random
@@ -6,9 +6,9 @@ import re
 import time
 from collections import deque, Counter
 from typing import Dict, Tuple, Optional, Any
-from bone_core import LoreManifest, ux, safe_get, safe_set
-from bone_presets import BoneConfig
-from bone_types import Prisma
+from core import LoreManifest, ux, safe_get, safe_set
+from presets import BoneConfig
+from types import Prisma
 
 NARRATIVE_DATA = LoreManifest.get_instance().get("narrative_data") or {}
 
