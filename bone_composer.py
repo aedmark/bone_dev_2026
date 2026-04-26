@@ -63,7 +63,7 @@ class LLMInterface:
             cfg = getattr(self.cfg, "CORTEX", None)
             heal_time = getattr(cfg, "LLM_CIRCUIT_HEAL_TIME", 10.0)
             if elapsed > heal_time:
-                self.circuit_state = "HALF_OPEN"
+                self.circuit_state = "CLOSED"
                 if self.events:
                     msg = ux("brain_strings", "synapse_healing")
                     self.events.log(f"{Prisma.CYN}{msg}{Prisma.RST}", "SYS")
@@ -112,6 +112,8 @@ class LLMInterface:
             result = json.loads(body)
             if "choices" in result:
                 return result["choices"][0].get("message", {}).get("content", "")
+            if "message" in result:
+                return result.get("message", {}).get("content", "")
             return ""
         except json.JSONDecodeError:
             raise SynapseError(ux("brain_strings", "synapse_noise"))
@@ -123,6 +125,7 @@ class LLMInterface:
     def generate(self, prompt: str, params: Dict[str, Any]) -> str:
         if prompt.strip().lower() == "//reset system":
             self.failure_count = 0
+            self.last_failure_time = 0.0
             self.circuit_state = "CLOSED"
             return ux("brain_strings", "synapse_reset")
         if not self._is_synapse_active():
@@ -132,10 +135,7 @@ class LLMInterface:
         payload = {
             "model":
             self.model,
-            "messages": [{
-                "role": "user",
-                "content": prompt
-            }],
+            "messages": [{"role": "user", "content": prompt}],
             "stream": False, "stop": ["=== PARTNER INPUT ===", "=== SYSTEM KERNEL ===",
                                       "=== INITIATION DIRECTIVE ===", "\n\nTraveler:", "\nTraveler:",
                                       "Traveler:", "| System:", ],}
@@ -162,12 +162,14 @@ class LLMInterface:
             auth_fail = ux("brain_strings", "synapse_auth_failure")
             return auth_fail.format(e=e)
         except Exception as e:
-            self.failure_count += 1
-            self.last_failure_time = time.time()
             if self.provider != "ollama":
                 fallback = self._local_fallback(payload)
                 if fallback is not None:
+                    if self.events:
+                        self.events.log(f"{Prisma.OCHRE}[SYSTEM FLICKER]: Primary synapse failed. Substrate routed to local fallback.{Prisma.RST}", "SYS")
                     return fallback
+            self.failure_count += 1
+            self.last_failure_time = time.time()
             if self.failure_count >= self.failure_threshold:
                 self.circuit_state = "OPEN"
                 if self.events and (msg := ux("brain_strings", "synapse_overload")):
@@ -176,8 +178,6 @@ class LLMInterface:
         return self.mock_generation(prompt, reason="SILENCE")
 
     def _local_fallback(self, base_payload: Dict) -> str:
-        # Fuller: Ephemeralization. Reusing the primary payload structure ensures the fallback
-        # inherits all context, stop tokens, and parameters without rebuilding the strut.
         url = os.environ.get("OLLAMA_BASE_URL") or getattr(self.cfg, "OLLAMA_URL", "http://127.0.0.1:11434/v1/chat/completions")
         fallback_payload = base_payload.copy()
         fallback_payload["model"] = getattr(self.cfg, "OLLAMA_MODEL_ID", "llama3")
@@ -401,8 +401,6 @@ class PromptComposer:
             psi = float(safe_get(vsl_state, "psi", 0.2))
             chi = float(safe_get(vsl_state, "chi", 0.2))
             valence = float(safe_get(vsl_state, "valence", 0.0))
-            vector = safe_get(vsl_state, "vector", {})
-            lam = float(vector.get("LAMBDA", 0.0)) if isinstance(vector, dict) else 0.0
             vsl_lines = [
                 "\n[SYSTEM METRICS - INTERNAL USE ONLY. DO NOT RENDER OR PRINT THIS TO THE USER.]",
                 "MANDATE: Consume these metrics to shape your narrative and tone. DO NOT output these numbers or draw UI bars.",
@@ -413,7 +411,6 @@ class PromptComposer:
                 (chi, getattr(c_cfg, "SOMATIC_CHI", 0.6), "somatic_cortisol"),
                 (beta, getattr(c_cfg, "SOMATIC_BETA", 0.7), "somatic_paradox"),
                 (valence, getattr(c_cfg, "SOMATIC_VALENCE", 0.5), "somatic_oxytocin"),
-                (lam, getattr(c_cfg, "SOMATIC_LAMBDA", 0.5), "somatic_dark_matter"),
             ]
             if somatic_cues := [msg for val, thresh, ux_key in cues_map if val > thresh and (msg := ux("brain_strings", ux_key))]:
                 vsl_lines.append("SOMATIC CUES: " + " | ".join(somatic_cues))
@@ -423,17 +420,12 @@ class PromptComposer:
                 )
             persona_block.extend(vsl_lines)
             if getattr(self.cfg, "WEIGHT_CLASS", "HEAVYWEIGHT") == "LIGHTWEIGHT":
-                truncated = [
-                    line for line in persona_block if line.startswith("Role:")
-                    or line.startswith("Current Biology:") or "CRITICAL" in line
-                    or line.startswith("BOOT DIRECTIVES:") or line.startswith("- ")
+                return [
+                    f"Role: {role}.",
+                    mood_note,
+                    "SYSTEM HEURISTIC: You are running on Lightweight Physics. Prioritize brief, direct, and grounded physical actions over deep philosophical analysis.",
+                    *[line for line in persona_block if "CRITICAL" in line or line.startswith("- ")]
                 ]
-                if not any(line.startswith("Role:") for line in truncated):
-                    truncated.insert(0, f"Role: {role}.")
-                truncated.append(
-                    "SYSTEM HEURISTIC: You are running on Lightweight Physics. Prioritize brief, direct, and grounded physical actions over deep philosophical analysis."
-                )
-                return truncated
             return persona_block
         return None
 
@@ -592,18 +584,15 @@ class ResponseValidator:
         clean_text = self._file_pattern.sub("", clean_text)
         for pattern, replacement in self.scrub_patterns:
             clean_text = pattern.sub(replacement, clean_text)
-        clean_lines = []
-        toxic_keywords = getattr(self, "toxic_keywords", [])
-        for line in clean_text.splitlines():
-            if not (sl := line.strip()):
-                clean_lines.append("")
-                continue
-            has_meta = bool(self._meta_regex and self._meta_regex.search(sl))
-            has_toxic = bool(self._toxic_regex and self._toxic_regex.search(sl))
-            is_bracket_tag = bool(re.match(r"^\[.*?]$", sl)) or sl == "[]"
-            is_stat_output = bool(re.match(r"^[A-Z]+\s*=\s*[0-9./]+$", sl))
-            if not (has_meta or has_toxic or is_bracket_tag or is_stat_output):
-                clean_lines.append(line)
+        clean_lines = [
+            line for line in clean_text.splitlines()
+            if not ((sl := line.strip()) and (
+                    (self._meta_regex and self._meta_regex.search(sl)) or
+                    (self._toxic_regex and self._toxic_regex.search(sl)) or
+                    re.match(r"^\[.*?]$", sl) or sl == "[]" or
+                    re.match(r"^[A-Z]+\s*=\s*[0-9./]+$", sl)
+            ))
+        ]
         sanitized_response = "\n".join(clean_lines).strip()
         low_resp, errors_found = sanitized_response.lower(), []
         primary_replacement = None
@@ -622,8 +611,7 @@ class ResponseValidator:
                     "CRITICAL: You failed to include the <think>...</think> block. You MUST start your response with your internal analysis."
                 )
                 if not primary_replacement:
-                    primary_replacement = self._generate_dynamic_rejection(
-                        "MISSING_THOUGHTS")
+                    primary_replacement = self._generate_dynamic_rejection("MISSING_THOUGHTS")
             if "```" in sanitized_response:
                 errors_found.append(
                     'CRITICAL: You used markdown (```) instead of the <write_file> protocol. Rewrite using <write_file path="...">.'
@@ -656,9 +644,10 @@ class ResponseValidator:
                     primary_replacement = f"{self._generate_dynamic_rejection(p.get('name', 'REGEX_VIOLATION'))}{msg_reg}".replace("\\n", "\n")
                 errors_found.append(f"RULE VIOLATION: {error_msg}")
         if errors_found:
+            unique_errors = list(dict.fromkeys(errors_found))
             return {"valid": False, "reason": "IMMISSION_BREAK",
                     "replacement": primary_replacement or self._generate_dynamic_rejection("MULTIPLE_CRIMES"),
-                    "feedback_instruction": "FIX ALL OF THESE ERRORS: " + " | ".join(errors_found),
+                    "feedback_instruction": "FIX ALL OF THESE ERRORS: " + " | ".join(unique_errors),
                     "meta_logs": extracted_meta_logs, }
         cortex_cfg = getattr(self.cfg, "CORTEX", None)
         stutter_len = getattr(cortex_cfg, "VALIDATOR_STUTTER_LENGTH", 5) if cortex_cfg else 5

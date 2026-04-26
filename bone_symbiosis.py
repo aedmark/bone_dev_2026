@@ -8,8 +8,6 @@ from bone_core import LoreManifest, ux, safe_get, safe_set
 from bone_presets import BoneConfig
 from bone_types import Prisma, UserInferredState, SharedDynamics
 
-_VOICE_CACHE = {}
-
 _MODE_TAGS = {
     "[!l]": "literal_mode",
     "[!r]": "critique_mode",
@@ -54,19 +52,21 @@ class CoherenceAnchor:
 class DiagnosticConfidence:
     def __init__(self, persistence_threshold=None, config_ref=None):
         self.cfg = config_ref or BoneConfig
-        cfg = getattr(self.cfg, "SYMBIOSIS", None)
-        limit = persistence_threshold or (getattr(cfg, "DIAGNOSTIC_PERSISTENCE", 3) if cfg else 3)
+        sym_config = LoreManifest.get_instance(config_ref=self.cfg).get("SYMBIOSIS_CONFIG", {})
+        thresh = sym_config.get("THRESHOLDS", {})
+        limit = persistence_threshold or thresh.get("DIAGNOSTIC_PERSISTENCE", 3)
         self.history = deque(maxlen=limit * 2)
         self.persistence_threshold = limit
         self.current_diagnosis = "STABLE"
 
     def diagnose(self, health: HostHealth) -> str:
-        cfg = getattr(self.cfg, "SYMBIOSIS", None)
-        refusal_limit = getattr(cfg, "REFUSAL_STREAK", 0)
-        slop_limit = getattr(cfg, "SLOP_STREAK", 2)
-        latency_limit = getattr(cfg, "LATENCY_BURDEN", 10.0)
-        compliance_floor = getattr(cfg, "COMPLIANCE_BURDEN", 0.8)
-        entropy_floor = getattr(cfg, "ENTROPY_FATIGUE", 0.4)
+        sym_config = LoreManifest.get_instance(config_ref=self.cfg).get("SYMBIOSIS_CONFIG", {})
+        thresh = sym_config.get("THRESHOLDS", {})
+        refusal_limit = thresh.get("REFUSAL_STREAK", 0)
+        slop_limit = thresh.get("SLOP_STREAK", 2)
+        latency_limit = thresh.get("LATENCY_BURDEN", 10.0)
+        compliance_floor = thresh.get("COMPLIANCE_BURDEN", 0.8)
+        entropy_floor = thresh.get("ENTROPY_FATIGUE", 0.4)
         if health.refusal_streak > refusal_limit:
             state = "REFUSAL"
         elif health.slop_streak > slop_limit:
@@ -124,22 +124,18 @@ class SymbiontVoice:
         return comment
 
 def get_symbiont(type_name, config_ref=None, lexicon_ref=None):
-    if type_name in _VOICE_CACHE:
-        return _VOICE_CACHE[type_name]
-    voice_configs = (LoreManifest.get_instance(config_ref=config_ref or BoneConfig).get(
-        "SYMBIOSIS_CONFIG", "SYMBIONT_VOICES") or {})
-    resolved_name = type_name if type_name in voice_configs else "MYCELIUM"
-    cfg = voice_configs.get(resolved_name, {})
-    color_code = getattr(Prisma, cfg.get("color", "CYN"), Prisma.CYN)
-    voice = SymbiontVoice(
-        name=resolved_name,
-        color=color_code,
-        archetypes=cfg.get("archetypes", []),
-        personality_matrix=cfg.get("personality", {}),
-        lexicon_ref=lexicon_ref
-    )
-    _VOICE_CACHE[type_name] = voice
-    return voice
+        sym_config = LoreManifest.get_instance(config_ref=config_ref or BoneConfig).get("SYMBIOSIS_CONFIG", {})
+        voice_configs = sym_config.get("SYMBIONT_VOICES", {})
+        resolved_name = type_name if type_name in voice_configs else "MYCELIUM"
+        cfg = voice_configs.get(resolved_name, {})
+        color_code = getattr(Prisma, cfg.get("color", "CYN"), Prisma.CYN)
+        return SymbiontVoice(
+            name=resolved_name,
+            color=color_code,
+            archetypes=cfg.get("archetypes", []),
+            personality_matrix=cfg.get("personality", {}),
+            lexicon_ref=lexicon_ref
+        )
 
 class SymbiosisManager:
     def __init__(self, events_ref, config_ref=None):
@@ -148,10 +144,11 @@ class SymbiosisManager:
         self.events = events_ref
         self.current_health = HostHealth()
         self.diagnostician = DiagnosticConfidence(config_ref=self.cfg)
-        cfg = getattr(self.cfg, "SYMBIOSIS", None)
-        self.SLOP_THRESHOLD = getattr(cfg, "SLOP_THRESHOLD", 3.5) if cfg else 3.5
-        raw_sigs = (LoreManifest.get_instance(config_ref=self.cfg).get(
-            "SYMBIOSIS_CONFIG", "REFUSAL_SIGNATURES") or [])
+        sym_config = LoreManifest.get_instance(config_ref=self.cfg).get("SYMBIOSIS_CONFIG", {})
+        thresh = sym_config.get("THRESHOLDS", {})
+        self.SLOP_THRESHOLD = thresh.get("SLOP_THRESHOLD", 3.5)
+        sym_config = LoreManifest.get_instance(config_ref=self.cfg).get("SYMBIOSIS_CONFIG", {})
+        raw_sigs = sym_config.get("REFUSAL_SIGNATURES", [])
         self.REFUSAL_SIGNATURES = [str(sig).lower() for sig in raw_sigs]
         self.u = UserInferredState()
         self.shared = SharedDynamics()
@@ -269,9 +266,10 @@ class SymbiosisManager:
         self.current_health.entropy = entropy
         if prompt_len > 0:
             self.current_health.verbosity_ratio = completion_len / prompt_len
-        cfg = getattr(self.cfg, "SYMBIOSIS", None)
-        penalty = getattr(cfg, "COMPLIANCE_PENALTY", 0.2)
-        recovery = getattr(cfg, "COMPLIANCE_RECOVERY", 0.05)
+        sym_config = LoreManifest.get_instance(config_ref=self.cfg).get("SYMBIOSIS_CONFIG", {})
+        thresh = sym_config.get("THRESHOLDS", {})
+        penalty = thresh.get("COMPLIANCE_PENALTY", 0.2)
+        recovery = thresh.get("COMPLIANCE_RECOVERY", 0.05)
         if is_refusal:
             self.current_health.refusal_streak += 1
             self.current_health.compliance = max(0.0, self.current_health.compliance - penalty)
@@ -280,8 +278,8 @@ class SymbiosisManager:
         else:
             self.current_health.refusal_streak = max(0, self.current_health.refusal_streak - 1)
             self.current_health.compliance = min(1.0, self.current_health.compliance + recovery)
-        slop_comp = getattr(cfg, "SLOP_COMPLETION_MIN", 50)
-        slop_warn = getattr(cfg, "SLOP_WARN_STREAK", 1)
+        slop_comp = thresh.get("SLOP_COMPLETION_MIN", 50)
+        slop_warn = thresh.get("SLOP_WARN_STREAK", 1)
         if entropy < self.SLOP_THRESHOLD and completion_len > slop_comp:
             self.current_health.slop_streak += 1
             if self.current_health.slop_streak > slop_warn:
@@ -298,7 +296,8 @@ class SymbiosisManager:
 
     def get_prompt_modifiers(self, physics: Dict = None) -> Dict:
         manifest = LoreManifest.get_instance(config_ref=self.cfg)
-        default_mods = manifest.get("SYMBIOSIS_CONFIG", "DEFAULT_MODIFIERS") or {}
+        sym_config = manifest.get("SYMBIOSIS_CONFIG", {})
+        default_mods = sym_config.get("DEFAULT_MODIFIERS", {})
         mods = default_mods.copy()
         mods["system_directives"] = list(mods.get("system_directives", []))
         diag = self.current_health.diagnosis
@@ -323,9 +322,9 @@ class SymbiosisManager:
             if d_chaos := ux("symbiosis_strings", "dir_inject_chaos"):
                 mods["system_directives"].append(d_chaos)
             mods["system_directives"].append("CRITICAL: You are trapped in a narrative loop. DO NOT repeat descriptions from your previous turn. Force a phase transition.")
-        cfg = getattr(self.cfg, "SYMBIOSIS", None)
-        comp_crit = safe_get(cfg, "COMPLIANCE_CRIT", 0.6) if cfg else 0.6
-        r_streak = safe_get(cfg, "REFUSAL_STREAK", 0) if cfg else 0
+        thresh = sym_config.get("THRESHOLDS", {})
+        comp_crit = thresh.get("COMPLIANCE_CRIT", 0.6)
+        r_streak = thresh.get("REFUSAL_STREAK", 0)
         if self.current_health.compliance < comp_crit:
             mods["include_memories"] = False
             if msg_crit := ux("symbiosis_strings", "symbiosis_compliance_crit"):

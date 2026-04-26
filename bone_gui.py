@@ -17,7 +17,7 @@ def beautify_thoughts(text: str) -> str:
     def replacer(match):
         if not (content := match.group(1).strip()): return ""
         inner = "\n".join(f"{Prisma.CYN}  │ {Prisma.GRY}{line.strip()}{Prisma.RST}" for line in content.split("\n") if line.strip())
-        return f"<div class='substrate-block'>{Prisma.CYN}  ┌─ {Prisma.MAG}[ COGNITIVE SUBSTRATE ]{Prisma.RST}\n{inner}\n{Prisma.CYN}  └─{Prisma.RST}</div>"
+        return f"{Prisma.CYN}  ┌─ {Prisma.MAG}[ COGNITIVE SUBSTRATE ]{Prisma.RST}\n{inner}\n{Prisma.CYN}  └─{Prisma.RST}"
     return _THOUGHT_PATTERN.sub(replacer, text)
 
 class Projector:
@@ -76,7 +76,7 @@ class Projector:
 
     def render(self, physics_ctx: Dict, data_ctx: Dict, mind_ctx: tuple, reality_depth: int = 1, labels: Dict = None) -> str:
         ui_depth = data_ctx.get("ui_depth", "IDLE")
-        if ui_depth == "WARM":
+        if ui_depth in ("WARM", "IDLE"):
             return ""
         if ui_depth == "MINIMAL":
             return self._render_clear_hud(physics_ctx.get("physics", {}), data_ctx, mind_ctx)
@@ -151,8 +151,8 @@ class Projector:
         )
 
     def _render_physics_strip(self, physics: Any, vectors: Dict) -> str:
-        volt = float(self._extract(physics, "energy", "voltage", 0.0) or 0.0)
-        drag = float(self._extract(physics, "space", "narrative_drag", 0.0) or 0.0)
+        volt = float(self._extract(physics, "energy", "voltage", 0.0))
+        drag = float(self._extract(physics, "space", "narrative_drag", 0.0))
         dp_str = ""
         if dp := safe_get(physics, "drag_profile"):
             parts = []
@@ -182,13 +182,13 @@ class Projector:
             return ""
         data_ctx = data_ctx or {}
         doms = [physics] + [safe_get(physics, sub) for sub in ("energy", "space", "matter")]
-        E = self._get_lattice_val(doms, ["exhaustion", "E"], 0.2)
+        exhaustion = self._get_lattice_val(doms, ["exhaustion", "E"], 0.2)
         beta = self._get_lattice_val(doms, ["beta_index", "contradiction", "beta"], 0.4)
-        V = self._get_lattice_val(doms, ["voltage", "V"], 30.0)
-        F = self._get_lattice_val(doms, ["narrative_drag", "friction", "F"], 0.6)
-        H = self._get_lattice_val(doms, ["health", "H"], 100.0)
-        P = max(0.0, self._get_lattice_val(doms, ["stamina", "P"], 100.0))
-        T = self._get_lattice_val(doms, ["trauma", "T"], 0.0)
+        voltage = self._get_lattice_val(doms, ["voltage", "V"], 30.0)
+        friction = self._get_lattice_val(doms, ["narrative_drag", "friction", "F"], 0.6)
+        health = self._get_lattice_val(doms, ["health", "H"], 100.0)
+        stamina = max(0.0, self._get_lattice_val(doms, ["stamina", "P"], 100.0))
+        trauma = self._get_lattice_val(doms, ["trauma", "T"], 0.0)
         psi = self._get_lattice_val(doms, ["psi", "PSI"], 0.0)
         chi = self._get_lattice_val(doms, ["entropy", "chi", "CHI"], 0.0)
         valence = self._get_lattice_val(doms, ["valence", "VALENCE"], 0.0)
@@ -203,7 +203,7 @@ class Projector:
         i_hlth = sym.get("health", "")
         i_trau = sym.get("trauma", "")
         i_deep = sym.get("deep", "")
-        core = f"{Prisma.CYN}[{i_core} E:{E:.2f} β:{beta:.2f} | {i_volt} V:{V:.0f} F:{F:.1f} | {i_hlth} H:{H:.0f} P:{P:.0f} | {i_trau} T:{T:.0f}]{Prisma.RST}"
+        core = f"{Prisma.CYN}[{i_core} E:{exhaustion:.2f} β:{beta:.2f} | {i_volt} V:{voltage:.0f} F:{friction:.1f} | {i_hlth} H:{health:.0f} P:{stamina:.0f} | {i_trau} T:{trauma:.0f}]{Prisma.RST}"
         deep = f"{Prisma.VIOLET} [{i_deep} Ψ:{psi:.2f} Χ:{chi:.2f} ♥:{valence:.2f}]{Prisma.RST}"
         shared_str = ""
         if shared := data_ctx.get("shared_dyn"):
@@ -225,8 +225,8 @@ class Projector:
         if gamma > 0 or sigma > 0 or eta > 0 or theta > 0 or upsilon > 0:
             slash_str = f" {Prisma.BLU}[SLASH Γ:{gamma:.1f} Σ:{sigma:.1f} Η:{eta:.1f} Θ:{theta:.1f} Υ:{upsilon:.1f}]{Prisma.RST}"
         if depth == "LITE":
-            vitals = f" | {i_hlth} H:{H:.0f} P:{P:.0f}" if data_ctx.get('show_vitals', True) else ""
-            return f"{Prisma.CYN}[{i_volt} V:{V:.0f}{vitals}]{Prisma.RST}{shared_str}"
+            vitals = f" | {i_hlth} H:{health:.0f} P:{stamina:.0f}" if data_ctx.get('show_vitals', True) else ""
+            return f"{Prisma.CYN}[{i_volt} V:{voltage:.0f}{vitals}]{Prisma.RST}{shared_str}"
         elif depth == "CORE":
             return core + shared_str + strain_str + slash_str
         elif depth == "DEEP":
@@ -276,12 +276,15 @@ class GeodesicRenderer:
         physics = ctx.physics
         bio = ctx.bio_result
         raw_dashboard = self.render_dashboard(ctx)
-        colored_ui = self.vsl_chroma.modulate(raw_dashboard, physics.get("vector", {}))
-        clean_ui = colored_ui
+        soul_strip = self.soul_dashboard.render()
+        if soul_strip:
+            raw_dashboard = f"{soul_strip}\n{raw_dashboard}"
+        clean_ui = raw_dashboard
         if self.strunk_white:
-            clean_ui, style_log = self.strunk_white.sanitize(colored_ui)
+            clean_ui, style_log = self.strunk_white.sanitize(raw_dashboard)
             if style_log:
                 self._punish_style_crime(style_log)
+                current_events.append({"text": style_log})
         ignore_msg = ux("renderer", "ignore_msg") or "The system is listening."
         clean_ui = clean_ui.replace(ignore_msg, "")
         structured_logs = self.compose_logs(ctx.logs, current_events, tick)
@@ -299,15 +302,18 @@ class GeodesicRenderer:
         if mode_settings.get("show_location", True):
             nav = getattr(self.eng, "navigator", None)
             world_loc = getattr(nav.world_graph.get(nav.current_node_id) if nav else None, "name", "UNKNOWN")
-        current_ui_depth = getattr(self.eng, "ui_mode", self.eng.config.get("default_ui_depth",
-                                                mode_settings.get("default_ui_depth", "WARM")))
-        if current_ui_depth == "IDLE":
-            current_ui_depth = "WARM"
-        data_ctx = {"health": self.eng.health, "stamina": self.eng.stamina, "bio": bio_data, "dignity": (
-            getattr(self.eng.soul.anchor, "dignity_reserve", 100.0) if hasattr(self.eng, "soul") else 100.0
-        ), "vectors": physics.get("vector", {}), "ui_depth": current_ui_depth, "world_loc": world_loc,
-                    "show_vitals": mode_settings.get("show_vitals", True),
-                    "show_location": mode_settings.get("show_location", True), }
+        current_ui_depth = getattr(self.eng, "ui_mode", self.eng.config.get("default_ui_depth", mode_settings.get("default_ui_depth", "WARM")))
+        data_ctx = {
+            "health": self.eng.health,
+            "stamina": self.eng.stamina,
+            "bio": bio_data,
+            "dignity": dignity_val,
+            "vectors": physics.get("vector", {}),
+            "ui_depth": current_ui_depth,
+            "world_loc": world_loc,
+            "show_vitals": mode_settings.get("show_vitals", True),
+            "show_location": mode_settings.get("show_location", True),
+        }
         if hasattr(ctx, "shared_dyn"):
             data_ctx.update({"shared_dyn": ctx.shared_dyn, "user_state": ctx.user_state})
         if pe := getattr(self.eng, "paradox_engine", None):
@@ -383,7 +389,8 @@ class CachedRenderer:
     def render_frame(self, ctx, tick: int, events: List[Dict]) -> Dict:
         voltage = float(safe_get(ctx.physics, "voltage", 0.0))
         cfg = getattr(self.cfg, "GUI", object())
-        if voltage > getattr(cfg, "HIGH_VOLTAGE_REFRESH", 15.0) or tick != self._last_tick:
+        cache_expired = (tick - self._last_tick) >= getattr(cfg, "UI_CACHE_LIFETIME", 5)
+        if voltage > getattr(cfg, "HIGH_VOLTAGE_REFRESH", 15.0) or events or cache_expired:
             frame = self._base.render_frame(ctx, tick, events)
             self._cached_ui_content = frame["ui"]
             self._last_tick = tick
@@ -414,7 +421,10 @@ class TruthRenderer(GeodesicRenderer):
     def __init__(self, engine_ref):
         super().__init__(engine_ref, None, None)
         self.engine = engine_ref
-        self.dial_setting = AmbiguityDial.BOARDROOM
+
+    @property
+    def dial_setting(self):
+        return getattr(self.engine, "ambiguity_dial", AmbiguityDial.BOARDROOM)
 
     def render_truth(self, cortex_packet, council_log, trauma_cost):
         ui_text = cortex_packet.get("ui", "")
@@ -466,7 +476,7 @@ class PulseReader:
         chem = bio_state.get("chem", {})
         if chem.get("COR", 0) > c_warn:
             return ux("pulse_reader", "mood_defensive")
-        if chem.get("DA", 0) > c_warn:
+        if chem.get("DOP", 0) > c_warn:
             return ux("pulse_reader", "mood_manic")
         if chem.get("OXY", 0) > c_warn:
             return ux("pulse_reader", "mood_affectionate")
@@ -508,8 +518,9 @@ class SoulDashboard:
         t_crit = getattr(cfg, "TENURE_CRIT", 8)
         color = Prisma.GRN if dig > d_high else Prisma.OCHRE if dig > d_low else Prisma.RED
         max_dig = getattr(cfg, "DIGNITY_MAX", 100.0)
+        clamped_dig = max(0.0, min(max_dig, dig))
         max_bar_width = int(max_dig / d_ratio)
-        filled = int(dig / d_ratio)
+        filled = int(clamped_dig / d_ratio)
         empty = max(0, max_bar_width - filled)
         c_fill, c_empty = ux("status_menu", "bar_filled"), ux("status_menu", "bar_empty")
         bar_str = f"{color}{c_fill * filled}{Prisma.GRY}{c_empty * empty}{Prisma.RST}"
@@ -554,11 +565,11 @@ class CycleReporter:
         try:
             if ctx.refusal_triggered and ctx.refusal_packet:
                 return ctx.refusal_packet
-            if ctx.is_bureaucratic:
-                return self._package_bureaucracy(ctx)
             self._inject_diagnostics(ctx)
             self._inject_flux_readout(ctx)
             self._inject_somatic_pulse(ctx)
+            if ctx.is_bureaucratic:
+                return self._package_bureaucracy(ctx)
             return self.renderer.render_frame(ctx, self.eng.tick_count, self.eng.events.flush())
         except Exception as e:
             l_crash = ux("cycle_reporter", "crash_prefix") or "CRITICAL FAILURE:"
@@ -597,10 +608,9 @@ class CycleReporter:
         dn_arr = flux_sym.get("down_arrow", "")
         pipe = flux_sym.get("pipe", "")
         footer = flux_sym.get("footer", "")
-        for e in ctx.flux_log[-5:]:
+        significant_flux = [e for e in ctx.flux_log if not (abs(e["delta"]) < 1.0 and "PID" in e["reason"])]
+        for e in significant_flux[-5:]:
             d = abs(e["delta"])
-            if d < 1.0 and "PID" in e["reason"]:
-                continue
             icon = v_icon if e["metric"].upper() == "VOLTAGE" else d_icon
             color = Prisma.GRN if e["delta"] > 0 else Prisma.RED
             arrow = up_arr if e["delta"] > 0 else dn_arr

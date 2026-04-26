@@ -60,7 +60,8 @@ class BoneJSONEncoder(json.JSONEncoder):
 class EventBus:
     def __init__(self, max_memory=None, config_ref=None, telemetry_ref=None):
         self.cfg = config_ref or BoneConfig
-        limit = max_memory or getattr(self.cfg.CORE, "EVENT_MAX_MEMORY", 1024)
+        cfg_core = LoreManifest.get_instance().get("CORE_CONFIG") or {}
+        limit = max_memory or safe_get(cfg_core, "EVENT_MAX_MEMORY", 1024)
         self.buffer = deque(maxlen=limit)
         self.subscribers = {}
         self.telemetry = telemetry_ref
@@ -107,9 +108,7 @@ class LoreManifest:
 
     def __init__(self, data_dir=None, config_ref=None):
         self.cfg = config_ref or BoneConfig
-        cfg_core = getattr(self.cfg, "CORE", None)
-        default_dir = safe_get(cfg_core, "LORE_DIR", "lore")
-        self.DATA_DIR = data_dir or default_dir
+        self.DATA_DIR = data_dir or "lore"
         self._cache = {}
 
     @classmethod
@@ -148,6 +147,18 @@ class LoreManifest:
         else:
             self._cache[cat_key] = data
 
+    def save(self, category: str):
+        cat_key = category.lower()
+        if cat_key not in self._cache:
+            return
+        filepath = os.path.join(self.DATA_DIR, f"{cat_key}.json")
+        try:
+            with open(filepath, "w", encoding="utf-8") as f:
+                json.dump(self._cache[cat_key], f, indent=2, cls=BoneJSONEncoder)
+            print(f"{Prisma.GRY}[LORE]: Persisted '{cat_key}'.{Prisma.RST}")
+        except Exception as e:
+            print(f"{Prisma.RED}[LORE]: Failed to save '{cat_key}': {e}{Prisma.RST}")
+
     def flush_cache(self, category: str = None):
         if not category:
             self._cache.clear()
@@ -161,7 +172,7 @@ class TheObserver:
         self.cfg = config_ref or BoneConfig
         self.cyber_gov = CyberneticGovernor(config_ref=self.cfg)
         self.start_time = time.time()
-        cfg_core = getattr(self.cfg, "CORE", None)
+        cfg_core = LoreManifest.get_instance().get("CORE_CONFIG") or {}
         max_len = safe_get(cfg_core, "OBSERVER_MAX_LEN", 20)
         self.cycle_times = deque(maxlen=max_len)
         self.llm_latencies = deque(maxlen=max_len)
@@ -340,8 +351,7 @@ class ArchetypeArbiter:
                 if r.get("trigram") == trigram.get("name") and r.get("lens", physics_lens) == physics_lens and r.get(
                         "soul", soul_archetype) == soul_archetype:
                     return r["result"], r.get("source", "COSMIC"), r.get("msg") or ux("core_strings", "arb_resonance")
-        config = getattr(config_ref or BoneConfig, "CORE", None)
-        loud_lenses = safe_get(config, "LOUD_LENSES", ("THE MANIC", "THE VOID"))
+        loud_lenses = LoreManifest.get_instance().get("COUNCIL_DATA", "LOUD_LENSES") or ["THE MANIC", "THE VOID"]
         if physics_lens in loud_lenses:
             return physics_lens, "PHYSICS", ux_format("core_strings", "arb_loud", physics_lens=physics_lens)
         return soul_archetype, "SOUL", ux("core_strings", "arb_soul")
@@ -351,7 +361,7 @@ class TelemetryService:
 
     def __init__(self, config_ref=None):
         self.cfg = config_ref or BoneConfig
-        cfg_core = getattr(self.cfg, "CORE", None)
+        cfg_core = LoreManifest.get_instance().get("CORE_CONFIG") or {}
         self.log_dir = (safe_get(cfg_core, "TELEMETRY_LOG_DIR", "logs/telemetry"))
         self.BUFFER_SIZE = (safe_get(cfg_core, "TELEMETRY_BUFFER_SIZE", 50))
         self.MAX_ERRORS = (safe_get(cfg_core, "TELEMETRY_MAX_ERRORS", 5))

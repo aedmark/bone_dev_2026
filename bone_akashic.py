@@ -89,7 +89,7 @@ class TheAkashicRecord:
                 if len(epigenetic_list) > max_epi:
                     epigenetic_list.pop(0)
                 self.lore.inject("SYSTEM_PROMPTS", prompts)
-                self.save_to_disk("system_prompts", prompts)
+                self.lore.save("SYSTEM_PROMPTS")
                 if self.events:
                     self.events.log(f"{Prisma.VIOLET}🧬 [EPIGENETICS] Scar '{concept}' compiled into bedrock.{Prisma.RST}",
                         "SYS",)
@@ -183,6 +183,7 @@ class TheAkashicRecord:
         registry[new_name] = new_data
         gordon_data["ITEM_REGISTRY"] = registry
         self.lore.inject("GORDON", gordon_data)
+        self.lore.save("GORDON")
         return new_name, new_data
 
     def save_all(self):
@@ -297,8 +298,9 @@ class TheAkashicRecord:
         new_weights = {"voltage": round((v_a + v_b) / 2, 2), "drag": avg_drag}
         desc_template = ux("akashic_strings", "lens_desc")
         new_lens_data = {"description": desc_template.format(lens_a=lens_a, lens_b=lens_b), "weights": new_weights,
-            "parentage": [lens_a, lens_b], }
+                         "parentage": [lens_a, lens_b], }
         self.lore.inject("LENSES", {new_name: new_lens_data})
+        self.lore.save("LENSES")
         self.discovered_words[new_name] = "LENS"
         msg = ux("akashic_strings", "paradigm_crystallized")
         print(f"{Prisma.MAG}{msg.format(new_name=new_name)}{Prisma.RST}")
@@ -315,6 +317,7 @@ class TheAkashicRecord:
         current_recipes.append(new_recipe)
         gordon_data["RECIPES"] = current_recipes
         self.lore.inject("GORDON", gordon_data)
+        self.lore.save("GORDON")
         msg = ux("akashic_strings", "recipe_recorded")
         print(f"{Prisma.CYN}{msg}{Prisma.RST}")
 
@@ -328,7 +331,7 @@ class TheAkashicRecord:
             self.lore.inject("LEXICON", lexicon_data)
             msg = ux("akashic_strings", "lexicon_expands")
             print(msg.format(category=category_name.upper()))
-            self.save_to_disk("LEXICON", lexicon_data)
+            self.lore.save("LEXICON")
 
     def store_ghost_echo(self, memory_data: Dict):
         self.shadow_stock.append(memory_data)

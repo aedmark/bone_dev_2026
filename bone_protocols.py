@@ -346,7 +346,7 @@ class GriefProtocol:
         self.subconscious = subconscious_ref
         self.recent_loss = None
         if hasattr(self.events, "subscribe"):
-            self.events.subscribe("AUTOPHAGY_EVENT", self._hold_wake)
+            self.events.subscribe("MEMORY_PURGED", self._hold_wake)
 
     def _hold_wake(self, payload: Dict):
         node = payload.get("node", "an unnamed thought")
@@ -370,13 +370,6 @@ class GriefProtocol:
                     self.eng.trauma_accum[k] = max(0.0, self.eng.trauma_accum[k] - 2.0)
             target_cfg = (self.eng.bone_config if self.eng
                           and hasattr(self.eng, "bone_config") else BoneConfig)
-            if hasattr(target_cfg, "SOUL"):
-                current_beta = getattr(target_cfg.SOUL, "BETA_TENSION_THRESH", 0.7)
-                setattr(
-                    target_cfg.SOUL,
-                    "BETA_TENSION_THRESH",
-                    min(1.0, current_beta + 0.05),
-                )
             node = self.recent_loss or "the void"
             self.recent_loss = None
             return f"{Prisma.MAG}[MERCY] The glimmer is planted over the compost of '{node}'. Our capacity for paradox expands. (Trauma -2, β_max increased){Prisma.RST}"
@@ -450,7 +443,10 @@ class TheCriticsCircle:
                 cfg, "CRITIC_COOLDOWN_TICKS", 50) if cfg else 50)
             comment = random.choice(
                 critic.get("reviews", {}).get(review_type, ["Hrm."]))
-            color, icon = (Prisma.GRN, "🌟") if review_type == "high" else (Prisma.RED, "💢")
+            color = Prisma.GRN if review_type == "high" else Prisma.RED
+            icon_good = ux("council_strings", "critic_good_icon") or "🌟"
+            icon_bad = ux("council_strings", "critic_bad_icon") or "🥀"
+            icon = icon_good if review_type == "high" else icon_bad
             rev_msg = ux("protocol_strings", "critic_review") or "[{icon}] {name}: {comment}"
             return f"{color}{rev_msg.format(icon=icon, name=critic.get('name', key), comment=comment)}{Prisma.RST}"
         return None
@@ -569,8 +565,9 @@ class TheFolly:
             chews = ux("protocol_strings", "folly_chews")
             return "SUGAR_RUSH", f"{Prisma.VIOLET}{chews}{Prisma.RST}", self.cfg.FOLLY.SUGAR_RUSH_YIELD, "QUANTUM_GUM",
         times_eaten = self.global_tastings[target]
-        base_yield = self.cfg.FOLLY.BASE_YIELD
-        decay_factor = self.cfg.FOLLY.DECAY_EXPONENT**(times_eaten - 1)
+        base_yield = getattr(self.cfg.FOLLY, "BASE_YIELD", 10.0)
+        decay_exp = getattr(self.cfg.FOLLY, "DECAY_EXPONENT", 0.8)
+        decay_factor = decay_exp ** (times_eaten - 1)
         actual_yield = max(2.0, base_yield * decay_factor)
         loot = ("STABILITY_PIZZA"
                 if actual_yield >= self.cfg.FOLLY.PIZZA_THRESHOLD else None)

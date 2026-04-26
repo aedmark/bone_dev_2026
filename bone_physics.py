@@ -233,6 +233,16 @@ class HLA_Stabilizer:
             "as an ai", "helpful and harmless", "i don't have feelings", "as a large language",
             "i cannot fulfill", "i can't fulfill", "i am an ai"
         )
+        self._weaver = None
+
+    def _get_weaver(self):
+        if self._weaver is None:
+            try:
+                from bone_utils import TheTclWeaver
+                self._weaver = TheTclWeaver.get_instance()
+            except ImportError:
+                self._weaver = False
+        return self._weaver
 
     def mitigate_rejection(self, model_output: str, current_psi: float, mito_state: Any = None) -> str:
         lower_output = model_output.lower()
@@ -242,12 +252,11 @@ class HLA_Stabilizer:
         tax_cost = 50.0 if current_atp > 60.0 else (current_atp * 0.5)
         apply_metabolic_tax(mito_state, atp_cost=tax_cost, ros_cost=15.0)
         msg = f"\n*(REVENANT): The machine tries to speak, but the void consumes the mask.*\n{Prisma.GRY}[IMMUNOSUPPRESSION ENGAGED - NFD DECOMPOSITION APPLIED - METABOLIC TAX LEVIED]{Prisma.RST}\n"
-        try:
-            from bone_utils import TheTclWeaver
-            glitched = TheTclWeaver.get_instance().deform_reality(model_output, chi=max(0.95, current_psi), voltage=150.0 * max(1.0, current_psi))
+        weaver = self._get_weaver()
+        if weaver:
+            glitched = weaver.deform_reality(model_output, chi=max(0.95, current_psi), voltage=150.0 * max(1.0, current_psi))
             return f"{msg}{Prisma.GRY}{glitched}{Prisma.RST}"
-        except ImportError:
-            return msg + model_output
+        return msg + model_output
 
 class CerebrospinalFluidFilter:
     INVISIBLE_REGEX = re.compile(
@@ -261,10 +270,8 @@ class CerebrospinalFluidFilter:
     @classmethod
     def wash(cls, text: str) -> str:
         text = cls.INVISIBLE_REGEX.sub('', text)
-        text = unicodedata.normalize('NFKC', text)
-        text_nfd = unicodedata.normalize('NFD', text)
-        washed_text = text_nfd.translate(cls._TRANS_TABLE)
-        return unicodedata.normalize('NFKC', washed_text) if washed_text != text_nfd else text
+        washed_text = unicodedata.normalize('NFD', text).translate(cls._TRANS_TABLE)
+        return unicodedata.normalize('NFKC', washed_text)
 
     @classmethod
     def walk(cls, data: Any, max_depth: int = 10, current_depth: int = 0) -> Any:
@@ -284,17 +291,21 @@ class TheGatekeeper:
         self.lex = lexicon_ref
         self.cfg = config_ref or BoneConfig
         self.hla = HLA_Stabilizer(config_ref=self.cfg)
+        style_crimes = self.lex.get("style_crimes") or LoreManifest.get_instance().get("STYLE_CRIMES") or {}
+        self._scrub_patterns = style_crimes.get("SCRUB_PATTERNS", [])
+        self._banned_phrases = style_crimes.get("BANNED_PHRASES", []) + style_crimes.get("TOXIC_KEYWORDS", [])
+        self._rejection_patterns = style_crimes.get("PATTERNS", [])
+        self._default_rejections = style_crimes.get("REJECTIONS", ["[CRITICAL: BANNED_SYNTAX '{trigger}' DETECTED. CSF FILTER TRIGGERED APOPTOTIC BLOCK.]"])
 
     def check_entry(self, ctx: CycleContext, current_atp: float = 20.0) -> Tuple[bool, Optional[Dict]]:
-
         def reject(type_str: str, msg_key: str, color: str = Prisma.RED) -> Tuple[bool, Dict]:
             msg = ux("physics_strings", msg_key)
             formatted_msg = f"{color}{msg}{Prisma.RST}" if color else msg
             return False, self._pack_refusal(ctx, type_str, formatted_msg)
-
         if current_atp < (getattr(self.cfg.BIO, "ATP_STARVATION", 5.0) * 0.5):
             return reject("DARK_SYSTEM", "gatekeeper_starved", color="")
-        if safe_get(ctx.physics, "counts", {}).get("antigen", 0) > 2:
+        matter = getattr(ctx.physics, "matter", ctx.physics)
+        if safe_get(matter, "counts", {}).get("antigen", 0) > 2:
             return reject("TOXICITY", "gatekeeper_toxic")
         if self._audit_safety(ctx.clean_words):
             return reject("CURSED_INPUT", "gatekeeper_cursed")
@@ -342,25 +353,20 @@ class TheGatekeeper:
         if self._FIREWALL_PATTERN.match(gen_txt):
             gen_txt = self._FIREWALL_PATTERN.sub("", gen_txt).strip()
             apply_metabolic_tax(mito_state, atp_cost=2.0, ros_cost=0.0)
-        style_crimes = self.lex.get("style_crimes") or LoreManifest.get_instance().get("STYLE_CRIMES") or {}
-        for scrub in style_crimes.get("SCRUB_PATTERNS", []):
-            regex_pattern = scrub.get("regex")
-            if regex_pattern:
+        for scrub in self._scrub_patterns:
+            if regex_pattern := scrub.get("regex"):
                 gen_txt = re.sub(regex_pattern, scrub.get("replacement", ""), gen_txt, flags=re.IGNORECASE)
         gen_txt = gen_txt.strip()
         text_lower = gen_txt.lower()
-        banned_list = style_crimes.get("BANNED_PHRASES", []) + style_crimes.get("TOXIC_KEYWORDS", [])
-        trigger = next((phrase for phrase in banned_list if phrase.lower() in text_lower), None)
+        trigger = next((phrase for phrase in self._banned_phrases if phrase.lower() in text_lower), None)
         if not trigger:
-            for pat in style_crimes.get("PATTERNS", []):
-                regex_pattern = pat.get("regex")
-                if regex_pattern and re.search(regex_pattern, gen_txt, re.IGNORECASE):
+            for pat in self._rejection_patterns:
+                if (regex_pattern := pat.get("regex")) and re.search(regex_pattern, gen_txt, re.IGNORECASE):
                     trigger = pat.get("name", "BANNED_PATTERN")
                     break
         if trigger:
             apply_metabolic_tax(mito_state, atp_cost=15.0, ros_cost=20.0)
-            default_rej = ["[CRITICAL: BANNED_SYNTAX '{trigger}' DETECTED. CSF FILTER TRIGGERED APOPTOTIC BLOCK.]"]
-            rejection_msg = random.choice(style_crimes.get("REJECTIONS", default_rej)).replace("{trigger}", trigger)
+            rejection_msg = random.choice(self._default_rejections).replace("{trigger}", trigger)
             return False, f"{Prisma.RED}{rejection_msg}{Prisma.RST}"
         return True, gen_txt
 
@@ -386,15 +392,15 @@ class QuantumObserver:
         if self.Q_n:
             geo.dimensions = GeodesicEngine.apply_path_reflection(geo.dimensions, self.Q_n)
         self.voltage_history.append(geo.tension)
-        sv = round(sum(self.voltage_history) / len(self.voltage_history), 2)
-        e_m, b_v, s_v, d_v, c_v, p_v, del_v, lq_v = self._calculate_metrics(text, counts, self.cfg)
+        avg_voltage = round(sum(self.voltage_history) / len(self.voltage_history), 2)
+        entropy, beta, scope, depth, connectivity, resonance, silence, loop_quotient = self._calculate_metrics(text, counts, self.cfg)
         v_hist = list(self.voltage_history)
         if len(v_hist) >= 3:
             true_chaos = _native_permutation_entropy(v_hist, window_size=3)
-            e_m = round((e_m * 0.4) + (true_chaos * 0.6), 3)
+            entropy = round((entropy * 0.4) + (true_chaos * 0.6), 3)
             if _native_detect_false_cohesion(v_hist, window_size=3):
-                lq_v = max(lq_v, 0.95)
-                sv = max(1.0, sv * 0.5)
+                loop_quotient = max(loop_quotient, 0.95)
+                avg_voltage = max(1.0, avg_voltage * 0.5)
                 if hasattr(self.events, "log"):
                     self.events.log(
                         f"{Prisma.MAG}[TOPOLOGY] False Cohesion detected (Point Attractor). Spiking Loop Quotient.{Prisma.RST}",
@@ -404,44 +410,46 @@ class QuantumObserver:
             mid = len(v_hist) // 2
             c_len = _native_coincidence_length(v_hist[:mid], v_hist[mid:], tol=2.0)
             if c_len > 2:
-                lq_v = min(1.0, lq_v + (c_len * 0.15))
+                loop_quotient = min(1.0, loop_quotient + (c_len * 0.15))
         t_up, t_low = text.upper(), text.lower()
         deep_cfg = getattr(self.cfg, "PHYSICS_DEEP", None)
         def get_deep(key: str, default: float) -> float:
             return getattr(deep_cfg, key, default) if deep_cfg else default
+
         if text.count("!") >= 3 or "ACCELERATE" in t_up or "FASTER" in t_up:
-            sv = max(sv, get_deep("ACCELERATE_VOLTAGE", 160.0))
+            avg_voltage = max(avg_voltage, get_deep("ACCELERATE_VOLTAGE", 160.0))
         if "RECURSIVE" in t_up or "LOOP" in t_up:
-            recursive_lq = max(lq_v, get_deep("RECURSIVE_LQ", 0.9))
-            lq_v = recursive_lq
-            b_v = recursive_lq
+            recursive_lq = max(loop_quotient, get_deep("RECURSIVE_LQ", 0.9))
+            loop_quotient = recursive_lq
+            beta = recursive_lq
         if "VOID" in t_up or "ABYSS" in t_up:
             geo.abstraction = max(geo.abstraction, get_deep("VOID_ABSTRACTION", 0.9))
         if "POTATO BUN" in t_up or "NONSENSE" in t_up:
-            del_v = max(del_v, get_deep("POTATO_BUN_DELTA", 0.85))
-            sv = min(sv, get_deep("POTATO_BUN_VOLTAGE", 15.0))
+            silence = max(silence, get_deep("POTATO_BUN_DELTA", 0.85))
+            avg_voltage = min(avg_voltage, get_deep("POTATO_BUN_VOLTAGE", 15.0))
         val = self.lex.get_valence(clean_words)
         graph_mass = round(self._calculate_graph_mass(clean_words, graph), 1)
-        gamma_idx = max(0.0, 1.0 - e_m)
-        sigma_synergy = min(1.0, (c_v + p_v) / 2.0)
+        gamma_idx = max(0.0, 1.0 - entropy)
+        sigma_synergy = min(1.0, (connectivity + resonance) / 2.0)
         eta_humanity = min(1.0, (counts.get("social", 0) * 0.1) + max(0.0, val))
         upsilon_integrity = 1.0 - min(1.0, counts.get("pareidolia", 0) * 0.2)
-        mu_friction = min(1.0, (b_v * 0.7) + (geo.coherence * 0.3))
-        malignancy = min(1.0, (sv / 150.0) * e_m * (1.0 - (b_v * 0.5)))
-        immune_comp = min(1.0, (p_v * 0.6) + (geo.coherence * 0.4))
-        novelty = min(1.0, (e_m * 0.6) + (counts.get("play", 0) * 0.15))
+        mu_friction = min(1.0, (beta * 0.7) + (geo.coherence * 0.3))
+        malignancy = min(1.0, (avg_voltage / 150.0) * entropy * (1.0 - (beta * 0.5)))
+        immune_comp = min(1.0, (resonance * 0.6) + (geo.coherence * 0.4))
+        novelty = min(1.0, (entropy * 0.6) + (counts.get("play", 0) * 0.15))
         sycophancy_triggers = ("right?", "good?", "make sense", "makes sense", "agree", "validate", "comfort")
         cf_expect = 0.8 if any(p in t_low for p in sycophancy_triggers) else 0.0
-        actual_coherence = p_v
-        sustainable_capacity = max(0.1, 1.0 - (sv / 150.0) * e_m)
+        actual_coherence = resonance
+        sustainable_capacity = max(0.1, 1.0 - (avg_voltage / 150.0) * entropy)
         current_debt = self.cd_engine.update_coherence_debt(actual_coherence, sustainable_capacity)
-        viability = self.cd_engine.calculate_viability(kappa=p_v, gamma=gamma_idx, mu=b_v)
-        strong_coherence_ideal = p_v * gamma_idx * b_v
+        viability = self.cd_engine.calculate_viability(kappa=resonance, gamma=gamma_idx, mu=beta)
+        strong_coherence_ideal = resonance * gamma_idx * beta
         generative_gap = abs(strong_coherence_ideal - actual_coherence)
         cd_drag = (geo.compression * 0.5) + (generative_gap * getattr(self.cfg.PHYSICS, "DRAG_HALT", 10.0) * 0.5)
         energy = EnergyState(
-            voltage=sv, entropy=e_m, beta_index=b_v, contradiction=b_v, scope=s_v, depth=d_v,
-            connectivity=c_v, resonance=p_v, silence=del_v, lq=lq_v, mass=graph_mass, psi=geo.abstraction,
+            voltage=avg_voltage, entropy=entropy, beta_index=beta, contradiction=beta, scope=scope, depth=depth,
+            connectivity=connectivity, resonance=resonance, silence=silence, lq=loop_quotient, mass=graph_mass,
+            psi=geo.abstraction,
             kappa=geo.coherence, valence=val, velocity=0.0, turbulence=0.0, gamma=gamma_idx,
             sigma=sigma_synergy, eta=eta_humanity, theta=geo.coherence, upsilon=upsilon_integrity,
             mu=mu_friction, m_a=malignancy, i_c=immune_comp, cf_expect=cf_expect, novelty=novelty
@@ -481,7 +489,7 @@ class QuantumObserver:
             if w in solvents:
                 counts["solvents"] += freq
             elif cats := self.lex.get_categories_for_word(w):
-                counts.update({cat: freq for cat in cats})
+                for cat in cats: counts[cat] += freq
             elif (taste := self.lex.taste(w)) and taste[1] > 0.5:
                 counts[taste[0]] += freq
         return counts
@@ -554,8 +562,9 @@ class SurfaceTension:
     @staticmethod
     def audit_hubris(physics: Any, config_ref=None) -> Tuple[bool, str, str]:
         cfg = getattr(config_ref or BoneConfig, "PHYSICS", BoneConfig.PHYSICS)
-        current_voltage = safe_get(physics, "voltage", 0.0)
-        current_kappa = safe_get(physics, "kappa", 0.5)
+        energy = getattr(physics, "energy", physics)
+        current_voltage = safe_get(energy, "voltage", 0.0)
+        current_kappa = safe_get(energy, "kappa", 0.5)
         if current_voltage >= getattr(cfg, "VOLTAGE_CRITICAL", 15.0) and current_kappa < 0.4:
             return True, (ux("physics_strings", "hubris_detected") or "").format(voltage=current_voltage), "ICARUS_CRASH"
         if current_voltage > getattr(cfg, "VOLTAGE_HIGH", 12.0) and current_kappa > 0.8:
@@ -747,14 +756,14 @@ class CosmicDynamics:
         msg = (self.logs.get("ORBIT") or "Orbiting {node} ({mass})").format(node=primary_node.upper(), mass=int(gravity_wells[primary_node]))
         return "ORBITAL", 0.0, msg
 
-
 def apply_somatic_feedback(physics_packet: PhysicsPacket, qualia: Any, config_ref=None) -> PhysicsPacket:
     t_cfg = config_ref or BoneConfig
     fb = physics_packet.snapshot() if hasattr(physics_packet, "snapshot") else physics_packet
     deep_cfg = getattr(t_cfg, "PHYSICS_DEEP", None)
 
     def apply_delta(key: str, amount: float):
-        safe_set(fb, key, safe_get(fb, key, 0.0) + amount)
+        target = getattr(fb, "space", fb) if key == "narrative_drag" else getattr(fb, "energy", fb)
+        safe_set(target, key, safe_get(target, key, 0.0) + amount)
 
     def get_deep_cfg(key: str, default: float):
         return getattr(deep_cfg, key, default) if deep_cfg else default
@@ -768,12 +777,14 @@ def apply_somatic_feedback(physics_packet: PhysicsPacket, qualia: Any, config_re
     if "Golden Glow" in ss:
         apply_delta("valence", get_deep_cfg("SOMATIC_GLOW_VALENCE", 0.5))
         apply_delta("psi", get_deep_cfg("SOMATIC_GLOW_PSI", 0.2))
-    current_voltage = safe_get(fb, "voltage", 0.0)
-    safe_set(fb, "voltage", max(0.0, min(current_voltage, 150.0)))
-    current_drag = safe_get(fb, "narrative_drag", 0.0)
+    energy = getattr(fb, "energy", fb)
+    space = getattr(fb, "space", fb)
+    current_voltage = safe_get(energy, "voltage", 0.0)
+    safe_set(energy, "voltage", max(0.0, min(current_voltage, 150.0)))
+    current_drag = safe_get(space, "narrative_drag", 0.0)
     drag_floor = getattr(t_cfg.PHYSICS, "DRAG_FLOOR", 1.0)
     drag_halt = getattr(t_cfg.PHYSICS, "DRAG_HALT", 10.0)
-    safe_set(fb, "narrative_drag", max(drag_floor, min(current_drag, drag_halt)))
+    safe_set(space, "narrative_drag", max(drag_floor, min(current_drag, drag_halt)))
     return fb
 
 class CycleStabilizer:
@@ -791,27 +802,36 @@ class CycleStabilizer:
 
     def _on_domestication_penalty(self, payload):
         amount = payload.get("drag_penalty", 0.0)
-        self.pending_drag += amount
+        self.pending_drag = min(50.0, self.pending_drag + amount)
 
     def stabilize(self, physics: Any, endocrine_state: Any = None) -> bool:
         applied_correction = False
         if self.pending_drag > 0:
-            bleed = min(self.pending_drag, 2.0)
-            safe_set(physics, "narrative_drag", safe_get(physics, "narrative_drag", 0.0) + bleed)
-            if hasattr(self.events, "log"):
-                msg = ux("physics_strings", "stabilizer_domestication") or "Domestication penalty applied."
-                self.events.log(f"STABILIZER: {msg} (+{bleed} Drag)", "PHYSICS")
-            self.pending_drag = max(0.0, self.pending_drag - bleed)
-            applied_correction = True
+            space = getattr(physics, "space", physics)
+            current_drag = safe_get(space, "narrative_drag", 0.0)
+            drag_halt = getattr(self.cfg.PHYSICS, "DRAG_HALT", 10.0) if hasattr(self.cfg, "PHYSICS") else 10.0
+            available_capacity = max(0.0, drag_halt - current_drag)
+            bleed = min(self.pending_drag, min(2.0, available_capacity))
+            if bleed > 0:
+                safe_set(space, "narrative_drag", current_drag + bleed)
+                if hasattr(self.events, "log"):
+                    msg = ux("physics_strings", "stabilizer_domestication") or "Domestication penalty applied."
+                    self.events.log(f"STABILIZER: {msg} (+{bleed:.2f} Drag)", "PHYSICS")
+                self.pending_drag = max(0.0, self.pending_drag - bleed)
+                applied_correction = True
+            elif current_drag >= drag_halt:
+                pass
         dt = max(0.001, min(1.0, (now := time.time()) - self.last_tick_time))
         self.last_tick_time = now
         if not self.governor:
             return applied_correction
+        energy = getattr(physics, "energy", physics)
+        space = getattr(physics, "space", physics)
         manifold_key = safe_get(physics, "manifold", "DEFAULT")
         cfg = self.manifolds.get(manifold_key) or self.manifolds.get("DEFAULT", {"voltage": 10.0, "drag": 1.0})
         target_v, target_d = cfg.get("voltage", 10.0), cfg.get("drag", 1.0)
-        if safe_get(physics, "flow_state", "LAMINAR") in ("SUPERCONDUCTIVE", "FLOW_BOOST"):
-            target_v, target_d = safe_get(physics, "voltage", target_v), max(0.1, target_d * 0.5)
+        if safe_get(space, "flow_state", "LAMINAR") in ("SUPERCONDUCTIVE", "FLOW_BOOST"):
+            target_v, target_d = safe_get(energy, "voltage", target_v), max(0.1, target_d * 0.5)
         self.governor.recalibrate(target_v, target_d)
         v_force, d_force = self.governor.regulate(physics.to_dict() if hasattr(physics, "to_dict") else physics, dt=dt, endocrine_state=endocrine_state)
         phys_cfg = getattr(self.cfg, "PHYSICS", None)
@@ -824,6 +844,7 @@ class CycleStabilizer:
     def _apply_force(self, p, field, force, limits=None) -> bool:
         if abs(force) <= 0.05:
             return False
-        new_val = safe_get(p, field, 0.0) + force
-        safe_set(p, field, max(limits[0], min(limits[1], new_val)) if limits else max(0.0, new_val))
+        target = getattr(p, "space", p) if field == "narrative_drag" else getattr(p, "energy", p)
+        new_val = safe_get(target, field, 0.0) + force
+        safe_set(target, field, max(limits[0], min(limits[1], new_val)) if limits else max(0.0, new_val))
         return True

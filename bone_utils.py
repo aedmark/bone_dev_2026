@@ -203,12 +203,18 @@ class RandomRetrievalNavigator:
         return {"randomness_dial": self.randomness_dial, "mode": self._get_mode(self.randomness_dial),
                 "traversal_history": self.traversal_history[-3:]}
 
+
 class TheSubstrate:
     def __init__(self, events_ref):
         self.events = events_ref
         self.pending_writes: List[Dict[str, str]] = []
         self._cords_instance = None
-
+        from bone_core import LoreManifest
+        self.config = LoreManifest.get_instance().get("SUBSTRATE_CONFIG") or {
+            "ATP_COST_PER_CHAR": 0.02,
+            "MAX_ATP_PER_FILE": 100.0,
+            "MAX_RETRIES": 3
+        }
     def queue_write(self, path: str, content: str):
         self.pending_writes.append({"path": path, "content": content, "retries": 0})
 
@@ -220,8 +226,8 @@ class TheSubstrate:
         for w in self.pending_writes:
             s_path = os.path.join("output", w["path"].lstrip("/"))
             s_name = os.path.basename(s_path)
-            w_cost = len(w["content"]) * 0.02
-            if w_cost > 100.0:
+            w_cost = len(w["content"]) * self.config.get("ATP_COST_PER_CHAR", 0.02)
+            if w_cost > self.config.get("MAX_ATP_PER_FILE", 100.0):
                 logs.append(
                     f"{Prisma.VIOLET}SUBSTRATE FATAL: {s_name} exceeds absolute biological carrying capacity (Cost: {w_cost:.1f} ATP). Purged from system.{Prisma.RST}")
                 continue
@@ -242,7 +248,7 @@ class TheSubstrate:
                 if "podcast" in s_name.lower(): self._trigger_tts(s_path)
             except Exception as e:
                 retries = w.get("retries", 0) + 1
-                if retries > 3:
+                if retries > self.config.get("MAX_RETRIES", 3):
                     logs.append(
                         f"{Prisma.VIOLET}SUBSTRATE FATAL: Write failed 3 times for {s_name} - {e}. Purging corrupted matter.{Prisma.RST}")
                 else:
@@ -316,18 +322,18 @@ os.environ["TQDM_DISABLE"] = "True"
 logging.getLogger("huggingface_hub").setLevel(logging.ERROR)
 logging.getLogger("torch").setLevel(logging.ERROR)
 
-class TheVocalCords:
-    VOICE_MAP = {
-        "BENEDICT": "am_adam", "JESTER": "am_puck", "STAGE MANAGER": "af_sky", "GORDON": "am_michael",
-        "MOIRA": "af_heart", "MERCY": "af_heart", "ROBERTA": "af_nicole", "COLIN": "am_eric",
-        "CASSANDRA": "af_aoife", "REVENANT": "am_fenrir", "GIDEON": "am_onyx", "APRIL": "af_kore",
-        "DEFAULT": "af_bella",
-    }
 
+class TheVocalCords:
     def __init__(self, events_ref=None):
         self.events = events_ref
         self.pipeline = None
         self._synthesis_lock = threading.Lock()
+
+        from bone_core import LoreManifest
+        manifest_voices = LoreManifest.get_instance().get("VOICE_MAP")
+        self.VOICE_MAP = manifest_voices if manifest_voices else {
+            "DEFAULT": "af_bella"
+        }
 
     _ANSI_ESCAPE = re.compile(r"\x1B\[[0-9;]*[a-zA-Z]")
     _SCRIPT_PATTERN = re.compile(r"^\[([^]]+)]:?\s*(.*?)(?=\n\[|\Z)", re.MULTILINE | re.DOTALL)

@@ -297,9 +297,8 @@ class GatekeeperPhase(SimulationPhase):
                 ctx.log(
                     f"{Prisma.OCHRE}[GORDON] {log_msg}. Applying massive Narrative Drag.{Prisma.RST}"
                 )
-                current_drag = float(getattr(ctx.physics, "narrative_drag", 0.0) or 0.0)
-                target_cfg = getattr(self.eng, "bone_config", BoneConfig)
-                max_drag = getattr(target_cfg.PHYSICS, "DRAG_MAX", 100.0)
+                current_drag = float(getattr(ctx.physics, "narrative_drag", 0.0))
+                max_drag = LoreManifest.get_instance().get("PHYSICS_CONSTANTS", "DRAG_MAX")
                 setattr(ctx.physics, "narrative_drag", min(max_drag, current_drag + 50.0))
                 if not hasattr(ctx, "council_mandates"):
                     ctx.council_mandates = []
@@ -976,12 +975,6 @@ class ArbitrationPhase(SimulationPhase):
         return ctx
 
 class SimulationPreflightPhase(SimulationPhase):
-    _SINCERITY_MAP = {
-        "[!R]": {"slash": "PINKER", "core": "BENEDICT", "desc": "[ !r ] Critique Mode engaged.", "col": Prisma.CYN, "v": -0.5, "d_mod": 2.0},
-        "[!Q]": {"slash": "ROBERTA", "core": "ROBERTA", "desc": "[ !q ] Objective Analysis engaged.", "col": Prisma.GRY, "v": 0.0, "psi": 0.0},
-        "[!K]": {"slash": "SCHUR", "core": "MERCY", "desc": "[ !k ] Kintsugi/Care engaged.", "col": Prisma.OCHRE, "v": 0.8, "d_mod": -1.0},
-    }
-
     def __init__(self, engine_ref):
         super().__init__(engine_ref)
         self.name = "EXECUTIVE_PREFLIGHT"
@@ -1024,13 +1017,14 @@ class SimulationPreflightPhase(SimulationPhase):
         clean_input = upper_input.replace(" ", "")
         if not hasattr(ctx, "council_mandates"):
             ctx.council_mandates = []
-
-        for tag, data in self._SINCERITY_MAP.items():
+        sincerity_map = LoreManifest.get_instance().get("PHYSICS_CONSTANTS", "SINCERITY_MAP") or {}
+        for tag, data in sincerity_map.items():
             if tag in clean_input:
-                lens = data["slash"] if is_slash else data["core"]
-                msg = f"[SINCERITY PROTOCOL]: {data['desc']} Summoning {lens}."
-                ctx.log(f"{data['col']}{msg}{Prisma.RST}")
-                phys_obj.valence = data["v"]
+                lens = data.get("slash") if is_slash else data.get("core")
+                msg = f"[SINCERITY PROTOCOL]: {data.get('desc')} Summoning {lens}."
+                col_code = getattr(Prisma, data.get("col", "GRY"), Prisma.GRY)
+                ctx.log(f"{col_code}{msg}{Prisma.RST}")
+                phys_obj.valence = data.get("v", 0.0)
                 if d_mod := data.get("d_mod"):
                     phys_obj.narrative_drag = max(0.1, phys_obj.narrative_drag + d_mod)
                 if psi := data.get("psi"):
