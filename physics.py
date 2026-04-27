@@ -564,8 +564,9 @@ class SurfaceTension:
     @staticmethod
     def audit_hubris(physics: Any, config_ref=None) -> Tuple[bool, str, str]:
         cfg = getattr(config_ref or BoneConfig, "PHYSICS", BoneConfig.PHYSICS)
-        current_voltage = physics.energy.voltage
-        current_kappa = physics.energy.kappa
+        energy_state = safe_get(physics, "energy", physics)
+        current_voltage = float(safe_get(energy_state, "voltage", 0.0))
+        current_kappa = float(safe_get(energy_state, "kappa", 0.0))
         if current_voltage >= getattr(cfg, "VOLTAGE_CRITICAL", 15.0) and current_kappa < 0.4:
             return True, (ux("physics_strings", "hubris_detected") or "").format(voltage=current_voltage), "ICARUS_CRASH"
         if current_voltage > getattr(cfg, "VOLTAGE_HIGH", 12.0) and current_kappa > 0.8:

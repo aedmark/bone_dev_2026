@@ -334,16 +334,9 @@ class MemoryCore:
         pruned_count = total_decayed = 0
         for node in list(self.graph.keys()):
             edges = self.graph[node]["edges"]
-            new_edges = {}
-            for t, w in edges.items():
-                total_decayed += 1
-                weight_ratio = min(1.0, w / 10.0)
-                adjusted_scaling = scaling_factor + (0.14 * weight_ratio)
-                decayed_weight = w * adjusted_scaling
-                if decayed_weight >= prune_threshold:
-                    new_edges[t] = decayed_weight
-                else:
-                    pruned_count += 1
+            new_edges = {t: w * (scaling_factor + (0.14 * min(1.0, w / 10.0))) for t, w in edges.items() if w * (scaling_factor + (0.14 * min(1.0, w / 10.0))) >= prune_threshold}
+            total_decayed += len(edges)
+            pruned_count += len(edges) - len(new_edges)
             self.graph[node]["edges"] = new_edges
             if not new_edges and not self.graph[node].get("is_diamond", False): del self.graph[node]
         valid_nodes = set(self.graph.keys())
@@ -427,9 +420,7 @@ class MycelialNetwork:
         return self.memory_core.calculate_mass(node)
 
     def run_ecosystem(self, physics: Any, stamina: float, tick: int) -> List[str]:
-        matter_state = safe_get(physics, "matter")
-        fallback_words = safe_get(matter_state, "clean_words", []) if matter_state else []
-        clean_words = safe_get(physics, "clean_words", fallback_words)
+        clean_words = safe_get(physics, "clean_words") or safe_get(safe_get(physics, "matter", {}), "clean_words", [])
         logs = []
         lichen_result = self.lichen.photosynthesize(physics, clean_words, tick)
         lichen_log = lichen_result[1] if len(lichen_result) > 1 else None
@@ -525,8 +516,7 @@ class MycelialNetwork:
         return self.memory_core.prune_synapses(scaling_factor, prune_threshold)
 
     def encode(self, clean_words, physics, governor_mode):
-        significance = float(
-            safe_get(physics, "voltage", safe_get(safe_get(physics, "energy"), "voltage", 0.0), ))
+        significance = float(safe_get(physics, "voltage") or safe_get(safe_get(physics, "energy", {}), "voltage", 0.0))
         if governor_mode == "FORGE":
             significance *= 2.0
         elif governor_mode == "LABORATORY":

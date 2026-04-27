@@ -15,28 +15,19 @@ class HippocampalCache:
         self.nodes: Dict[str, Any] = {}
 
     def encode(self, node_id: str, vector: List[float], metadata: Dict[str, Any]):
-        if node_id in self.nodes:
-            del self.nodes[node_id]
-        vector_bytes = np.array(vector, dtype=np.float32).tobytes()
-        raw_hash = hashlib.md5(vector_bytes).hexdigest()
-        short_hash = raw_hash[:8]
-        phantom = {
-            "vector_hash": short_hash,
-            "wing_id": metadata.get("wing_id", "GLOBAL"),
-            "room_id": metadata.get("room_id", "GENERAL")
-        }
+        self.nodes.pop(node_id, None)
+        short_hash = hashlib.md5(np.array(vector, dtype=np.float32).tobytes()).hexdigest()[:8]
         self.nodes[node_id] = {
-            "phantom": phantom,
+            "phantom": {"vector_hash": short_hash, "wing_id": metadata.get("wing_id", "GLOBAL"), "room_id": metadata.get("room_id", "GENERAL")},
             "vector": vector,
             "meta": metadata,
             "timestamp": time.time()
         }
         if len(self.nodes) > self.max_capacity:
-            self._prune_oldest()
+            del self.nodes[next(iter(self.nodes))]
 
     def retrieve_exact(self, node_id: str) -> Optional[Dict]:
-        if node_id in self.nodes:
-            val = self.nodes.pop(node_id)
+        if val := self.nodes.pop(node_id, None):
             self.nodes[node_id] = val
             return val
         return None
@@ -45,12 +36,6 @@ class HippocampalCache:
         from itertools import islice
         target_keys = list(islice(self.nodes.keys(), limit))
         return [(k, self.nodes.pop(k)) for k in target_keys]
-
-    def _prune_oldest(self):
-        if not self.nodes:
-            return
-        oldest_key = next(iter(self.nodes))
-        del self.nodes[oldest_key]
 
     def get_graph(self) -> Dict[str, set]:
         adj = {k: set() for k in self.nodes}
@@ -106,49 +91,34 @@ class CerebralIndex:
 
     def query_neighborhood(self, query_vector: List[float], k: int = 5, resonance_threshold: float = 0.5,
                            physics_state: Optional[Dict[str, float]] = None) -> List[Dict]:
-        if not self.is_trained or self.total_nodes == 0:
+        if not self.is_trained or self.total_nodes == 0 or len(query_vector) != self.dimension:
             return []
+        target_wing, is_lateral = None, False
         if physics_state:
-            voltage = physics_state.get("voltage", 0.0)
-            chi = physics_state.get("chi", 0.0)
-            if voltage > 80.0 and chi > 0.7:
+            if physics_state.get("voltage", 0.0) > 80.0 and physics_state.get("chi", 0.0) > 0.7:
                 return self.lateral_ofc_retrieval(physics_state, k=k)
-        if len(query_vector) != self.dimension:
-            return []
-        np_query = np.array([query_vector], dtype=np.float32)
-        actual_k = min(k, self.total_nodes)
-        distances, indices = self._index.search(np_query, actual_k)
-        valid_neighbors = []
-        target_wing = None
-        is_lateral = False
-        if physics_state:
             target_wing = physics_state.get("wing_id", "GLOBAL")
             is_lateral = physics_state.get("lateral_search", False)
-        for dist, idx in zip(distances[0], indices[0]):
-            if idx == -1:
-                continue
-            payload = self._payloads[idx]
-            if target_wing and payload.get("wing_id", "GLOBAL") != target_wing and not is_lateral:
-                continue
-            resonance = 1.0 / (1.0 + float(dist))
-            if resonance >= resonance_threshold:
-                valid_neighbors.append({**payload, "resonance": resonance})
-        return valid_neighbors
+        np_query = np.array([query_vector], dtype=np.float32)
+        distances, indices = self._index.search(np_query, min(k, self.total_nodes))
+        return [
+            {**self._payloads[idx], "resonance": 1.0 / (1.0 + float(dist))}
+            for dist, idx in zip(distances[0], indices[0])
+            if idx != -1
+            and (not target_wing or is_lateral or self._payloads[idx].get("wing_id", "GLOBAL") == target_wing)
+            and (1.0 / (1.0 + float(dist))) >= resonance_threshold
+        ]
 
     def get_local_mass_radius(self) -> Optional[Dict[str, List[float]]]:
         if not self.is_trained or self.total_nodes < 5:
             return None
 
-        """We don't know where the center is, so we just query the absolute void (0,0,0...)
-         and see what yells back. It works. Don't touch it."""
         np_query = np.zeros((1, self.dimension), dtype="float32")
         distances, _ = self._index.search(np_query, min(50, self.total_nodes))
         valid_dists = [float(d) for d in distances[0] if d > 0]
         if len(valid_dists) < 3:
             return None
-        return {
-            "log_r": [math.log(d) for d in valid_dists],
-            "log_m": [math.log(i + 1) for i in range(len(valid_dists))],
+        return {"log_r": [math.log(d) for d in valid_dists], "log_m": [math.log(i + 1) for i in range(len(valid_dists))],
             "weights": [1.0] * len(valid_dists)
         }
 
@@ -159,25 +129,15 @@ class MemoryConsolidator:
         self.events = events
 
     def trigger_rem_consolidation(self, available_atp: float) -> Tuple[int, float]:
-        base_rem_cost = 20.0
-        cost_per_node = 0.1
-        if available_atp < base_rem_cost:
+        if available_atp < 20.0 or (max_nodes := int((available_atp - 20.0) / 0.1)) < 1:
             return 0, 0.0
-        surplus_atp = available_atp - base_rem_cost
-        max_affordable_nodes = int(surplus_atp / cost_per_node)
-        if max_affordable_nodes <= 0:
-            return 0, 0.0
-        pending_nodes = self.hippocampus.extract_for_consolidation(limit=max_affordable_nodes)
-        vectors, payloads = [], []
-        for node_id, node_data in pending_nodes:
-            if "vector" in node_data:
-                vectors.append(node_data["vector"])
-                payloads.append({"id": node_id, **node_data.get("meta", {})})
+        pending_nodes = self.hippocampus.extract_for_consolidation(limit=max_nodes)
+        vectors = [n["vector"] for _, n in pending_nodes if "vector" in n]
+        payloads = [{"id": k, **n.get("meta", {})} for k, n in pending_nodes if "vector" in n]
         if not vectors:
             return 0, 0.0
         self.cortex.add_memories(vectors, payloads)
-        count = len(vectors)
-        atp_cost = base_rem_cost + (count * 0.1)
+        count, atp_cost = len(vectors), 20.0 + (len(vectors) * 0.1)
         if self.events:
             self.events.publish("SYNAPTIC_CONSOLIDATION", {"count": count, "atp_burned": atp_cost})
         return count, atp_cost

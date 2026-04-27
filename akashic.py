@@ -33,11 +33,13 @@ class TheAkashicRecord:
         event_bus.subscribe("FORGE_SUCCESS", self._on_forge_event)
         event_bus.subscribe("GHOST_SIGNAL", self._on_ghost_signal)
         event_bus.subscribe("SYSTEM_STARVING", self._on_system_starving)
-        msg = ux("akashic_strings", "listening")
+        if msg := ux("akashic_strings", "listening"):
+            print(f"{Prisma.GRY}{msg}{Prisma.RST}")
 
     def _on_system_starving(self, _payload):
-        self.trigger_autophagy()
-        print(f"{Prisma.CYN}{msg}{Prisma.RST}")
+        yield_val, msg = self.trigger_autophagy()
+        if msg:
+            print(f"{Prisma.CYN}{msg}{Prisma.RST}")
 
     def trigger_autophagy(self) -> Tuple[float, str]:
         akashic_cfg = getattr(BoneConfig, "AKASHIC", None)
@@ -64,11 +66,8 @@ class TheAkashicRecord:
         coords = {}
         energy_layer = safe_get(p, "energy") or {}
         for short_key, (full_key, default_val) in axis_map.items():
-            config_default = cfg_defaults.get(short_key, default_val)
-            if (val := safe_get(p, short_key)) is not None:
-                coords[short_key] = val
-            else:
-                coords[short_key] = safe_get(energy_layer, full_key, config_default)
+            val = safe_get(p, short_key)
+            coords[short_key] = val if val is not None else safe_get(energy_layer, full_key, cfg_defaults.get(short_key, default_val))
         self.scar_map.append({"concept": concept, "coordinates": coords.copy(), "gilded": True})
         max_scars = getattr(self.cfg_akashic, "MAX_SCARS", 50)
         if len(self.scar_map) > max_scars:
@@ -305,11 +304,9 @@ class TheAkashicRecord:
             return
         w_a = safe_get(existing_lenses, lens_a, {}).get("weights", {})
         w_b = safe_get(existing_lenses, lens_b, {}).get("weights", {})
-        v_a = float(w_a.get("voltage") or w_a.get("v", 0.0))
-        v_b = float(w_b.get("voltage") or w_b.get("v", 0.0))
-        drag_vals = [float(w.get("drag") or w.get("d", 0.0)) for w in (w_a, w_b) if "drag" in w or "d" in w]
-        avg_drag = round(sum(drag_vals) / len(drag_vals), 2) if drag_vals else 0.0
-        new_weights = {"voltage": round((v_a + v_b) / 2, 2), "drag": avg_drag}
+        v_a, v_b = float(w_a.get("voltage", w_a.get("v", 0.0))), float(w_b.get("voltage", w_b.get("v", 0.0)))
+        d_a, d_b = float(w_a.get("drag", w_a.get("d", 0.0))), float(w_b.get("drag", w_b.get("d", 0.0)))
+        new_weights = {"voltage": round((v_a + v_b) / 2, 2), "drag": round((d_a + d_b) / 2, 2)}
         desc_template = ux("akashic_strings", "lens_desc")
         new_lens_data = {"description": desc_template.format(lens_a=lens_a, lens_b=lens_b), "weights": new_weights,
                          "parentage": [lens_a, lens_b], }

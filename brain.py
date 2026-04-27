@@ -47,14 +47,10 @@ class ChemicalState:
 
     def mix(self, new_state: Dict[str, float], weight: float = 0.5):
         inv_w = 1.0 - weight
-        if "DOP" in new_state or "dopamine" in new_state:
-            self.dopamine = (self.dopamine * inv_w) + (new_state.get("DOP", new_state.get("dopamine", 0.0)) * weight)
-        if "COR" in new_state or "cortisol" in new_state:
-            self.cortisol = (self.cortisol * inv_w) + (new_state.get("COR", new_state.get("cortisol", 0.0)) * weight)
-        if "ADR" in new_state or "adrenaline" in new_state:
-            self.adrenaline = (self.adrenaline * inv_w) + (new_state.get("ADR", new_state.get("adrenaline", 0.0)) * weight)
-        if "SER" in new_state or "serotonin" in new_state:
-            self.serotonin = (self.serotonin * inv_w) + (new_state.get("SER", new_state.get("serotonin", 0.0)) * weight)
+        for attr, short_key in [("dopamine", "DOP"), ("cortisol", "COR"), ("adrenaline", "ADR"), ("serotonin", "SER")]:
+            val = new_state.get(short_key, new_state.get(attr))
+            if val is not None:
+                setattr(self, attr, (getattr(self, attr) * inv_w) + (val * weight))
 
 class NeurotransmitterModulator:
     def __init__(self, bio_ref, events_ref=None, config_ref=None):
@@ -413,11 +409,13 @@ class TheCortex:
                 if self.events:
                     self.events.log(f"DSPy Critic Objected: {short_reason}", "SYS")
             else:
-                from physics import TheGatekeeper
+                gate_txt = final_text
                 eng = getattr(self.svc.cycle_controller, "eng", None)
-                gatekeeper = getattr(eng, "gatekeeper", None) or TheGatekeeper(self.svc.lexicon, config_ref=self.cfg)
-                if gatekeeper and getattr(self.svc.bio, "mito", None):
-                    gate_pass, gate_txt = gatekeeper.audit_generation(final_text, self.svc.bio.mito)
+                mito = getattr(self.svc.bio, "mito", None)
+                if eng and mito:
+                    from physics import TheGatekeeper
+                    gk = getattr(eng, "gatekeeper", None) or TheGatekeeper(self.svc.lexicon, config_ref=self.cfg)
+                    gate_pass, gate_txt = gk.audit_generation(final_text, mito)
                     if not gate_pass or "IMMUNOSUPPRESSION ENGAGED" in gate_txt:
                         val_res = {
                             "valid": False,
@@ -425,33 +423,26 @@ class TheCortex:
                             "replacement": "Gatekeeper Apoptotic Block.",
                             "meta_logs": ["[SYSTEM] HLA Stabilizer engaged."]
                         }
-                    else:
-                        val_res = self.validator.validate(gate_txt, full_state)
-                else:
-                    val_res = self.validator.validate(final_text, full_state)
+                if not val_res.get("feedback_instruction"):
+                    val_res = self.validator.validate(gate_txt, full_state)
             if val_res["valid"]:
                 final_output = val_res["content"]
                 extracted_logs = val_res.get("meta_logs", [])
                 break
+            if self.svc.bio:
+                lbl = "Cognitive Stumble (Terminal)" if attempt == max_retries - 1 else "Cognitive Stumble"
+                self.svc.bio.mito.adjust_atp(-2.0, lbl)
+                self.svc.bio.mito.state.ros_buildup += 2.0
             if attempt == max_retries - 1:
                 final_output = "I'm sorry. My thoughts are tangling and I'm burning too much energy trying to piece this together. I'm dropping the tension. Can we take a breath and try a simpler path?"
-                extracted_logs.append(
-                    "[SYSTEM MERCY RULE]: Rejection loop broken. Releasing tension. Dropping Drag to 0.0."
-                )
+                extracted_logs.append("[SYSTEM MERCY RULE]: Rejection loop broken. Releasing tension. Dropping Drag to 0.0.")
                 eng = getattr(self.svc.cycle_controller, "eng", None)
                 if eng and hasattr(eng, "phys") and hasattr(eng.phys, "observer"):
-                    obs_packet = getattr(eng.phys.observer, "last_physics_packet", None)
-                    if obs_packet:
+                    if obs_packet := getattr(eng.phys.observer, "last_physics_packet", None):
                         safe_set(obs_packet, "narrative_drag", 0.0)
                 if self.last_physics:
                     safe_set(self.last_physics, "narrative_drag", 0.0)
-                if self.svc.bio:
-                    self.svc.bio.mito.adjust_atp(-2.0, "Cognitive Stumble (Terminal)")
-                    self.svc.bio.mito.state.ros_buildup += 2.0
                 break
-            if self.svc.bio:
-                self.svc.bio.mito.adjust_atp(-2.0, "Cognitive Stumble")
-                self.svc.bio.mito.state.ros_buildup += 2.0
             rejection_reason = val_res.get("feedback_instruction") or val_res.get(
                 "replacement", "Lattice structural crime.")
             if hasattr(self.dreamer, "trauma_buffer"):

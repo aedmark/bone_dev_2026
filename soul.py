@@ -89,7 +89,7 @@ class HumanityAnchor:
     def audit_existence(self, physics: Any, bio: Any) -> float:
         mito = safe_get(bio, "mito", {})
         mito_state = safe_get(mito, "state", {})
-        atp = float(safe_get(bio, "atp", safe_get(mito, "atp_pool", safe_get(mito_state, "atp_pool", 0.0))))
+        atp = float(safe_get(bio, "atp") or safe_get(mito, "atp_pool") or safe_get(mito_state, "atp_pool", 0.0))
         if atp >= self._cfg("AUDIT_ATP_MIN", 5.0) or float(safe_get(physics, "voltage", 0.0)) >= self._cfg("AUDIT_VOLTAGE_MIN", 5.0):
             return 0.0
         matter = safe_get(physics, "matter", {})
@@ -291,7 +291,8 @@ class NarrativeSelf:
         dance_provenance = self.synaptic_dance(physics_packet, bio_state)
         self._update_archetype()
         voltage = float(safe_get(physics_packet, "voltage", 0.0))
-        truth = float(safe_get(physics_packet, "truth_ratio", safe_get(safe_get(physics_packet, "matter"), "truth_ratio", 0.0)))
+        matter = safe_get(physics_packet, "matter", {})
+        truth = float(safe_get(physics_packet, "truth_ratio") or safe_get(matter, "truth_ratio", 0.0))
         if voltage > self._cfg("MEMORY_VOLTAGE_MIN", 12.0) and truth > self._cfg("MEMORY_TRUTH_MIN", 0.5):
             return self._forge_core_memory(physics_packet, bio_state, voltage, dance_provenance)
         return None
@@ -384,7 +385,8 @@ class NarrativeSelf:
             self.traits.adjust("hope", oxy * self._cfg("OXY_HOPE_BOOST", 0.1))
             provenance.append("Oxytocin")
         is_manic, is_heavy = voltage > self._cfg("MANIC_TRIGGER", 18.0), drag > self._cfg("ENTROPY_DRAG_TRIGGER", 4.0)
-        beta = safe_get(physics, "beta_index", safe_get(physics, "beta", safe_get(safe_get(physics, "energy", {}), "beta_index", 0.0)))
+        energy = safe_get(physics, "energy", {})
+        beta = float(safe_get(physics, "beta_index") or safe_get(physics, "beta") or safe_get(energy, "beta_index", 0.0))
         if (is_manic and is_heavy) or beta > self._cfg("BETA_TENSION_THRESH", 0.7):
             if self.traits.empathy > 0.6:
                 move_name, self.paradox_accum = "Holding Space", max(0.0, self.paradox_accum - self._cfg("PARADOX_REST_REDUCTION", 0.5))
@@ -418,20 +420,16 @@ class NarrativeSelf:
 
     def _seek_organic_focus(self, lex) -> Tuple[Optional[str], Optional[str], str]:
         packet = self._safe_get_packet()
-        if not packet or not lex or not hasattr(lex, "measure_viscosity"):
+        if not packet or not getattr(lex, "measure_viscosity", None):
             return None, None, "none"
-        clean_words = self._extract_lexical_matter(packet)
-        if not clean_words:
-            return None, None, "none"
-        candidates = []
-        for w in clean_words:
-            if len(w) >= 4 and w.lower() not in self.SYSTEM_NOISE:
-                cat = lex.get_current_category(w)
-                score = lex.measure_viscosity(w) + 0.2
-                candidates.append((w, score, cat))
+        candidates = [
+            (w, lex.measure_viscosity(w) + 0.2, lex.get_current_category(w))
+            for w in self._extract_lexical_matter(packet)
+            if len(w) >= 4 and w.lower() not in self.SYSTEM_NOISE
+        ]
         if candidates:
-            best_candidate = max(candidates, key=lambda x: x[1])
-            return best_candidate[0], best_candidate[2], "none"
+            best_w, _, best_cat = max(candidates, key=lambda x: x[1])
+            return best_w, best_cat, "none"
         return None, None, "none"
 
     def _seek_memory_focus(self, lex) -> Tuple[Optional[str], Optional[str], str]:

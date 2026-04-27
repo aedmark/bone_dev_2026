@@ -373,8 +373,8 @@ class PromptComposer:
             persona_block.append(phase_shift_note)
         voltage = 30.0
         if vsl_state:
-            voltage = float(
-                safe_get(vsl_state, "voltage", safe_get(safe_get(vsl_state, "energy"), "voltage", 30.0), ))
+            energy_dict = vsl_state.get("energy", {}) if isinstance(vsl_state.get("energy"), dict) else {}
+            voltage = float(vsl_state.get("voltage", energy_dict.get("voltage", 30.0)))
         if voltage > 60:
             mode_directives = high_voltage_data.get("directives", [])
         else:
@@ -432,26 +432,18 @@ class PromptComposer:
     @staticmethod
     def _derive_bio_mood(chem):
         c_cfg = getattr(BoneConfig, "CORTEX", None)
-        m_adr = getattr(c_cfg, "MOOD_ADR", 0.6)
-        m_cor = getattr(c_cfg, "MOOD_COR", 0.6)
-        m_dop = getattr(c_cfg, "MOOD_DOP", 0.6)
-        m_ser = getattr(c_cfg, "MOOD_SER", 0.6)
-        if chem.get("ADR", 0) > m_adr:
-            return ux("brain_strings", "bio_alert")
-        if chem.get("COR", 0) > m_cor:
-            return ux("brain_strings", "bio_defensive")
-        if chem.get("DOP", 0) > m_dop:
-            return ux("brain_strings", "bio_curious")
-        if chem.get("SER", 0) > m_ser:
-            return ux("brain_strings", "bio_zen")
+        for c_key, m_key, ux_val in [
+            ("ADR", "MOOD_ADR", "bio_alert"), ("COR", "MOOD_COR", "bio_defensive"),
+            ("DOP", "MOOD_DOP", "bio_curious"), ("SER", "MOOD_SER", "bio_zen")
+        ]:
+            if chem.get(c_key, 0) > getattr(c_cfg, m_key, 0.6):
+                return ux("brain_strings", ux_val)
         return ux("brain_strings", "bio_neutral")
 
     @staticmethod
     def _inject_resonances(style_notes, state, modifiers):
-        village = state.get("village", {})
-        tinkerer_data = village.get("tinkerer", {})
-        resonances = (tinkerer_data.get("tool_resonance", {}) if isinstance(
-            tinkerer_data, dict) else {})
+        tinkerer_data = state.get("village", {}).get("tinkerer", {})
+        resonances = tinkerer_data.get("tool_resonance", {}) if isinstance(tinkerer_data, dict) else {}
         active_resonance = [
             f"» {t} (Lvl {int(l)})" for t, l in resonances.items() if l > 4.0
         ]

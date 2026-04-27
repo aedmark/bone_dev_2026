@@ -651,12 +651,12 @@ class SomaticLoop:
         b.stamina = max(0.0, min(max_stamina, b.stamina + stamina_impact))
         qualia = self.synesthesia.get_current_qualia(impulse, config_ref=self.cfg)
         fb_dict.update({
-            "PSI": getattr(phys, "psi", 0.0),
-            "CHI": getattr(phys, "chi", 0.0),
-            "VALENCE": getattr(phys, "valence", 0.0),
+            "PSI": float(phys.get("psi", 0.0)),
+            "CHI": float(phys.get("chi", 0.0)),
+            "VALENCE": float(phys.get("valence", 0.0)),
             "INTEGRITY": semantic_sig.coherence,
             "NOVELTY": semantic_sig.novelty,
-            "STATIC": getattr(phys, "entropy", 0.0),
+            "STATIC": float(phys.get("entropy", 0.0)),
         })
         chem_state = self.bio.endo.metabolize(
             feedback=fb_dict,
@@ -725,11 +725,10 @@ class EndocrineSystem:
     def calculate_circadian_bias(self) -> Tuple[Dict[str, float], Optional[str]]:
         hour = time.localtime().tm_hour
         circ = self.narrative_data.get("CIRCADIAN", {})
-        for s, e, bias, key, default in getattr(self, "_CIRCADIAN_SCHEDULE", []):
+        for s, e, bias, key, default in self._CIRCADIAN_SCHEDULE:
             if s <= hour < e:
                 return bias, circ.get(key, default)
-        default_night = [{"MEL": 0.3, "COR": -0.1}, "LUNAR", ""]
-        night_bias, night_key, night_default = getattr(self, "_CIRCADIAN_NIGHT", default_night)
+        night_bias, night_key, night_default = self._CIRCADIAN_NIGHT
         return night_bias, circ.get(night_key, night_default)
 
     def _apply_enzyme_reaction(self, enzyme_type: str, harvest_hits: int):
@@ -1143,31 +1142,21 @@ class SynestheticCortex:
         entropy = float(safe_get(physics, "entropy", 0.0))
         voltage = float(safe_get(physics, "voltage", 0.0))
         drag = float(safe_get(physics, "narrative_drag", 0.0))
-        key = "steady"
-        if impulse.cortisol_delta > 0.1 and impulse.adrenaline_delta > 0.1:
-            key = "fight_flight"
-        elif impulse.dopamine_delta > 0.1 and impulse.adrenaline_delta > 0.1:
-            key = "electric"
-        elif impulse.adrenaline_delta > 0.1:
-            key = "pupils"
-        elif impulse.oxytocin_delta > 0.1 and impulse.dopamine_delta > 0.1:
-            key = "glow"
-        elif impulse.oxytocin_delta > 0.1:
-            key = "chest"
-        elif impulse.cortisol_delta > 0.1:
-            key = "gut"
-        elif impulse.dopamine_delta > 0.1:
-            key = "spark"
-        elif psi > 0.6:
-            key = "liminal"
-        elif entropy > 0.7:
-            key = "static"
-        elif voltage > arc_trigger:
-            key = "arcing"
-        elif voltage < 2.0:
-            key = "dimming"
-        elif drag > 5.0:
-            key = "sagging"
+        conditions = [
+            (impulse.cortisol_delta > 0.1 and impulse.adrenaline_delta > 0.1, "fight_flight"),
+            (impulse.dopamine_delta > 0.1 and impulse.adrenaline_delta > 0.1, "electric"),
+            (impulse.adrenaline_delta > 0.1, "pupils"),
+            (impulse.oxytocin_delta > 0.1 and impulse.dopamine_delta > 0.1, "glow"),
+            (impulse.oxytocin_delta > 0.1, "chest"),
+            (impulse.cortisol_delta > 0.1, "gut"),
+            (impulse.dopamine_delta > 0.1, "spark"),
+            (psi > 0.6, "liminal"),
+            (entropy > 0.7, "static"),
+            (voltage > arc_trigger, "arcing"),
+            (voltage < 2.0, "dimming"),
+            (drag > 5.0, "sagging")
+        ]
+        key = next((k for cond, k in conditions if cond), "steady")
         res = s.get(key, "")
         if key == "steady" and self.last_reflex == res:
             return "..."

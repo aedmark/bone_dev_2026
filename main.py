@@ -461,14 +461,13 @@ class BoneAmanita:
                     self.cortex.ballast_active, self.cortex.gordon_shock = True, violation
             last_phys = getattr(self.observer, "last_physics_packet", getattr(self.cortex, "last_physics", None))
             if last_phys:
-                dynamic_m_a = self.navi_sad.calculate_malignancy_factor(
-                    user_message, float(safe_get(last_phys, "narrative_drag", 0.0))
-                )
-                safe_set(last_phys, "m_a", dynamic_m_a)
-                m_a = dynamic_m_a
+                m_a = self.navi_sad.calculate_malignancy_factor(user_message, float(safe_get(last_phys, "narrative_drag", 0.0)))
+                safe_set(last_phys, "m_a", m_a)
                 mu = float(safe_get(last_phys, "mu", 0.0))
                 i_c = float(safe_get(last_phys, "i_c", 1.0))
                 chi = float(safe_get(last_phys, "entropy", safe_get(last_phys, "chi", 0.2)))
+                e_u = getattr(self.shared_lattice.u, "E", float(safe_get(last_phys, "exhaustion", 0.0))) if getattr(self, "shared_lattice", None) else float(safe_get(last_phys, "exhaustion", 0.0))
+                beta = float(safe_get(last_phys, "beta_index", 0.0))
                 if (chi * m_a) > i_c:
                     if self.in_greenhouse:
                         self.events.log(
@@ -500,10 +499,6 @@ class BoneAmanita:
                             "logs": [msg],
                             "metrics": self.get_metrics(),
                         }
-                e_u = float(safe_get(last_phys, "exhaustion", 0.0))
-                if getattr(self, "shared_lattice", None):
-                    e_u = getattr(self.shared_lattice.u, "E", e_u)
-                beta = float(safe_get(last_phys, "beta_index", 0.0))
                 if chi > 0.7 and e_u > 0.7 and beta > 0.6:
                     if getattr(self, "bio", None) and getattr(self.bio, "mito", None):
                         self.bio.mito.state.ros_buildup = 0.0
@@ -576,15 +571,13 @@ class BoneAmanita:
             return pre_flight_halt
         if not is_system:
             has_comb = False
-            try:
-                for item_id in self.gordon.inventory:
-                    data = self.gordon.get_item_data(item_id)
+            if gordon := getattr(self, "gordon", None):
+                for item_id in getattr(gordon, "inventory", []):
+                    data = getattr(gordon, "get_item_data", lambda i: {})(item_id)
                     traits = data.get("passive_traits", []) if isinstance(data, dict) else getattr(data, "passive_traits", [])
                     if "CUT_THE_CRAP" in traits:
                         has_comb = True
                         break
-            except AttributeError:
-                pass
             if has_comb:
                 from utils import TheTclWeaver
                 last_phys = getattr(self.observer, "last_physics_packet", getattr(self.cortex, "last_physics", {}))
@@ -619,11 +612,11 @@ class BoneAmanita:
                     "SYS",
                 )
                 self.health, self.stamina = 25.0, 50.0
-                if getattr(self, "bio", None):
-                    if hasattr(self.bio, "biometrics"):
-                        self.bio.biometrics.health, self.bio.biometrics.stamina = 25.0, 50.0
-                    if hasattr(self.bio, "mito"):
-                        self.bio.mito.state.atp_pool, self.bio.mito.state.ros_buildup = 50.0, 0.0
+                if bio := getattr(self, "bio", None):
+                    if biometrics := getattr(bio, "biometrics", None):
+                        biometrics.health, biometrics.stamina = 25.0, 50.0
+                    if mito := getattr(bio, "mito", None):
+                        mito.state.atp_pool, mito.state.ros_buildup = 50.0, 0.0
         except Exception as e:
             full_trace = traceback.format_exc()
             self.events.log(f"CORTEX COLLAPSE: {e}\n{full_trace}", "CRIT")
@@ -690,7 +683,7 @@ class BoneAmanita:
         if ctx:
             world_state = safe_get(ctx.gather_state({"physics": getattr(ctx, "last_physics", {})}), "world", {})
             orbit_data = safe_get(world_state, "orbit", ["Void"])
-            loc = orbit_data[0] if isinstance(orbit_data, list) and orbit_data else "Void"
+            loc = orbit_data[0] if isinstance(orbit_data, list) and orbit_data else orbit_data
             last_out = ctx.dialogue_buffer[-1] if getattr(ctx, "dialogue_buffer", None) else "Silence."
         continuity_packet = {
             "location": loc,
@@ -699,17 +692,10 @@ class BoneAmanita:
         }
         try:
             mutations_data = self.repro.attempt_reproduction(self, "MITOSIS")[1] if hasattr(self, "repro") else {}
-            path = self.mind.mem.save(
-                health=0,
-                stamina=self.stamina,
-                mutations=mutations_data,
-                trauma_accum=self.trauma_accum,
-                joy_history=[],
-                mitochondria_traits=mito_state,
-                antibodies=immune_data,
-                soul_data=self.soul.to_dict(),
-                continuity=continuity_packet,
-            )
+            path = self.mind.mem.save(health=0, stamina=self.stamina, mutations=mutations_data,
+                                      trauma_accum=self.trauma_accum, joy_history=[], mitochondria_traits=mito_state,
+                                      antibodies=immune_data, soul_data=self.soul.to_dict(),
+                                      continuity=continuity_packet, )
             saved_msg = ux("main_strings", "legacy_saved")
             death_log.append(f"{Prisma.WHT}{saved_msg.format(path=path)}{Prisma.RST}")
         except Exception as e:
@@ -758,11 +744,7 @@ class BoneAmanita:
         if trauma_sum * (1.0 - (self.health / max_h)) > desp_thresh:
             if msg := ux("main_strings", "mercy_venting"):
                 self.events.log(f"{Prisma.WHT}{msg}{Prisma.RST}", "SYS")
-            for k, v in list(self.trauma_accum.items()):
-                if (decayed := v * cath_decay) >= 0.01:
-                    self.trauma_accum[k] = decayed
-                else:
-                    del self.trauma_accum[k]
+            self.trauma_accum = {k: v * cath_decay for k, v in self.trauma_accum.items() if v * cath_decay >= 0.01}
             if msg_cath := ux("main_strings", "catharsis"):
                 self.events.log(f"{Prisma.CYN}{msg_cath}{Prisma.RST}", "SENSATION")
             self.health = min(self.health + cath_heal, max_h)
@@ -844,15 +826,12 @@ if __name__ == "__main__":
                 gui_cfg = getattr(BoneConfig, "GUI", object())
                 base_speed = getattr(gui_cfg, "RENDER_SPEED_SLOW", 0.005)
                 stamina = res.get("metrics", {}).get("stamina", 100.0)
-                speed = base_speed
-                if stamina < 50.0:
-                    speed = base_speed * 2.0
                 if split_token and split_token in ui_text:
                     dashboard, _, ui_text = ui_text.partition(split_token)
                     print(f"\n{dashboard.strip()}\n")
                 ui_text = ui_text.strip()
+                speed = base_speed * (4.0 if stamina < 20.0 else 2.0 if stamina < 50.0 else 1.0)
                 if stamina < 20.0:
-                    speed = base_speed * 4.0
                     ui_text = f"{Prisma.GRY}{Prisma.strip(ui_text)}{Prisma.RST}"
                 typewriter(f"{ui_text}\n", speed=speed)
             if res.get("type") == "DEATH":
