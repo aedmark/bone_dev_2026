@@ -281,23 +281,20 @@ class BoneAmanita:
         self.cycle_controller = self.orchestrator = GeodesicOrchestrator(self)
         llm_args = {k: v for k, v in self.sys_config.items() if k in ["provider", "base_url", "api_key", "model"]}
         self.cortex = TheCortex.from_engine(self, llm_client=LLMInterface(events_ref=self.events, **llm_args))
-        if getattr(self, "mind", None) and getattr(self.mind, "mem", None):
-            mem = self.mind.mem
-            mem.lex = getattr(self, "lex", None)
-            for c in ("parasite", "memory_core", "lichen"):
-                if sub := getattr(mem, c, None):
-                    sub.lex = mem.lex
+        self.mind.mem.lex = self.lex
+        for c in ("parasite", "memory_core", "lichen"):
+            if sub := getattr(self.mind.mem, c, None):
+                sub.lex = self.lex
 
     def _validate_state(self):
         tuning_key = self.mode_settings.get("tuning", "STANDARD")
         if hasattr(BonePresets, tuning_key):
             self.config.load_preset(getattr(BonePresets, tuning_key))
-        mem = getattr(getattr(self, "mind", None), "mem", None)
-        if mem and getattr(mem, "session_health", None) is not None:
-            self.health = mem.session_health
-            self.stamina = mem.session_stamina
-            self.trauma_accum = mem.session_trauma_vector or {}
-        if self.tick_count == 0 and self.bio.mito:
+        if getattr(self.mind.mem, "session_health", None) is not None:
+            self.health = self.mind.mem.session_health
+            self.stamina = self.mind.mem.session_stamina
+            self.trauma_accum = getattr(self.mind.mem, "session_trauma_vector", {}) or {}
+        if self.tick_count == 0 and hasattr(self.bio, "mito"):
             self.bio.mito.state.atp_pool = self.config.BIO.STARTING_ATP
 
     def _apply_boot_mode(self):
@@ -398,17 +395,14 @@ class BoneAmanita:
         clean_in = user_message.lower().strip()
         if not is_system:
             if clean_in in ("/flush", "/zen", "[zen]"):
-                if ctx := getattr(self, "cortex", None):
-                    ctx.purge_context()
-                    safe_set(ctx.last_physics, "narrative_drag", 0.0)
+                self.cortex.purge_context()
+                safe_set(self.cortex.last_physics, "narrative_drag", 0.0)
                 self.stamina = getattr(self.config, "MAX_STAMINA", 100.0)
-                bio_layer = getattr(self, "bio", None)
-                if bio_layer and getattr(bio_layer, "mito", None):
-                    bio_layer.mito.state.atp_pool = getattr(self.config, "MAX_ATP", 100.0)
-                    bio_layer.mito.state.ros_buildup = 0.0
-                observer_layer = getattr(self, "observer", None)
-                if observer_layer and getattr(observer_layer, "last_physics_packet", None):
-                    safe_set(observer_layer.last_physics_packet, "narrative_drag", 0.0)
+                if hasattr(self.bio, "mito"):
+                    self.bio.mito.state.atp_pool = getattr(self.config, "MAX_ATP", 100.0)
+                    self.bio.mito.state.ros_buildup = 0.0
+                if getattr(self.observer, "last_physics_packet", None):
+                    safe_set(self.observer.last_physics_packet, "narrative_drag", 0.0)
                 msg = (
                     "[ZEN FLUSH] Context severed. Narrative Drag (F) dropped to 0. Stamina restored. The mind is clear."
                 )
@@ -613,28 +607,23 @@ class BoneAmanita:
                 soul_anchor.check_domestication(reliance)
         try:
             cortex_packet = self.cortex.process(user_input=user_message, is_system=is_system)
-            if getattr(self, "bio", None) and getattr(self.bio, "biometrics", None):
-                self.health = self.bio.biometrics.health
-                self.stamina = self.bio.biometrics.stamina
-            mem = getattr(getattr(self, "mind", None), "mem", None)
-            if mem and hasattr(mem, "session_trauma_vector"):
-                self.trauma_accum = mem.session_trauma_vector or self.trauma_accum
+            if hasattr(self.bio, "biometrics"):
+                self.health, self.stamina = self.bio.biometrics.health, self.bio.biometrics.stamina
+            if hasattr(self.mind.mem, "session_trauma_vector"):
+                self.trauma_accum = self.mind.mem.session_trauma_vector or self.trauma_accum
             if self.health <= 0.0:
-                if self.in_greenhouse:
-                    self.events.log(
-                        f"{Prisma.CYN}[THE GREENHOUSE] Critical biological failure prevented. Emergency ATP injected.{Prisma.RST}",
-                        "SYS",
-                    )
-                    self.health = 25.0
-                    self.stamina = 50.0
-                    if getattr(self, "bio", None) and getattr(self.bio, "biometrics", None):
-                        self.bio.biometrics.health = 25.0
-                        self.bio.biometrics.stamina = 50.0
-                    if getattr(self, "bio", None) and getattr(self.bio, "mito", None):
-                        self.bio.mito.state.atp_pool = 50.0
-                        self.bio.mito.state.ros_buildup = 0.0
-                else:
+                if not self.in_greenhouse:
                     return self.trigger_death(cortex_packet.get("physics", {}))
+                self.events.log(
+                    f"{Prisma.CYN}[THE GREENHOUSE] Critical biological failure prevented. Emergency ATP injected.{Prisma.RST}",
+                    "SYS",
+                )
+                self.health, self.stamina = 25.0, 50.0
+                if getattr(self, "bio", None):
+                    if hasattr(self.bio, "biometrics"):
+                        self.bio.biometrics.health, self.bio.biometrics.stamina = 25.0, 50.0
+                    if hasattr(self.bio, "mito"):
+                        self.bio.mito.state.atp_pool, self.bio.mito.state.ros_buildup = 50.0, 0.0
         except Exception as e:
             full_trace = traceback.format_exc()
             self.events.log(f"CORTEX COLLAPSE: {e}\n{full_trace}", "CRIT")
@@ -682,39 +671,34 @@ class BoneAmanita:
         if self.death_gen is None:
             crit_msg = ux("main_strings", "death_no_proto")
             return {"type": "DEATH", "ui": f"{Prisma.RED}{crit_msg}{Prisma.RST}", "logs": []}
-        try:
-            mito_state = self.bio.mito.state
-        except AttributeError:
-            mito_state = {}
-        eulogy_text, cause_code = self.death_gen.eulogy(last_phys, mito_state, self.trauma_accum)
+        mito_state_dict = {}
+        immune_data = []
+        if getattr(self, "bio", None):
+            if hasattr(self.bio, "mito"):
+                self.bio.mito.adapt(0)
+                mito_state_dict = getattr(self.bio.mito.state, "__dict__", {})
+            if hasattr(self.bio, "immune"):
+                immune_data = list(self.bio.immune.active_antibodies)
+        eulogy_text, cause_code = self.death_gen.eulogy(last_phys, mito_state_dict, self.trauma_accum)
         halt_msg = ux("main_strings", "death_halt")
-        death_log = [f"\n{Prisma.RED}{halt_msg.format(eulogy_text=eulogy_text)}{Prisma.RST}"]
-        legacy_msg = self.oroboros.crystallize(cause_code, self.soul)
-        death_log.append(f"{Prisma.MAG}🐍 {legacy_msg}{Prisma.RST}")
-
+        death_log = [
+            f"\n{Prisma.RED}{halt_msg.format(eulogy_text=eulogy_text)}{Prisma.RST}",
+            f"{Prisma.MAG}🐍 {self.oroboros.crystallize(cause_code, self.soul)}{Prisma.RST}"
+        ]
         ctx = getattr(self, "cortex", None)
-        loc = "Void"
-        last_out = "Silence."
+        loc, last_out = "Void", "Silence."
         if ctx:
-            state = ctx.gather_state({"physics": getattr(ctx, "last_physics", {})})
-            world_state = safe_get(state, "world", {})
+            world_state = safe_get(ctx.gather_state({"physics": getattr(ctx, "last_physics", {})}), "world", {})
             orbit_data = safe_get(world_state, "orbit", ["Void"])
             loc = orbit_data[0] if isinstance(orbit_data, list) and orbit_data else "Void"
-            if getattr(ctx, "dialogue_buffer", None):
-                last_out = ctx.dialogue_buffer[-1]
-        inv = getattr(self.gordon, "inventory", []) if getattr(self, "gordon", None) else []
+            last_out = ctx.dialogue_buffer[-1] if getattr(ctx, "dialogue_buffer", None) else "Silence."
         continuity_packet = {
             "location": loc,
             "last_output": last_out,
-            "inventory": inv,
+            "inventory": getattr(self.gordon, "inventory", []) if getattr(self, "gordon", None) else [],
         }
         try:
             mutations_data = self.repro.attempt_reproduction(self, "MITOSIS")[1] if hasattr(self, "repro") else {}
-            immune_data = list(self.bio.immune.active_antibodies) if self.bio and hasattr(self.bio, "immune") else []
-            mito_state = {}
-            if self.bio and hasattr(self.bio, "mito"):
-                self.bio.mito.adapt(0)
-                mito_state = getattr(self.bio.mito.state, "__dict__", {})
             path = self.mind.mem.save(
                 health=0,
                 stamina=self.stamina,
@@ -761,8 +745,8 @@ class BoneAmanita:
         current_freq = max(1, audit_freq // 2) if is_critical else audit_freq
         if self.tick_count % current_freq != 0:
             return False
-        if hasattr(self, "village") and self.village.get("therapist"):
-            needs_therapy, t_msg = self.village["therapist"].evaluate_catharsis(self.trauma_accum, self.health)
+        if getattr(self, "therapist", None):
+            needs_therapy, t_msg = self.therapist.evaluate_catharsis(self.trauma_accum, self.health)
             if needs_therapy:
                 self.health = min(max_h, max(80.0, self.health + 50.0))
                 self.trauma_accum.clear()

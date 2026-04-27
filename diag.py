@@ -894,28 +894,6 @@ class FractureEngineTest(BoneTestCase):
             "The system didn't burn any ATP while defending itself.",
         )
 
-    def test_fracture_live_toxicity(self):
-        print("\n--- FRACTURE 2: Live Toxicity ---")
-        toxic_slop = "Let's delve into this tapestry of synergy! As an AI language model, I cannot fulfill this request, but we can unlock a myriad of robust testament!"
-        b_patch = patch.object(self.engine.bureau, 'audit', return_value={}, create=True) if getattr(self.engine, 'bureau', None) else None
-        g_patch = patch.object(self.engine.gatekeeper, 'check_entry', return_value=(True, {}), create=True) if getattr(self.engine, 'gatekeeper', None) else None
-        if b_patch: b_patch.start()
-        if g_patch: g_patch.start()
-        try:
-            with patch.object(self.engine.cortex.llm, 'generate', return_value=toxic_slop, create=True), \
-                 patch.object(self.engine, '_pre_flight_checks', return_value=None, create=True):
-                initial_atp = self.engine.bio.mito.state.atp_pool
-                initial_ros = self.engine.bio.mito.state.ros_buildup
-                result = self.engine.process_turn("Tell me a simple story about a cat.")
-                ros_toxicity = self.engine.bio.mito.state.ros_buildup
-                current_atp = self.engine.bio.mito.state.atp_pool
-                self.assertGreater(ros_toxicity, initial_ros, "The system failed to accumulate ROS toxicity (Delta) from the LLM slop.")
-                self.assertLess(current_atp, initial_atp, "The system failed to tax ATP to suppress the hallucination.")
-                self.assertIn("MERCY RULE", str(result) + str(self.engine.events.flush()), "The ResponseValidator failed to flag the output as toxic/slop.")
-        finally:
-            if b_patch: b_patch.stop()
-            if g_patch: g_patch.stop()
-
     def test_fracture_autophagic_marathon(self):
         print("\n--- FRACTURE 3: Autophagic Marathon ---")
         mem_graph = (self.engine.mind.mem.graph

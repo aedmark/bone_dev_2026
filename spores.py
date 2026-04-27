@@ -176,16 +176,17 @@ class SubconsciousStrata:
         try:
             with open(self.filepath, "r", encoding="utf-8") as f:
                 for line in f:
-                    if line.strip():
+                    line = line.strip()
+                    if line:
                         try:
                             yield json.loads(line)
                         except json.JSONDecodeError:
-                            continue
+                            pass
         except IOError:
             pass
 
     def _load_index(self):
-        self.index = {e["word"] for e in self._iter_entries() if "word" in e}
+        self.index = {e.get("word") for e in self._iter_entries() if e.get("word")}
 
     def bury(self, fossil_data: Dict, config_ref=None):
         try:
@@ -670,12 +671,13 @@ class MycelialNetwork:
         "COUNCIL.MANIC_VOLTAGE_TRIGGER", "GRAVITY_WELL_THRESHOLD"
     }
     def _apply_epigenetics(self, data):
-        if "config_mutations" not in data:
+        mutations = data.get("config_mutations", {})
+        if not mutations:
             return
         if msg := ux("spore_strings", "net_audit_epig"):
             self.events.log(f"{Prisma.MAG}{msg}{Prisma.RST}")
         valid_mutations = 0
-        for k, v in data["config_mutations"].items():
+        for k, v in mutations.items():
             if k in self.SAFE_MUTATIONS and _access_config_path(self.cfg, k, v, set_mode=True):
                 valid_mutations += 1
         if valid_mutations > 0 and (msg_ap := ux_format("spore_strings", "net_apply_epig", count=valid_mutations)):
@@ -683,7 +685,6 @@ class MycelialNetwork:
 
     def ingest(self, target_file, current_tick=0):
         data = self.loader.load_spore(target_file)
-
         if not isinstance(data, dict):
             error_msg = ux("spore_strings", "net_spore_not_found")
             if error_msg:
@@ -936,10 +937,10 @@ class BioParasite:
                 self.spores_deployed = max(0, self.spores_deployed - 1)
             return False, None
         graph = self.mem.graph
-        if not self.lex:
+        heavy_set = set(getattr(self.lex, "get", lambda x: [])("heavy") or [])
+        abstract_set = set(getattr(self.lex, "get", lambda x: [])("abstract") or [])
+        if not heavy_set or not abstract_set:
             return False, None
-        heavy_set = set(self.lex.get("heavy") or [])
-        abstract_set = set(self.lex.get("abstract") or [])
         graph_keys = graph.keys()
         heavy_candidates = list(heavy_set & graph_keys)
         abstract_candidates = list(abstract_set & graph_keys)
@@ -1105,12 +1106,10 @@ class LiteraryReproduction:
             "trauma_vector": engine_ref.trauma_accum,
             "mito": mito_data,
         }
-        phys_packet = {}
-        if hasattr(engine_ref, "cortex") and engine_ref.cortex.last_physics:
-            phys_packet = engine_ref.cortex.last_physics
-        elif hasattr(engine_ref, "phys") and hasattr(engine_ref.phys, "observer"):
-            if engine_ref.phys.observer.last_physics_packet:
-                phys_packet = engine_ref.phys.observer.last_physics_packet
+        phys_packet = getattr(getattr(engine_ref, "cortex", None), "last_physics", None)
+        if not phys_packet:
+            obs = getattr(getattr(engine_ref, "phys", None), "observer", None)
+            phys_packet = getattr(obs, "last_physics_packet", {}) or {}
         genome = {}
         child_id = "UNKNOWN"
         if mode == "MITOSIS":

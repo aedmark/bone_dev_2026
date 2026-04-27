@@ -74,10 +74,7 @@ class NeurotransmitterModulator:
             physics_state = {}
         cfg = safe_get(self.cfg, "CORTEX", {})
         if not simulate:
-            if self.bio and hasattr(self.bio, "endo"):
-                incoming_chem = self.bio.endo.get_state()
-            else:
-                incoming_chem = {}
+            incoming_chem = self.bio.endo.get_state() if self.bio else {}
             self.current_chem.homeostasis(rate=safe_get(cfg, "BASE_DECAY_RATE", 0.1))
             plasticity = safe_get(cfg, "BASE_PLASTICITY", 0.1) + (
                 base_voltage * safe_get(cfg, "VOLTAGE_SENSITIVITY", 0.05))
@@ -320,12 +317,9 @@ class TheCortex:
                     self.events.log(f"{Prisma.VIOLET}{scar_msg}{Prisma.RST}", "SYS_LOCK")
                 if hasattr(self.svc.mind_memory, "record_scar"):
                     self.svc.mind_memory.record_scar("Cortex Counterfactual Toxicity", phys_state)
-                target_bio = self.svc.bio
-                if not target_bio and hasattr(self.svc.cycle_controller, "eng"):
-                    target_bio = getattr(self.svc.cycle_controller.eng, "bio", None)
-                if target_bio and hasattr(target_bio, "mito"):
-                    target_bio.mito.state.ros_buildup += simulated_ros
-                    target_bio.mito.state.atp_pool -= 10.0
+                if getattr(self.svc.bio, "mito", None):
+                    self.svc.bio.mito.state.ros_buildup += simulated_ros
+                    self.svc.bio.mito.state.atp_pool -= 10.0
                 sim_result["ui"] = (
                     sim_result.get("ui", "") +
                     f"\n\n{Prisma.RED}{reject_msg}{Prisma.RST}\n{Prisma.VIOLET}{scar_msg}{Prisma.RST}"
@@ -388,7 +382,7 @@ class TheCortex:
             else:
                 final_text, inv_logs = raw_resp, []
             is_faithful, judge_reason = True, ""
-            if hasattr(self, "dspy_critic") and self.dspy_critic.enabled:
+            if self.dspy_critic.enabled:
                 valid_mode = self.active_mode in ["ADVENTURE", "CONVERSATION"]
                 if valid_mode and not is_boot_sequence:
                     mem_core = getattr(self.svc.mind_memory, "memory_core", None)
@@ -398,8 +392,11 @@ class TheCortex:
                         context_str = "Active Memory: " + ", ".join(active_mems)
                     else:
                         context_str = "Empty Void."
-                    is_faithful, judge_reason = self.dspy_critic.audit_generation(
-                        user_input, context_str, final_text)
+                    try:
+                        is_faithful, judge_reason = self.dspy_critic.audit_generation(
+                            user_input, context_str, final_text)
+                    except Exception as e:
+                        is_faithful, judge_reason = False, "Critic JSON parsing collapse - suspected toxic slop."
                     if is_faithful:
                         e_u = float(safe_get(phys_state, "exhaustion", 0.0))
                         beta = float(safe_get(phys_state, "beta_index", safe_get(phys_state, "contradiction", 0.0)))
@@ -407,8 +404,7 @@ class TheCortex:
                             is_faithful, judge_reason = self._run_affective_audit(
                                 user_input, final_text, e_u, beta)
             if not is_faithful:
-                val_res = {"valid":
-                               False, "feedback_instruction":
+                val_res = {"valid": False, "feedback_instruction":
                                f"CRITICAL FAILURE: {judge_reason}. If the user is exhausted, drastically shorten and soften your tone. Prioritize presence over output. Stay in character.", }
                 short_reason = judge_reason.split(".")[0][:60] + "..."
                 print(
@@ -417,7 +413,22 @@ class TheCortex:
                 if self.events:
                     self.events.log(f"DSPy Critic Objected: {short_reason}", "SYS")
             else:
-                val_res = self.validator.validate(final_text, full_state)
+                from physics import TheGatekeeper
+                eng = getattr(self.svc.cycle_controller, "eng", None)
+                gatekeeper = getattr(eng, "gatekeeper", None) or TheGatekeeper(self.svc.lexicon, config_ref=self.cfg)
+                if gatekeeper and getattr(self.svc.bio, "mito", None):
+                    gate_pass, gate_txt = gatekeeper.audit_generation(final_text, self.svc.bio.mito)
+                    if not gate_pass or "IMMUNOSUPPRESSION ENGAGED" in gate_txt:
+                        val_res = {
+                            "valid": False,
+                            "feedback_instruction": "HLA Stabilizer flagged toxic AI slop. Drop the corporate persona immediately.",
+                            "replacement": "Gatekeeper Apoptotic Block.",
+                            "meta_logs": ["[SYSTEM] HLA Stabilizer engaged."]
+                        }
+                    else:
+                        val_res = self.validator.validate(gate_txt, full_state)
+                else:
+                    val_res = self.validator.validate(final_text, full_state)
             if val_res["valid"]:
                 final_output = val_res["content"]
                 extracted_logs = val_res.get("meta_logs", [])
@@ -434,6 +445,9 @@ class TheCortex:
                         safe_set(obs_packet, "narrative_drag", 0.0)
                 if self.last_physics:
                     safe_set(self.last_physics, "narrative_drag", 0.0)
+                if self.svc.bio:
+                    self.svc.bio.mito.adjust_atp(-2.0, "Cognitive Stumble (Terminal)")
+                    self.svc.bio.mito.state.ros_buildup += 2.0
                 break
             if self.svc.bio:
                 self.svc.bio.mito.adjust_atp(-2.0, "Cognitive Stumble")
@@ -741,18 +755,14 @@ class TheCortex:
                 mind["role"] = f"The {val.title().replace('_', ' ')}"
                 mind["style_directives"].append(f"CRITICAL [SINCERITY PROTOCOL]: The user has explicitly summoned {val}. "f"You MUST adopt the persona of {val} entirely. Drop all other pretexts.")
             elif action == "SYSTEM_DIRECTIVE":
-                if val == "CASCADE_AWARENESS":
-                    mind["style_directives"].append(
-                        "CRITICAL [CASCADE]: Show your counterfactual math. Every claim must explicitly state what else in the structural lattice shifts or collapses if the claim is wrong.")
-                elif val == "AUDIT_TRAIL":
-                    mind["style_directives"].append(
-                        f"CRITICAL [AUDIT]: Drop the narrative illusion. Expose your raw retrieval coordinates: E={phys.get('exhaustion', 0.0):.2f}, β={phys.get('beta_index', 0.0):.2f}, S={phys.get('scope', 0.0):.2f}, D={phys.get('depth', 0.0):.2f}, C={phys.get('C', 0.0):.2f}, χ={phys.get('chi', 0.0):.2f}.")
-                elif val == "URGENT_QUERY":
-                    mind["style_directives"].append(
-                        "CRITICAL [URGENT_QUERY]: Instant, zero-fluff answer required. Bypass metaphor. Output only the exact solution.")
-                elif val == "CONTRADICTION_FLAG":
-                    mind["style_directives"].append(
-                        "CRITICAL [CONTRADICTION_FLAG]: The Paradox Engine override is active. You MUST explicitly locate and output the friction (β) in the current logic BEFORE you answer.")
+                directive_map = {
+                    "CASCADE_AWARENESS": "CRITICAL [CASCADE]: Show your counterfactual math. Every claim must explicitly state what else in the structural lattice shifts or collapses if the claim is wrong.",
+                    "AUDIT_TRAIL": f"CRITICAL [AUDIT]: Drop the narrative illusion. Expose your raw retrieval coordinates: E={phys.get('exhaustion', 0.0):.2f}, β={phys.get('beta_index', 0.0):.2f}, S={phys.get('scope', 0.0):.2f}, D={phys.get('depth', 0.0):.2f}, C={phys.get('C', 0.0):.2f}, χ={phys.get('chi', 0.0):.2f}.",
+                    "URGENT_QUERY": "CRITICAL [URGENT_QUERY]: Instant, zero-fluff answer required. Bypass metaphor. Output only the exact solution.",
+                    "CONTRADICTION_FLAG": "CRITICAL [CONTRADICTION_FLAG]: The Paradox Engine override is active. You MUST explicitly locate and output the friction (β) in the current logic BEFORE you answer."
+                }
+                if msg := directive_map.get(val):
+                    mind["style_directives"].append(msg)
         if hasattr(self.svc.mind_memory,
                    "cortex") and self.svc.mind_memory.cortex.is_trained:
             scope_val = float(safe_get(phys, "scope", 1.0))
@@ -849,8 +859,8 @@ class DreamEngine:
                     dream_text = f"The system enters Deep REM. {nodes_moved} synaptic structures dissolve from the active cache and permanently crystallize into the deep Cerebral Cortex."
                     if self.events:
                         self.events.log(f"{{Prisma.MAG}}✨ [REM CYCLE]: Synaptic Consolidation complete. {nodes_moved} nodes written to deep index. (-{atp_cost:.1f} ATP){{Prisma.RST}}", "SYS",)
-        if getattr(self, "dspy_critic", None) and getattr(self.dspy_critic, "enabled", False):
-            if hasattr(self, "trauma_buffer") and len(self.trauma_buffer) > 0:
+        if self.dspy_critic and self.dspy_critic.enabled:
+            if self.trauma_buffer:
                 trauma = self.trauma_buffer.popleft()
                 current_state_str = (
                     f"Archetype: {soul_snapshot.get('archetype', 'UNKNOWN')}")
@@ -939,10 +949,10 @@ class DreamEngine:
         if not sources:
             sources = self.dream_lore.get(subtype.upper(), ["You stare into the static."])
         if isinstance(sources, dict):
-            sources = [
-                item for v in sources.values()
-                for item in (v if isinstance(v, list) else [v])
-            ] or ["The void stares back."]
+            flat_sources = []
+            for v in sources.values():
+                flat_sources.extend(v if isinstance(v, list) else [v])
+            sources = flat_sources or ["The void stares back."]
         if self.llm:
             lore_sample = ", ".join(random.sample(sources, min(3, len(sources))))
             prompt = (
@@ -1046,8 +1056,7 @@ class NoeticLoop:
         if voltage > link_v and random.random() < link_chance:
             if len(clean_words) >= 2:
                 w1, w2 = random.sample(clean_words, 2)
-                if (self.mind and hasattr(self.mind, "mem")
-                        and hasattr(self.mind.mem, "graph")):
+                if self.mind and hasattr(self.mind.mem, "graph"):
                     self._force_link(self.mind.mem.graph, w1, w2, self.cfg)
         current_lens = soul_ref.archetype if soul_ref else "OBSERVER"
         current_role = f"The {current_lens.title().replace('_', ' ')}" if soul_ref else "Witness"

@@ -69,10 +69,10 @@ class BioSystem:
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            "mito": asdict(self.mito.state) if self.mito else {},
-            "endo": self.endo.get_state() if self.endo else {},
+            "mito": asdict(self.mito.state),
+            "endo": self.endo.get_state(),
             "biometrics": asdict(self.biometrics) if self.biometrics else {},
-            "governor_mode": self.governor.mode if self.governor else "UNKNOWN",
+            "governor_mode": self.governor.mode,
         }
 
     def rest(self, factor: float = 1.0) -> List[str]:
@@ -398,8 +398,7 @@ class DigestiveTrack:
         total_hits = int(raw_hits * scaling_factor)
         if scaled_tax > 0:
             total_atp = max(0.0, total_atp - scaled_tax)
-            if getattr(self.bio, "endo", None):
-                self.bio.endo.cortisol = min(1.0, self.bio.endo.cortisol + (scaled_tax * 0.02))
+            self.bio.endo.cortisol = min(1.0, self.bio.endo.cortisol + (scaled_tax * 0.02))
             if msg := ux("digestive_track", "cliche_tax"):
                 logs.append(f"{Prisma.OCHRE}{msg.format(tax=scaled_tax)}{Prisma.RST}")
         v_thresh = getattr(self.cfg.BIO, "VOLTAGE_BONUS_THRESHOLD", 8.0)
@@ -584,10 +583,8 @@ class SomaticLoop:
                 "GLIMMER": {},
                 "GOVERNOR": {},
             }
-        if getattr(self.bio, "endo", None):
-            self.bio.endo.narrative_data = self.narrative_data
-        if getattr(self.bio, "governor", None):
-            self.bio.governor.narrative_data = self.narrative_data
+        self.bio.endo.narrative_data = self.narrative_data
+        self.bio.governor.narrative_data = self.narrative_data
 
     def digest_cycle(
         self,
@@ -676,8 +673,8 @@ class SomaticLoop:
         return self._package_result(receipt.status, logs, chem_state, enzyme, qualia)
 
     def _package_result(self, resp_status, logs, chem_state=None, enzyme="NONE", qualia=None):
-        atp_val = self.bio.mito.state.atp_pool if getattr(self.bio, "mito", None) else 60.0
-        stam_val = self.bio.biometrics.stamina if getattr(self.bio, "biometrics", None) else 100.0
+        atp_val = self.bio.mito.state.atp_pool
+        stam_val = self.bio.biometrics.stamina if self.bio.biometrics else 100.0
         return {
             "respiration": resp_status,
             "is_alive": resp_status in ("RESPIRING", "ANAEROBIC"),
@@ -1198,8 +1195,6 @@ class SynestheticCortex:
         return Qualia(color_code=final_color, somatic_sensation=final_reflex, tone=tone, internal_monologue_hint=hint)
 
     def apply_impulse(self, impulse: BiologicalImpulse) -> float:
-        if not getattr(self.bio, "endo", None):
-            return 0.0
         for chem in ("cortisol", "oxytocin", "dopamine", "adrenaline"):
             current_val = getattr(self.bio.endo, chem)
             delta_val = getattr(impulse, f"{chem}_delta")

@@ -224,9 +224,7 @@ class TheObserver:
         if avg_cycle < self.C_EFF and avg_llm < self.L_EFF:
             return ux("core_strings", "obs_efficient")
         if avg_llm > self.LATENCY_WARNING:
-            keys = ["obs_fog", "obs_degraded", "obs_ponderous"]
-            valid_msgs = [ux("core_strings", k) for k in keys]
-            valid_msgs = [msg for msg in valid_msgs if msg]
+            valid_msgs = [msg for k in ("obs_fog", "obs_degraded", "obs_ponderous") if (msg := ux("core_strings", k))]
             return random.choice(valid_msgs) if valid_msgs else ""
         if avg_cycle > self.CYCLE_WARNING:
             return ux("core_strings", "obs_sluggish")
@@ -451,8 +449,8 @@ class TelemetryService:
         self.write_buffer.clear()
 
     def flush_to_disk(self):
-        if getattr(self, "_lock", None):
-            with self._lock: self.flush_to_disk_locked()
+        with self._lock:
+            self.flush_to_disk_locked()
 
     @staticmethod
     def _bg_write(lines, filepath):
@@ -509,8 +507,8 @@ class TelemetryService:
                     try:
                         data = json.loads(line)
                         if "CRITICAL" in str(data.get("outcome", "")):
-                            return ux_format("core_strings", "tel_prev_crash", default="Crash: {reason}", reason=data.get("reasoning", "Unknown"))
-                        break
+                            return ux_format("core_strings", "tel_prev_crash", default="Crash: {reason}",
+                                             reason=data.get("reasoning", "Unknown"))
                     except json.JSONDecodeError:
                         continue
             except IOError:

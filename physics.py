@@ -123,10 +123,8 @@ def apply_metabolic_tax(mito_state: Any, atp_cost: float, ros_cost: float) -> No
     if not mito_state:
         return
     target = getattr(mito_state, "state", mito_state)
-    if hasattr(target, "atp_pool"):
-        target.atp_pool = max(0.0, target.atp_pool - atp_cost)
-    if hasattr(target, "ros_buildup"):
-        target.ros_buildup = min(100.0, target.ros_buildup + ros_cost)
+    target.atp_pool = max(0.0, target.atp_pool - atp_cost)
+    target.ros_buildup = min(100.0, target.ros_buildup + ros_cost)
 
 @dataclass
 class GeodesicVector:
@@ -309,8 +307,7 @@ class TheGatekeeper:
             return False, self._pack_refusal(ctx, type_str, formatted_msg)
         if current_atp < (getattr(self.cfg.BIO, "ATP_STARVATION", 5.0) * 0.5):
             return reject("DARK_SYSTEM", "gatekeeper_starved", color="")
-        matter = getattr(ctx.physics, "matter", ctx.physics)
-        if safe_get(matter, "counts", {}).get("antigen", 0) > 2:
+        if ctx.physics.matter.counts.get("antigen", 0) > 2:
             return reject("TOXICITY", "gatekeeper_toxic")
         if self._audit_safety(ctx.clean_words):
             return reject("CURSED_INPUT", "gatekeeper_cursed")
@@ -567,9 +564,8 @@ class SurfaceTension:
     @staticmethod
     def audit_hubris(physics: Any, config_ref=None) -> Tuple[bool, str, str]:
         cfg = getattr(config_ref or BoneConfig, "PHYSICS", BoneConfig.PHYSICS)
-        energy = getattr(physics, "energy", physics)
-        current_voltage = safe_get(energy, "voltage", 0.0)
-        current_kappa = safe_get(energy, "kappa", 0.5)
+        current_voltage = physics.energy.voltage
+        current_kappa = physics.energy.kappa
         if current_voltage >= getattr(cfg, "VOLTAGE_CRITICAL", 15.0) and current_kappa < 0.4:
             return True, (ux("physics_strings", "hubris_detected") or "").format(voltage=current_voltage), "ICARUS_CRASH"
         if current_voltage > getattr(cfg, "VOLTAGE_HIGH", 12.0) and current_kappa > 0.8:
@@ -763,16 +759,15 @@ class CosmicDynamics:
 
 def apply_somatic_feedback(physics_packet: PhysicsPacket, qualia: Any, config_ref=None) -> PhysicsPacket:
     t_cfg = config_ref or BoneConfig
-    fb = physics_packet.snapshot() if hasattr(physics_packet, "snapshot") else physics_packet
+    fb = physics_packet.snapshot()
     deep_cfg = getattr(t_cfg, "PHYSICS_DEEP", None)
-
     def apply_delta(key: str, amount: float):
-        target = getattr(fb, "space", fb) if key == "narrative_drag" else getattr(fb, "energy", fb)
-        safe_set(target, key, safe_get(target, key, 0.0) + amount)
-
+        if key == "narrative_drag":
+            fb.space.narrative_drag += amount
+        else:
+            setattr(fb.energy, key, getattr(fb.energy, key, 0.0) + amount)
     def get_deep_cfg(key: str, default: float):
         return getattr(deep_cfg, key, default) if deep_cfg else default
-
     tone_effects = LoreManifest.get_instance().get("PHYSICS_CONSTANTS", "TONE_EFFECTS") or {}
     for key, delta in tone_effects.get(qualia.tone, {}).items():
         apply_delta(key, delta)
@@ -782,14 +777,10 @@ def apply_somatic_feedback(physics_packet: PhysicsPacket, qualia: Any, config_re
     if "Golden Glow" in ss:
         apply_delta("valence", get_deep_cfg("SOMATIC_GLOW_VALENCE", 0.5))
         apply_delta("psi", get_deep_cfg("SOMATIC_GLOW_PSI", 0.2))
-    energy = getattr(fb, "energy", fb)
-    space = getattr(fb, "space", fb)
-    current_voltage = safe_get(energy, "voltage", 0.0)
-    safe_set(energy, "voltage", max(0.0, min(current_voltage, 150.0)))
-    current_drag = safe_get(space, "narrative_drag", 0.0)
+    fb.energy.voltage = max(0.0, min(fb.energy.voltage, 150.0))
     drag_floor = getattr(t_cfg.PHYSICS, "DRAG_FLOOR", 1.0)
     drag_halt = getattr(t_cfg.PHYSICS, "DRAG_HALT", 10.0)
-    safe_set(space, "narrative_drag", max(drag_floor, min(current_drag, drag_halt)))
+    fb.space.narrative_drag = max(drag_floor, min(fb.space.narrative_drag, drag_halt))
     return fb
 
 class CycleStabilizer:
