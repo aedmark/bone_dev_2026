@@ -19,8 +19,8 @@ def ux_format(section: str, key: str, default: str = "", **kwargs) -> str:
         return default
     try:
         return msg.format(**kwargs)
-    except KeyError as e:
-        print(f"{Prisma.GRY}[UX] Missing format key {e} in {section}.{key}. Falling back to raw string.{Prisma.RST}")
+    except (KeyError, ValueError, IndexError) as e:
+        print(f"{Prisma.GRY}[UX] Formatting mismatch ({e}) in {section}.{key}. Falling back to raw string.{Prisma.RST}")
         return msg
 
 def safe_get(obj: Any, key: str, default: Any = None) -> Any:
@@ -336,16 +336,15 @@ class CyberneticGovernor:
             return "CO_REGULATION"
         return "EFFICIENCY"
 
-
 class ArchetypeArbiter:
     @staticmethod
     def arbitrate(physics_lens: str, soul_archetype: str, council_mandates: List[Dict],
                   trigram: Dict = None, config_ref=None, ) -> Tuple[str, str, str]:
-        for mandate in council_mandates or []:
-            if mandate.get("type") == "LOCKDOWN":
-                return "THE CENSOR", "COUNCIL", ux("core_strings", "arb_martial_law")
-            if mandate.get("type") == "FORCE_MODE":
-                return "THE MACHINE", "COUNCIL", ux("core_strings", "arb_bureaucratic")
+        mandates = council_mandates or []
+        if any(m.get("type") == "LOCKDOWN" for m in mandates):
+            return "THE CENSOR", "COUNCIL", ux("core_strings", "arb_martial_law")
+        if any(m.get("type") == "FORCE_MODE" for m in mandates):
+            return "THE MACHINE", "COUNCIL", ux("core_strings", "arb_bureaucratic")
         if soul_archetype and "/" in soul_archetype:
             return soul_archetype, "SOUL", ux_format("core_strings", "arb_diamond", soul_archetype=soul_archetype)
         if trigram:
@@ -377,10 +376,10 @@ class TelemetryService:
             os.makedirs(self.log_dir, exist_ok=True)
             self.current_trace_file = os.path.join(self.log_dir, f"trace_{int(time.time())}.jsonl")
         except OSError as e:
-            msg = ux("core_strings",
-                     "tel_disk_denied") or "Disk access denied for Telemetry."
-            print(f"{Prisma.RED}[APOPTOSIS] {msg} - {e}{Prisma.RST}")
-            raise RuntimeError(f"Strict Apoptosis: Telemetry blindness detected. The system refuses to boot without nociception. {e}")
+            msg = ux("core_strings", "tel_disk_denied") or "Disk access denied for Telemetry."
+            print(f"{Prisma.OCHRE}[GRACEFUL DEGRADATION] {msg} - {e}. Telemetry offline.{Prisma.RST}")
+            self.disabled = True
+            self.current_trace_file = None
         self._executor = ThreadPoolExecutor(
             max_workers=1,
             thread_name_prefix="BoneTelemetry"
