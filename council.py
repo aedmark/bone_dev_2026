@@ -8,7 +8,7 @@ from typing import Dict, Any
 from core import LoreManifest, ux, ux_format, safe_get
 from presets import BoneConfig
 from symbiosis import get_symbiont
-from types import Prisma
+from constants import Prisma
 from machine import TheParadoxEngine
 
 class TheStrangeLoop:

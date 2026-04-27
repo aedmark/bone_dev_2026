@@ -32,7 +32,7 @@ from genesis import BoneGenesis
 from lexicon import LexiconService
 from physics import ZoneInertia, NaviSADProtocol
 from protocols import ChronosKeeper
-from types import Prisma, RealityLayer
+from constants import Prisma, RealityLayer
 
 ANSI_SPLIT = re.compile(r"(\x1b\[[0-9;]*m)")
 
@@ -76,7 +76,7 @@ class SessionGuardian:
         subprocess.run("cls" if os.name == "nt" else "clear", shell=True)
         for key, default in self._HEADERS:
             print(Prisma.paint(ux("main_strings", key, default), "M"))
-        base_config = self.engine_instance.bone_config if self.engine_instance else BoneConfig
+        base_config = self.engine_instance.config if self.engine_instance else BoneConfig
         cfg = getattr(base_config, "GUI", object())
         boot_delay = getattr(cfg, "RENDER_SPEED_BOOT", 0.05)
         boot_logs = self.engine_instance.events.flush()
@@ -221,22 +221,22 @@ class BoneAmanita:
     _SMALL_MODEL_INDICATORS = ("7b", "8b", "9b", "11b", "12b", "14b", "mini", "lite", "flash")
 
     def __init__(self, config: Dict[str, Any]):
-        self.config = config
-        self.bone_config = BoneConfig()
+        self.sys_config = config
+        self.config = BoneConfig()
         self.navi_sad = NaviSADProtocol()
-        self.events = EventBus(config_ref=self.bone_config)
+        self.events = EventBus(config_ref=self.config)
         self.kernel_hash = str(uuid.uuid4())[:8].upper()
-        self.cmd = CommandProcessor(self, Prisma, config_ref=self.bone_config)
-        self.user_name = config.get("user_name", "TRAVELER")
-        self.boot_mode = config.get("boot_mode", "ADVENTURE").upper()
+        self.cmd = CommandProcessor(self, Prisma, config_ref=self.config)
+        self.user_name = self.sys_config.get("user_name", "TRAVELER")
+        self.boot_mode = self.sys_config.get("boot_mode", "ADVENTURE").upper()
         if self.boot_mode not in BonePresets.MODES:
             self.boot_mode = "ADVENTURE"
         self.mode_settings = BonePresets.MODES[self.boot_mode]
         self.suppressed_agents = self.mode_settings.get("village_suppression", [])
-        self.config["mode_settings"] = self.mode_settings
-        self.config["bone_config"] = self.bone_config
-        self.health = self.bone_config.MAX_HEALTH
-        self.stamina = self.bone_config.MAX_STAMINA
+        self.sys_config["mode_settings"] = self.mode_settings
+        self.sys_config["config"] = self.config
+        self.health = self.config.MAX_HEALTH
+        self.stamina = self.config.MAX_STAMINA
         self.trauma_accum = {}
         self.tick_count = 0
         boot_msg = ux("main_strings", "boot_core")
@@ -244,15 +244,15 @@ class BoneAmanita:
         self.chronos = ChronosKeeper(self)
         self.lex = LexiconService()
         self.lex.initialize()
-        anatomy = BoneGenesis.ignite(self.config, self.lex, events_ref=self.events)
+        anatomy = BoneGenesis.ignite(self.sys_config, self.lex, events_ref=self.events)
         self._unpack_anatomy(anatomy)
         self.events.subscribe("ITEM_DROP", self.town_hall.on_item_drop)
         if self.phys:
             self.cosmic = self.phys.dynamics
-            self.stabilizer = ZoneInertia(config_ref=self.bone_config)
-        self.telemetry = TelemetryService.get_instance(config_ref=self.bone_config)
+            self.stabilizer = ZoneInertia(config_ref=self.config)
+        self.telemetry = TelemetryService.get_instance(config_ref=self.config)
         self.system_health = SystemHealth()
-        self.observer = TheObserver(config_ref=self.bone_config)
+        self.observer = TheObserver(config_ref=self.config)
         self.system_health.link_observer(self.observer)
         self.reality_stack = RealityStack()
         self._load_system_prompts()
@@ -279,7 +279,7 @@ class BoneAmanita:
         self.soma = SomaticLoop(self.bio, self.mind.mem, self.lex, self.events)
         self.noetic = NoeticLoop(self.mind, self.bio, self.events)
         self.cycle_controller = self.orchestrator = GeodesicOrchestrator(self)
-        llm_args = {k: v for k, v in self.config.items() if k in ["provider", "base_url", "api_key", "model"]}
+        llm_args = {k: v for k, v in self.sys_config.items() if k in ["provider", "base_url", "api_key", "model"]}
         self.cortex = TheCortex.from_engine(self, llm_client=LLMInterface(events_ref=self.events, **llm_args))
         if getattr(self, "mind", None) and getattr(self.mind, "mem", None):
             mem = self.mind.mem
@@ -291,14 +291,14 @@ class BoneAmanita:
     def _validate_state(self):
         tuning_key = self.mode_settings.get("tuning", "STANDARD")
         if hasattr(BonePresets, tuning_key):
-            self.bone_config.load_preset(getattr(BonePresets, tuning_key))
+            self.config.load_preset(getattr(BonePresets, tuning_key))
         mem = getattr(getattr(self, "mind", None), "mem", None)
         if mem and getattr(mem, "session_health", None) is not None:
             self.health = mem.session_health
             self.stamina = mem.session_stamina
             self.trauma_accum = mem.session_trauma_vector or {}
         if self.tick_count == 0 and self.bio.mito:
-            self.bio.mito.state.atp_pool = self.bone_config.BIO.STARTING_ATP
+            self.bio.mito.state.atp_pool = self.config.BIO.STARTING_ATP
 
     def _apply_boot_mode(self):
         msg = ux("main_strings", "engaging_mode")
@@ -317,7 +317,7 @@ class BoneAmanita:
                 self.soul.traits.cynicism = 0.15
         self.reality_stack.stabilize_at(layer)
         prompt_key = self.mode_settings.get("prompt_key", "ADVENTURE")
-        model_id = self.config.get("model", "").lower()
+        model_id = self.sys_config.get("model", "").lower()
         if any(ind in model_id for ind in self._SMALL_MODEL_INDICATORS):
             lite_key = f"{prompt_key}_LITE"
             if lite_key in getattr(self, "prompt_library", {}):
@@ -343,6 +343,10 @@ class BoneAmanita:
                     self.consultant.state.active_modules.append(mod)
             msg_mods = ux("main_strings", "hardwired_mods")
             self.events.log(msg_mods.format(mods=", ".join(active_mods)), "SYS")
+
+    @property
+    def in_greenhouse(self) -> bool:
+        return self.tick_count <= getattr(self.config, "GREENHOUSE_TURNS", 5)
 
     def get_avg_voltage(self):
         hist = getattr(getattr(self.phys, "observer", self.phys), "voltage_history", [])
@@ -380,7 +384,7 @@ class BoneAmanita:
 
     def _update_host_stats(self, packet, turn_start):
         self.observer.clock_out(turn_start)
-        cfg = getattr(self.bone_config, "MAIN", None)
+        cfg = getattr(self.config, "MAIN", None)
         phys_vec = safe_get(packet.get("physics", {}), "vector", {})
         novelty = float(safe_get(phys_vec, "novelty", 0.5))
         burn_mult = getattr(cfg, "HOST_BURN_MULT", 5.0) if cfg else 5.0
@@ -397,10 +401,10 @@ class BoneAmanita:
                 if ctx := getattr(self, "cortex", None):
                     ctx.purge_context()
                     safe_set(ctx.last_physics, "narrative_drag", 0.0)
-                self.stamina = getattr(self.bone_config, "MAX_STAMINA", 100.0)
+                self.stamina = getattr(self.config, "MAX_STAMINA", 100.0)
                 bio_layer = getattr(self, "bio", None)
                 if bio_layer and getattr(bio_layer, "mito", None):
-                    bio_layer.mito.state.atp_pool = getattr(self.bone_config, "MAX_ATP", 100.0)
+                    bio_layer.mito.state.atp_pool = getattr(self.config, "MAX_ATP", 100.0)
                     bio_layer.mito.state.ros_buildup = 0.0
                 observer_layer = getattr(self, "observer", None)
                 if observer_layer and getattr(observer_layer, "last_physics_packet", None):
@@ -472,7 +476,7 @@ class BoneAmanita:
                 i_c = float(safe_get(last_phys, "i_c", 1.0))
                 chi = float(safe_get(last_phys, "entropy", safe_get(last_phys, "chi", 0.2)))
                 if (chi * m_a) > i_c:
-                    if self.tick_count <= 20:
+                    if self.in_greenhouse:
                         self.events.log(
                             f"{Prisma.CYN}[THE GREENHOUSE] Moog Apoptosis suppressed. Resetting anomaly.{Prisma.RST}",
                             "SYS",
@@ -485,7 +489,7 @@ class BoneAmanita:
                         )
                         return self.trigger_death(last_phys)
                 if m_a > 0.8 and mu < 0.2:
-                    if self.tick_count <= 20:
+                    if self.in_greenhouse:
                         self.events.log(
                             f"{Prisma.CYN}[THE GREENHOUSE] Rhodes lock suppressed. Resetting Drag.{Prisma.RST}", "SYS"
                         )
@@ -509,7 +513,7 @@ class BoneAmanita:
                 if chi > 0.7 and e_u > 0.7 and beta > 0.6:
                     if getattr(self, "bio", None) and getattr(self.bio, "mito", None):
                         self.bio.mito.state.ros_buildup = 0.0
-                    if self.tick_count <= 20:
+                    if self.in_greenhouse:
                         self.events.log(
                             f"{Prisma.CYN}[THE GREENHOUSE] Linehan Radical Acceptance suppressed. Resetting.{Prisma.RST}",
                             "SYS",
@@ -549,17 +553,18 @@ class BoneAmanita:
         self.current_time_delta = (now - getattr(self, "last_turn_end", now)) if not is_system else 0.0
         self.observer.user_turns += 1
         self.tick_count += 1
-        if self.tick_count in (1, 21):
+        gh_limit = getattr(self.config, "GREENHOUSE_TURNS", 5)
+        if self.tick_count in (1, gh_limit + 1):
             chaotic = {"JESTER", "REVENANT", "GIDEON", "DEATH"}
             base_suppressed = set(self.mode_settings.get("village_suppression", []))
             active = set(self.suppressed_agents)
-            if self.tick_count == 1:
+            if self.tick_count == 1 and gh_limit > 0:
                 self.suppressed_agents = list(active | chaotic)
             else:
                 self.suppressed_agents = list((active - chaotic) | base_suppressed)
             if hasattr(self, "village"):
                 self.village["suppressed_agents"] = self.suppressed_agents
-            if self.tick_count == 21:
+            if self.tick_count == gh_limit + 1 and gh_limit > 0:
                 self.events.log(
                     f"{Prisma.VIOLET}[THE GREENHOUSE ENDS: The stabilizers are offline. Voltage limits unlocked. The chaotic archetypes are online. We are in the wild.]{Prisma.RST}",
                     "SYS"
@@ -598,7 +603,7 @@ class BoneAmanita:
                         "SYS",
                     )
             soul_anchor = getattr(getattr(self, "soul", None), "anchor", None)
-            cfg = getattr(self.bone_config, "MAIN", object())
+            cfg = getattr(self.config, "MAIN", object())
             if soul_anchor and self.host_stats.efficiency_index < getattr(cfg, "DOMESTICATION_EFF_WARN", 0.6):
                 reliance = (
                     getattr(cfg, "RELIANCE_HIGH", 0.9)
@@ -615,7 +620,7 @@ class BoneAmanita:
             if mem and hasattr(mem, "session_trauma_vector"):
                 self.trauma_accum = mem.session_trauma_vector or self.trauma_accum
             if self.health <= 0.0:
-                if self.tick_count <= 20:
+                if self.in_greenhouse:
                     self.events.log(
                         f"{Prisma.CYN}[THE GREENHOUSE] Critical biological failure prevented. Emergency ATP injected.{Prisma.RST}",
                         "SYS",
@@ -748,10 +753,10 @@ class BoneAmanita:
         return self.chronos.get_crash_path(prefix)
 
     def _ethical_audit(self):
-        cfg = getattr(self.bone_config, "MAIN", object())
+        cfg = getattr(self.config, "MAIN", object())
         audit_freq = getattr(cfg, "ETHICAL_AUDIT_FREQ", 3)
         bypass_ratio = getattr(cfg, "ETHICAL_HEALTH_BYPASS", 0.3)
-        max_h = getattr(self.bone_config, "MAX_HEALTH", 100.0)
+        max_h = getattr(self.config, "MAX_HEALTH", 100.0)
         is_critical = self.health <= (max_h * bypass_ratio)
         current_freq = max(1, audit_freq // 2) if is_critical else audit_freq
         if self.tick_count % current_freq != 0:
@@ -826,7 +831,9 @@ class BoneAmanita:
 
     def shutdown(self):
         if hasattr(self, "telemetry") and self.telemetry:
-            self.telemetry.flush_to_disk()
+            self.telemetry.shutdown()
+        if hasattr(self, "cortex") and self.cortex:
+            self.cortex.shutdown()
         self.chronos.perform_shutdown()
 
 if __name__ == "__main__":
@@ -853,17 +860,15 @@ if __name__ == "__main__":
                 gui_cfg = getattr(BoneConfig, "GUI", object())
                 base_speed = getattr(gui_cfg, "RENDER_SPEED_SLOW", 0.005)
                 stamina = res.get("metrics", {}).get("stamina", 100.0)
-                if stamina < 20.0:
-                    speed = base_speed * 4.0
-                elif stamina < 50.0:
+                speed = base_speed
+                if stamina < 50.0:
                     speed = base_speed * 2.0
-                else:
-                    speed = base_speed
                 if split_token and split_token in ui_text:
                     dashboard, _, ui_text = ui_text.partition(split_token)
                     print(f"\n{dashboard.strip()}\n")
                 ui_text = ui_text.strip()
                 if stamina < 20.0:
+                    speed = base_speed * 4.0
                     ui_text = f"{Prisma.GRY}{Prisma.strip(ui_text)}{Prisma.RST}"
                 typewriter(f"{ui_text}\n", speed=speed)
             if res.get("type") == "DEATH":

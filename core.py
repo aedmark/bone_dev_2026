@@ -6,7 +6,7 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from typing import List, Dict, Any, Optional, Tuple, Deque
 from presets import BoneConfig
-from types import Prisma, RealityLayer, ErrorLog, DecisionTrace, DecisionCrystal
+from constants import Prisma, RealityLayer, ErrorLog, DecisionTrace, DecisionCrystal
 
 def ux(section: str, key: str, default: Any = "") -> Any:
     data = LoreManifest.get_instance().get("ux_strings", section)
@@ -27,8 +27,10 @@ def safe_get(obj: Any, key: str, default: Any = None) -> Any:
     if obj is None:
         return default
     if isinstance(obj, dict):
-        return obj.get(key, default)
-    return getattr(obj, key, default)
+        val = obj.get(key, default)
+    else:
+        val = getattr(obj, key, default)
+    return default if val is None else val
 
 def strict_get(obj: Any, key: str, default: Any = None) -> Any:
     if obj is None:

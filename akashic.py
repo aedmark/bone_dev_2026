@@ -4,7 +4,7 @@ import json, math, os, uuid
 from typing import Any, Dict, List, Optional, Set, Tuple, cast
 from core import BoneJSONEncoder, LoreManifest, ux, safe_get
 from presets import BoneConfig
-from types import Prisma
+from constants import Prisma
 
 class TheAkashicRecord:
     def __init__(self, lore_manifest: Optional["LoreManifest"] = None, events_ref=None):
@@ -32,8 +32,11 @@ class TheAkashicRecord:
         event_bus.subscribe("LENS_INTERACTION", self._on_lens_interaction)
         event_bus.subscribe("FORGE_SUCCESS", self._on_forge_event)
         event_bus.subscribe("GHOST_SIGNAL", self._on_ghost_signal)
-        event_bus.subscribe("SYSTEM_STARVING", lambda p: self.trigger_autophagy())
+        event_bus.subscribe("SYSTEM_STARVING", self._on_system_starving)
         msg = ux("akashic_strings", "listening")
+
+    def _on_system_starving(self, _payload):
+        self.trigger_autophagy()
         print(f"{Prisma.CYN}{msg}{Prisma.RST}")
 
     def trigger_autophagy(self) -> Tuple[float, str]:

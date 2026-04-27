@@ -10,7 +10,7 @@ from typing import List, Dict, Any, Tuple, Optional, Set
 from presets import BoneConfig
 from core import LoreManifest, EventBus, ux, safe_get, safe_set
 from physics import PhysicsDelta
-from types import Prisma, PhysicsPacket
+from constants import Prisma, PhysicsPacket
 
 def _cfg_val(cfg_ref, section: str, key: str, default: float) -> float:
     return float(safe_get(getattr(cfg_ref or BoneConfig, section, None), key, default))
@@ -26,7 +26,7 @@ class TheTinkerer:
         self._inventory_hash = 0
 
     def calculate_passive_deltas(self, inventory_data: List[Dict]) -> List[PhysicsDelta]:
-        counts = Counter(chain.from_iterable(item.get("passive_traits", []) for item in inventory_data))
+        counts = Counter(chain.from_iterable(item.get("passive_traits") or [] for item in inventory_data))
         current_hash = hash(frozenset(counts.items()))
         if self._delta_cache is not None and current_hash == self._inventory_hash:
             return self._delta_cache
@@ -294,7 +294,7 @@ class TownHall:
             state_key = "HIGH_ENTROPY"
         else:
             state_key = "BALANCED"
-        return f"☁️ FORECAST [{state_key}]: {random.choice(forecasts.get(state_key, ['Weather unclear.']))} (Strategy: {strategies.get(state_key, 'Keep breathing.')})"
+        return f"☁️ FORECAST [{state_key}]: {random.choice(forecasts.get(state_key) or ['Weather unclear.'])} (Strategy: {strategies.get(state_key) or 'Keep breathing.'})"
 
     def tend_garden(self, clean_words: List[str]) -> List[str]:
         blooms = []
@@ -354,13 +354,17 @@ class TownHall:
             self.events.log(msg.format(item=item), "VILLAGE")
 
     @staticmethod
-    def diagnose_condition(session_data: dict, _host_health: Any = None, soul: Any = None, config_ref=None) -> Tuple[str, str]:
-        trauma = session_data.get("trauma_vector", {})
+    def diagnose_condition(session_data: dict, _host_health: Any = None, soul: Any = None, config_ref=None) -> Tuple[
+        str, str]:
+        trauma = session_data.get("trauma_vector") or {}
         if soul and float(safe_get(soul, "obsession_neglect", 0.0)) > _cfg_val(config_ref, "VILLAGE", "TOWN_NEGLECT_CRIT", 8.0):
-            return "HIGH_DRAG", (ux("village_strings", "town_guilt") or "").format(obsession=safe_get(soul, "current_obsession", "work"))
+            return "HIGH_DRAG", (ux("village_strings", "town_guilt") or "").format(
+                obsession=safe_get(soul, "current_obsession", "work"))
         if trauma and trauma[max(trauma, key=trauma.get)] > _cfg_val(config_ref, "VILLAGE", "TOWN_TRAUMA_CRIT", 0.6):
-            return "HIGH_TRAUMA", (ux("village_strings", "town_trauma") or "").format(trauma=max(trauma, key=trauma.get))
-        if session_data.get("meta", {}).get("final_health", 50) < _cfg_val(config_ref, "VILLAGE", "TOWN_HEALTH_CRIT", 30):
+            return "HIGH_TRAUMA", (ux("village_strings", "town_trauma") or "").format(
+                trauma=max(trauma, key=trauma.get))
+        meta_data = session_data.get("meta") or {}
+        if meta_data.get("final_health", 50) < _cfg_val(config_ref, "VILLAGE", "TOWN_HEALTH_CRIT", 30):
             return "HIGH_TRAUMA", ux("village_strings", "town_critical") or "The lattice is fractured. We are holding it together with sheer will."
         return "BALANCED", ux("village_strings", "town_nominal") or "The system hums quietly. All is well."
 

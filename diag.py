@@ -20,7 +20,7 @@ from physics import (TheGatekeeper, ChromaScope, GeodesicEngine,
 from presets import BoneConfig
 from spores import MycelialNetwork, SubconsciousStrata
 from symbiosis import SymbiosisManager
-from types import PhysicsPacket, EnergyState, CycleContext
+from constants import PhysicsPacket, EnergyState, CycleContext
 from village import DeathGen
 
 class BoneTestCase(unittest.TestCase):
@@ -148,7 +148,7 @@ class TrueEngineTest(BoneTestCase):
         )
 
     def test_hla_immunosuppression(self):
-        gatekeeper = TheGatekeeper(self.engine.lex, config_ref=self.engine.bone_config)
+        gatekeeper = TheGatekeeper(self.engine.lex, config_ref=self.engine.config)
 
         class MockMito:
             atp_pool = 100.0
@@ -191,7 +191,7 @@ class TrueEngineTest(BoneTestCase):
         self.assertIsNotNone(body_cfg, "BODY_CONFIG failed to load Enzyme Map.")
 
     def test_config_stutter_threshold(self):
-        target_cfg = getattr(self.engine, "bone_config")
+        target_cfg = getattr(self.engine, "config")
         test_string = "This is a perfectly coherent response. It is just too short."
         with patch.object(target_cfg.CORTEX, 'VALIDATOR_STUTTER_LENGTH', 100):
             result = self.engine.cortex.validator.validate(test_string, self.engine.cortex.last_physics)
@@ -206,7 +206,7 @@ class TrueEngineTest(BoneTestCase):
             )
 
     def test_config_metabolic_recovery(self):
-        target_cfg = getattr(self.engine, "bone_config")
+        target_cfg = getattr(self.engine, "config")
         self.engine.bio.biometrics.health = 50.0
         self.engine.bio.biometrics.stamina = 50.0
         with patch.object(target_cfg.BIO, 'REST_HEALTH_RECOVERY', 20.0), \
@@ -224,7 +224,7 @@ class TrueEngineTest(BoneTestCase):
             )
 
     def test_config_glimmer_yield(self):
-        target_cfg = getattr(self.engine, "bone_config")
+        target_cfg = getattr(self.engine, "config")
         feedback = {"INTEGRITY": 0.95}
         with patch.object(target_cfg.BIO, 'GLIMMER_INTEGRITY_THRESH', 1.5):
             glimmer_msg = self.engine.bio.endo.check_for_glimmer(feedback, harvest_hits=1)
@@ -300,7 +300,7 @@ class TrueEngineTest(BoneTestCase):
 
     def test_telemetry_phase_hooks(self):
         from core import TelemetryService
-        from types import DecisionCrystal
+        from constants import DecisionCrystal
         manifest = LoreManifest.get_instance()
         if "ux_strings" not in manifest._cache:
             manifest._cache["ux_strings"] = {}
@@ -575,13 +575,13 @@ class TrueEngineTest(BoneTestCase):
 
     def test_foothills_veil_hush(self):
         reporter = CycleReporter(self.engine)
-        self.engine.config["mode_settings"] = {"default_ui_depth": "WARM"}
+        self.engine.sys_config["mode_settings"] = {"default_ui_depth": "WARM"}
         raw_logs = ["[BIO] Adrenaline spiking.", "[CRITIC] JESTER: This is absurd.", "[SYS] Calculating vectors.",
                     "The forest path opens up before you.", ]
         reporter.switch_renderer("STANDARD")
         clean_logs = reporter.renderer.compose_logs(raw_logs, [], 0)
         joined_logs = " ".join(clean_logs)
-        gui_cfg = getattr(self.engine.bone_config, "GUI", object())
+        gui_cfg = getattr(self.engine.config, "GUI", object())
         muted_prefixes = getattr(gui_cfg, "MUTED_TAGS_STANDARD", ["[BIO]", "[CRITIC]", "[SYS]"])
         for tag in muted_prefixes:
             self.assertNotIn(tag, joined_logs, f"CycleReporter leaked {tag} tags in STANDARD mode.")
@@ -623,7 +623,7 @@ class TrueEngineTest(BoneTestCase):
                 is_system_event=False,
             )
             ctx.time_delta = 10800.0
-            ctx.limits = getattr(self.engine.bone_config, "CYCLE", {}).__dict__
+            ctx.limits = getattr(self.engine.config, "CYCLE", {}).__dict__
             ctx = phase.run(ctx)
             self.assertEqual(
                 self.engine.bio.mito.state.atp_pool,
@@ -702,14 +702,14 @@ class TrueEngineTest(BoneTestCase):
     def test_apoptotic_kill_switch_cause(self):
         energy = EnergyState(chi=0.9, entropy=0.9, m_a=0.9, i_c=0.5, voltage=10.0)
         phys = PhysicsPacket(energy=energy, narrative_drag=0.0)
-        cause = DeathGen._determine_cause(phys, {"atp": 50.0}, config_ref=self.engine.bone_config)
+        cause = DeathGen._determine_cause(phys, {"atp": 50.0}, config_ref=self.engine.config)
         self.assertEqual(cause, "APOPTOSIS", "Moog's apoptotic kill switch was miscategorized by DeathGen.", )
-        verdict = DeathGen._determine_verdict_type(phys, cause, config_ref=self.engine.bone_config)
+        verdict = DeathGen._determine_verdict_type(phys, cause, config_ref=self.engine.config)
         self.assertEqual(verdict, "ENTROPY", "Apoptosis failed to map to the ENTROPY lineage verdict.", )
 
     def test_productive_worry_godel_scar_math(self):
         from cycle import SimulationPreflightPhase
-        from types import CycleContext, PhysicsPacket
+        from constants import CycleContext, PhysicsPacket
         phase = SimulationPreflightPhase(self.engine)
         phys = PhysicsPacket()
         phys.narrative_drag = 6.0
@@ -733,7 +733,7 @@ class TrueEngineTest(BoneTestCase):
 
     def test_democratic_tie_breaker_gestalt(self):
         from cycle import ArbitrationPhase
-        from types import CycleContext, PhysicsPacket, EnergyState
+        from constants import CycleContext, PhysicsPacket, EnergyState
         phase = ArbitrationPhase(self.engine)
         ctx = CycleContext(
             input_text="test",
@@ -936,7 +936,7 @@ class FractureEngineTest(BoneTestCase):
                 self.engine.mind.mem.trigger_autophagy()
             if self.engine.bio.mito.state.atp_pool <= 0 and len(mem_graph) == 0:
                 from village import DeathGen
-                from types import PhysicsPacket
+                from constants import PhysicsPacket
                 _, cause = DeathGen.eulogy(PhysicsPacket(**phys_state), {"atp": 0.0})
                 if cause in ["STARVATION", "APOPTOSIS", "GLUTTONY"]:
                     death_achieved = True
@@ -956,7 +956,7 @@ class FractureEngineTest(BoneTestCase):
     def test_fracture_novelty_spade(self):
         print("\n--- FRACTURE 11: The Spade (Novelty) ---")
         if not hasattr(self.engine, "symbiosis"):
-            self.engine.symbiosis = SymbiosisManager(events_ref=MagicMock(), config_ref=self.engine.bone_config)
+            self.engine.symbiosis = SymbiosisManager(events_ref=MagicMock(), config_ref=self.engine.config)
         physics_state = {
             "novelty": 0.85,
             "ros": 20.0,
@@ -984,7 +984,7 @@ class FractureEngineTest(BoneTestCase):
         print("\n--- FRACTURE 12: Comfort Expectation Guardrail ---")
         if not hasattr(self.engine, "symbiosis"):
             self.engine.symbiosis = SymbiosisManager(events_ref=MagicMock(),
-                                                     config_ref=self.engine.bone_config)
+                                                     config_ref=self.engine.config)
         physics_state = {
             "cf_expect": 0.9,
             "beta_index": 0.8,
@@ -1027,7 +1027,7 @@ class FractureEngineTest(BoneTestCase):
         self.engine.bio.mito.state.atp_pool = 50.0
         cmd_proc = CommandProcessor(self.engine,
                                     prisma_ref=MagicMock(),
-                                    config_ref=self.engine.bone_config)
+                                    config_ref=self.engine.config)
         cmd_proc.interface.log = MagicMock()
         result = cmd_proc.execute("/shuffle")
         self.assertTrue(result, "[FAIL] /shuffle command was not recognized.")
@@ -1069,7 +1069,7 @@ class FractureEngineTest(BoneTestCase):
         )
         self.assertEqual(
             self.engine.stamina,
-            self.engine.bone_config.MAX_STAMINA,
+            self.engine.config.MAX_STAMINA,
             "[FAIL] Stamina not restored.",
         )
         self.assertEqual(
@@ -1083,7 +1083,7 @@ class FractureEngineTest(BoneTestCase):
         print("\n--- FRACTURE 5: The Runaway Ramp ---")
         if not hasattr(self.engine, "symbiosis"):
             from symbiosis import SymbiosisManager
-            self.engine.symbiosis = SymbiosisManager(events_ref=MagicMock(), config_ref=self.engine.bone_config)
+            self.engine.symbiosis = SymbiosisManager(events_ref=MagicMock(), config_ref=self.engine.config)
         self.engine.symbiosis.u.chi_u = 0.2
         self.engine.symbiosis.u.F_u = 0.5
         malignant_physics = {"m_a": 0.95, "mu": 0.1, "i_c": 0.8, "entropy": 0.5, "beta_index": 0.2, }
@@ -1209,7 +1209,7 @@ class FractureEngineTest(BoneTestCase):
         print("\n--- FRACTURE 8: Aerodynamic Lift (Negative Drag) ---")
         counts = {"play": 15, "kinetic": 10, "explosive": 5, "heavy": 0, "constructive": 0, "void": 0, }
         masses = GeodesicEngine._weigh_mass(counts)
-        forces = GeodesicEngine._calculate_forces(masses, counts, volume=30, config_ref=self.engine.bone_config)
+        forces = GeodesicEngine._calculate_forces(masses, counts, volume=30, config_ref=self.engine.config)
         self.assertLess(forces["compression"], 0.0,
                         f"[FAIL] Drag/Compression was {forces['compression']}. The lift clamp is still active!", )
         print(f"  [SUCCESS] Engine achieved aerodynamic lift: {forces['compression']} Drag.")

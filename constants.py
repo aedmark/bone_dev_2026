@@ -1,4 +1,4 @@
-"""types.py"""
+"""constants.py"""
 
 import copy
 import json

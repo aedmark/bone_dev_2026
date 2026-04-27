@@ -264,7 +264,7 @@ class Projector:
 class GeodesicRenderer:
     def __init__(self, engine_ref, chroma_ref, strunk_ref, valve_ref=None):
         self.eng = engine_ref
-        target_cfg = getattr(self.eng, "bone_config", BoneConfig)
+        target_cfg = getattr(self.eng, "config", BoneConfig)
         self.projector = Projector(config_ref=target_cfg)
         self.vsl_chroma = chroma_ref
         self.strunk_white = strunk_ref
@@ -405,7 +405,7 @@ class CachedRenderer:
         }
 
 def get_renderer(engine_ref, chroma_ref, strunk_ref, valve_ref=None, mode="STANDARD"):
-    target_cfg = getattr(engine_ref, "bone_config", BoneConfig)
+    target_cfg = getattr(engine_ref, "config", BoneConfig)
     base = GeodesicRenderer(engine_ref, chroma_ref, strunk_ref, valve_ref)
     if mode == "PERFORMANCE":
         return CachedRenderer(base, config_ref=target_cfg)
@@ -501,7 +501,7 @@ class PulseReader:
 class SoulDashboard:
     def __init__(self, engine_ref):
         self.eng = engine_ref
-        self.cfg = getattr(self.eng, "bone_config", BoneConfig)
+        self.cfg = getattr(self.eng, "config", BoneConfig)
 
     def render(self) -> str:
         if not (soul := getattr(self.eng, "soul", None)):

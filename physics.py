@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from typing import Dict, List, Any, Tuple, Optional, Deque
 from core import LoreManifest, ux, safe_get, safe_set
 from presets import BoneConfig
-from types import Prisma, PhysicsPacket, CycleContext, SpatialState, MaterialState, EnergyState
+from constants import Prisma, PhysicsPacket, CycleContext, SpatialState, MaterialState, EnergyState
 
 def _native_ordinal_pattern(window: List[float]) -> Tuple[int, ...]:
     return tuple(i for i, v in sorted(enumerate(window), key=lambda x: x[1]))
@@ -122,10 +122,11 @@ class NaviSADProtocol:
 def apply_metabolic_tax(mito_state: Any, atp_cost: float, ros_cost: float) -> None:
     if not mito_state:
         return
-    if hasattr(mito_state, "atp_pool"):
-        mito_state.atp_pool = max(0.0, mito_state.atp_pool - atp_cost)
-    if hasattr(mito_state, "ros_buildup"):
-        mito_state.ros_buildup = min(100.0, mito_state.ros_buildup + ros_cost)
+    target = getattr(mito_state, "state", mito_state)
+    if hasattr(target, "atp_pool"):
+        target.atp_pool = max(0.0, target.atp_pool - atp_cost)
+    if hasattr(target, "ros_buildup"):
+        target.ros_buildup = min(100.0, target.ros_buildup + ros_cost)
 
 @dataclass
 class GeodesicVector:

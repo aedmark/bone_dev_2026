@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import Dict, Tuple, Optional, Any
 from core import LoreManifest, ux, safe_get, safe_set
 from presets import BoneConfig
-from types import Prisma, UserInferredState, SharedDynamics
+from constants import Prisma, UserInferredState, SharedDynamics
 
 _MODE_TAGS = {
     "[!l]": "literal_mode",
@@ -102,8 +102,9 @@ class SymbiontVoice:
         self.personality = personality_matrix or {}
 
     def opine(self, clean_words: list, voltage: float) -> Tuple[float, str]:
-        hits = len(set(clean_words).intersection(self.archetypes))
-        score = (hits / max(1, len(clean_words))) * 10.0
+        safe_words = clean_words or []
+        hits = len(set(safe_words).intersection(self.archetypes))
+        score = (hits / max(1, len(safe_words))) * 10.0
         return score, self._get_comment(score, voltage)
 
     def _get_comment(self, score, voltage):
@@ -124,8 +125,8 @@ class SymbiontVoice:
         return comment
 
 def get_symbiont(type_name, config_ref=None, lexicon_ref=None):
-        sym_config = LoreManifest.get_instance(config_ref=config_ref or BoneConfig).get("SYMBIOSIS_CONFIG", {})
-        voice_configs = sym_config.get("SYMBIONT_VOICES", {})
+        sym_config = LoreManifest.get_instance(config_ref=config_ref or BoneConfig).get("SYMBIOSIS_CONFIG") or {}
+        voice_configs = sym_config.get("SYMBIONT_VOICES") or {}
         resolved_name = type_name if type_name in voice_configs else "MYCELIUM"
         cfg = voice_configs.get(resolved_name, {})
         color_code = getattr(Prisma, cfg.get("color", "CYN"), Prisma.CYN)

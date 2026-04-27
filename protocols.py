@@ -8,7 +8,7 @@ from collections import deque, Counter
 from typing import Dict, Tuple, Optional, Any
 from core import LoreManifest, ux, safe_get, safe_set
 from presets import BoneConfig
-from types import Prisma
+from constants import Prisma
 
 NARRATIVE_DATA = LoreManifest.get_instance().get("narrative_data") or {}
 
@@ -368,8 +368,8 @@ class GriefProtocol:
             if self.eng and hasattr(self.eng, "trauma_accum"):
                 for k in self.eng.trauma_accum:
                     self.eng.trauma_accum[k] = max(0.0, self.eng.trauma_accum[k] - 2.0)
-            target_cfg = (self.eng.bone_config if self.eng
-                          and hasattr(self.eng, "bone_config") else BoneConfig)
+            target_cfg = (self.eng.config if self.eng
+                          and hasattr(self.eng, "config") else BoneConfig)
             node = self.recent_loss or "the void"
             self.recent_loss = None
             return f"{Prisma.MAG}[MERCY] The glimmer is planted over the compost of '{node}'. Our capacity for paradox expands. (Trauma -2, β_max increased){Prisma.RST}"
@@ -763,7 +763,7 @@ class ChronosKeeper:
         os.makedirs(self.CRASH_DIR, exist_ok=True)
         try:
             files = sorted([f for f in os.listdir(self.CRASH_DIR) if f.startswith(prefix)])
-            target_cfg = getattr(self.eng, "bone_config", BoneConfig) if self.eng else BoneConfig
+            target_cfg = getattr(self.eng, "config", BoneConfig) if self.eng else BoneConfig
             cfg = getattr(target_cfg, "CHRONOS", object())
             kept = getattr(cfg, "CRASH_FILES_KEPT", 4)
             for oldest in files[:-kept] if kept > 0 else files:

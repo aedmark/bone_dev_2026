@@ -12,7 +12,7 @@ from physics import TheGatekeeper, QuantumObserver, SurfaceTension, CosmicDynami
 from presets import BoneConfig
 from protocols import LimboLayer
 from spores import MycelialNetwork, ImmuneMycelium, BioLichen, BioParasite
-from types import MindSystem, PhysSystem, PhysicsPacket, Prisma
+from constants import MindSystem, PhysSystem, PhysicsPacket, Prisma
 from village import MirrorGraph, TheCartographer
 
 class TheCrucible:

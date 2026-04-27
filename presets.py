@@ -133,6 +133,7 @@ class BoneConfig:
     API_KEY = "ollama"
     MODEL = "gemma4"
     OLLAMA_MODEL_ID = "gemma4"
+    GREENHOUSE_TURNS = 0
 
     class SOUL:
         MEMORY_VOLTAGE_MIN = 14.0

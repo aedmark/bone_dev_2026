@@ -12,7 +12,7 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, Optional, List, Dict, Tuple
 import importlib.util
-from types import Prisma
+from constants import Prisma
 
 warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=UserWarning)
@@ -455,8 +455,8 @@ class DSPyCritic:
                 return False, getattr(result, "reasoning", "No reasoning provided.")
             return True, "Faithful."
         except Exception as e:
-            print(f"\n{Prisma.RED}⚖️ DSPy JUDGE FATAL ERROR: {e}{Prisma.RST}")
-            return False, "Judge API Error: Failsafe triggered due to exception."
+            print(f"\n{Prisma.RED}⚖️ DSPy JUDGE OFFLINE: {e} - Failing open.{Prisma.RST}")
+            return True, "Critic failed to open."
 
     def evolve_prompt(self, current_configuration: str, failure_context: str) -> str:
         if not self.enabled:

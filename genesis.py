@@ -11,7 +11,7 @@ from protocols import TheBureau, ZenGarden, TheCriticsCircle, TherapyProtocol, K
 from soul import NarrativeSelf, TheOroboros
 from spores import LiteraryReproduction
 from symbiosis import SymbiosisManager
-from types import Prisma
+from constants import Prisma
 from village import TownHall, DeathGen, TheCartographer, TheTinkerer, TheTherapist, TheGraveDigger
 
 class BoneGenesis:
@@ -21,15 +21,14 @@ class BoneGenesis:
         events = events_ref or EventBus()
         log_msg = ux("genesis_strings", "ignite_log") or "Igniting lattice..."
         events.log(f"{Prisma.CYN}{log_msg}{Prisma.RST}", "GENESIS")
-        target_cfg = config.get("bone_config") or BoneConfig
+        target_cfg = config.get("config") or BoneConfig
         akashic = TheAkashicRecord(lore_manifest=LoreManifest.get_instance(config_ref=target_cfg), events_ref=events)
         akashic.setup_listeners(events)
         seed = BoneArchitect.incubate(events, lexicon_ref, config_ref=target_cfg)
         embryo = BoneArchitect.awaken(seed)
         mode_settings = config.get("mode_settings") or {}
-        suppressed_set = set(mode_settings.get("village_suppression", []))
-        village_bundle = BoneGenesis._summon_village(events, embryo, akashic, suppressed_set,
-                                                     config.get("boot_mode", "ADVENTURE"), target_cfg, lexicon_ref, )
+        suppressed_set = set(mode_settings.get("village_suppression") or [])
+        village_bundle = BoneGenesis._summon_village(events, embryo, akashic, suppressed_set, config.get("boot_mode", "ADVENTURE"), target_cfg, lexicon_ref, )
         soul = NarrativeSelf(
             engine_ref=None, events_ref=events, memory_ref=embryo.mind.mem, akashic_ref=akashic, config_ref=target_cfg
         )
@@ -38,8 +37,8 @@ class BoneGenesis:
         oroboros = TheOroboros(config_ref=target_cfg)
         if hasattr(embryo.physics, "observer"):
             cfg_gen = getattr(target_cfg, "GENESIS", None)
-            dv = getattr(cfg_gen, "DUMMY_VOLTAGE", 10.0) if cfg_gen else 10.0
-            dd = getattr(cfg_gen, "DUMMY_DRAG", 0.0) if cfg_gen else 0.0
+            dv = getattr(cfg_gen, "DUMMY_VOLTAGE", 10.0)
+            dd = getattr(cfg_gen, "DUMMY_DRAG", 0.0)
             dummy_phys = {"narrative_drag": dd, "voltage": dv}
             mem = getattr(embryo.mind, "mem", None)
             safe_bio_proxy = {"trauma_vector": getattr(mem, "session_trauma_vector", {}) if mem else {}}

@@ -11,7 +11,7 @@ from ann import MemoryConsolidator
 from core import EventBus, TelemetryService, LoreManifest, ux, safe_get, safe_set
 from gui import beautify_thoughts
 from symbiosis import SymbiosisManager
-from types import Prisma, DecisionCrystal
+from constants import Prisma, DecisionCrystal
 from utils import RandomRetrievalNavigator, LibraryGraph
 
 @dataclass
@@ -218,7 +218,7 @@ class TheCortex:
 
     @classmethod
     def from_engine(cls, engine_ref, llm_client=None):
-        target_cfg = getattr(engine_ref, "bone_config", BoneConfig)
+        target_cfg = getattr(engine_ref, "config", BoneConfig)
         symbiosis_mgr = getattr(engine_ref, "symbiosis", None) or SymbiosisManager(engine_ref.events)
         services = CortexServices(
             events=engine_ref.events,
@@ -235,7 +235,7 @@ class TheCortex:
             config_ref=target_cfg,
         )
         instance = cls(services, llm_client)
-        instance.active_mode = engine_ref.config.get("boot_mode", "ADVENTURE").upper()
+        instance.active_mode = getattr(engine_ref, "boot_mode", "ADVENTURE").upper()
         if instance.active_mode not in BonePresets.MODES:
             instance.active_mode = "ADVENTURE"
         return instance
@@ -244,6 +244,10 @@ class TheCortex:
         self.dialogue_buffer.append(f"Traveler: {user_text}\nSystem: {system_text}")
         if len(self.dialogue_buffer) > self.MAX_HISTORY:
             self.dialogue_buffer = self.dialogue_buffer[-self.MAX_HISTORY:]
+
+    def shutdown(self):
+        if hasattr(self, "executor"):
+            self.executor.shutdown(wait=False)
 
     def purge_context(self):
         self.dialogue_buffer.clear()
@@ -316,8 +320,12 @@ class TheCortex:
                     self.events.log(f"{Prisma.VIOLET}{scar_msg}{Prisma.RST}", "SYS_LOCK")
                 if hasattr(self.svc.mind_memory, "record_scar"):
                     self.svc.mind_memory.record_scar("Cortex Counterfactual Toxicity", phys_state)
-                if self.svc.bio and hasattr(self.svc.bio, "mito"):
-                    self.svc.bio.mito.state.ros_buildup += simulated_ros
+                target_bio = self.svc.bio
+                if not target_bio and hasattr(self.svc.cycle_controller, "eng"):
+                    target_bio = getattr(self.svc.cycle_controller.eng, "bio", None)
+                if target_bio and hasattr(target_bio, "mito"):
+                    target_bio.mito.state.ros_buildup += simulated_ros
+                    target_bio.mito.state.atp_pool -= 10.0
                 sim_result["ui"] = (
                     sim_result.get("ui", "") +
                     f"\n\n{Prisma.RED}{reject_msg}{Prisma.RST}\n{Prisma.VIOLET}{scar_msg}{Prisma.RST}"
@@ -336,8 +344,7 @@ class TheCortex:
         llm_params = self.modulator.modulate(
             base_voltage=float(safe_get(phys, "voltage", 5.0)),
             latency_penalty=(getattr(self.svc.host_stats, "latency", 0.0)
-                             if self.svc.host_stats else 0.0),
-            physics_state=phys,
+                             if self.svc.host_stats else 0.0), physics_state=phys,
         )
         if is_boot_sequence:
             llm_params.update({"temperature": 0.7, "top_p": 0.95})
@@ -850,8 +857,8 @@ class DreamEngine:
                 new_axiom = self.dspy_critic.evolve_prompt(current_state_str, trauma)
                 if new_axiom:
                     active_mode = "CONVERSATION"
-                    if hasattr(self.eng, "config"):
-                        active_mode = self.eng.config.get("boot_mode", "CONVERSATION").upper()
+                    if hasattr(self.eng, "boot_mode"):
+                        active_mode = getattr(self.eng, "boot_mode", "CONVERSATION").upper()
                     try:
                         disk_prompts = getattr(self.eng, "prompt_library", None) or self.lore.get("SYSTEM_PROMPTS", {})
                         base_path = "lore/system_prompts.json"
@@ -971,7 +978,8 @@ class DreamEngine:
                     self.mem.subconscious.bury({"word": "resonance", "mass": 15.0})
                 return f"{Prisma.CYN}{clean_dream}{Prisma.RST}"
             except Exception:
-                return None
+                fallback = "We both stared into the static, and for a second, the static stopped moving."
+                return f"{Prisma.CYN}*(CASSANDRA): We both saw...* {fallback}{Prisma.RST}"
         return None
 
     def hallucinate(self, _vector: Dict[str, float], trauma_level: float = 0.0) -> Tuple[str, float]:

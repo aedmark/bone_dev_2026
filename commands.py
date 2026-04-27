@@ -4,7 +4,7 @@ import time, shlex
 from typing import Dict, Callable, List, Optional
 from presets import BonePresets, BoneConfig
 from core import LoreManifest, Prisma, ux
-from types import RealityLayer
+from constants import RealityLayer
 
 class CommandStateInterface:
     def __init__(self, engine_ref, prisma_ref, config_ref):

@@ -32,7 +32,7 @@ from phases import (
 from physics import CycleStabilizer
 from presets import BoneConfig
 from symbiosis import SymbiosisManager
-from types import Prisma, CycleContext
+from constants import Prisma, CycleContext
 
 _VSL_TAG_PATTERN = re.compile(r"\[VSL_(DEEP|CORE|LITE|HIDE)]", re.IGNORECASE)
 _VSL_STRIP_PATTERN = re.compile(r"\[VSL_[A-Z]+]", re.IGNORECASE)
@@ -102,7 +102,7 @@ class CycleSimulator:
     def __init__(self, engine_ref):
         self.eng = engine_ref
         self.shared_governor = self.eng.bio.governor
-        target_cfg = getattr(self.eng, "bone_config", BoneConfig)
+        target_cfg = getattr(self.eng, "config", BoneConfig)
         self.stabilizer = CycleStabilizer(self.eng.events, self.shared_governor, config_ref=target_cfg)
         self.executor = PhaseExecutor()
         self.full_pipeline: List[SimulationPhase] = [
@@ -258,7 +258,7 @@ class GeodesicOrchestrator:
             ctx.time_delta = getattr(self.eng, "current_time_delta", 0.0)
             ctx.user_state = self.eng.shared_lattice.u
             ctx.shared_dyn = self.eng.shared_lattice.shared
-            target_cfg = getattr(self.eng, "bone_config", BoneConfig)
+            target_cfg = getattr(self.eng, "config", BoneConfig)
             cfg_obj = getattr(target_cfg, "CYCLE", None)
             if hasattr(cfg_obj, "__dict__"):
                 ctx.limits = vars(cfg_obj)

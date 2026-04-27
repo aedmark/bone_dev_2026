@@ -9,7 +9,7 @@ from akashic import TheAkashicRecord
 from presets import BoneConfig
 from core import LoreManifest, EventBus, ux, ux_format, safe_get, safe_set
 from lexicon import LexiconService
-from types import Prisma
+from constants import Prisma
 
 @dataclass
 class CoreMemory:

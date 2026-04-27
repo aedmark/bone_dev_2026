@@ -11,7 +11,7 @@ from typing import List, Tuple, Optional, Dict, Any
 from core import EventBus, LoreManifest, BoneJSONEncoder, ux, ux_format, safe_get, safe_set
 from ann import HippocampalCache, CerebralIndex
 from presets import BoneConfig
-from types import Prisma
+from constants import Prisma
 from village import ParadoxSeed
 
 def _word_to_vector(word: str, dim: int = 8) -> list:
