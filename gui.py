@@ -302,28 +302,28 @@ class GeodesicRenderer:
         if mode_settings.get("show_location", True):
             nav = getattr(self.eng, "navigator", None)
             world_loc = getattr(nav.world_graph.get(nav.current_node_id) if nav else None, "name", "UNKNOWN")
-        current_ui_depth = getattr(self.eng, "ui_mode", self.eng.config.get("default_ui_depth", mode_settings.get("default_ui_depth", "WARM")))
-        data_ctx = {
-            "health": self.eng.health,
-            "stamina": self.eng.stamina,
-            "bio": bio_data,
-            "dignity": dignity_val,
-            "vectors": physics.get("vector", {}),
-            "ui_depth": current_ui_depth,
-            "world_loc": world_loc,
-            "show_vitals": mode_settings.get("show_vitals", True),
-            "show_location": mode_settings.get("show_location", True),
-        }
+        cfg = getattr(self.eng, "config", {})
+        default_depth = cfg.get("default_ui_depth") if isinstance(cfg, dict) else getattr(cfg, "default_ui_depth", "WARM")
+        current_ui_depth = getattr(self.eng, "ui_mode", default_depth or mode_settings.get("default_ui_depth", "WARM"))
+        soul = getattr(self.eng, "soul", None)
+        anchor = getattr(soul, "anchor", None)
+        dignity_val = getattr(anchor, "dignity_reserve", 100.0)
+        data_ctx = {"health": self.eng.health, "stamina": self.eng.stamina, "bio": bio_data, "dignity": dignity_val,
+                    "vectors": physics.get("vector", {}), "ui_depth": current_ui_depth, "world_loc": world_loc,
+                    "show_vitals": mode_settings.get("show_vitals", True),
+                    "show_location": mode_settings.get("show_location", True), }
         if hasattr(ctx, "shared_dyn"):
             data_ctx.update({"shared_dyn": ctx.shared_dyn, "user_state": ctx.user_state})
         if pe := getattr(self.eng, "paradox_engine", None):
             data_ctx["paradox"] = {"active": pe.is_active, "yield": pe.paradox_yield, "beta_max": pe.beta_max}
-        if c_state := getattr(getattr(self.eng, "consultant", None), "state", None):
+        consultant = getattr(self.eng, "consultant", None)
+        if c_state := getattr(consultant, "state", None) if consultant else None:
             data_ctx["vsl"] = {"E": getattr(c_state, "E", 0.2), "B": getattr(c_state, "B", 0.4),
                                "L": getattr(c_state, "L", 0.0), "O": getattr(c_state, "O", 1.0), }
         data_ctx["lattice_strain"] = self._calculate_lattice_strain()
-        mode = self.eng.config.get("boot_mode", "ADVENTURE").upper()
-        current_depth = getattr(getattr(ctx, "reality_stack", None), "current_depth", 1)
+        mode = cfg.get("boot_mode", "ADVENTURE").upper() if isinstance(cfg, dict) else getattr(cfg, "boot_mode", "ADVENTURE").upper()
+        stack = getattr(ctx, "reality_stack", None)
+        current_depth = getattr(stack, "current_depth", 1) if stack else 1
         if mode == "TECHNICAL":
             return self.projector.render_technical(physics, data_ctx, mind_tuple)
         labels = ux("renderer", f"mode_labels_{mode.lower()}", ux("projector", "default_labels", {})).copy()
@@ -331,7 +331,8 @@ class GeodesicRenderer:
         return self.projector.render({"physics": physics}, data_ctx, mind_tuple, reality_depth=current_depth, labels=labels)
 
     def _calculate_lattice_strain(self) -> float:
-        phys_obs = getattr(getattr(self.eng, "phys", None), "observer", None)
+        phys = getattr(self.eng, "phys", None)
+        phys_obs = getattr(phys, "observer", None) if phys else None
         q_matrix = getattr(phys_obs, "Q_n", None) if phys_obs else None
         if not isinstance(q_matrix, list) or not q_matrix or not isinstance(q_matrix[0], list):
             return 0.0
@@ -350,7 +351,10 @@ class GeodesicRenderer:
         mode_settings = getattr(self.eng, "mode_settings", {}) if hasattr(self, "eng") else {}
         current_ui_depth = getattr(self.eng, "ui_mode", mode_settings.get("default_ui_depth", "WARM"))
         if current_ui_depth in ("IDLE", "WARM"):
-            muted_tags = ("[BIO]", "[CRITIC]", "[SYS]", "[MERCY]", "(The system feels")
+            cfg = getattr(self.eng, "config", {})
+            gui_cfg = getattr(cfg, "GUI", object()) if not isinstance(cfg, dict) else cfg.get("GUI", {})
+            default_tags = ("[BIO]", "[CRITIC]", "[SYS]", "[MERCY]", "(The system feels")
+            muted_tags = getattr(gui_cfg, "MUTED_TAGS_WARM", default_tags) if not isinstance(gui_cfg, dict) else gui_cfg.get("MUTED_TAGS_WARM", default_tags)
             all_logs = [l for l in all_logs if not any(tag in l for tag in muted_tags)]
         if not all_logs:
             return []

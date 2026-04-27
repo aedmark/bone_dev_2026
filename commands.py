@@ -205,15 +205,10 @@ class CommandProcessor:
             f"\n{self.P.CYN}{header}{self.P.RST}",
             f"{self.P.GRY}{phase_pfx}{self.interface.get_soul_status() or def_phase}{self.P.RST}\n",
         ]
-        if not hasattr(self, "_cmd_to_cat_cache"):
-            self._cmd_to_cat_cache = {
-                cmd: cat
-                for cat, cmds in structure.items()
-                for cmd in cmds
-            }
+        cmd_to_cat = {cmd: cat for cat, cmds in structure.items() for cmd in cmds}
         buckets = {cat: [] for cat in list(structure.keys()) + [uncat]}
         for cmd, desc in self.registry.help_text.items():
-            buckets[self._cmd_to_cat_cache.get(cmd, uncat)].append((cmd, desc))
+            buckets[cmd_to_cat.get(cmd, uncat)].append((cmd, desc))
         for cat, cmds in buckets.items():
             if not cmds:
                 continue
@@ -363,11 +358,13 @@ class CommandProcessor:
             if mode not in (0, 1, 2, 3):
                 self.interface.log(ux("command_alerts", "truth_invalid"))
                 return True
-            reporter = getattr(getattr(self.interface.eng, "orchestrator", None), "reporter", None)
+            orch = getattr(self.interface.eng, "orchestrator", None)
+            reporter = getattr(orch, "reporter", None) if orch else None
             if not reporter:
                 self.interface.log(ux("command_alerts", "truth_no_reporter"))
                 return True
-            if not hasattr(getattr(reporter, "renderer", None), "dial_setting"):
+            renderer = getattr(reporter, "renderer", None)
+            if not hasattr(renderer, "dial_setting"):
                 from gui import TruthRenderer
                 self.interface.log(f"{self.P.YEL}{ux('command_alerts', 'truth_transplant')}{self.P.RST}")
                 reporter.renderer = reporter.renderers.setdefault("STANDARD", TruthRenderer(self.interface.eng))
@@ -432,9 +429,12 @@ class CommandProcessor:
         self.interface.modify_resource("stamina", 15.0)
         self.interface.modify_resource("atp", 20.0)
         dream_log = ""
-        if dreamer := getattr(getattr(self.interface.eng, "mind", None), "dreamer", None):
+        mind = getattr(self.interface.eng, "mind", None)
+        dreamer = getattr(mind, "dreamer", None) if mind else None
+        if dreamer:
             soul = getattr(self.interface.eng, "soul", None)
-            endo = getattr(getattr(self.interface.eng, "bio", None), "endo", None)
+            bio = getattr(self.interface.eng, "bio", None)
+            endo = getattr(bio, "endo", None) if bio else None
             snapshot = soul.to_dict() if soul else {}
             bio_state = endo.get_state() if endo else {}
             dream_text, effects = dreamer.enter_rem_cycle(snapshot, bio_state)
@@ -442,9 +442,8 @@ class CommandProcessor:
                 dream_log = f"\n\n{self.P.VIOLET}☁️ {dream_text}{self.P.RST}"
                 if effects and effects.get("glimmers"):
                     g_yield = effects["glimmers"]
-                    if shared := getattr(
-                            getattr(self.interface.eng, "shared_lattice", None),
-                            "shared", None):
+                    lattice = getattr(self.interface.eng, "shared_lattice", None)
+                    if shared := getattr(lattice, "shared", None):
                         shared.g_pool += g_yield
                     elif phys := getattr(self.interface.eng, "phys", None):
                         phys.G = getattr(phys, "G", 0) + g_yield

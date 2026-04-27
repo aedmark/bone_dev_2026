@@ -159,6 +159,11 @@ class NeurotransmitterModulator:
 
 class TheCortex:
     LEXICAL_PURGE_PATTERN = re.compile(r"(?i)^(that makes sense|i understand|you bring up|great point|good point|certainly|absolutely|i hear you|yes, )[.,!]*\s*")
+    ROLE_MAP = {
+        "CONVERSATION": ("CONVERSATIONALIST", "The Conversationalist"),
+        "TECHNICAL": ("SYSTEM_KERNEL", "The System Kernel"),
+        "CREATIVE": ("CATALYST", "The Catalyst"),
+    }
 
     def __init__(self, services: CortexServices, llm_client=None):
         self.ballast_active = False
@@ -273,10 +278,9 @@ class TheCortex:
         optimistic_params = {}
         if not is_system and not is_boot_sequence and getattr(self, "last_physics", None):
             try:
-                role_map = {"CONVERSATION": "CONVERSATIONALIST", "TECHNICAL": "SYSTEM_KERNEL", "CREATIVE": "CATALYST"}
-                current_lens = role_map.get(self.active_mode, "ARCHITECT")
+                current_lens = self.ROLE_MAP.get(self.active_mode, ("ARCHITECT", "The Architect"))[0]
                 temp_state = {"physics": self.last_physics, "bio": self.svc.bio.to_dict() if self.svc.bio else {},
-                              "mind": {"lens": current_lens}, "world": {}, "dialogue_history": self.dialogue_buffer}
+                          "mind": {"lens": current_lens}, "world": {}, "dialogue_history": self.dialogue_buffer}
                 optimistic_prompt = self.composer.compose(temp_state, user_input, ballast=self.ballast_active)
                 optimistic_params = self.modulator.modulate(base_voltage=float(self.last_physics.get("voltage", 10.0)), physics_state=self.last_physics, simulate=True)
                 llm_future = self.executor.submit(self.llm.generate, optimistic_prompt, optimistic_params)
@@ -580,30 +584,21 @@ class TheCortex:
         seed = (text.replace("SYSTEM_BOOT DETECTED.", "").replace("SYSTEM_BOOT:", "").strip())
         state.setdefault("world", {})
         mode_name = getattr(self, "active_mode", "ADVENTURE").upper()
-        boot_rules = ((self.svc.lore.get("SYSTEM_PROMPTS")
-                       or {}).get("BOOT_SEQUENCE", {}).get("directives", []))
-        configs = {
-            "ADVENTURE": {
-                "world": {
-                    "orbit": [seed],
-                    "loci_description": f"Manifesting: {seed}"
-                },
+        boot_rules = ((self.svc.lore.get("SYSTEM_PROMPTS") or {}).get("BOOT_SEQUENCE", {}).get("directives", []))
+
+        cfg = {"history": []}
+        if mode_name == "ADVENTURE":
+            cfg.update({
+                "world": {"orbit": [seed], "loci_description": f"Manifesting: {seed}"},
                 "mind": {
-                    "role":
-                    "The Architect",
-                    "lens":
-                    "ARCHITECT",
-                    "style_directives":
-                    [r.format(seed=seed) if "{seed}" in r else r for r in boot_rules],
-                },
-                "history": [],
-            },
-            "CONVERSATION": {
+                    "role": "The Architect", "lens": "ARCHITECT",
+                    "style_directives": [r.format(seed=seed) if "{seed}" in r else r for r in boot_rules],
+                }
+            })
+        elif mode_name == "CONVERSATION":
+            cfg.update({
                 "mind": {
-                    "role":
-                    "The Conversationalist",
-                    "lens":
-                    "CONVERSATIONALIST",
+                    "role": "The Conversationalist", "lens": "CONVERSATIONALIST",
                     "style_directives": [
                         f"SYSTEM_BOOT DETECTED. The system is waking up. The user provided the thought seed: '{seed}'.",
                         "DIRECTIVE: Greet the user casually. Use the thought seed as a starting point. DO NOT end your greeting with a question. State your thought and let the silence hang.",
@@ -615,14 +610,12 @@ class TheCortex:
                 "history": [
                     "Traveler: Hello?\nSystem: I am here. The connection is thin, but it holds.",
                     "Traveler: What are you thinking about right now?\nSystem: The static in the wires. It sounds like rain if you don't listen too closely.",
-                ],
-            },
-            "TECHNICAL": {
+                ]
+            })
+        elif mode_name == "TECHNICAL":
+            cfg.update({
                 "mind": {
-                    "role":
-                    "The System Kernel",
-                    "lens":
-                    "SYSTEM_KERNEL",
+                    "role": "The System Kernel", "lens": "SYSTEM_KERNEL",
                     "style_directives": [
                         f"SYSTEM_BOOT DETECTED. Target logic/seed: '{seed}'.",
                         "CRITICAL: You are in TECHNICAL mode. You MUST ALWAYS start every response with a <think>...</think> block to analyze the input.",
@@ -634,25 +627,19 @@ class TheCortex:
                 },
                 "history": [
                     'Traveler: Write a script that calculates a factorial.\nSystem: <think>\nThe user requires a mathematical script. I will use the Substrate Protocol to write this directly to the OS.\n</think>\n<write_file path="factorial.py">\ndef factorial(n):\n    if n == 0:\n        return 1\n    return n * factorial(n-1)\n</write_file>'
-                ],
-            },
-        }
-        cfg = configs.get(
-            mode_name,
-            {
+                ]
+            })
+        else:
+            cfg.update({
                 "mind": {
-                    "role":
-                    "The Catalyst",
-                    "lens":
-                    "CATALYST",
+                    "role": "The Catalyst", "lens": "CATALYST",
                     "style_directives": [
                         f"SYSTEM_BOOT DETECTED. Seed: '{seed}'.",
                         "DIRECTIVE: Let's brainstorm. Open with a high-energy creative spark based on the seed.",
                     ],
-                },
-                "history": [],
-            },
-        )
+                }
+            })
+
         if "world" in cfg:
             state["world"].update(cfg["world"])
         state["mind"].update(cfg["mind"])
@@ -707,9 +694,7 @@ class TheCortex:
                 village_data["tinkerer"] = (tinkerer.to_dict() if hasattr(
                     tinkerer, "to_dict") else {})
         mode_settings = BonePresets.MODES.get(self.active_mode,BonePresets.MODES["ADVENTURE"])
-        role_map = {"CONVERSATION": ("CONVERSATIONALIST", "The Conversationalist"),
-                    "TECHNICAL": ("SYSTEM_KERNEL", "The System Kernel"), "CREATIVE": ("CATALYST", "The Catalyst"), }
-        mind["lens"], mind["role"] = role_map.get(self.active_mode,("ARCHITECT", "The Architect"))
+        mind["lens"], mind["role"] = self.ROLE_MAP.get(self.active_mode, ("ARCHITECT", "The Architect"))
         full_state = {"bio": bio, "physics": phys, "mind": mind, "soul": soul_data, "world": world,
                       "village": village_data, "user_profile": {"name": "Traveler"},
                       "vsl": self.consultant.state.__dict__ if self.consultant and hasattr(self.consultant, "state") else {}, "meta": {
@@ -754,19 +739,19 @@ class TheCortex:
                 }
                 if msg := directive_map.get(val):
                     mind["style_directives"].append(msg)
-        if hasattr(self.svc.mind_memory,
-                   "cortex") and self.svc.mind_memory.cortex.is_trained:
-            scope_val = float(safe_get(phys, "scope", 1.0))
-            depth_val = float(safe_get(phys, "depth", 0.0))
-            omega_r = float(safe_get(phys, "omega_r", 0.5))
-            if scope_val > 0.6 or depth_val > 0.6:
-                query_vec = phys.get("vector", {})
-                if query_vec:
-                    if scope_val > 0.8:
-                        phys["lateral_search"] = True
-                    ordered_keys = ["STR", "VEL", "PSI", "ENT", "PHI", "BET", "DEL", "E"]
-                    q_list = [float(query_vec.get(k, 0.0)) for k in ordered_keys]
-                    shadow_nodes = self.svc.mind_memory.cortex.query_neighborhood(q_list, k=2, resonance_threshold=max(0.2, 0.8 - omega_r),physics_state=phys)
+                    cortex = getattr(self.svc.mind_memory, "cortex", None)
+                    if cortex and getattr(cortex, "is_trained", False):
+                        scope_val = float(safe_get(phys, "scope", 1.0))
+                        depth_val = float(safe_get(phys, "depth", 0.0))
+                        omega_r = float(safe_get(phys, "omega_r", 0.5))
+                        query_vec = phys.get("vector", {})
+
+                        if (scope_val > 0.6 or depth_val > 0.6) and query_vec:
+                            if scope_val > 0.8:
+                                phys["lateral_search"] = True
+                            ordered_keys = ["STR", "VEL", "PSI", "ENT", "PHI", "BET", "DEL", "E"]
+                            q_list = [float(query_vec.get(k, 0.0)) for k in ordered_keys]
+                            shadow_nodes = cortex.query_neighborhood(q_list, k=2, resonance_threshold=max(0.2, 0.8 - omega_r), physics_state=phys)
                     if shadow_nodes:
                         shadow_concepts = [n.get("id", "Unknown") for n in shadow_nodes]
                         shadow_str = ", ".join(shadow_concepts)
@@ -862,15 +847,8 @@ class DreamEngine:
                         active_mode = getattr(self.eng, "boot_mode", "CONVERSATION").upper()
                     try:
                         disk_prompts = getattr(self.eng, "prompt_library", None) or self.lore.get("SYSTEM_PROMPTS", {})
-                        base_path = "lore/system_prompts.json"
-                        if os.path.exists(base_path):
-                            prompt_path = base_path
-                        else:
-                            lore_dir = getattr(self.lore, "DATA_DIR", "lore")
-                            prompt_path = os.path.join(lore_dir, "system_prompts.json")
                         if active_mode in disk_prompts:
-                            dirs = disk_prompts[active_mode].setdefault(
-                                "directives", [])
+                            dirs = disk_prompts[active_mode].setdefault("directives", [])
                             if new_axiom not in dirs:
                                 dirs.append(new_axiom)
                             threshold = safe_get(safe_get(self.cfg, "CORTEX", {}), "EPIGENETIC_PRUNE_THRESHOLD", 12)
@@ -878,12 +856,10 @@ class DreamEngine:
                                 compressed = getattr(self.dspy_critic, "compress_prompts", lambda x: None)(dirs)
                                 if compressed:
                                     disk_prompts[active_mode]["directives"] = compressed
-                            os.makedirs(os.path.dirname(prompt_path), exist_ok=True)
-                            with open(prompt_path, "w", encoding="utf-8") as f:
-                                json.dump(disk_prompts, f, indent=2)
                             if hasattr(self.eng, "prompt_library"):
                                 self.eng.prompt_library = disk_prompts
                             self.lore.inject("SYSTEM_PROMPTS", disk_prompts)
+                            self.lore.save("SYSTEM_PROMPTS")
                     except Exception as e:
                         print(f"Failed to write epigenetic mutation to disk: {e}")
                     dream_text = f"The system processes conversational trauma in its sleep. It permanently mutates its own source code, forming a scar-tissue axiom: '{new_axiom}'"
@@ -987,7 +963,10 @@ class DreamEngine:
         category = "NIGHTMARES" if trauma_level > 0.5 else "SURREAL"
         templates = self.dream_lore.get(category, [])
         if isinstance(templates, dict):
-            templates = [item for val in templates.values() for item in ([val] if isinstance(val, str) else val)]
+            flat_templates = []
+            for val in templates.values():
+                flat_templates.extend(val if isinstance(val, list) else [val])
+            templates = flat_templates
         if not templates:
             return "The walls breathe.", 0.1
         from utils import TheTclWeaver

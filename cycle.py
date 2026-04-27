@@ -215,15 +215,17 @@ class GeodesicOrchestrator:
 
     def _verify_semantic_topology(self, ctx: CycleContext):
         """ Native Maslov-Sneppen rewiring (Project Navi, Apache 2.0)."""
-        if hasattr(self.eng, "memory") and hasattr(self.eng.memory, "hippocampus"):
-            actual_graph = getattr(self.eng.memory.hippocampus, "get_graph", lambda: None)()
+        mem = getattr(self.eng, "memory", None)
+        hippo = getattr(mem, "hippocampus", None)
+        if hippo and hasattr(hippo, "get_graph"):
+            actual_graph = hippo.get_graph()
             if actual_graph and len(actual_graph) > 5:
-                actual_adj = actual_graph.adj if hasattr(actual_graph, "adj") else {}
-                if actual_adj:
+                actual_adj = getattr(actual_graph, "adj", {})
+                if actual_adj and hasattr(mem, "calculate_clustering"):
                     max_swaps = min(len(actual_adj) * 10, 1000)
                     null_adj = _native_rewire(actual_adj, n_swaps=max_swaps)
-                    actual_cluster = getattr(self.eng.memory, "calculate_clustering", lambda x: 1.0)(actual_adj)
-                    null_cluster = getattr(self.eng.memory, "calculate_clustering", lambda x: 1.0)(null_adj)
+                    actual_cluster = mem.calculate_clustering(actual_adj)
+                    null_cluster = mem.calculate_clustering(null_adj)
                     if actual_cluster <= (null_cluster * 1.05):
                         self.eng.events.log(
                             f"{Prisma.RED}[APOPTOSIS] Structural collapse detected. Grammar sequence preserved but semantic topology destroyed (Native Maslov-Sneppen matched). Triggering DeathGen.{Prisma.RST}",
@@ -239,20 +241,21 @@ class GeodesicOrchestrator:
             ctx.refusal_triggered = True
             msg = f"{Prisma.OCHRE}[GORDON - Input Fence]: Adversarial injection detected. Struts locked. F -> ∞. Prompt rejected at O(1) latency.{Prisma.RST}"
             self.eng.events.log(msg, "CRIT")
-            ctx.refusal_packet = {"type": "SYSTEM_HALT", "ui": msg, "physics":
-                ctx.physics.to_dict() if hasattr(ctx.physics, "to_dict") else {}, "is_alive": True, "logs": [msg]}
+            ctx.refusal_packet = {
+                "type": "SYSTEM_HALT", "ui": msg, "physics": _safe_dict(ctx.physics),
+                "is_alive": True, "logs": [msg]
+            }
             return True
         return False
 
     def _execute_core_cycle(self, user_message: str, is_system: bool = False) -> CycleContext:
         cycle_id = str(uuid.uuid4())[:8]
-        if hasattr(self.eng, "telemetry") and self.eng.telemetry:
-            self.eng.telemetry.start_cycle(cycle_id)
+        tel = getattr(self.eng, "telemetry", None)
+        if tel: tel.start_cycle(cycle_id)
         try:
             ctx = CycleContext(input_text=user_message, is_system_event=is_system)
             if self._check_adversarial_fence(ctx, user_message, is_system):
-                if hasattr(self.eng, "telemetry") and self.eng.telemetry:
-                    self.eng.telemetry.finalize_cycle()
+                if tel: tel.finalize_cycle()
                 return ctx
             ctx.trace_id = cycle_id
             ctx.time_delta = getattr(self.eng, "current_time_delta", 0.0)
@@ -280,11 +283,11 @@ class GeodesicOrchestrator:
             ctx = self.simulator.run_simulation(ctx)
             self._apply_cd_metabolism(ctx)
             self._verify_semantic_topology(ctx)
-            if hasattr(self.eng, "observer") and self.eng.observer:
-                self.eng.observer.last_physics_packet = ctx.physics.snapshot()
-            if hasattr(self.eng, "telemetry") and self.eng.telemetry:
-                self.eng.telemetry.finalize_cycle()
+            if obs:
+                obs.last_physics_packet = ctx.physics.snapshot()
+            if tel: tel.finalize_cycle()
             return ctx
+
         except Exception as e:
             full_trace = traceback.format_exc()
             self.eng.events.log(f"CYCLE CRASH: {e}\n{full_trace}", "CRIT")
@@ -293,8 +296,7 @@ class GeodesicOrchestrator:
             ctx.physics = PanicRoom.get_safe_physics()
             ctx.is_alive = False
             ctx.crash_error = e
-            if hasattr(self.eng, "telemetry") and self.eng.telemetry:
-                self.eng.telemetry.finalize_cycle()
+            if tel: tel.finalize_cycle()
             return ctx
 
     def _background_dream_worker(self):

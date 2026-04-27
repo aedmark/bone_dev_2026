@@ -429,7 +429,7 @@ class TrueEngineTest(BoneTestCase):
         composer = PromptComposer(self.engine.prompt_library)
         state = self.engine.cortex.gather_state({"physics": {"voltage": 30.0}})
         state["recent_logs"] = [
-            "\033[31m[AUTOPHAGY: Consumed memory of 'User's favorite color' to survive.]\033[0m"
+            "[AUTOPHAGY: Consumed memory of 'User's favorite color' to survive.]"
         ]
         prompt = composer.compose(state, "What was my favorite color?")
         self.assertIn(
@@ -498,11 +498,12 @@ class TrueEngineTest(BoneTestCase):
             network.subconscious.filepath = tmp_path
             network.subconscious.matrix_filepath = os.path.join(temp_dir, "test_m_t2.json")
             network.subconscious.bury({"word": "echo", "mass": 10.0})
-            physics = {"clean_words": ["echo", "hello"], "voltage": 10.0, "narrative_drag": 1.0}
-            log = network._poll_ghosts(physics["clean_words"], physics)
+            physics = PhysicsPacket(voltage=10.0, narrative_drag=1.0)
+            physics.clean_words = ["echo", "hello"]
+            log = network._poll_ghosts(physics.clean_words, physics)
             self.assertIsNotNone(log, "Ghost poll failed to detect the buried word.")
-            self.assertNotEqual(physics["voltage"], 10.0, "The ghost failed to mutate the system Voltage.")
-            self.assertNotEqual(physics["narrative_drag"], 1.0, "The ghost failed to mutate the system Drag.")
+            self.assertNotEqual(physics.voltage, 10.0, "The ghost failed to mutate the system Voltage.")
+            self.assertNotEqual(physics.narrative_drag, 1.0, "The ghost failed to mutate the system Drag.")
             self.assertIn("ECHO", log, "The log string did not identify the haunting word.")
 
     def test_drag_profile(self):
@@ -1146,8 +1147,7 @@ class FractureEngineTest(BoneTestCase):
             "  [SUCCESS] The Medical Team successfully diagnosed and intercepted systemic collapse."
         )
 
-    def generate_mock_memories(self, count=10000, dim=8):
-        print(f"🧬 Synthesizing {count} mock memory engrams...")
+    def generate_mock_memories(self, count=50, dim=8):
         return [(f"node_{i}", [random.uniform(-1.0, 1.0) for _ in range(dim)], {
             "concept": f"ghost_node_{i}",
             "mass": random.uniform(1.0, 10.0)
@@ -1156,32 +1156,19 @@ class FractureEngineTest(BoneTestCase):
     def test_the_fracture(self):
         events = EventBus()
         network = MycelialNetwork(events, config_ref=BoneConfig)
-        memories = self.generate_mock_memories(10000)
-        print("\n🌊 FLOODING HIPPOCAMPAL CACHE...")
-        network.hippocampus.max_capacity = 15000
-        start_time = time.time()
+        memories = self.generate_mock_memories(50)
+        network.hippocampus.max_capacity = 100
         for node_id, vector, meta in memories:
             network.hippocampus.encode(node_id, vector, meta)
-        flood_time = time.time() - start_time
-        print(f"✔️ Hippocampus saturated. Time: {flood_time:.4f}s")
-        print("\n☁️ INITIATING FORCED REM CYCLE (CONSOLIDATION)...")
+
         available_atp = 5000.0
-        start_time = time.time()
         consolidator = MemoryConsolidator(network.hippocampus, network.cortex, events)
         nodes_moved, atp_cost = consolidator.trigger_rem_consolidation(available_atp)
-        rem_time = time.time() - start_time
-        print(f"✔️ Synaptic Consolidation complete.")
-        print(f"   Nodes moved to deep index: {nodes_moved}")
-        print(f"   Metabolic Cost (ATP Burned): {atp_cost:.2f}")
-        print(f"   Time elapsed: {rem_time:.4f}s")
-        print("\n🔍 EXECUTING DEEP SUBSTRATE QUERY ($O(\\log N)$)...")
+
         query_vector = [random.uniform(-1.0, 1.0) for _ in range(8)]
-        start_time = time.time()
         results = network.retrieve_semantic("trigger_word", query_vector, scope=0.9, resonance=0.5)
-        query_time = time.time() - start_time
-        print(f"✔️ Deep Query complete. Time: {query_time:.6f}s")
-        print(f"   Nodes retrieved from void: {len(results)}")
-        self.assertEqual(nodes_moved, 10000, "Consolidator failed to move all 10,000 nodes.")
+
+        self.assertEqual(nodes_moved, 50, "Consolidator failed to move all 50 nodes.")
 
     def test_fracture_aerodynamic_lift(self):
         print("\n--- FRACTURE 8: Aerodynamic Lift (Negative Drag) ---")

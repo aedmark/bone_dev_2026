@@ -57,10 +57,10 @@ class TheTinkerer:
 
     def _process_single_tool(self, item: str, _inventory: List[str], packet: PhysicsPacket, entropy: float):
         self.tool_resonance.setdefault(item, 0.0)
-        if packet.voltage > self.cfg.COUNCIL.MANIC_VOLTAGE_TRIGGER or entropy > 0.5:
+        if packet.voltage > _cfg_val(self.cfg, "COUNCIL", "MANIC_VOLTAGE_TRIGGER", 18.0) or entropy > 0.5:
             self._apply_resonance(item, _cfg_val(self.cfg, "VILLAGE", "TINKER_RESONANCE_HIGH_V", 0.2))
             self._check_ascension(item, _inventory, packet.vector)
-        elif packet.narrative_drag > self.cfg.PHYSICS.DRAG_HALT:
+        elif packet.narrative_drag > _cfg_val(self.cfg, "PHYSICS", "DRAG_HALT", 10.0):
             self._apply_resonance(item, _cfg_val(self.cfg, "VILLAGE", "TINKER_RESONANCE_TEMPER", 0.05))
 
     def _apply_resonance(self, item: str, amount: float):
@@ -78,8 +78,6 @@ class TheTinkerer:
             new_name, new_data = self.akashic.forge_new_item(vector)
             self.gordon.register_dynamic_item(new_name, new_data)
             self.gordon.acquire(new_name)
-            if hasattr(self.gordon, "ITEM_REGISTRY"):
-                self.gordon.ITEM_REGISTRY[new_name] = new_data
             try:
                 inventory_list[inventory_list.index(old_name)] = new_name
             except ValueError:
@@ -272,7 +270,6 @@ class TownHall:
         self.navigator = navigator_ref
         self.seeds: List[ParadoxSeed] = []
         almanac = LoreManifest.get_instance().get("ALMANAC") or {}
-        self.rumors = almanac.get("RUMORS", [])
         seed_data = almanac.get("SEEDS", [])
         for s in seed_data:
             if "question" in s and "triggers" in s:
@@ -334,9 +331,11 @@ class TownHall:
         elif packet.voltage < _cfg_val(self.cfg, "VILLAGE", "TOWN_VOLT_LOW", 2.0) and packet.narrative_drag > _cfg_val(self.cfg, "VILLAGE", "TOWN_DRAG_HIGH", 5.0):
             if msg := ux("village_strings", "town_loops"):
                 report.append(f"{Prisma.MAG}{msg}{Prisma.RST}")
-        elif status == "BALANCED" and self.rumors and random.random() < _cfg_val(self.cfg, "VILLAGE", "TOWN_RUMOR_CHANCE", 0.3):
-            if msg := ux("village_strings", "town_rumor"):
-                report.append(f"{Prisma.GRY}{msg.format(rumor=random.choice(self.rumors))}{Prisma.RST}")
+        elif status == "BALANCED" and random.random() < _cfg_val(self.cfg, "VILLAGE", "TOWN_RUMOR_CHANCE", 0.3):
+            almanac = LoreManifest.get_instance().get("ALMANAC") or {}
+            if rumors := almanac.get("RUMORS", []):
+                if msg := ux("village_strings", "town_rumor"):
+                    report.append(f"{Prisma.GRY}{msg.format(rumor=random.choice(rumors))}{Prisma.RST}")
         return "\n".join(report).strip()
 
     @staticmethod
