@@ -192,7 +192,7 @@ class SubconsciousStrata:
         try:
             target_cfg = config_ref or BoneConfig
             cfg = getattr(target_cfg, "SPORES", None)
-            max_idx = getattr(cfg, "MAX_INDEX_SIZE", 1000) if cfg else 1000
+            max_idx = getattr(cfg, "MAX_INDEX_SIZE", 1000)
             if len(self.index) > max_idx:
                 self._prune_strata()
             with open(self.filepath, "a", encoding="utf-8") as f:
@@ -531,7 +531,7 @@ class MycelialNetwork:
             "timestamp": time.time(),
         }
         cfg = getattr(self.cfg, "SPORES", None)
-        consolidation = getattr(cfg, "CONSOLIDATION_THRESHOLD", 5.0) if cfg else 5.0
+        consolidation = getattr(cfg, "CONSOLIDATION_THRESHOLD", 5.0)
         if significance > consolidation:
             self.memory_core.short_term_buffer.append(engram)
             return True
@@ -776,7 +776,7 @@ class MycelialNetwork:
         future_seed_q = self._generate_future_seed(temp_health=health, trauma_vec=final_vector)
         seed_list = [{"q": s.question, "m": s.maturity, "b": s.bloomed} for s in self.seeds if not s.bloomed]
         seed_list.append({"q": future_seed_q, "m": 0.0, "b": False})
-        data = {"genome": "BA_01950", "session_id": self.session_id, "parent_id": self.session_id,
+        data = {"genome": "BA_01960", "session_id": self.session_id, "parent_id": self.session_id,
                 "meta": {"timestamp": time.time(), "final_health": health, "final_stamina": stamina, },
                 "trauma_vector": final_vector, "joy_vectors": top_joy or [], "joy_legacy": joy_legacy_data,
                 "core_graph": core_graph, "mutations": mutations or {},
@@ -894,7 +894,7 @@ class BioParasite:
         self.cfg = config_ref or BoneConfig
         self.spores_deployed = 0
         cfg = getattr(self.cfg, "SPORES", None)
-        self.MAX_SPORES = getattr(cfg, "PARASITE_MAX_SPORES", 8) if cfg else 8
+        self.MAX_SPORES = getattr(cfg, "PARASITE_MAX_SPORES", 8)
         self.name = "PARASITE"
         self.color = Prisma.RED
         self.archetypes = {"antigen", "toxin", "heavy", "meat", "void", "static", "rot", "decay", }

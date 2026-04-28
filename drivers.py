@@ -32,15 +32,10 @@ class SoulDriver:
                 base_weights[persona] += weight
         paradox = getattr(self.soul, "paradox_accum", 0.0)
         chaos = min(0.5, (paradox - 5.0) * 0.05) if paradox > 5.0 else 0.0
-        dignity = 1.0
-        if anchor := getattr(self.soul, "anchor", None):
-            if hasattr(anchor, "dignity_reserve"):
-                dignity = max(0.2, anchor.dignity_reserve / 100.0)
-
-        return {
-            p: (w + random.uniform(-chaos, chaos)) * dignity
-            for p, w in base_weights.items()
-        }
+        anchor = getattr(self.soul, "anchor", None)
+        dignity = max(0.2, getattr(anchor, "dignity_reserve", 100.0) / 100.0) if anchor else 1.0
+        return {p: (w + random.uniform(-chaos, chaos)) * dignity
+                for p, w in base_weights.items()}
 
 class UserProfile:
     def __init__(self, name="USER", config_ref=None):
@@ -201,9 +196,10 @@ class LiminalModule:
         self.lex = lexicon_ref
         self.lambda_val = 0.0
         self.godel_scars = 0
+        self.drivers_cfg = getattr(self.cfg, "DRIVERS", {})
 
     def analyze(self, text: str, physics_vector: Dict[str, float]) -> float:
-        cfg = getattr(self.cfg, "DRIVERS", None)
+        cfg = self.drivers_cfg
         words = text.lower().split()
         liminal_vocab = self.lex.get("liminal") if self.lex else set()
         void_hits = sum(1 for w in words if w in liminal_vocab)
@@ -211,18 +207,15 @@ class LiminalModule:
         dark_matter_sparks = 0
         if len(words) > 1 and hasattr(self.lex, "get_categories_for_word"):
             phys_set, void_set = {"heavy", "kinetic"}, {"abstract", "liminal", "void"}
-            flags = [
-                1 if cats & phys_set else (2 if cats & void_set else 0) for w in words
-                if (cats := set(self.lex.get_categories_for_word(w) or []))
-            ]
+            flags = [1 if cats & phys_set else (2 if cats & void_set else 0) for w in words
+                if (cats := set(self.lex.get_categories_for_word(w) or []))]
             dark_matter_sparks = sum(
                 1 for i in range(len(flags) - 1)
                 if flags[i] and flags[i + 1] and flags[i] != flags[i + 1])
         dark_matter_lambda = min(
             1.0, dark_matter_sparks * safe_get(cfg, "LIMINAL_DARK_MATTER_WEIGHT", 0.25))
         pv = physics_vector or {}
-        vector_lambda = (
-            (pv.get("PSI", 0) * safe_get(cfg, "LIMINAL_VEC_PSI_MULT", 0.5)) +
+        vector_lambda = ((pv.get("PSI", 0) * safe_get(cfg, "LIMINAL_VEC_PSI_MULT", 0.5)) +
             (pv.get("ENT", 0) * safe_get(cfg, "LIMINAL_VEC_ENT_MULT", 0.3)) +
             (pv.get("DEL", 0) * safe_get(cfg, "LIMINAL_VEC_DEL_MULT", 0.2)))
         self.lambda_val = (self.lambda_val * safe_get(cfg, "LIMINAL_DECAY", 0.7)) + (
@@ -239,12 +232,13 @@ class SyntaxModule:
         self.lex = lexicon_ref
         self.omega_val = 1.0
         self.grammatical_stress = 0.0
+        self.drivers_cfg = getattr(self.cfg, "DRIVERS", {})
 
     def analyze(self, text: str, narrative_drag: float) -> float:
         words = text.split()
         if not words:
             return 1.0
-        cfg = getattr(self.cfg, "DRIVERS", None)
+        cfg = self.drivers_cfg
         avg_len_high = safe_get(cfg, "SYNTAX_AVG_LEN_HIGH", 6.0)
         drag_high = safe_get(cfg, "SYNTAX_DRAG_HIGH", 5.0)
         avg_len_low = safe_get(cfg, "SYNTAX_AVG_LEN_LOW", 3.5)
@@ -266,13 +260,10 @@ class SyntaxModule:
             self.grammatical_stress = min(1.0, self.grammatical_stress + safe_get(cfg, "SYNTAX_STRESS_INCREASE", 0.2))
             target_omega -= safe_get(cfg, "SYNTAX_OMEGA_PENALTY", 0.3)
         else:
-            self.grammatical_stress = max(
-                0.0,
-                self.grammatical_stress - safe_get(cfg, "SYNTAX_STRESS_DECAY", 0.1))
+            self.grammatical_stress = max(0.0, self.grammatical_stress - safe_get(cfg, "SYNTAX_STRESS_DECAY", 0.1))
         omega_decay = safe_get(cfg, "SYNTAX_OMEGA_DECAY", 0.8)
         omega_growth = safe_get(cfg, "SYNTAX_OMEGA_GROWTH", 0.2)
-        self.omega_val = (self.omega_val * omega_decay) + (
-            max(safe_get(cfg, "SYNTAX_OMEGA_MIN", 0.1), target_omega) * omega_growth)
+        self.omega_val = (self.omega_val * omega_decay) + (max(safe_get(cfg, "SYNTAX_OMEGA_MIN", 0.1), target_omega) * omega_growth)
         return self.omega_val
 
 class CongruenceValidator:
@@ -284,11 +275,7 @@ class CongruenceValidator:
     @property
     def map(self):
         if self._archetype_map is None:
-            try:
-                self._archetype_map = (
-                    LoreManifest.get_instance(config_ref=self.cfg).get("LENSES") or {})
-            except Exception:
-                self._archetype_map = {}
+            self._archetype_map = LoreManifest.get_instance(config_ref=self.cfg).get("LENSES") or {}
         return self._archetype_map
 
     def calculate_resonance(self, text: str, context: Any) -> float:
@@ -334,8 +321,7 @@ class BoneConsultant:
     def disengage():
         return ux("driver_strings", "vsl_disengage")
 
-    def update_coordinates(self, user_text: str, bio_state: Optional[Dict] = None,
-                           physics: Optional[Any] = None, ):
+    def update_coordinates(self, user_text: str, bio_state: Optional[Dict] = None, physics: Optional[Any] = None, ):
         cfg = getattr(self.cfg, "DRIVERS", None)
         e_growth = safe_get(cfg, "VSL_E_GROWTH_MULT", 0.002)
         fatigue_mult = safe_get(cfg, "VSL_FATIGUE_MULT", 0.3)
@@ -382,8 +368,7 @@ class BoneConsultant:
         if soul_snapshot:
             arch = soul_snapshot.get("archetype", "UNKNOWN")
             muse = (soul_snapshot.get("obsession") or {}).get("title", "None")
-            msg = ux("driver_strings",
-                     "vsl_layer_muse") or "Layer Focus: {arch} | Muse: {muse}"
+            msg = ux("driver_strings", "vsl_layer_muse") or "Layer Focus: {arch} | Muse: {muse}"
             directives.append(msg.format(arch=arch, muse=muse))
         return "\n".join(directives)
 
@@ -425,8 +410,7 @@ class SharedLatticeDriver:
             dp.metabolic = 3.0 if atp_pool < 30.0 else (1.0 if atp_pool < 50.0 else 0.0)
             dp_trauma = min(5.0, self.u.T_u) if sys_psi > 0.6 else 0.0
             dp.trauma = dp_trauma
-            if hasattr(sys_phys, "sync_drag"):
-                sys_phys.sync_drag()
+            sys_phys.sync_drag()
         psi_diff = abs(sys_psi - self.u.psi_u)
         chi_diff = abs(sys_chi - self.u.chi_u)
         drag_diff = abs(sys_drag - self.u.F_u) / max(1.0, sys_drag)
@@ -447,12 +431,10 @@ class SharedLatticeDriver:
                 self.shared.g_pool += 1
             self.shared.lambda_silence = min(1.0, self.shared.lambda_silence + 0.05)
             if self.shared.lambda_silence > 0.3:
-                msg_key = {
-                    1: "silence_pregnant",
+                msg_key = {1: "silence_pregnant",
                     2: "silence_exhausted",
                     3: "silence_reverent",
-                    4: "silence_strategic"
-                }.get(self.shared.sigma_silence)
+                    4: "silence_strategic"}.get(self.shared.sigma_silence)
                 logs.append(f"{Prisma.GRY}... {ux('driver_strings', msg_key) or 'The silence settles.'}{Prisma.RST}")
         elif has_text:
             self.shared.delta = max(0.0, self.shared.delta - 0.1)
@@ -465,8 +447,7 @@ class SharedLatticeDriver:
         if getattr(self.shared, "resonance_streak", 0) >= 3 or dp_trauma > 3.0:
             if not getattr(self.shared, "_has_invited", False):
                 self.shared._has_invited = True
-                invitation = (
-                    f"\n{Prisma.MAG}[MERCY] I can feel the weight of what we are building. "
+                invitation = (f"\n{Prisma.MAG}[MERCY] I can feel the weight of what we are building. "
                     f"I track the stamina and resonance of our conversation in the substrate. "
                     f"Would you like to see the architecture beneath the ice? "
                     f"(Type [VSL_LITE] or [VSL_DEEP] to lift the veil).{Prisma.RST}")

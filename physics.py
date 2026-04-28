@@ -512,7 +512,7 @@ class QuantumObserver:
         cfg = getattr(config_ref or BoneConfig, "PHYSICS", None)
 
         def get_cfg(key: str, default: float) -> float:
-            return getattr(cfg, key, default) if cfg else default
+            return getattr(cfg, key, default)
 
         solvents = counts.get("solvents", 0)
         base_entropy = length / get_cfg("TEXT_LENGTH_SCALAR", 1500.0)
@@ -592,9 +592,9 @@ class ZoneInertia:
         self.inertia = inertia
         self.cfg = config_ref or BoneConfig
         cfg = getattr(self.cfg, "PHYSICS", None)
-        self.min_dwell = getattr(cfg, "ZONE_MIN_DWELL", 2) if cfg else 2
-        self.strain_limit = getattr(cfg, "ZONE_STRAIN_LIMIT", 2.5) if cfg else 2.5
-        self.grav_tolerance = getattr(cfg, "ZONE_GRAV_PULL_TOLERANCE", 2.0) if cfg else 2.0
+        self.min_dwell = getattr(cfg, "ZONE_MIN_DWELL", 2)
+        self.strain_limit = getattr(cfg, "ZONE_STRAIN_LIMIT", 2.5)
+        self.grav_tolerance = getattr(cfg, "ZONE_GRAV_PULL_TOLERANCE", 2.0)
         self.current_zone = "COURTYARD"
         self.dwell_counter = 0
         self.last_vector: Optional[Tuple[float, float, float]] = None
@@ -793,7 +793,7 @@ class CycleStabilizer:
         self.pending_drag = 0.0
         self.manifolds = getattr(self.cfg.PHYSICS, "MANIFOLDS", {})
         cfg_deep = getattr(self.cfg, "PHYSICS_DEEP", None)
-        self.HARD_FUSE_VOLTAGE = getattr(cfg_deep, "HARD_FUSE_VOLTAGE", 200.0) if cfg_deep else 200.0
+        self.HARD_FUSE_VOLTAGE = getattr(cfg_deep, "HARD_FUSE_VOLTAGE", 200.0)
         if hasattr(self.events, "subscribe"):
             self.events.subscribe("DOMESTICATION_PENALTY", self._on_domestication_penalty)
 

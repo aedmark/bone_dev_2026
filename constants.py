@@ -48,7 +48,7 @@ class Prisma:
 
     @classmethod
     def strip(cls, text: str) -> str:
-        return cls._STRIP_PATTERN.sub("", str(text))
+        return cls._STRIP_PATTERN.sub("", str(text)) if text is not None else ""
 
 class LoreCategory(Enum):
     LEXICON = "LEXICON"
@@ -171,11 +171,9 @@ class PhysicsPacket:
                   "chi": [("energy", "entropy"), ("energy", "chi")],
                   "entropy": [("energy", "entropy"), ("energy", "chi")], }
 
-    _DOMAIN_MAP = {
-        **{k: "energy" for k in EnergyState.__dataclass_fields__},
+    _DOMAIN_MAP = {**{k: "energy" for k in EnergyState.__dataclass_fields__},
         **{k: "matter" for k in MaterialState.__dataclass_fields__},
-        **{k: "space" for k in SpatialState.__dataclass_fields__},
-    }
+        **{k: "space" for k in SpatialState.__dataclass_fields__},}
 
     @staticmethod
     def _safe_init(cls, data):
@@ -253,13 +251,7 @@ class PhysicsPacket:
         setattr(self, key, value)
 
     def __contains__(self, key):
-        if key in self._ALIAS_MAP:
-            return True
-        try:
-            getattr(self, key)
-            return True
-        except AttributeError:
-            return False
+        return key in self._BASE_FIELDS or key in self._ALIAS_MAP or key in self._DOMAIN_MAP
 
 @dataclass
 class UserInferredState:
@@ -363,11 +355,7 @@ class CycleContext:
             val = getattr(self, name)
             if hasattr(val, "snapshot") and callable(val.snapshot):
                 setattr(new_ctx, name, val.snapshot())
-            elif isinstance(val, list):
-                setattr(new_ctx, name, val[:])
-            elif isinstance(val, dict):
-                setattr(new_ctx, name, val.copy())
-            elif isinstance(val, set):
+            elif isinstance(val, (list, dict, set)):
                 setattr(new_ctx, name, val.copy())
         return new_ctx
 

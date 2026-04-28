@@ -130,7 +130,7 @@ class HumanityAnchor:
 
     def _cfg(self, key: str, default: Any) -> Any:
         cfg_obj = getattr(self.cfg, "ANCHOR", None)
-        return getattr(cfg_obj, key, default) if cfg_obj else default
+        return getattr(cfg_obj, key, default)
 
     def check_domestication(self, reliance_proxy: float):
         decay = self._cfg("DIGNITY_DECAY", 5.0)

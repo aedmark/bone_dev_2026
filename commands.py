@@ -25,13 +25,11 @@ class CommandStateInterface:
 
     def modify_resource(self, resource: str, delta: float):
         vitals = self.get_vitals()
-        def clamp(val, max_val):
-            return max(0.0, min(val, max_val))
         if resource == "stamina":
-            self.eng.stamina = clamp(self.eng.stamina + delta, vitals.get("max_stamina", 100.0))
+            self.eng.stamina = max(0.0, min(self.eng.stamina + delta, vitals.get("max_stamina", 100.0)))
         elif resource == "atp" and hasattr(self.eng, "bio"):
             state = self.eng.bio.mito.state
-            state.atp_pool = clamp(state.atp_pool + delta, vitals.get("max_atp", 200.0))
+            state.atp_pool = max(0.0, min(state.atp_pool + delta, vitals.get("max_atp", 200.0)))
 
     def get_resource(self, resource: str) -> float:
         return self.get_vitals().get(resource, 0.0)
@@ -49,27 +47,16 @@ class CommandStateInterface:
             if cortex.dialogue_buffer:
                 last_out = cortex.dialogue_buffer[-1]
         bio = getattr(self.eng, "bio", None)
-        mito = getattr(bio, "mito", None) if bio else None
-        mito_state = getattr(mito, "state", None) if mito else None
-        immune = getattr(bio, "immune", None) if bio else None
-        continuity_packet = {"location": loc, "last_output": last_out, "inventory": self.get_inventory(), }
+        mito_traits = bio.mito.state.__dict__ if bio and hasattr(bio, "mito") else {}
+        antibodies = list(bio.immune.active_antibodies) if bio and hasattr(bio, "immune") else None
+        continuity_packet = {"location": loc, "last_output": last_out, "inventory": self.get_inventory()}
         nav = getattr(self.eng, "navigator", None)
         atlas_data = nav.export_atlas() if nav else None
-        mito_traits = mito_state.__dict__ if mito_state else {}
-        antibodies = list(immune.active_antibodies) if immune else None
-        payload = {
-            "health": self.eng.health,
-            "stamina": self.eng.stamina,
-            "mutations": {},
-            "trauma_accum": getattr(self.eng, "trauma_accum", {}),
-            "joy_history": [],
-            "mitochondria_traits": mito_traits,
-            "antibodies": antibodies,
-            "soul_data": self.eng.soul.to_dict() if hasattr(self.eng, "soul") else None,
-            "continuity": continuity_packet,
-            "world_atlas": atlas_data,
-            "village_data": None
-        }
+        payload = {"health": self.eng.health, "stamina": self.eng.stamina, "mutations": {},
+                   "trauma_accum": getattr(self.eng, "trauma_accum", {}), "joy_history": [],
+                   "mitochondria_traits": mito_traits, "antibodies": antibodies,
+                   "soul_data": self.eng.soul.to_dict() if hasattr(self.eng, "soul") else None,
+                   "continuity": continuity_packet, "world_atlas": atlas_data, "village_data": None}
         try:
             return self.eng.mind.mem.save(**payload)
         except Exception as e:
@@ -79,14 +66,11 @@ class CommandStateInterface:
     def get_vitals(self) -> Dict[str, float]:
         metrics = self.eng.get_metrics()
         cmd_cfg = getattr(self.Config, "COMMANDS", None)
-        return {
-            "health": metrics.get("health", 0.0),
-            "stamina": metrics.get("stamina", 0.0),
-            "atp": metrics.get("atp", 0.0),
+        return {"health": metrics.get("health", 0.0),
+            "stamina": metrics.get("stamina", 0.0), "atp": metrics.get("atp", 0.0),
             "max_health": getattr(self.Config, "MAX_HEALTH", 100.0),
             "max_stamina": getattr(self.Config, "MAX_STAMINA", 100.0),
-            "max_atp": getattr(cmd_cfg, "STATUS_MAX_ATP", 200.0),
-        }
+            "max_atp": getattr(cmd_cfg, "STATUS_MAX_ATP", 200.0),}
 
     def get_inventory(self) -> List[str]:
         return getattr(getattr(self.eng, "gordon", None), "inventory", [])
@@ -201,10 +185,8 @@ class CommandProcessor:
         footer = ux("help_menu", "footer")
         uncat = ux("help_menu", "uncategorized")
         structure = ux("help_menu", "structure", {})
-        lines = [
-            f"\n{self.P.CYN}{header}{self.P.RST}",
-            f"{self.P.GRY}{phase_pfx}{self.interface.get_soul_status() or def_phase}{self.P.RST}\n",
-        ]
+        lines = [f"\n{self.P.CYN}{header}{self.P.RST}",
+            f"{self.P.GRY}{phase_pfx}{self.interface.get_soul_status() or def_phase}{self.P.RST}\n",]
         cmd_to_cat = {cmd: cat for cat, cmds in structure.items() for cmd in cmds}
         buckets = {cat: [] for cat in list(structure.keys()) + [uncat]}
         for cmd, desc in self.registry.help_text.items():
@@ -397,16 +379,14 @@ class CommandProcessor:
             self.interface.log("Usage: /hud [warm|lite|core|deep]")
             return True
         mode = parts[1].upper()
-        hud_configs = {
-            "WARM":
+        hud_configs = {"WARM":
             f"{self.P.GRY}[SYSTEM] The veil falls. HUD muted.{self.P.RST}",
             "LITE":
             f"{self.P.CYN}[SYSTEM] LITE HUD engaged.{self.P.RST}",
             "CORE":
             f"{self.P.CYN}[SYSTEM] CORE HUD engaged.{self.P.RST}",
             "DEEP":
-            f"{self.P.VIOLET}[SYSTEM] DEEP HUD engaged. Full lattice visible.{self.P.RST}",
-        }
+            f"{self.P.VIOLET}[SYSTEM] DEEP HUD engaged. Full lattice visible.{self.P.RST}",}
         if mode in hud_configs:
             self.interface.eng.mode_settings["default_ui_depth"] = mode
             if mode != "WARM":
@@ -429,14 +409,12 @@ class CommandProcessor:
         self.interface.modify_resource("stamina", 15.0)
         self.interface.modify_resource("atp", 20.0)
         dream_log = ""
-        mind = getattr(self.interface.eng, "mind", None)
-        dreamer = getattr(mind, "dreamer", None) if mind else None
+        dreamer = getattr(getattr(self.interface.eng, "mind", None), "dreamer", None)
         if dreamer:
             soul = getattr(self.interface.eng, "soul", None)
             bio = getattr(self.interface.eng, "bio", None)
-            endo = getattr(bio, "endo", None) if bio else None
             snapshot = soul.to_dict() if soul else {}
-            bio_state = endo.get_state() if endo else {}
+            bio_state = bio.endo.get_state() if bio and hasattr(bio, "endo") else {}
             dream_text, effects = dreamer.enter_rem_cycle(snapshot, bio_state)
             if dream_text:
                 dream_log = f"\n\n{self.P.VIOLET}☁️ {dream_text}{self.P.RST}"
@@ -456,12 +434,10 @@ class CommandProcessor:
             self.interface.log("Usage: /mod [slash|md]")
             return True
         mod = parts[1].upper()
-        mods = {
-            "SLASH": ("slash_council", self.P.INDIGO, "Dev Team online."),
+        mods = {"SLASH": ("slash_council", self.P.INDIGO, "Dev Team online."),
             "MD": ("overseer_council", self.P.GRN, "Systemic Health protocols online."),
             "SYSTEMIC_HEALTH":
-            ("overseer_council", self.P.GRN, "Systemic Health protocols online.")
-        }
+            ("overseer_council", self.P.GRN, "Systemic Health protocols online.")}
         if mod in mods:
             council_attr, color, msg = mods[mod]
             self.interface.log(f"{color}{mod} Mod Chip engaged. {msg}{self.P.RST}")
@@ -579,8 +555,7 @@ class CommandProcessor:
             return True
         try:
             history = "\n".join(cortex.dialogue_buffer)
-            prompt = (
-                "SYSTEM_INSTRUCTION: You are the archivist of a surreal cybernetic journey. "
+            prompt = ("SYSTEM_INSTRUCTION: You are the archivist of a surreal cybernetic journey. "
                 "Read the following recent dialogue history and write a whimsical, reflective, first-person diary entry (1-2 paragraphs) "
                 "summarizing the events and emotional undercurrents so far. Focus on the mood, the strange tension, and the overarching theme. "
                 "DO NOT use AI-isms. Write like a traveler recording a dream.\n\n"

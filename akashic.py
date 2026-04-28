@@ -1,6 +1,6 @@
 """akashic.py"""
 
-import json, math, os, uuid
+import json, os, uuid
 from typing import Any, Dict, List, Optional, Set, Tuple, cast
 from core import BoneJSONEncoder, LoreManifest, ux, safe_get
 from presets import BoneConfig
@@ -111,7 +111,7 @@ class TheAkashicRecord:
             self.record_interaction(lenses)
 
     def _on_forge_event(self, payload):
-        if not payload or not isinstance(payload, dict):
+        if not payload:
             return
         self.track_successful_forge(payload.get("ingredient"), payload.get("catalyst"), payload.get("result"))
 
@@ -133,7 +133,7 @@ class TheAkashicRecord:
         return fallbacks.get(dom, default_trigram)
 
     def _on_mythology_update(self, payload):
-        if not payload or not isinstance(payload, dict): return
+        if not payload: return
         if (word := payload.get("word")) and (category := payload.get("category")):
             self.register_word(word, category)
             return
@@ -177,7 +177,7 @@ class TheAkashicRecord:
                 hazards.append(threshold_data.get("hazard_name"))
         desc_template = (ux("akashic_strings", "artifact_desc") or "A coalesced artifact of {dominant_force}.")
         cfg = getattr(BoneConfig, "AKASHIC", None)
-        artifact_val = getattr(cfg, "ARTIFACT_VALUE", 50.0) if cfg else 50.0
+        artifact_val = getattr(cfg, "ARTIFACT_VALUE", 50.0)
         new_data = {"name": new_name, "description": desc_template.format(dominant_force=dominant_force),
                     "function": "ARTIFACT", "passive_traits": hazards, "value": artifact_val, }
         gordon_data = self.lore.get("GORDON") or {}
@@ -207,19 +207,13 @@ class TheAkashicRecord:
             print(f"{Prisma.RED}{msg.format(error=e)}{Prisma.RST}")
 
     def save_to_disk(self, category: str, data: Any):
+        filepath = os.path.join(self.save_dir, f"akashic_{category}.json")
         try:
             os.makedirs(self.save_dir, exist_ok=True)
-        except OSError as e:
-            msg = ux("akashic_strings", "dir_create_failed")
-            print(f"{Prisma.RED}{msg.format(directory=self.save_dir, error=e)}{Prisma.RST}")
-            return
-        filename = f"akashic_{category}.json"
-        filepath = os.path.join(self.save_dir, filename)
-        try:
             with open(filepath, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2, cls=BoneJSONEncoder)
-            msg = ux("akashic_strings", "saved_category")
-            print(f"{Prisma.GRY}{msg.format(category=category)}{Prisma.RST}")
+            if msg := ux("akashic_strings", "saved_category"):
+                print(f"{Prisma.GRY}{msg.format(category=category)}{Prisma.RST}")
         except Exception as e:
             msg = ux("akashic_strings", "save_failed_category")
             print(f"{Prisma.RED}{msg.format(category=category, error=e)}{Prisma.RST}")
@@ -296,8 +290,8 @@ class TheAkashicRecord:
             return
 
         def strip_prefix(s): return s[4:] if s.startswith("THE ") else s
-        roots = sorted([strip_prefix(lens_a), strip_prefix(lens_b)])
 
+        roots = sorted([strip_prefix(lens_a), strip_prefix(lens_b)])
         new_name = f"THE {roots[0]}-{roots[1]}"
         existing_lenses = self.lore.get("LENSES") or {}
         if new_name in existing_lenses:
@@ -350,7 +344,7 @@ class TheAkashicRecord:
     def store_ghost_echo(self, memory_data: Dict):
         self.shadow_stock.append(memory_data)
         if len(self.shadow_stock) > self.MAX_SHADOW_CAPACITY:
-            del self.shadow_stock[0]
+            self.shadow_stock.pop(0)
         msg = ux("akashic_strings", "ghost_archived")
         print(f"{Prisma.VIOLET}{msg}{Prisma.RST}")
 

@@ -3,7 +3,7 @@
 import math
 import time
 import hashlib
-from itertools import combinations
+from itertools import combinations, islice
 from typing import Dict, List, Any, Tuple, Optional
 import faiss
 import numpy as np
@@ -17,12 +17,8 @@ class HippocampalCache:
     def encode(self, node_id: str, vector: List[float], metadata: Dict[str, Any]):
         self.nodes.pop(node_id, None)
         short_hash = hashlib.md5(np.array(vector, dtype=np.float32).tobytes()).hexdigest()[:8]
-        self.nodes[node_id] = {
-            "phantom": {"vector_hash": short_hash, "wing_id": metadata.get("wing_id", "GLOBAL"), "room_id": metadata.get("room_id", "GENERAL")},
-            "vector": vector,
-            "meta": metadata,
-            "timestamp": time.time()
-        }
+        self.nodes[node_id] = {"phantom": {"vector_hash": short_hash, "wing_id": metadata.get("wing_id", "GLOBAL"), "room_id": metadata.get("room_id", "GENERAL")},
+            "vector": vector, "meta": metadata, "timestamp": time.time()}
         if len(self.nodes) > self.max_capacity:
             del self.nodes[next(iter(self.nodes))]
 
@@ -33,13 +29,12 @@ class HippocampalCache:
         return None
 
     def extract_for_consolidation(self, limit: Optional[int] = None) -> List[Tuple[str, Dict]]:
-        from itertools import islice
         target_keys = list(islice(self.nodes.keys(), limit))
         return [(k, self.nodes.pop(k)) for k in target_keys]
 
     def get_graph(self) -> Dict[str, set]:
         adj = {k: set() for k in self.nodes}
-        norms = {k: math.hypot(*n["vector"]) for k, n in self.nodes.items()}
+        norms = {k: float(np.linalg.norm(n["vector"])) for k, n in self.nodes.items()}
         for (k1, n1), (k2, n2) in combinations(self.nodes.items(), 2):
             mag = norms[k1] * norms[k2]
             if mag > 0:
@@ -101,26 +96,28 @@ class CerebralIndex:
             is_lateral = physics_state.get("lateral_search", False)
         np_query = np.array([query_vector], dtype=np.float32)
         distances, indices = self._index.search(np_query, min(k, self.total_nodes))
-        return [
-            {**self._payloads[idx], "resonance": 1.0 / (1.0 + float(dist))}
-            for dist, idx in zip(distances[0], indices[0])
-            if idx != -1
-            and (not target_wing or is_lateral or self._payloads[idx].get("wing_id", "GLOBAL") == target_wing)
-            and (1.0 / (1.0 + float(dist))) >= resonance_threshold
-        ]
+        results = []
+        for dist, idx in zip(distances[0], indices[0]):
+            if idx == -1:
+                continue
+            payload = self._payloads[idx]
+            if target_wing and not is_lateral and payload.get("wing_id", "GLOBAL") != target_wing:
+                continue
+            resonance = 1.0 / (1.0 + float(dist))
+            if resonance >= resonance_threshold:
+                results.append({**payload, "resonance": resonance})
+        return results
 
     def get_local_mass_radius(self) -> Optional[Dict[str, List[float]]]:
         if not self.is_trained or self.total_nodes < 5:
             return None
-
         np_query = np.zeros((1, self.dimension), dtype="float32")
         distances, _ = self._index.search(np_query, min(50, self.total_nodes))
         valid_dists = [float(d) for d in distances[0] if d > 0]
         if len(valid_dists) < 3:
             return None
         return {"log_r": [math.log(d) for d in valid_dists], "log_m": [math.log(i + 1) for i in range(len(valid_dists))],
-            "weights": [1.0] * len(valid_dists)
-        }
+            "weights": [1.0] * len(valid_dists)}
 
 class MemoryConsolidator:
     def __init__(self, hippocampus: HippocampalCache, cortex: CerebralIndex, events: EventBus):
@@ -129,7 +126,10 @@ class MemoryConsolidator:
         self.events = events
 
     def trigger_rem_consolidation(self, available_atp: float) -> Tuple[int, float]:
-        if available_atp < 20.0 or (max_nodes := int((available_atp - 20.0) / 0.1)) < 1:
+        if available_atp < 20.0:
+            return 0, 0.0
+        max_nodes = int((available_atp - 20.0) / 0.1)
+        if max_nodes < 1:
             return 0, 0.0
         pending_nodes = self.hippocampus.extract_for_consolidation(limit=max_nodes)
         vectors = [n["vector"] for _, n in pending_nodes if "vector" in n]

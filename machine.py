@@ -78,7 +78,7 @@ class TheCrucible:
             if structure > 0.5:
                 gain = voltage * 0.1
                 cfg = getattr(self.cfg, "MACHINE", None)
-                base_cap = safe_get(cfg, "CRUCIBLE_VOLTAGE_CAP", 20.0) if cfg else 20.0
+                base_cap = safe_get(cfg, "CRUCIBLE_VOLTAGE_CAP", 20.0)
                 self.max_voltage_cap = min(base_cap * 3.0, self.max_voltage_cap + gain)
                 self.active_state = "RITUAL"
                 return "RITUAL", gain, self.logs.get("RITUAL", "").format(gain=gain)

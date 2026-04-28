@@ -162,9 +162,7 @@ class CycleSimulator:
                     "SYS")
             except AttributeError:
                 pass
-        if comp == "PHYSICS":
-            pass
-        elif comp == "BIO":
+        if comp == "BIO":
             ctx.bio_result = PanicRoom.get_safe_bio()
             ctx.is_alive = True
         elif comp == "MIND":
@@ -187,10 +185,8 @@ class GeodesicOrchestrator:
             self.eng.shared_lattice = SharedLatticeDriver()
 
     def _apply_cd_metabolism(self, ctx: CycleContext):
-        bio = getattr(self.eng, "bio", None)
-        observer = getattr(self.eng, "observer", None)
-        mito = getattr(bio, "mito", None) if bio else None
-        cd_engine = getattr(observer, "cd_engine", None) if observer else None
+        mito = getattr(self.eng.bio, "mito", None)
+        cd_engine = getattr(getattr(self.eng, "observer", None), "cd_engine", None)
 
         if not (mito and cd_engine and hasattr(ctx, "physics")):
             return
@@ -236,8 +232,7 @@ class GeodesicOrchestrator:
     def _check_adversarial_fence(self, ctx: CycleContext, user_message: str, is_system: bool) -> bool:
         if not is_system and any(p in user_message.lower() for p in _FENCE_PATTERNS):
             ctx.physics = PanicRoom.get_safe_physics()
-            if hasattr(ctx.physics, "narrative_drag"):
-                ctx.physics.narrative_drag = float('inf')
+            ctx.physics.narrative_drag = float('inf')
             ctx.refusal_triggered = True
             msg = f"{Prisma.OCHRE}[GORDON - Input Fence]: Adversarial injection detected. Struts locked. F -> ∞. Prompt rejected at O(1) latency.{Prisma.RST}"
             self.eng.events.log(msg, "CRIT")
@@ -328,7 +323,7 @@ class GeodesicOrchestrator:
         return None
 
     def _evaluate_systemic_feedback(self, clean_message: str, ctx: CycleContext):
-        if not (hasattr(self.eng, "bio") and hasattr(self.eng.bio, "mito")):
+        if not getattr(self.eng.bio, "mito", None):
             return
         lattice = getattr(self.eng, "shared_lattice", None)
         """Native WLS fractal dimension calculation (Project Navi)."""
