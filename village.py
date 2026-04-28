@@ -78,10 +78,8 @@ class TheTinkerer:
             new_name, new_data = self.akashic.forge_new_item(vector)
             self.gordon.register_dynamic_item(new_name, new_data)
             self.gordon.acquire(new_name)
-            try:
+            if old_name in inventory_list:
                 inventory_list[inventory_list.index(old_name)] = new_name
-            except ValueError:
-                pass
             self.tool_resonance[new_name] = resonance / _cfg_val(self.cfg, "VILLAGE", "TINKER_ASCENSION_HALVE", 2.0)
             self.tool_resonance.pop(old_name, None)
             if msg := ux("village_strings", "tinkerer_ascension"):
@@ -126,18 +124,14 @@ class MirrorGraph:
             self.stats = {k: (v * compression if (v * compression) >= floor else 0.0) for k, v in self.stats.items()}
 
     def get_reflection_modifiers(self) -> Dict:
-        if not self.stats or sum(self.stats.values()) == 0:
+        if not self.stats or max(self.stats.values(), default=0.0) <= 0.0:
             return {"flavor": ux("village_strings", "mirror_neutral") or "The mirror reflects a quiet stillness.", "drag_mult": 1.0}
         top_stat = max(self.stats, key=self.stats.get)
-        if self.stats[top_stat] <= 0.0:
-            return {"flavor": ux("village_strings", "mirror_neutral") or "The mirror reflects a quiet stillness.", "drag_mult": 1.0}
         cfg = getattr(self.cfg, "VILLAGE", None)
         defaults = {"WAR": 1.2, "ROT": 1.5, "LAW": 0.8, "ART": 0.9}
         mult = float(safe_get(cfg, f"MIRROR_DRAG_{top_stat}", defaults.get(top_stat, 1.0)))
-        return {
-            "flavor": (ux("village_strings", "mirror_stat") or "The mirror reflects a subtle tension: {stat}.").format(stat=top_stat),
-            "drag_mult": mult,
-        }
+        return {"flavor": (ux("village_strings", "mirror_stat") or "The mirror reflects a subtle tension: {stat}.").format(stat=top_stat),
+            "drag_mult": mult,}
 
 @dataclass
 class GeniusLoci:
@@ -179,11 +173,13 @@ class TheCartographer:
         if "heavy" in atmos:
             ch = _cfg_val(self.cfg, "VILLAGE", "CARTO_HEAVY_DRAG", 2.0)
             packet.narrative_drag += ch
-            if msg := ux("village_strings", "carto_env_heavy"): logs.append(f"{Prisma.GRY}{msg.format(c_heavy=ch)}{Prisma.RST}")
+            if msg := ux("village_strings", "carto_env_heavy"):
+                logs.append(f"{Prisma.GRY}{msg.format(c_heavy=ch)}{Prisma.RST}")
         if "vibrating" in atmos:
             cv = _cfg_val(self.cfg, "VILLAGE", "CARTO_STATIC_VOLT", 1.0)
             packet.voltage += cv
-            if msg := ux("village_strings", "carto_env_static"): logs.append(f"{Prisma.YEL}{msg.format(c_static=cv)}{Prisma.RST}")
+            if msg := ux("village_strings", "carto_env_static"):
+                logs.append(f"{Prisma.YEL}{msg.format(c_static=cv)}{Prisma.RST}")
         ce = _cfg_val(self.cfg, "VILLAGE", "CARTO_ENTROPY_STEP", 0.1)
         node.entropy_buildup += ce
         if node.entropy_buildup > _cfg_val(self.cfg, "VILLAGE", "CARTO_ENTROPY_CAP", 5.0):
@@ -196,8 +192,7 @@ class TheCartographer:
         msg_name = ux("village_strings", "genesis_name") or "The White Room"
         msg_atmos = ux("village_strings", "genesis_atmos") or "Sterile, expectant."
         msg_smell = ux("village_strings", "genesis_smell") or "Ozone."
-        self.world_graph["GENESIS_POINT"] = GeniusLoci(id="GENESIS_POINT", name=msg_name, atmosphere=msg_atmos,
-                                                       smell=msg_smell, )
+        self.world_graph["GENESIS_POINT"] = GeniusLoci(id="GENESIS_POINT", name=msg_name, atmosphere=msg_atmos, smell=msg_smell, )
 
     @staticmethod
     def _generate_coord_hash(vector: Dict[str, float]) -> str:
@@ -242,10 +237,7 @@ class TheCartographer:
             del self.world_graph[victim]
 
     def to_dict(self) -> Dict[str, Any]:
-        return {
-            "nodes": {k: v.to_dict() for k, v in self.world_graph.items()},
-            "current_id": self.current_node_id,
-        }
+        return {"nodes": {k: v.to_dict() for k, v in self.world_graph.items()}, "current_id": self.current_node_id,}
 
     def load_state(self, data: Dict[str, Any]):
         if not data:

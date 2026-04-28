@@ -13,7 +13,7 @@ def ux(section: str, key: str, default: Any = "") -> Any:
         manifest = LoreManifest.get_instance()
         data = manifest.get("ux_strings", section) if manifest else {}
         return data.get(key, default) if isinstance(data, dict) else default
-    except Exception:
+    except (ImportError, AttributeError):
         return default
 
 class BonePresets:
@@ -797,10 +797,10 @@ class BoneConfig:
                     clone = _ConfigNode()
                     for k, v in vars(val).items():
                         if not k.startswith("__") and not callable(v):
-                            setattr(clone, k, copy.deepcopy(v))
+                            setattr(clone, k, copy.deepcopy(v) if isinstance(v, (dict, list, set)) else v)
                     setattr(self, name, clone)
                 elif not callable(val) and not isinstance(val, classmethod):
-                    setattr(self, name, copy.deepcopy(val))
+                    setattr(self, name, copy.deepcopy(val) if isinstance(val, (dict, list, set)) else val)
 
     def load_preset(self, preset_dict: Dict[str, Any]) -> List[str]:
         logs = []
@@ -844,15 +844,12 @@ class BoneConfig:
 
     def reconcile_state(self, physics_packet: Any):
         from core import safe_get, safe_set
-
-        def _clamp(val, floor, ceil):
-            return max(floor, min(float(val), ceil))
         e_obj = safe_get(physics_packet, "energy") or {}
         s_obj = safe_get(physics_packet, "space") or {}
-        new_v = _clamp(safe_get(physics_packet, "voltage") or safe_get(e_obj, "voltage") or 5.0,
-            self.PHYSICS.VOLTAGE_FLOOR, self.PHYSICS.VOLTAGE_MAX)
-        new_d = _clamp(safe_get(physics_packet, "narrative_drag") or safe_get(s_obj, "narrative_drag") or 1.0,
-            self.PHYSICS.DRAG_FLOOR, self.PHYSICS.DRAG_HALT)
+        raw_v = safe_get(physics_packet, "voltage") or safe_get(e_obj, "voltage") or 5.0
+        new_v = max(self.PHYSICS.VOLTAGE_FLOOR, min(float(raw_v), self.PHYSICS.VOLTAGE_MAX))
+        raw_d = safe_get(physics_packet, "narrative_drag") or safe_get(s_obj, "narrative_drag") or 1.0
+        new_d = max(self.PHYSICS.DRAG_FLOOR, min(float(raw_d), self.PHYSICS.DRAG_HALT))
         safe_set(physics_packet, "voltage", new_v)
         safe_set(physics_packet, "narrative_drag", new_d)
         return physics_packet
@@ -861,7 +858,6 @@ class BoneConfig:
         target_sector = getattr(self, sector, None)
         if not target_sector:
             return (ux("config_strings", "tune_sector_err") or "Sector {sector} not found.").format(sector=sector)
-
         if not hasattr(target_sector, parameter):
             return (ux("config_strings", "tune_param_err") or "Param {parameter} missing in {sector}.").format(
                 parameter=parameter, sector=sector)

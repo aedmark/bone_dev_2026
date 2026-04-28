@@ -93,10 +93,8 @@ class RandomRetrievalNavigator:
             available = [n for n in self._get_neighbors(path[-1]) if n.id not in visited]
             if not available: break
             if random.random() < r_val:
-                rb = self._get_random_branch(
-                    path[-1]) if r_val > 0.7 and random.random() < 0.3 else None
-                next_node = rb if rb and rb.id not in visited else random.choice(
-                    available)
+                rb = self._get_random_branch(path[-1]) if (r_val > 0.7 and random.random() < 0.3) else None
+                next_node = rb if (rb and rb.id not in visited) else random.choice(available)
             else:
                 next_node = self._most_structural_neighbor(available, start_node)
             if next_node:
@@ -189,10 +187,11 @@ class RandomRetrievalNavigator:
                  "EXPLORER": "Went where the path was thin. Came back with something odd.",
                  "FLANEUR": "The library started talking. I just listened.",
                  "CHAOS": "At this point, the books are reading you.", }
-        return notes.get(mode["name"], "Wandering...") + (
-            f" Found {surprising_count} unexpected {'gem' if surprising_count == 1 else 'gems'}."
-            if surprising_count > 0 else
-            " Nothing surprising—but sometimes that's the point.")
+        base_note = notes.get(mode["name"], "Wandering...")
+        if surprising_count > 0:
+            gem_str = "gem" if surprising_count == 1 else "gems"
+            return f"{base_note} Found {surprising_count} unexpected {gem_str}."
+        return f"{base_note} Nothing surprising—but sometimes that's the point."
 
     def set_randomness(self, value: float) -> dict[str, Any]:
         self.randomness_dial = max(0.0, min(1.0, float(value)))
@@ -202,7 +201,6 @@ class RandomRetrievalNavigator:
     def get_state(self) -> dict[str, Any]:
         return {"randomness_dial": self.randomness_dial, "mode": self._get_mode(self.randomness_dial),
                 "traversal_history": self.traversal_history[-3:]}
-
 
 class TheSubstrate:
     def __init__(self, events_ref):
@@ -243,9 +241,9 @@ class TheSubstrate:
                 cost += w_cost
                 kb_size = len(w['content']) / 1024.0
                 logs.append(f"{Prisma.GRN}SUBSTRATE: Physically forged {s_path} ({kb_size:.1f} KB).{Prisma.RST}")
-                if hasattr(self.events, "publish"):
-                    self.events.publish("SUBSTRATE_FORGED", {"cost": w_cost, "file": s_name})
-                if "podcast" in s_name.lower(): self._trigger_tts(s_path)
+                self.events.publish("SUBSTRATE_FORGED", {"cost": w_cost, "file": s_name})
+                if "podcast" in s_name.lower():
+                    self._trigger_tts(s_path)
             except Exception as e:
                 retries = w.get("retries", 0) + 1
                 if retries > self.config.get("MAX_RETRIES", 3):
@@ -309,9 +307,11 @@ class TheTclWeaver:
                         if not (len(w) > 5 and random.random() < chi and self._QUANTUM_REGEX.search(w)))
 
     def consume_by_void(self, text: str, psi: float) -> str:
-        return " ".join(("████" if (
-            psi > 0.5 and len(w) > 3 and random.random() < (psi / 2.5)) else w)
-                        for w in text.split(" "))
+        def _void(w):
+            if psi > 0.5 and len(w) > 3 and random.random() < (psi / 2.5):
+                return "████"
+            return w
+        return " ".join(_void(w) for w in text.split(" "))
 
 AUDIO_AVAILABLE = all(
     importlib.util.find_spec(pkg) is not None
@@ -322,18 +322,14 @@ os.environ["TQDM_DISABLE"] = "True"
 logging.getLogger("huggingface_hub").setLevel(logging.ERROR)
 logging.getLogger("torch").setLevel(logging.ERROR)
 
-
 class TheVocalCords:
     def __init__(self, events_ref=None):
         self.events = events_ref
         self.pipeline = None
         self._synthesis_lock = threading.Lock()
-
         from core import LoreManifest
         manifest_voices = LoreManifest.get_instance().get("VOICE_MAP")
-        self.VOICE_MAP = manifest_voices if manifest_voices else {
-            "DEFAULT": "af_bella"
-        }
+        self.VOICE_MAP = manifest_voices if manifest_voices else {"DEFAULT": "af_bella"}
 
     _ANSI_ESCAPE = re.compile(r"\x1B\[[0-9;]*[a-zA-Z]")
     _SCRIPT_PATTERN = re.compile(r"^\[([^]]+)]:?\s*(.*?)(?=\n\[|\Z)", re.MULTILINE | re.DOTALL)

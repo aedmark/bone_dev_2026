@@ -90,11 +90,9 @@ class TheCrucible:
         return "REGULATED", adjustment, msg
 
 class TheParadoxEngine:
-    _DEFAULT_TEMPLATES = (
-        "What if '{seed}' and its exact opposite were both non-negotiable truths? Do not resolve the contradiction. Do not compromise. Build the structure that can hold both simultaneously.",
+    _DEFAULT_TEMPLATES = ("What if '{seed}' and its exact opposite were both non-negotiable truths? Do not resolve the contradiction. Do not compromise. Build the structure that can hold both simultaneously.",
         "[RECURSIVE PARADOX] Apply the concept of '{seed}' to the architecture of this very conversation. How does the act of thinking about '{seed}' alter the physical constraints of our dialogue? Both are non-negotiable truths.",
-        "[NEGATIVE SPACE] Define '{seed}' entirely by what it is not. Construct the boundary of the concept without ever naming the center. Both the center and the void are non-negotiable truths.",
-    )
+        "[NEGATIVE SPACE] Define '{seed}' entirely by what it is not. Construct the boundary of the concept without ever naming the center. Both the center and the void are non-negotiable truths.",)
 
     def __init__(self, events_ref):
         self.events = events_ref
@@ -154,10 +152,13 @@ class TheForge:
         clean_set = set(clean_words)
         voltage = float(safe_get(physics, "voltage", 0.0))
         lex_srv = self.lex or LexiconService()
+        cat_cache = {}
         for item in inventory_list:
             for recipe in self.recipe_map.get(item, []):
-                cat_words = set(lex_srv.get(recipe["catalyst_category"]) or [])
-                overlap = clean_set & cat_words
+                cat = recipe["catalyst_category"]
+                if cat not in cat_cache:
+                    cat_cache[cat] = set(lex_srv.get(cat) or [])
+                overlap = clean_set & cat_cache[cat]
                 if not overlap:
                     continue
                 entanglement = self._calculate_entanglement(len(overlap), voltage)
@@ -314,7 +315,7 @@ class PanicRoom:
         resp_fallback = ux("machine_strings", "panic_resp_fallback") or "NECROSIS"
         enz_fallback = ux("machine_strings", "panic_enz_fallback") or "NONE"
         old_chem = safe_get(previous_state or {}, "chem", {})
-        retained_serotonin = max(0.2, float(safe_get(old_chem, "SER", 0.0))) if old_chem else 0.0
+        retained_serotonin = max(0.2, float(safe_get(old_chem, "SER", 0.0)))
         chem_state: Dict[str, float] = {"DOP": 0.0, "COR": 0.0, "OXY": 0.0, "SER": retained_serotonin, "ADR": 0.0, "MEL": 0.0}
         return {"is_alive": True, "atp": 10.0, "respiration": resp_fallback, "enzyme": enz_fallback, "chem": chem_state,
                 "logs": [f"{Prisma.RED}{log_msg}{Prisma.RST}"], }
@@ -444,12 +445,8 @@ class BoneArchitect:
             msg = ux("machine_strings", "arch_spore_fail") or "[ARCHITECT]: Spore resurrection failed: {e}"
             events.log(f"{Prisma.RED}{msg.format(e=e)}{Prisma.RST}", "CRIT")
             load_result = None
-        results = list(load_result) if isinstance(load_result, (list, tuple)) else []
-        mito_legacy = results[0] if len(results) > 0 else None
-        immune_legacy = results[1] if len(results) > 1 else None
-        soul_legacy = results[2] if len(results) > 2 else None
-        continuity = results[3] if len(results) > 3 else None
-        atlas = results[4] if len(results) > 4 else None
+        results = (list(load_result) if isinstance(load_result, (list, tuple)) else []) + [None] * 5
+        mito_legacy, immune_legacy, soul_legacy, continuity, atlas = results[:5]
         if mito_legacy and hasattr(embryo.bio.mito, "apply_inheritance"):
             embryo.bio.mito.apply_inheritance(mito_legacy)
         if immune_legacy and isinstance(immune_legacy, (list, set)):

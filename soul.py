@@ -68,8 +68,8 @@ class TheEditor:
 
     @staticmethod
     def critique(chapter_title: str, stress_mode: bool = False) -> str:
-        manifest = LoreManifest.get_instance() if hasattr(LoreManifest, "get_instance") else None
-        reviews = (manifest.get("NARRATIVE_DATA") or {} if manifest else {}).get("LITERARY_REVIEWS", {})
+        manifest_data = LoreManifest.get_instance().get("NARRATIVE_DATA", {}) if hasattr(LoreManifest, "get_instance") else {}
+        reviews = manifest_data.get("LITERARY_REVIEWS", {})
         pos, neg, conf = reviews.get("POSITIVE", ["Valid."]), reviews.get("NEGATIVE", ["Invalid."]), reviews.get("CONFUSED", ["Unclear."])
         pool, prefix, color = (pos + conf, "[THE WITNESS]", Prisma.CYN) if stress_mode else (pos + neg, "[THE EDITOR]", Prisma.GRY)
         comment = random.choice(pool) if pool else "No comment."
@@ -120,10 +120,7 @@ class HumanityAnchor:
         selection = random.choice(riddles)
         riddle = selection.get("question", "Error?")
         raw_triggers = selection.get("triggers", ["*"])
-        if isinstance(raw_triggers, list):
-            self.current_riddle_answers = raw_triggers
-        else:
-            self.current_riddle_answers = ["*"]
+        self.current_riddle_answers = raw_triggers if isinstance(raw_triggers, list) else ["*"]
         self.events.log(f"{Prisma.RED}{ux('soul_strings', 'anchor_agency_lock')}{Prisma.RST}", "SYS_LOCK")
         if riddle_msg := ux_format("soul_strings", "anchor_riddle", riddle=riddle):
             self.events.log(f"{Prisma.VIOLET}{riddle_msg}{Prisma.RST}", "SOUL_QUERY")
@@ -318,7 +315,7 @@ class NarrativeSelf:
     def pursue_obsession(self, physics: Any) -> str | None:
         if not self.current_obsession: return None
         clean_words = self._extract_lexical_matter(physics)
-        lex = self.eng.lex if self.eng and hasattr(self.eng, "lex") else None
+        lex = getattr(self.eng, "lex", None)
         if self.current_target_cat and lex and (target_words := lex.get(self.current_target_cat)) and any(w in target_words for w in clean_words):
             self.obsession_progress = min(100.0, self.obsession_progress + 10.0)
             self.obsession_neglect = 0.0
@@ -444,8 +441,7 @@ class NarrativeSelf:
     def _synthesize_obsession(lex) -> Tuple[str, str, str]:
         negate_map = {"heavy": "aerobic", "kinetic": "heavy", "abstract": "meat"}
         target_cat, negate_cat = random.choice(list(negate_map.items()))
-        random_word = (lex.get_random(target_cat)
-                       if lex and hasattr(lex, "get_random") else None)
+        random_word = lex.get_random(target_cat) if hasattr(lex, "get_random") else None
         word = random_word.title() if random_word else target_cat.title()
         return word, target_cat, negate_cat
 
@@ -490,9 +486,8 @@ class NarrativeSelf:
         return words or []
 
     def _safe_get_packet(self):
-        if self.eng and hasattr(self.eng, "phys") and self.eng.phys:
-            return getattr(self.eng.phys.observer, "last_physics_packet", None)
-        return None
+        phys = getattr(self.eng, "phys", None)
+        return getattr(phys.observer, "last_physics_packet", None) if phys else None
 
     def _trigger_synthesis(self):
         old = self.archetype
