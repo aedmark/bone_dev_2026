@@ -1,8 +1,4 @@
-"""
-phases/__init__.py
-Re-exports the phase classes so that external modules (like cycle.py)
-can import from 'phases' exactly as they did when it was a single file.
-"""
+"""phases/__init__.py"""
 
 from .base import SimulationPhase
 from .biological import MetabolismPhase, SensationPhase, IntrusionPhase

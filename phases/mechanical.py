@@ -108,12 +108,6 @@ class GatekeeperPhase(SimulationPhase):
                     ctx.is_bureaucratic = True
         return ctx
 
-
-
-
-
-
-
 class MachineryPhase(SimulationPhase):
     def __init__(self, engine_ref):
         super().__init__(engine_ref)
@@ -175,12 +169,6 @@ class MachineryPhase(SimulationPhase):
         ctx.log(f"{Prisma.RED}{msg.format(damage=damage)}{Prisma.RST}")
         if hasattr(self.eng.events, "publish"):
             self.eng.events.publish("AIRSTRIKE", {"damage": damage, "source": "THEREMIN"})
-
-
-
-
-
-
 
 class StabilizationPhase(SimulationPhase):
     def __init__(self, engine_ref, stabilizer_ref):
