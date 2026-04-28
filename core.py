@@ -12,7 +12,6 @@ def ux(section: str, key: str, default: Any = "") -> Any:
     data = LoreManifest.get_instance().get("ux_strings", section)
     return data.get(key, default) if isinstance(data, dict) else default
 
-
 def ux_format(section: str, key: str, default: str = "", **kwargs) -> str:
     msg = ux(section, key, default)
     if not msg:
@@ -32,20 +31,9 @@ def safe_get(obj: Any, key: str, default: Any = None) -> Any:
         val = getattr(obj, key, default)
     return default if val is None else val
 
-def strict_get(obj: Any, key: str, default: Any = None) -> Any:
-    if obj is None:
-        print(
-            f"{Prisma.RED}[STRUCTURAL WARNING] Zombie State Averted: Tried to access '{key}' on NoneType.{Prisma.RST}")
-        return default
-    val = safe_get(obj, key)
-    if val is None:
-        print(
-            f"{Prisma.RED}[STRUCTURAL WARNING] Missing load-bearing key: '{key}'. Defaulting to {default}.{Prisma.RST}")
-        return default
-    return val
-
 def safe_set(obj: Any, key: str, value: Any) -> None:
     if obj is None:
+        print(f"{Prisma.RED}[STRUCTURAL ROT] safe_set swallowed a write to '{key}'. Target object is None.{Prisma.RST}")
         return
     if isinstance(obj, dict):
         obj[key] = value
@@ -207,11 +195,6 @@ class TheObserver:
     def uptime(self) -> float:
         return time.time() - self.start_time
 
-    def calculate_efficiency(self, health: float, stamina: float) -> float:
-        duration = max(0.01, self.last_cycle_duration)
-        resource_sum = health + stamina
-        return min(999.0, resource_sum / duration)
-
     def log_error(self, module_name):
         self.error_counts[module_name] += 1
 
@@ -237,15 +220,9 @@ class TheObserver:
         avg_llm = sum(self.llm_latencies) / max(1, len(self.llm_latencies))
         uptime = time.time() - self.start_time
         status_msg = self.pass_judgment(avg_cycle, avg_llm)
-        return {
-            "uptime_sec": int(uptime),
-            "turns": self.user_turns,
-            "avg_cycle_sec": round(avg_cycle, 2),
-            "avg_llm_sec": round(avg_llm, 2),
-            "status": status_msg,
-            "errors": dict(self.error_counts),
-            "graph_size": self.memory_snapshots[-1] if self.memory_snapshots else 0
-        }
+        return {"uptime_sec": int(uptime), "turns": self.user_turns, "avg_cycle_sec": round(avg_cycle, 2),
+                "avg_llm_sec": round(avg_llm, 2), "status": status_msg, "errors": dict(self.error_counts),
+                "graph_size": self.memory_snapshots[-1] if self.memory_snapshots else 0}
 
 @dataclass
 class SystemHealth:
@@ -270,8 +247,7 @@ class SystemHealth:
         if hasattr(self, attr_name):
             setattr(self, attr_name, False)
         else:
-            self.report_warning(
-                f"Unmapped component '{component}' reported a failure. Missing from SystemHealth dataclass.")
+            self.report_warning(f"Unmapped component '{component}' reported a failure. Missing from SystemHealth dataclass.")
         return ux_format("core_strings", "health_offline", component=component, msg=msg)
 
     def report_warning(self, message: str):
@@ -312,13 +288,9 @@ class RealityStack:
 
     def get_grammar_rules(self) -> Dict[str, bool]:
         d = self.current_depth
-        return {
-            "allow_narrative": d in (RealityLayer.SIMULATION, RealityLayer.DEEP_CX, RealityLayer.DEBUG),
-            "allow_commands": d >= RealityLayer.SIMULATION,
-            "allow_meta": d >= RealityLayer.DEBUG,
-            "raw_output": d == RealityLayer.DEEP_CX,
-            "system_override": d == RealityLayer.DEBUG
-        }
+        return {"allow_narrative": d in (RealityLayer.SIMULATION, RealityLayer.DEEP_CX, RealityLayer.DEBUG),
+                "allow_commands": d >= RealityLayer.SIMULATION, "allow_meta": d >= RealityLayer.DEBUG,
+                "raw_output": d == RealityLayer.DEEP_CX, "system_override": d == RealityLayer.DEBUG}
 
 class CyberneticGovernor:
     def __init__(self, config_ref=None):
@@ -380,10 +352,7 @@ class TelemetryService:
             print(f"{Prisma.OCHRE}[GRACEFUL DEGRADATION] {msg} - {e}. Telemetry offline.{Prisma.RST}")
             self.disabled = True
             self.current_trace_file = None
-        self._executor = ThreadPoolExecutor(
-            max_workers=1,
-            thread_name_prefix="BoneTelemetry"
-        )
+        self._executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="BoneTelemetry")
 
     def record_event(self, event_dict: dict):
         if self.disabled or not self.current_trace_file:
@@ -408,14 +377,10 @@ class TelemetryService:
     def log_decision(self, component: str, decision_type: str, inputs: Any, reasoning: str, outcome: str):
         if self.disabled or not self.active_crystal:
             return
-        trace = DecisionTrace(
-            trace_id=self.active_crystal.decision_id,
-            timestamp=time.time(),
-            component=component,
-            decision_type=decision_type,
-            inputs=inputs if isinstance(inputs, dict) else {"raw": str(inputs)},
-            reasoning=reasoning,
-            outcome=outcome)
+        trace = DecisionTrace(trace_id=self.active_crystal.decision_id, timestamp=time.time(), component=component,
+                              decision_type=decision_type,
+                              inputs=inputs if isinstance(inputs, dict) else {"raw": str(inputs)}, reasoning=reasoning,
+                              outcome=outcome)
         self.trace_buffer.append(trace)
         self._buffer_line(trace.to_json())
 
@@ -498,7 +463,7 @@ class TelemetryService:
 
     def get_last_fatal_error(self) -> Optional[str]:
         files = sorted(glob.glob(os.path.join(self.log_dir, "trace_*.jsonl")), key=os.path.getmtime, reverse=True)
-        for past_file in files[1:5]:
+        for past_file in files[:5]:
             try:
                 with open(past_file, "r", encoding="utf-8") as f:
                     tail_lines = reversed(deque(f, maxlen=5))
@@ -516,9 +481,5 @@ class TelemetryService:
 
     def generate_session_summary(self, _uptime: float = 0.0) -> str:
         self.flush_to_disk()
-        return ux_format(
-            "core_strings", "tel_session_summary",
-            status="DISABLED" if self.disabled else "ACTIVE",
-            count=len(self.trace_buffer),
-            trace_file=self.current_trace_file
-        )
+        return ux_format("core_strings", "tel_session_summary", status="DISABLED" if self.disabled else "ACTIVE",
+                         count=len(self.trace_buffer), trace_file=self.current_trace_file)

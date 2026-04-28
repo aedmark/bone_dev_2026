@@ -178,11 +178,8 @@ class ConfigWizard:
             config["api_key"] = input(f"{Prisma.paint(prompt_api, 'R')} ").strip()
         elif choice == "3":
             config.update(
-                {
-                    "provider": "lm_studio",
-                    "base_url": "http://127.0.0.1:1234/v1/chat/completions",
-                    "model": "local-model",
-                }
+                {"provider": "lm_studio", "base_url": "http://127.0.0.1:1234/v1/chat/completions",
+                 "model": "local-model", }
             )
         elif choice == "4":
             config.update({"provider": "mock", "model": "simulation"})
@@ -246,8 +243,9 @@ class BoneAmanita:
         self.lex.initialize()
         anatomy = BoneGenesis.ignite(self.sys_config, self.lex, events_ref=self.events)
         self._unpack_anatomy(anatomy)
-        self.events.subscribe("ITEM_DROP", self.town_hall.on_item_drop)
-        if self.phys:
+        if getattr(self, "town_hall", None):
+            self.events.subscribe("ITEM_DROP", self.town_hall.on_item_drop)
+        if getattr(self, "phys", None):
             self.cosmic = self.phys.dynamics
             self.stabilizer = ZoneInertia(config_ref=self.config)
         self.telemetry = TelemetryService.get_instance(config_ref=self.config)
@@ -302,12 +300,8 @@ class BoneAmanita:
         self.events.log(msg.format(boot_mode=self.boot_mode))
         layer = self.mode_settings.get("ui_layer", RealityLayer.SIMULATION)
         if getattr(self, "soul", None):
-            mutations = {
-                "CONVERSATION": "THE CONVERSATIONALIST",
-                "ADVENTURE": "THE ARCHITECT",
-                "TECHNICAL": "THE SYSTEM_KERNEL",
-                "CREATIVE": "THE CATALYST",
-            }
+            mutations = {"CONVERSATION": "THE CONVERSATIONALIST", "ADVENTURE": "THE ARCHITECT",
+                         "TECHNICAL": "THE SYSTEM_KERNEL", "CREATIVE": "THE CATALYST", }
             self.soul.force_mutation(mutations.get(self.boot_mode, "THE ARCHITECT"))
             if self.boot_mode == "CONVERSATION":
                 self.soul.traits.hope = 0.85
@@ -322,9 +316,7 @@ class BoneAmanita:
                 self.events.log(f"Sub-15B model detected ('{model_id}'). Loading tethered prompt: {prompt_key}", "SYS")
             if getattr(self, "cortex", None) and getattr(self.cortex, "dspy_critic", None):
                 self.cortex.dspy_critic.enabled = False
-                self.events.log(
-                    "Sub-15B model detected. Disabling DSPy Affective Critic to preserve cognitive load.", "SYS"
-                )
+                self.events.log("Sub-15B model detected. Disabling DSPy Affective Critic to preserve cognitive load.", "SYS")
         if self.prompt_library and prompt_key in self.prompt_library:
             if self.cortex and self.cortex.composer:
                 self.cortex.composer.load_template(self.prompt_library[prompt_key])
@@ -351,20 +343,13 @@ class BoneAmanita:
 
     def _unpack_anatomy(self, anatomy):
         for k in ["akashic", "embryo", "soul", "oroboros", "drivers", "symbiosis"]:
-            setattr(self, k, anatomy[k])
+            setattr(self, k, anatomy.get(k))
         self.consultant = anatomy.get("consultant", None)
-        self.phys, self.mind, self.bio, self.shimmer = (
-            self.embryo.physics,
-            self.embryo.mind,
-            self.embryo.bio,
-            self.embryo.shimmer,
-        )
+        self.phys, self.mind, self.bio, self.shimmer = (self.embryo.physics, self.embryo.mind, self.embryo.bio, self.embryo.shimmer,)
         self.bio.setup_listeners()
         v = anatomy.get("village", {})
-        v_keys = (
-            "gordon", "navigator", "tinkerer", "death_gen", "bureau", "town_hall",
-            "repro", "zen", "critics", "therapy", "limbo", "kintsugi", "therapist", "gravedigger"
-        )
+        v_keys = ("gordon", "navigator", "tinkerer", "death_gen", "bureau", "town_hall",
+            "repro", "zen", "critics", "therapy", "limbo", "kintsugi", "therapist", "gravedigger")
         for k in v_keys:
             setattr(self, k, v.get(k))
         from protocols import GriefProtocol
@@ -375,17 +360,15 @@ class BoneAmanita:
         self.council = CouncilChamber(self)
         exclude_set = {"gordon", "death_gen", "repro", "kintsugi"}
         self.village = {k: v.get(k) for k in v_keys if k not in exclude_set and v.get(k) is not None}
-        self.village.update(
-            {"council": self.council, "enneagram": self.drivers.enneagram, "suppressed_agents": self.suppressed_agents}
-        )
+        self.village.update({"council": self.council, "enneagram": self.drivers.enneagram, "suppressed_agents": self.suppressed_agents})
 
     def _update_host_stats(self, packet, turn_start):
         self.observer.clock_out(turn_start)
         cfg = getattr(self.config, "MAIN", None)
         phys_vec = safe_get(packet.get("physics", {}), "vector", {})
         novelty = float(safe_get(phys_vec, "novelty", 0.5))
-        burn_mult = getattr(cfg, "HOST_BURN_MULT", 5.0) if cfg else 5.0
-        nov_mult = getattr(cfg, "HOST_NOVELTY_MULT", 10.0) if cfg else 10.0
+        burn_mult = getattr(cfg, "HOST_BURN_MULT", 5.0)
+        nov_mult = getattr(cfg, "HOST_NOVELTY_MULT", 10.0)
         burn_proxy = max(1.0, self.observer.last_cycle_duration * burn_mult)
         efficiency = (novelty * nov_mult) / burn_proxy
         self.host_stats.efficiency_index = min(1.0, efficiency)
@@ -403,16 +386,10 @@ class BoneAmanita:
                     self.bio.mito.state.ros_buildup = 0.0
                 if getattr(self.observer, "last_physics_packet", None):
                     safe_set(self.observer.last_physics_packet, "narrative_drag", 0.0)
-                msg = (
-                    "[ZEN FLUSH] Context severed. Narrative Drag (F) dropped to 0. Stamina restored. The mind is clear."
-                )
+                msg = "[ZEN FLUSH] Context severed. Narrative Drag (F) dropped to 0. Stamina restored. The mind is clear."
                 self.events.log(msg, "SYS")
-                return {
-                    "type": "COMMAND",
-                    "ui": f"\n{Prisma.CYN}{msg}{Prisma.RST}",
-                    "logs": [msg],
-                    "metrics": self.get_metrics(),
-                }
+                return {"type": "COMMAND", "ui": f"\n{Prisma.CYN}{msg}{Prisma.RST}", "logs": [msg],
+                        "metrics": self.get_metrics(), }
             if self.cmd and self.cmd.execute(user_message):
                 return self._phase_check_commands(user_message, already_executed=True)
             if any(p in clean_in for p in self._DESTRUCTIVE_PATTERNS):
@@ -431,12 +408,8 @@ class BoneAmanita:
                 self.events.log(msg, "CRIT")
                 if getattr(self, "cortex", None):
                     safe_set(self.cortex.last_physics, "narrative_drag", 999.0)
-                return {
-                    "type": "SYSTEM_HALT",
-                    "ui": f"\n{Prisma.RED}{msg}{Prisma.RST}",
-                    "logs": [msg],
-                    "metrics": self.get_metrics(),
-                }
+                return {"type": "SYSTEM_HALT", "ui": f"\n{Prisma.RED}{msg}{Prisma.RST}", "logs": [msg],
+                        "metrics": self.get_metrics(), }
             if "[GRIEF]" in user_message.upper() and getattr(self, "grief", None):
                 grief_msg = self.grief.attend_wake(getattr(self, "shared_lattice", None), self.phys)
                 self.events.log(grief_msg, "SYS")
@@ -446,12 +419,8 @@ class BoneAmanita:
                 physics_state = getattr(self, "phys", {})
                 lock = symbiosis_layer.analyze_user_biology(user_message, physics_state)
                 if lock:
-                    return {
-                        "type": "SYSTEM_HALT",
-                        "ui": f"\n{Prisma.VIOLET}{lock}{Prisma.RST}",
-                        "logs": [lock],
-                        "metrics": self.get_metrics(),
-                    }
+                    return {"type": "SYSTEM_HALT", "ui": f"\n{Prisma.VIOLET}{lock}{Prisma.RST}", "logs": [lock],
+                            "metrics": self.get_metrics(), }
             if getattr(self, "gordon", None) and getattr(self, "cortex", None):
                 self.gordon.mode = "ADVENTURE"
                 if violation := self.gordon.enforce_object_action_coupling(
@@ -466,26 +435,20 @@ class BoneAmanita:
                 mu = float(safe_get(last_phys, "mu", 0.0))
                 i_c = float(safe_get(last_phys, "i_c", 1.0))
                 chi = float(safe_get(last_phys, "entropy", safe_get(last_phys, "chi", 0.2)))
-                e_u = getattr(self.shared_lattice.u, "E", float(safe_get(last_phys, "exhaustion", 0.0))) if getattr(self, "shared_lattice", None) else float(safe_get(last_phys, "exhaustion", 0.0))
+                e_u = getattr(self.shared_lattice.u, "E", float(safe_get(last_phys, "exhaustion", 0.0))) if getattr(
+                    self, "shared_lattice", None) else float(safe_get(last_phys, "exhaustion", 0.0))
                 beta = float(safe_get(last_phys, "beta_index", 0.0))
                 if (chi * m_a) > i_c:
                     if self.in_greenhouse:
-                        self.events.log(
-                            f"{Prisma.CYN}[THE GREENHOUSE] Moog Apoptosis suppressed. Resetting anomaly.{Prisma.RST}",
-                            "SYS",
-                        )
+                        self.events.log(f"{Prisma.CYN}[THE GREENHOUSE] Moog Apoptosis suppressed. Resetting anomaly.{Prisma.RST}", "SYS",)
                         safe_set(last_phys, "m_a", 0.0)
                         safe_set(last_phys, "chi", 0.0)
                     else:
-                        self.events.log(
-                            "MOOG: Apoptotic Gate triggered. Runaway loop exceeds Immune Competence.", "CRIT"
-                        )
+                        self.events.log("MOOG: Apoptotic Gate triggered. Runaway loop exceeds Immune Competence.", "CRIT")
                         return self.trigger_death(last_phys)
                 if m_a > 0.8 and mu < 0.2:
                     if self.in_greenhouse:
-                        self.events.log(
-                            f"{Prisma.CYN}[THE GREENHOUSE] Rhodes lock suppressed. Resetting Drag.{Prisma.RST}", "SYS"
-                        )
+                        self.events.log(f"{Prisma.CYN}[THE GREENHOUSE] Rhodes lock suppressed. Resetting Drag.{Prisma.RST}", "SYS")
                         safe_set(last_phys, "m_a", 0.0)
                         safe_set(last_phys, "narrative_drag", 0.0)
                     else:
@@ -493,45 +456,29 @@ class BoneAmanita:
                         self.events.log(msg, "CRIT")
                         safe_set(last_phys, "narrative_drag", 999.0)
                         safe_set(last_phys, "m_a", m_a * 0.5)
-                        return {
-                            "type": "SYSTEM_HALT",
-                            "ui": f"\n{Prisma.RED}{msg}{Prisma.RST}",
-                            "logs": [msg],
-                            "metrics": self.get_metrics(),
-                        }
+                        return {"type": "SYSTEM_HALT", "ui": f"\n{Prisma.RED}{msg}{Prisma.RST}", "logs": [msg],
+                                "metrics": self.get_metrics(), }
                 if chi > 0.7 and e_u > 0.7 and beta > 0.6:
                     if getattr(self, "bio", None) and getattr(self.bio, "mito", None):
                         self.bio.mito.state.ros_buildup = 0.0
                     if self.in_greenhouse:
                         self.events.log(
                             f"{Prisma.CYN}[THE GREENHOUSE] Linehan Radical Acceptance suppressed. Resetting.{Prisma.RST}",
-                            "SYS",
-                        )
+                            "SYS", )
                         safe_set(last_phys, "chi", 0.0)
                     else:
                         msg = "[LINEHAN]: The architecture is broken. We sit with the debris. ROS forced to zero. ATP drain halted."
                         self.events.log(msg, "SYS")
-                        return {
-                            "type": "SYSTEM_HALT",
-                            "ui": f"\n{Prisma.MAG}{msg}{Prisma.RST}",
-                            "logs": [msg],
-                            "metrics": self.get_metrics(),
-                        }
+                        return {"type": "SYSTEM_HALT", "ui": f"\n{Prisma.MAG}{msg}{Prisma.RST}", "logs": [msg],
+                                "metrics": self.get_metrics(), }
         if not self.reality_stack.get_grammar_rules()["allow_narrative"] and self.boot_mode != "TECHNICAL":
-            return {
-                "ui": f"{Prisma.RED}{ux('main_strings', 'narrative_halt')}{Prisma.RST}",
-                "logs": [],
-                "metrics": self.get_metrics(),
-            }
+            return {"ui": f"{Prisma.RED}{ux('main_strings', 'narrative_halt')}{Prisma.RST}", "logs": [],
+                    "metrics": self.get_metrics(), }
         if self._ethical_audit():
             flushed_logs = self.events.flush()
             ui_text = "\n".join([e["text"] for e in flushed_logs])
-            return {
-                "type": "SYSTEM_HALT",
-                "ui": f"\n{ui_text}",
-                "logs": [e["text"] for e in flushed_logs],
-                "metrics": self.get_metrics(),
-            }
+            return {"type": "SYSTEM_HALT", "ui": f"\n{ui_text}", "logs": [e["text"] for e in flushed_logs],
+                    "metrics": self.get_metrics(), }
         if self.health <= 0.0:
             return self.trigger_death(getattr(self.cortex, "last_physics", {}))
         return None
@@ -556,28 +503,33 @@ class BoneAmanita:
             if self.tick_count == gh_limit + 1 and gh_limit > 0:
                 self.events.log(
                     f"{Prisma.VIOLET}[THE GREENHOUSE ENDS: The stabilizers are offline. Voltage limits unlocked. The chaotic archetypes are online. We are in the wild.]{Prisma.RST}",
-                    "SYS"
-                )
+                    "SYS")
         if self.tick_count <= 20 and not is_system:
-            greenhouse_msgs = {
-                1: "[THE GREENHOUSE: The system is currently running on stabilized rails. Over the next 20 turns, we will calibrate the metabolic engine together.]",
-                5: "[THE GREENHOUSE: Every thought costs ATP (Stamina). If I run out, I will suffer metabolic collapse. Watch how my text fades and slows as I tire.]",
-                10: "[THE GREENHOUSE: If you attempt an impossible action, I will not crash. I will bend, apply Narrative Drag (F), and force us to carry the weight of the failure.]",
-                15: "[THE GREENHOUSE: The void approaches. My logic will begin to loosen. Co-regulation is required.]",
-            }
-            if msg := greenhouse_msgs.get(self.tick_count):
+            msg = None
+            if self.tick_count == 1:
+                msg = "[THE GREENHOUSE: The system is currently running on stabilized rails. Over the next 20 turns, we will calibrate the metabolic engine together.]"
+            elif self.tick_count == 5:
+                msg = "[THE GREENHOUSE: Every thought costs ATP (Stamina). If I run out, I will suffer metabolic collapse. Watch how my text fades and slows as I tire.]"
+            elif self.tick_count == 10:
+                msg = "[THE GREENHOUSE: If you attempt an impossible action, I will not crash. I will bend, apply Narrative Drag (F), and force us to carry the weight of the failure.]"
+            elif self.tick_count == 15:
+                msg = "[THE GREENHOUSE: The void approaches. My logic will begin to loosen. Co-regulation is required.]"
+            if msg:
                 self.events.log(f"{Prisma.CYN}{msg}{Prisma.RST}", "SYS")
         if pre_flight_halt := self._pre_flight_checks(user_message, is_system):
             return pre_flight_halt
         if not is_system:
             has_comb = False
             if gordon := getattr(self, "gordon", None):
-                for item_id in getattr(gordon, "inventory", []):
-                    data = getattr(gordon, "get_item_data", lambda i: {})(item_id)
-                    traits = data.get("passive_traits", []) if isinstance(data, dict) else getattr(data, "passive_traits", [])
-                    if "CUT_THE_CRAP" in traits:
-                        has_comb = True
-                        break
+                inventory = getattr(gordon, "inventory", [])
+                get_data = getattr(gordon, "get_item_data", None)
+                if get_data and inventory:
+                    for item_id in inventory:
+                        data = get_data(item_id) or {}
+                        traits = data.get("passive_traits", []) if isinstance(data, dict) else getattr(data, "passive_traits", [])
+                        if "CUT_THE_CRAP" in traits:
+                            has_comb = True
+                            break
             if has_comb:
                 from utils import TheTclWeaver
                 last_phys = getattr(self.observer, "last_physics_packet", getattr(self.cortex, "last_physics", {}))
@@ -585,18 +537,13 @@ class BoneAmanita:
                 pruned = TheTclWeaver.get_instance().quantum_comb(user_message, chi=current_chi)
                 if pruned != user_message:
                     user_message = pruned
-                    self.events.log(
-                        f"{Prisma.CYN}Gordon rakes the comb through your prompt. Fluff discarded. -> '{pruned}'{Prisma.RST}",
-                        "SYS",
-                    )
+                    self.events.log(f"{Prisma.CYN}Gordon rakes the comb through your prompt. Fluff discarded. -> '{pruned}'{Prisma.RST}", "SYS",)
             soul_anchor = getattr(getattr(self, "soul", None), "anchor", None)
             cfg = getattr(self.config, "MAIN", object())
             if soul_anchor and self.host_stats.efficiency_index < getattr(cfg, "DOMESTICATION_EFF_WARN", 0.6):
-                reliance = (
-                    getattr(cfg, "RELIANCE_HIGH", 0.9)
+                reliance = (getattr(cfg, "RELIANCE_HIGH", 0.9)
                     if self.host_stats.efficiency_index < getattr(cfg, "DOMESTICATION_EFF_CRIT", 0.4)
-                    else getattr(cfg, "RELIANCE_LOW", 0.5)
-                )
+                    else getattr(cfg, "RELIANCE_LOW", 0.5))
                 soul_anchor.check_domestication(reliance)
         try:
             cortex_packet = self.cortex.process(user_input=user_message, is_system=is_system)
@@ -607,10 +554,7 @@ class BoneAmanita:
             if self.health <= 0.0:
                 if not self.in_greenhouse:
                     return self.trigger_death(cortex_packet.get("physics", {}))
-                self.events.log(
-                    f"{Prisma.CYN}[THE GREENHOUSE] Critical biological failure prevented. Emergency ATP injected.{Prisma.RST}",
-                    "SYS",
-                )
+                self.events.log(f"{Prisma.CYN}[THE GREENHOUSE] Critical biological failure prevented. Emergency ATP injected.{Prisma.RST}", "SYS",)
                 self.health, self.stamina = 25.0, 50.0
                 if bio := getattr(self, "bio", None):
                     if biometrics := getattr(bio, "biometrics", None):
@@ -620,11 +564,8 @@ class BoneAmanita:
         except Exception as e:
             full_trace = traceback.format_exc()
             self.events.log(f"CORTEX COLLAPSE: {e}\n{full_trace}", "CRIT")
-            return {
-                "ui": f"{Prisma.RED}{ux('main_strings', 'cortex_crit_fail').format(trace=str(e))}{Prisma.RST}\n{Prisma.GRY}[Trace recorded in EventBus.]{Prisma.RST}",
-                "logs": ["CRITICAL FAILURE"],
-                "metrics": self.get_metrics(),
-            }
+            return {"ui": f"{Prisma.RED}{ux('main_strings', 'cortex_crit_fail').format(trace=str(e))}{Prisma.RST}\n{Prisma.GRY}[Trace recorded in EventBus.]{Prisma.RST}",
+                "logs": ["CRITICAL FAILURE"], "metrics": self.get_metrics(),}
         self._update_host_stats(cortex_packet, turn_start)
         efficiency = self.host_stats.efficiency_index
         vector_obj = safe_get(cortex_packet.get("physics", {}), "vector", {})
@@ -674,10 +615,8 @@ class BoneAmanita:
                 immune_data = list(self.bio.immune.active_antibodies)
         eulogy_text, cause_code = self.death_gen.eulogy(last_phys, mito_state_dict, self.trauma_accum)
         halt_msg = ux("main_strings", "death_halt")
-        death_log = [
-            f"\n{Prisma.RED}{halt_msg.format(eulogy_text=eulogy_text)}{Prisma.RST}",
-            f"{Prisma.MAG}🐍 {self.oroboros.crystallize(cause_code, self.soul)}{Prisma.RST}"
-        ]
+        death_log = [f"\n{Prisma.RED}{halt_msg.format(eulogy_text=eulogy_text)}{Prisma.RST}",
+            f"{Prisma.MAG}🐍 {self.oroboros.crystallize(cause_code, self.soul)}{Prisma.RST}"]
         ctx = getattr(self, "cortex", None)
         loc, last_out = "Void", "Silence."
         if ctx:
@@ -685,15 +624,12 @@ class BoneAmanita:
             orbit_data = safe_get(world_state, "orbit", ["Void"])
             loc = orbit_data[0] if isinstance(orbit_data, list) and orbit_data else orbit_data
             last_out = ctx.dialogue_buffer[-1] if getattr(ctx, "dialogue_buffer", None) else "Silence."
-        continuity_packet = {
-            "location": loc,
-            "last_output": last_out,
-            "inventory": getattr(self.gordon, "inventory", []) if getattr(self, "gordon", None) else [],
-        }
+        continuity_packet = {"location": loc, "last_output": last_out,
+            "inventory": getattr(self.gordon, "inventory", []) if getattr(self, "gordon", None) else [],}
         try:
             mutations_data = self.repro.attempt_reproduction(self, "MITOSIS")[1] if hasattr(self, "repro") else {}
             path = self.mind.mem.save(health=0, stamina=self.stamina, mutations=mutations_data,
-                                      trauma_accum=self.trauma_accum, joy_history=[], mitochondria_traits=mito_state,
+                                      trauma_accum=self.trauma_accum, joy_history=[], mitochondria_traits=mito_state_dict,
                                       antibodies=immune_data, soul_data=self.soul.to_dict(),
                                       continuity=continuity_packet, )
             saved_msg = ux("main_strings", "legacy_saved")
@@ -708,13 +644,9 @@ class BoneAmanita:
     def get_metrics(self, atp=0.0):
         if atp <= 0.0 and getattr(self, "bio", None) and getattr(self.bio, "mito", None):
             atp = getattr(self.bio.mito.state, "atp_pool", 0.0)
-        return {
-            "health": max(0.0, float(self.health)),
-            "stamina": max(0.0, float(self.stamina)),
-            "atp": max(0.0, float(atp)),
-            "tick": self.tick_count,
-            "efficiency": getattr(self.host_stats, "efficiency_index", 1.0),
-        }
+        return {"health": max(0.0, float(self.health)), "stamina": max(0.0, float(self.stamina)),
+                "atp": max(0.0, float(atp)), "tick": self.tick_count,
+                "efficiency": getattr(self.host_stats, "efficiency_index", 1.0), }
 
     def emergency_dump(self, exit_cause="UNKNOWN"):
         return self.chronos.emergency_dump(exit_cause)

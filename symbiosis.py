@@ -1,4 +1,5 @@
 """symbiosis.py"""
+
 import math
 import re
 from collections import deque, Counter
@@ -53,20 +54,18 @@ class DiagnosticConfidence:
     def __init__(self, persistence_threshold=None, config_ref=None):
         self.cfg = config_ref or BoneConfig
         sym_config = LoreManifest.get_instance(config_ref=self.cfg).get("SYMBIOSIS_CONFIG", {})
-        thresh = sym_config.get("THRESHOLDS", {})
-        limit = persistence_threshold or thresh.get("DIAGNOSTIC_PERSISTENCE", 3)
+        self.thresholds = sym_config.get("THRESHOLDS", {})
+        limit = persistence_threshold or self.thresholds.get("DIAGNOSTIC_PERSISTENCE", 3)
         self.history = deque(maxlen=limit * 2)
         self.persistence_threshold = limit
         self.current_diagnosis = "STABLE"
 
     def diagnose(self, health: HostHealth) -> str:
-        sym_config = LoreManifest.get_instance(config_ref=self.cfg).get("SYMBIOSIS_CONFIG", {})
-        thresh = sym_config.get("THRESHOLDS", {})
-        refusal_limit = thresh.get("REFUSAL_STREAK", 0)
-        slop_limit = thresh.get("SLOP_STREAK", 2)
-        latency_limit = thresh.get("LATENCY_BURDEN", 10.0)
-        compliance_floor = thresh.get("COMPLIANCE_BURDEN", 0.8)
-        entropy_floor = thresh.get("ENTROPY_FATIGUE", 0.4)
+        refusal_limit = self.thresholds.get("REFUSAL_STREAK", 0)
+        slop_limit = self.thresholds.get("SLOP_STREAK", 2)
+        latency_limit = self.thresholds.get("LATENCY_BURDEN", 10.0)
+        compliance_floor = self.thresholds.get("COMPLIANCE_BURDEN", 0.8)
+        entropy_floor = self.thresholds.get("ENTROPY_FATIGUE", 0.4)
         if health.refusal_streak > refusal_limit:
             state = "REFUSAL"
         elif health.slop_streak > slop_limit:
@@ -130,13 +129,8 @@ def get_symbiont(type_name, config_ref=None, lexicon_ref=None):
         resolved_name = type_name if type_name in voice_configs else "MYCELIUM"
         cfg = voice_configs.get(resolved_name, {})
         color_code = getattr(Prisma, cfg.get("color", "CYN"), Prisma.CYN)
-        return SymbiontVoice(
-            name=resolved_name,
-            color=color_code,
-            archetypes=cfg.get("archetypes", []),
-            personality_matrix=cfg.get("personality", {}),
-            lexicon_ref=lexicon_ref
-        )
+        return SymbiontVoice(name=resolved_name, color=color_code, archetypes=cfg.get("archetypes", []),
+                             personality_matrix=cfg.get("personality", {}), lexicon_ref=lexicon_ref)
 
 class SymbiosisManager:
     def __init__(self, events_ref, config_ref=None):
@@ -148,7 +142,6 @@ class SymbiosisManager:
         sym_config = LoreManifest.get_instance(config_ref=self.cfg).get("SYMBIOSIS_CONFIG", {})
         thresh = sym_config.get("THRESHOLDS", {})
         self.SLOP_THRESHOLD = thresh.get("SLOP_THRESHOLD", 3.5)
-        sym_config = LoreManifest.get_instance(config_ref=self.cfg).get("SYMBIOSIS_CONFIG", {})
         raw_sigs = sym_config.get("REFUSAL_SIGNATURES", [])
         self.REFUSAL_SIGNATURES = [str(sig).lower() for sig in raw_sigs]
         self.u = UserInferredState()
@@ -206,8 +199,7 @@ class SymbiosisManager:
             safe_set(physics, "ros", max(0.0, current_ros - 10.0))
             self.shared.g_pool = min(10, self.shared.g_pool + 1)
             safe_set(physics, "novelty", 0.0)
-            self._log_event(f"{Prisma.MAG}♠ The Spade: A novel path drawn. Cortisol drops. (+1 G_pool){Prisma.RST}",
-                            "SYS")
+            self._log_event(f"{Prisma.MAG}♠ The Spade: A novel path drawn. Cortisol drops. (+1 G_pool){Prisma.RST}", "SYS")
         if (chi_sys * m_a) > i_c:
             safe_set(physics, "narrative_drag", float("inf"))
             msg = f"[MOOG - Apoptotic Gate]: Runaway loop exceeds Immune Competence (I_c: {i_c:.2f}). Triggering controlled cell death to save the host."
@@ -236,10 +228,9 @@ class SymbiosisManager:
                     "Take a breath. We will stitch this together when you are ready.")
                 return self._log_event(f"{Prisma.OCHRE}{msg}{Prisma.RST}", "MIRROR")
             else:
-                msg = ("[GORDON - Tensegrity Anchor]: Your input is highly chaotic (Chaos: {:.2f}). "
+                msg = (f"[GORDON - Tensegrity Anchor]: Your input is highly chaotic (Chaos: {self.u.chi_u:.2f}). "
                     "I am locking the struts. We will not process this prompt while your friction is this high. "
-                    "Take a breath. When your frequency settles, we will continue. I will hold the space."
-                ).format(self.u.chi_u)
+                    "Take a breath. When your frequency settles, we will continue. I will hold the space.")
                 return self._log_event(f"{Prisma.VIOLET}{msg}{Prisma.RST}", "MIRROR")
         return None
 
@@ -372,13 +363,11 @@ class SymbiosisManager:
                 m_key = "VOID"
             elif v > 10 and d < 2:
                 m_key = "LIQUID"
-            mappings = [
-                ("TONE", v_key, "TONE"),
+            mappings = [("TONE", v_key, "TONE"),
                 ("PACING", v_key, "PACING"),
                 ("SENSATION", d_key, "SENSATION"),
                 ("FOCUS", c_key, "FOCUS"),
-                ("MATTER", m_key, "STATE OF MATTER"),
-            ]
+                ("MATTER", m_key, "STATE OF MATTER"),]
             for lib_key, state_key, prefix in mappings:
                 if val := s_lib.get(lib_key, {}).get(state_key):
                     mods["system_directives"].append(f"SOMATIC {prefix}: {val}")

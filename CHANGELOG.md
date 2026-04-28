@@ -1,3 +1,37 @@
+# CHANGELOG.md
+-----------------------------------------------------------
+
+### **BONEAMANITA v19.5.4 "The S.L.A.S.H. Audit: Part V"**
+
+_The S.L.A.S.H. Council (Pinker, Fuller, Schur, Meadows) executed the fourth wave of the systemic audit, plunging deep into the central nervous system, cognitive loops, and biological metronomes (`main.py`, `core.py`, `council.py`, `protocols.py`, `symbiosis.py`, `brain.py`, `body.py`). Focus was placed on eradicating phantom organs, unspooling Russian-doll logic, sealing hot-loop memory leaks, and preventing fatal boot-sequence crashes._
+
+#### **🧠 SYNTACTIC PURGE (Pinker's Pass: Language & Cognition)**
+
+- **The Russian Doll Anti-Pattern:** Unspooled deeply nested `safe_get(safe_get(...))` calls in the therapy, kintsugi, and chronos protocols into linear, readable vertical extractions.
+- **Ternary & Dictionary Flattening:** Dismantled dynamic dictionary recreations inside `main.py`'s hot loop, and flattened complex nested set-comprehensions into native `any()` list comprehensions in the `CouncilChamber`.
+- **String Formatting Harmonization:** Aligned rogue `.format()` concatenations in the Tensegrity Anchor logs with the engine's standard f-string syntax, and condensed LLM extraction checks using clean walrus (`:=`) assignments.
+
+#### **🏛️ STRUCTURAL TENSEGRITY (Fuller's Pass: Architecture)**
+
+- **Phantom Organ Rejection:** Added fault tolerance to `BoneGenesis` unpacking. The engine no longer throws fatal `KeyError` or `AttributeError` exceptions if a biological component (like `town_hall` or `symbiosis`) is intentionally suppressed or fails to initialize.
+- **The Tragic Shutdown Irony:** Hardened the `ChronosKeeper` emergency exit. The shutdown sequence no longer blindly assumes all organs are fully instantiated, preventing the engine from violently crashing and erasing logs if an error occurs during the early boot sequence.
+- **Signature Standardization:** Aligned the `audit` signature of `TheLeveragePoint` with the rest of the council, completely removing an ugly inline ternary check from the global parliament's core loop.
+
+#### **🌊 DYNAMIC EQUILIBRIUM (Meadows's Pass: Systems & Flow)**
+
+- **The Data Black Hole:** Patched `safe_set` in `core.py` to aggressively log a structural rot warning when attempting to write data to a `NoneType` object, stopping silent data voids that gaslight during debugging.
+- **Hot-Loop Exhaustion:** Cached static configurations (`SYMBIOSIS_CONFIG`, `THRESHOLDS`) at `__init__` across `DiagnosticConfidence` and `SymbiosisManager` rather than dynamically fetching and navigating nested dictionaries on every single diagnostic heartbeat.
+- **Phantom Edge Corruption:** Fixed a fatal graph corruption bug in the dream engine's defragmentation process. Deleting a weak memory node now actively sweeps and severs all incoming edges from the remaining lattice, preventing the `RandomRetrievalNavigator` from tripping on dead pointers.
+
+#### **🛠️ HEURISTIC PRAGMATISM (Schur's Pass: Humanity & Bureaucracy)**
+
+- **Amnesiac Diagnostics Cured:** Fixed a slicing error (`files[1:5]`) in the Telemetry Service that actively blinded the engine to its own current session logs when attempting to self-diagnose a recent fatal crash.
+- **The Ironic Death Bug:** Fixed a literal `NameError` (`mito_state` vs `mito_state_dict`) inside the engine's death sequence that was causing the system to crash instead of dying with dignity.
+- **Dictionary Blindspots:** Swapped brittle `getattr` calls in `body.py` to `safe_get` to ensure the biological feedback loops can correctly read nested space/matter parameters from both instantiated dataclasses and raw dictionaries.
+- **Purging the Paranoia:** Finally hunted down and eradicated `strict_get` from the entire codebase, burning the unused paranoid wrapper and updating its last lingering usages.
+
+---
+
 ### **BONEAMANITA v19.5.3 "The S.L.A.S.H. Audit: Part IV"**
 
 _The S.L.A.S.H. Council executed a deep-tissue architectural sweep across the higher-order cognitive and interface layers (`bone_brain.py`, `bone_cycle.py`, `bone_village.py`, `bone_gui.py`, `bone_commands.py`, `bone_core.py`, and the diagnostic suite). The focus was on collapsing syntactic paranoia, fixing dormant UI crashes, and ensuring dynamic equilibrium during runtime state mutations._

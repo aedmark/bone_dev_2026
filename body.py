@@ -4,7 +4,7 @@ import math, random, time
 from collections import deque, Counter
 from dataclasses import dataclass, field, asdict
 from typing import Optional, Dict, List, Any, Tuple
-from core import Prisma, LoreManifest, ux, safe_get, safe_set, strict_get
+from core import Prisma, LoreManifest, ux, safe_get, safe_set
 from presets import BoneConfig
 from spores import ImmuneMycelium, BioLichen, BioParasite
 
@@ -68,12 +68,8 @@ class BioSystem:
             self.mito.adjust_atp(atp_gained, "Emergency Autophagy")
 
     def to_dict(self) -> Dict[str, Any]:
-        return {
-            "mito": asdict(self.mito.state),
-            "endo": self.endo.get_state(),
-            "biometrics": asdict(self.biometrics) if self.biometrics else {},
-            "governor_mode": self.governor.mode,
-        }
+        return {"mito": asdict(self.mito.state), "endo": self.endo.get_state(),
+                "biometrics": asdict(self.biometrics) if self.biometrics else {}, "governor_mode": self.governor.mode, }
 
     def rest(self, factor: float = 1.0) -> List[str]:
         b = self.biometrics
@@ -114,7 +110,7 @@ class BioSystem:
                 shifts.get("MANIC", {}).get("atp", -10.0), "Neural Overclock")
 
     def apply_environmental_entropy(self, physics_packet):
-        matter = getattr(physics_packet, "matter", physics_packet)
+        matter = safe_get(physics_packet, "matter", physics_packet)
         vector = safe_get(matter, "vector", {}) or {}
         ent_val = vector.get("ENT", 0.0)
         phi_val = vector.get("PHI", 0.0)
@@ -140,8 +136,7 @@ class BioSystem:
         if shield_strength > 0.2 and self.events and (msg := ux(
                 "entropy_shield", "shield_active")):
             self.events.log(
-                f"{Prisma.CYN}{msg.format(mitigation=int(shield_strength * 100))}{Prisma.RST}",
-                "PHYS")
+                f"{Prisma.CYN}{msg.format(mitigation=int(shield_strength * 100))}{Prisma.RST}", "PHYS")
 
 
 @dataclass
@@ -199,9 +194,7 @@ class MitochondrialForge:
         try:
             return tmpl.format(**kwargs)
         except Exception as e:
-            print(
-                f"{Prisma.RED}[MITO_FORGE] Missing narrative kwargs for '{key}': {e}{Prisma.RST}"
-            )
+            print(f"{Prisma.RED}[MITO_FORGE] Missing narrative kwargs for '{key}': {e}{Prisma.RST}")
             return tmpl
 
     def _trigger_anaerobic_bypass(self, raw_cost: float) -> MetabolicReceipt:
@@ -217,9 +210,9 @@ class MitochondrialForge:
         if self.state.atp_pool > 95.0 and self.state.ros_buildup < 1.0:
             return MetabolicReceipt(0, 0, 0, 0, 0, "NOMINAL", "Fresh Start")
         cfg = getattr(self.cfg, "BIO", None)
-        depth = strict_get(physics_packet, "depth", 0.3)
-        connectivity = strict_get(physics_packet, "connectivity", 0.2)
-        voltage = float(strict_get(physics_packet, "voltage", 30.0))
+        depth = float(safe_get(physics_packet, "depth", 0.3))
+        connectivity = float(safe_get(physics_packet, "connectivity", 0.2))
+        voltage = float(safe_get(physics_packet, "voltage", 30.0))
         base_cost = safe_get(cfg, "BASE_ATP_YIELD", 2.0) + (
             voltage * safe_get(cfg, "VOLTAGE_TAX_MULT", 0.05))
         cognitive_load_tax = (depth * safe_get(cfg, "DEPTH_TAX_MULT", 2.0)) + (
@@ -240,7 +233,7 @@ class MitochondrialForge:
                     f"{Prisma.MAG}[CHECKPOINT]: Amplification Tax applied (+{amplification_tax:.2f} ATP drag){Prisma.RST}",
                     "BIO_WARN")
         base_demand = base_cost + (math.log1p(max(0.0, self.state.ros_buildup)) * 2.0)
-        atp_crit = getattr(cfg, "ATP_CRITICAL", 20.0) if cfg else 20.0
+        atp_crit = getattr(cfg, "ATP_CRITICAL", 20.0)
         is_critical = self.state.atp_pool < atp_crit
         if is_critical:
             cognitive_load_tax = 0.0
@@ -290,15 +283,10 @@ class MitochondrialForge:
             status = "NECROSIS"
             if self.events:
                 self.events.publish("SYSTEM_STARVING", {})
-        return MetabolicReceipt(
-            base_cost=round(base_demand, 2),
-            drag_tax=round(cognitive_load_tax, 2),
-            inefficiency_tax=round(total_metabolic_cost - (base_demand + cognitive_load_tax), 2),
-            total_burn=round(total_metabolic_cost, 2),
-            waste_generated=round(waste_generated, 2),
-            status=status,
-            symptom=self.state.retrograde_signal,
-        )
+        return MetabolicReceipt(base_cost=round(base_demand, 2), drag_tax=round(cognitive_load_tax, 2),
+                                inefficiency_tax=round(total_metabolic_cost - (base_demand + cognitive_load_tax), 2),
+                                total_burn=round(total_metabolic_cost, 2), waste_generated=round(waste_generated, 2),
+                                status=status, symptom=self.state.retrograde_signal, )
 
     def _apply_adaptive_dynamics(self):
         cfg = getattr(self.cfg, "BIO", None)
@@ -313,7 +301,6 @@ class MitochondrialForge:
             self.state.retrograde_signal = "MITOHORMESIS_ACTIVE"
             self.state.ros_buildup = max(0.0, self.state.ros_buildup - 0.5)
         else:
-            """A stock without a floor accumulates infinite debt. -Meadows"""
             self.state.membrane_potential = max(0.1, self.state.membrane_potential - 0.02)
             self.state.retrograde_signal = "OXIDATIVE_STRESS"
         if self.state.ros_buildup > ros_purge:
@@ -325,10 +312,7 @@ class MitochondrialForge:
             self.state.membrane_potential = max(0.4, self.state.membrane_potential - 0.15)
             msg = ux("mito_forge", "adaptation_stress")
             if msg:
-                self.events.log(
-                    f"{Prisma.RED}{msg.format(stress=stress_level, old=old_potential, new=self.state.membrane_potential)}{Prisma.RST}",
-                    "BIO",
-                )
+                self.events.log(f"{Prisma.RED}{msg.format(stress=stress_level, old=old_potential, new=self.state.membrane_potential)}{Prisma.RST}", "BIO",)
         elif stress_level > 1.0:
             self.state.membrane_potential = min(1.5, self.state.membrane_potential + 0.05)
             if random.random() < 0.2 and (msg := ux("mito_forge", "adaptation_hormetic")):
@@ -353,7 +337,6 @@ class MitochondrialForge:
             self.events.log("[MITO]: Ancestral High Metabolism activated.", "GENETICS")
 
     def cellular_repair(self, survival_streak: int, g_pool: int, inherited_scars: dict) -> Tuple[bool, int, str]:
-        """Epigenetic Plasticity: Earn out of ancestral trauma."""
         if survival_streak < 50 or self.state.ros_buildup > 10.0 or not inherited_scars:
             return False, g_pool, ""
         if g_pool >= 1:
@@ -375,12 +358,8 @@ class DigestiveTrack:
             "BODY_CONFIG", "ENZYME_MAP") or {})
         self.enzyme_map = dict(base_map)
         if "heavy" not in self.enzyme_map:
-            self.enzyme_map.update({
-                "heavy": "CELLULASE",
-                "constructive": "CHITINASE",
-                "aerobic": "LIGNASE",
-                "meat": "PROTEASE",
-            })
+            self.enzyme_map.update(
+                {"heavy": "CELLULASE", "constructive": "CHITINASE", "aerobic": "LIGNASE", "meat": "PROTEASE", })
         self.SAMPLING_THRESHOLD = getattr(self.cfg.BIO, "SAMPLING_THRESHOLD", 1000)
         self.BASE_WORD_VALUE = getattr(self.cfg.BIO, "BASE_WORD_VALUE", 0.5)
         self.COMPLEX_WORD_BONUS = getattr(self.cfg.BIO, "COMPLEX_WORD_BONUS", 2.0)
@@ -521,7 +500,7 @@ class BioFeedback:
         cfg = getattr(self.cfg, "BIO", None)
         if len(text) > safe_get(cfg, "BUFFER_WARN_LIMIT", 10000) and (msg := ux("bio_feedback", "large_buffer")):
             logs.append(f"{Prisma.GRY}{msg}{Prisma.RST}")
-        space = getattr(phys, "space", phys)
+        space = safe_get(phys, "space", phys)
         drag = float(safe_get(space, "narrative_drag", 0.0))
         sludge_thresh = safe_get(cfg, "SLUDGE_DRAG_THRESH", 8.0)
         sludge_mod = safe_get(cfg, "SLUDGE_TICK_MOD", 10)
@@ -553,12 +532,8 @@ class SemanticEndocrinologist:
         if self.lex and hasattr(self.lex, "get_valence"):
             valence_score = self.lex.get_valence(clean_words)
         coherence_score = getattr(physics, "kappa", 0.5)
-        return SemanticSignal(
-            novelty=novelty_score,
-            resonance=resonance_score,
-            valence=valence_score,
-            coherence=coherence_score,
-        )
+        return SemanticSignal(novelty=novelty_score, resonance=resonance_score, valence=valence_score,
+                              coherence=coherence_score, )
 
 class SomaticLoop:
     def __init__(self, bio_system_ref: BioSystem, memory_ref=None, lexicon_ref=None, events_ref=None, config_ref=None, ):
@@ -573,30 +548,13 @@ class SomaticLoop:
         self.narrative_data = (LoreManifest.get_instance(config_ref=self.cfg).get("BIO_NARRATIVE") or {})
         if not self.narrative_data:
             if hasattr(self.events, "log"):
-                self.events.log(
-                    f"{Prisma.OCHRE}[BODY]: Warning - BIO_NARRATIVE missing.{Prisma.RST}",
-                    "SYS",
-                )
-            self.narrative_data = {
-                "symptoms": {},
-                "organs": {},
-                "GLIMMER": {},
-                "GOVERNOR": {},
-            }
+                self.events.log(f"{Prisma.OCHRE}[BODY]: Warning - BIO_NARRATIVE missing.{Prisma.RST}", "SYS", )
+            self.narrative_data = {"symptoms": {}, "organs": {}, "GLIMMER": {}, "GOVERNOR": {}, }
         self.bio.endo.narrative_data = self.narrative_data
         self.bio.governor.narrative_data = self.narrative_data
 
-    def digest_cycle(
-        self,
-        text: str,
-        physics_data: Any,
-        fb_dict: Dict,
-        health: float,
-        stamina: float,
-        stress_modifier: float,
-        tick_count: int = 0,
-        circadian_bias: Dict = None,
-    ) -> Dict:
+    def digest_cycle(self, text: str, physics_data: Any, fb_dict: Dict, health: float, stamina: float,
+                     stress_modifier: float, tick_count: int = 0, circadian_bias: Dict = None, ) -> Dict:
         text = str(text or "")
         phys = physics_data
         logs = []
@@ -658,33 +616,18 @@ class SomaticLoop:
             "NOVELTY": semantic_sig.novelty,
             "STATIC": float(phys.get("entropy", 0.0)),
         })
-        chem_state = self.bio.endo.metabolize(
-            feedback=fb_dict,
-            health=b.health,
-            stamina=b.stamina,
-            ros_level=self.bio.mito.state.ros_buildup,
-            receipt=receipt,
-            harvest_hits=harvest_hits,
-            stress_mod=stress_modifier,
-            enzyme_type=enzyme,
-            circadian_bias=circadian_bias,
-            semantic_signal=semantic_sig,
-        )
+        chem_state = self.bio.endo.metabolize(feedback=fb_dict, health=b.health, stamina=b.stamina,
+                                              ros_level=self.bio.mito.state.ros_buildup, receipt=receipt,
+                                              harvest_hits=harvest_hits, stress_mod=stress_modifier, enzyme_type=enzyme,
+                                              circadian_bias=circadian_bias, semantic_signal=semantic_sig, )
         return self._package_result(receipt.status, logs, chem_state, enzyme, qualia)
 
     def _package_result(self, resp_status, logs, chem_state=None, enzyme="NONE", qualia=None):
         atp_val = self.bio.mito.state.atp_pool
         stam_val = self.bio.biometrics.stamina if self.bio.biometrics else 100.0
-        return {
-            "respiration": resp_status,
-            "is_alive": resp_status in ("RESPIRING", "ANAEROBIC"),
-            "logs": logs,
-            "chemistry": chem_state or {},
-            "enzyme": enzyme,
-            "atp": atp_val,
-            "stamina": stam_val,
-            "qualia": qualia,
-        }
+        return {"respiration": resp_status, "is_alive": resp_status in ("RESPIRING", "ANAEROBIC"), "logs": logs,
+                "chemistry": chem_state or {}, "enzyme": enzyme, "atp": atp_val, "stamina": stam_val,
+                "qualia": qualia, }
 
 @dataclass
 class EndocrineSystem:
@@ -704,14 +647,8 @@ class EndocrineSystem:
         body_config = (LoreManifest.get_instance(config_ref=self.cfg).get("BODY_CONFIG")
                        or {})
         self._REACTION_MAP = body_config.get("REACTION_MAP", {})
-        self._KEY_MAP = {
-            "ADR": "adrenaline",
-            "COR": "cortisol",
-            "OXY": "oxytocin",
-            "DOP": "dopamine",
-            "SER": "serotonin",
-            "MEL": "melatonin"
-        }
+        self._KEY_MAP = {"ADR": "adrenaline", "COR": "cortisol", "OXY": "oxytocin", "DOP": "dopamine",
+                         "SER": "serotonin", "MEL": "melatonin"}
         self._CIRCADIAN_SCHEDULE = body_config.get("CIRCADIAN_SCHEDULE", [])
         self._CIRCADIAN_NIGHT = body_config.get("CIRCADIAN_NIGHT", [{
             "MEL": 0.3,
@@ -839,8 +776,7 @@ class EndocrineSystem:
         if feedback.get("NOVELTY", 0) > nov_thresh:
             self.glimmers += 1
             self.dopamine += 0.1
-            return glimmer_text.get("DISCOVERY",
-                                    "GLIMMER: A novel connection formed. Discovery.")
+            return glimmer_text.get("DISCOVERY", "GLIMMER: A novel connection formed. Discovery.")
         if harvest_hits > harv_min and self.dopamine > dop_min:
             self.glimmers += 1
             self.oxytocin += 0.2
@@ -1034,16 +970,10 @@ class MetabolicGovernor:
         lookup = {"LABORATORY": "LAB", "COURTYARD": "CLEAR"}.get(mode, mode)
         tmpl = text_map.get(lookup, defaults.get(mode, ""))
         try:
-            return tmpl.format(
-                color=colors.get(mode, Prisma.WHT),
-                reset=Prisma.RST,
-                volts=safe_get(physics, "voltage", 0.0),
-                beta=safe_get(physics, "beta_index", 0.0),
-            )
+            return tmpl.format(color=colors.get(mode, Prisma.WHT), reset=Prisma.RST,
+                               volts=safe_get(physics, "voltage", 0.0), beta=safe_get(physics, "beta_index", 0.0), )
         except Exception as e:
-            print(
-                f"{Prisma.RED}[GOVERNOR] Shift message format error for '{mode}': {e}{Prisma.RST}"
-            )
+            print(f"{Prisma.RED}[GOVERNOR] Shift message format error for '{mode}': {e}{Prisma.RST}")
             return f"{colors.get(mode, '')}{defaults.get(mode, '')}{Prisma.RST}"
 
 @dataclass
@@ -1142,8 +1072,7 @@ class SynestheticCortex:
         entropy = float(safe_get(physics, "entropy", 0.0))
         voltage = float(safe_get(physics, "voltage", 0.0))
         drag = float(safe_get(physics, "narrative_drag", 0.0))
-        conditions = [
-            (impulse.cortisol_delta > 0.1 and impulse.adrenaline_delta > 0.1, "fight_flight"),
+        conditions = [(impulse.cortisol_delta > 0.1 and impulse.adrenaline_delta > 0.1, "fight_flight"),
             (impulse.dopamine_delta > 0.1 and impulse.adrenaline_delta > 0.1, "electric"),
             (impulse.adrenaline_delta > 0.1, "pupils"),
             (impulse.oxytocin_delta > 0.1 and impulse.dopamine_delta > 0.1, "glow"),
@@ -1154,8 +1083,7 @@ class SynestheticCortex:
             (entropy > 0.7, "static"),
             (voltage > arc_trigger, "arcing"),
             (voltage < 2.0, "dimming"),
-            (drag > 5.0, "sagging")
-        ]
+            (drag > 5.0, "sagging")]
         key = next((k for cond, k in conditions if cond), "steady")
         res = s.get(key, "")
         if key == "steady" and self.last_reflex == res:
@@ -1167,14 +1095,11 @@ class SynestheticCortex:
         strings = (LoreManifest.get_instance(config_ref=config_ref or BoneConfig).get(
             "BODY_CONFIG", "QUALIA_STRINGS") or {})
         if not impulse:
-            return Qualia(Prisma.GRY, "...", strings.get("tones", {}).get("steady", ""),
-                          strings.get("hints", {}).get("observe", ""), )
-        profiles = [
-            (impulse.oxytocin_delta, Prisma.MAG, "resonant", "connect"),
+            return Qualia(Prisma.GRY, "...", strings.get("tones", {}).get("steady", ""), strings.get("hints", {}).get("observe", ""), )
+        profiles = [(impulse.oxytocin_delta, Prisma.MAG, "resonant", "connect"),
             (impulse.dopamine_delta, Prisma.CYN, "vibrating", "explore"),
             (impulse.cortisol_delta, Prisma.OCHRE, "strained", "guarded"),
-            (impulse.adrenaline_delta, Prisma.RED, "urgent", "fast"),
-        ]
+            (impulse.adrenaline_delta, Prisma.RED, "urgent", "fast"),]
         dom_val, color, t_key, h_key = max(profiles, key=lambda x: x[0])
         tones, hints, reflexes = strings.get("tones", {}), strings.get("hints", {}), strings.get("reflexes", {})
         tone = tones.get(t_key, "") if dom_val > 0.2 else tones.get("steady", "")

@@ -22,11 +22,7 @@ class ZenGarden:
         self.koans = NARRATIVE_DATA.get("ZEN_KOANS", ["The code that is not written has no bugs."])
 
     def to_dict(self) -> Dict[str, Any]:
-        return {
-            "stillness_streak": self.stillness_streak,
-            "max_streak": self.max_streak,
-            "pebbles_collected": self.pebbles_collected,
-        }
+        return {"stillness_streak": self.stillness_streak, "max_streak": self.max_streak, "pebbles_collected": self.pebbles_collected,}
 
     def load_state(self, data: Dict[str, Any]):
         self.stillness_streak = data.get("stillness_streak", 0)
@@ -57,15 +53,11 @@ class ZenGarden:
             return efficiency_boost, msg
         if self.stillness_streak > getattr(cfg, "STREAK_BREAK_THRESHOLD", 3):
             break_msg = ux("protocol_strings", "zen_break")
-            self.events.log(
-                f"{Prisma.GRY}{break_msg}{Prisma.RST}",
-                "SYS",
-            )
+            self.events.log(f"{Prisma.GRY}{break_msg}{Prisma.RST}", "SYS",)
         self.stillness_streak = 0
         return 0.0, None
 
 class TheBureau:
-
     def __init__(self, config_ref=None):
         self.cfg = config_ref or BoneConfig
         self.stamp_count = 0
@@ -73,8 +65,7 @@ class TheBureau:
         self.responses = NARRATIVE_DATA.get("BUREAU_RESPONSES", ["Processing..."])
         lex_data = LoreManifest.get_instance().get("LEXICON") or {}
         raw_buzz = lex_data.get("bureau_buzzwords") or []
-        self.buzzwords = (set(raw_buzz) if raw_buzz else
-                          {"synergy", "paradigm", "leverage", "utilize"})
+        self.buzzwords = (set(raw_buzz) if raw_buzz else {"synergy", "paradigm", "leverage", "utilize"})
         self.crimes = []
         self.crime_data = LoreManifest.get_instance().get("STYLE_CRIMES") or {}
         if "PATTERNS" in self.crime_data:
@@ -94,10 +85,8 @@ class TheBureau:
                     })
                 except re.error as e:
                     err_msg = ux("protocol_strings", "bureau_compile_fail")
-                    print(
-                        f"{Prisma.RED}{err_msg.format(name=p.get('name'), e=e)}{Prisma.RST}"
-                    )
-        scenarios = LoreManifest.get_instance().get("scenarios") or {}
+                    print(f"{Prisma.RED}{err_msg.format(name=p.get('name'), e=e)}{Prisma.RST}")
+        scenarios = LoreManifest.get_instance().get("scenarios")
         self.cliches = {str(c).lower() for c in scenarios.get("BANNED_CLICHES", [])}
 
     def to_dict(self) -> Dict[str, Any]:
@@ -109,10 +98,10 @@ class TheBureau:
     def audit(self, physics, bio_state, _context=None, origin="USER") -> Optional[Dict]:
         if bio_state.get("health", 100.0) < self.cfg.BUREAU.MIN_HEALTH_TO_AUDIT:
             return None
-        vol = float(safe_get(physics, "voltage", 0.0) or 0.0)
+        vol = float(safe_get(physics, "voltage", 0.0))
         clean_words = safe_get(physics, "clean_words", [])
         raw_text = str(safe_get(physics, "raw_text", ""))
-        truth = float(safe_get(physics, "truth_ratio", 0.0) or 0.0)
+        truth = float(safe_get(physics, "truth_ratio", 0.0))
         word_count = len(raw_text.split())
         if raw_text.startswith("/") or word_count < self.cfg.BUREAU.MIN_WORD_COUNT:
             return None
@@ -137,10 +126,8 @@ class TheBureau:
                 tax = tax_std
         elif chi > chaos_thresh:
             selected_form = ux("protocol_strings", "bureau_form_666")
-            evidence = [
-                ux("protocol_strings", "bureau_ev_chaos").format(thresh=chaos_thresh),
-                ux("protocol_strings", "bureau_ev_level").format(level=chi),
-            ]
+            evidence = [ux("protocol_strings", "bureau_ev_chaos").format(thresh=chaos_thresh),
+                ux("protocol_strings", "bureau_ev_level").format(level=chi),]
             tax = getattr(cfg_bureau, "TAX_CHAOS", 12.0)
         else:
             buzz_hits = [w for w in clean_words if w in self.buzzwords]
@@ -152,13 +139,9 @@ class TheBureau:
         if not selected_form:
             return None
         if bio_state.get("health", 100.0) < 20.0:
-            return {
-                "status": "WAIVED",
-                "ui":
+            return {"status": "WAIVED", "ui":
                 f"{Prisma.CYN}[BUREAU]: Audit waived due to critical systemic instability.{Prisma.RST}",
-                "log": "Audit waived (Mercy).",
-                "atp_gain": 0.0,
-            }
+                    "log": "Audit waived (Mercy).", "atp_gain": 0.0, }
         self.stamp_count += 1
         bureau_resp = random.choice(self.responses)
         prefix_str = ux("protocol_strings", "bureau_prefix_normal")
@@ -173,12 +156,8 @@ class TheBureau:
             ev_msg = ux("protocol_strings", "bureau_evidence")
             ui_msg += f"\n   {Prisma.RED}{ev_msg.format(evidence=', '.join(evidence))}{Prisma.RST}"
         log_msg = ux("protocol_strings", "bureau_log")
-        return {
-            "status": "AUDITED",
-            "ui": ui_msg,
-            "log": log_msg.format(form=selected_form, origin=origin, tax=tax),
-            "atp_gain": -tax,
-        }
+        return {"status": "AUDITED", "ui": ui_msg, "log": log_msg.format(form=selected_form, origin=origin, tax=tax),
+                "atp_gain": -tax, }
 
     @staticmethod
     def _apply_correction(text: str, crime: Dict, match: re.Match) -> str:
@@ -230,8 +209,9 @@ class TherapyProtocol:
         self.streaks = data.get("streaks", {k: 0 for k in self.cfg.TRAUMA_VECTOR.keys()})
 
     def check_progress(self, phys, _stamina, current_trauma_accum, _qualia=None):
-        counts = safe_get(phys, "counts", safe_get(safe_get(phys, "matter"), "counts", {}))
-        vector = safe_get(phys, "vector", safe_get(safe_get(phys, "matter"), "vector", {}))
+        matter = safe_get(phys, "matter", {}) or {}
+        counts = safe_get(phys, "counts", safe_get(matter, "counts", {}))
+        vector = safe_get(phys, "vector", safe_get(matter, "vector", {}))
         cfg_therapy = getattr(self.cfg, "THERAPY", object())
         str_req = getattr(cfg_therapy, "STRENGTH_REQ", 0.3)
         t_reduct = getattr(cfg_therapy, "TRAUMA_REDUCTION", 0.5)
@@ -275,9 +255,10 @@ class KintsugiProtocol:
     def attempt_repair(self, phys, trauma_accum, soul_ref=None, _qualia=None, lexicon_ref=None):
         if not self.active_koan:
             return {"success": False, "msg": "No active koan.", "healed": []}
-        vol = float(
-            safe_get(phys, "voltage", safe_get(safe_get(phys, "energy"), "voltage", 0.0)))
-        raw_text = safe_get(phys, "raw_text", safe_get(safe_get(phys, "matter"), "raw_text", ""))
+        energy = safe_get(phys, "energy", {}) or {}
+        matter = safe_get(phys, "matter", {}) or {}
+        vol = float(safe_get(phys, "voltage", safe_get(energy, "voltage", 0.0)))
+        raw_text = str(safe_get(phys, "raw_text", safe_get(matter, "raw_text", "")))
         if lexicon_ref:
             clean = lexicon_ref.sanitize(raw_text)
             play_set = lexicon_ref.get("play") or []
@@ -301,10 +282,7 @@ class KintsugiProtocol:
 
     def _execute_pathway(self, pathway, trauma_accum, soul_ref):
         if not trauma_accum:
-            return {
-                "success": False,
-                "msg": ux("protocol_strings", "kintsugi_no_fissures"),
-            }
+            return {"success": False, "msg": ux("protocol_strings", "kintsugi_no_fissures"),}
         target = max(trauma_accum, key=trauma_accum.get)
         severity = trauma_accum[target]
         healed_log = []
@@ -385,10 +363,7 @@ class TheCriticsCircle:
         self.last_review_turn = 0
 
     def to_dict(self):
-        return {
-            "active_cooldowns": self.active_cooldowns,
-            "last_review_turn": self.last_review_turn,
-        }
+        return {"active_cooldowns": self.active_cooldowns, "last_review_turn": self.last_review_turn,}
 
     def load_state(self, data):
         self.active_cooldowns = data.get("active_cooldowns", {})
@@ -419,8 +394,7 @@ class TheCriticsCircle:
                 if metric_str.startswith("counts_"):
                     category = metric_str.replace("counts_", "")
                     counts = safe_get(physics, "counts", {})
-                    raw_count = (counts.get(category, 0) if isinstance(counts, dict)
-                                 else getattr(counts, category, 0))
+                    raw_count = (counts.get(category, 0) if isinstance(counts, dict) else getattr(counts, category, 0))
                     current = min(max_contrib, raw_count * 0.5)
                 elif metric_str == "velocity":
                     current = velocity
@@ -439,8 +413,7 @@ class TheCriticsCircle:
         if best_match:
             key, critic = best_match
             self.last_review_turn = turn_count
-            self.active_cooldowns[key] = turn_count + (getattr(
-                cfg, "CRITIC_COOLDOWN_TICKS", 50) if cfg else 50)
+            self.active_cooldowns[key] = turn_count + (getattr(cfg, "CRITIC_COOLDOWN_TICKS", 50))
             comment = random.choice(
                 critic.get("reviews", {}).get(review_type, ["Hrm."]))
             color = Prisma.GRN if review_type == "high" else Prisma.RED
@@ -516,17 +489,14 @@ class TheFolly:
         self.global_tastings = Counter()
 
     def to_dict(self) -> Dict[str, Any]:
-        return {
-            "gut_memory": list(self.gut_memory),
-            "global_tastings": dict(self.global_tastings),
-        }
+        return {"gut_memory": list(self.gut_memory), "global_tastings": dict(self.global_tastings),}
 
     def load_state(self, data: Dict[str, Any]):
         self.gut_memory = deque(data.get("gut_memory", []), maxlen=50)
         self.global_tastings = Counter(data.get("global_tastings", {}))
 
     def audit_desire(self, physics, stamina):
-        voltage = float(safe_get(physics, "voltage", 0.0) or 0.0)
+        voltage = float(safe_get(physics, "voltage", 0.0))
         cfg = getattr(self.cfg, "FOLLY", object())
         m_volt = getattr(cfg, "MAUSOLEUM_VOLTAGE", 80.0)
         m_stam = getattr(cfg, "MAUSOLEUM_STAMINA", 20.0)
@@ -595,16 +565,14 @@ class TheFolly:
         abstract_set = set(lexicon_ref.get("abstract") or []) if lexicon_ref else set()
         if abstract_words := [w for w in clean_words if w in abstract_set]:
             yield_val = self.cfg.FOLLY.YIELD_ABSTRACT
-            msg = (
-                f"{Prisma.GRY}{(ux('protocol_strings', 'folly_sighs') or '').format(target=random.choice(abstract_words).upper())}{Prisma.RST}\n"
-                f"   {Prisma.GRY}{(ux('protocol_strings', 'folly_chalk') or '').format(yield_val=yield_val)}{Prisma.RST}"
-            )
+            msg = (f"{Prisma.GRY}{(ux('protocol_strings', 'folly_sighs')
+                    or '').format(target=random.choice(abstract_words).upper())}{Prisma.RST}\n"f""
+                    f"   {Prisma.GRY}{(ux('protocol_strings', 'folly_chalk')
+                    or '').format(yield_val=yield_val)}{Prisma.RST}")
             return "GRUEL", msg, yield_val, None
-        msg = (
-            f"{Prisma.OCHRE}{ux('protocol_strings', 'folly_indigestion') or ''}{Prisma.RST}\n"
+        msg = (f"{Prisma.OCHRE}{ux('protocol_strings', 'folly_indigestion') or ''}{Prisma.RST}\n"
             f"   {Prisma.GRY}{ux('protocol_strings', 'folly_cannot_grind') or ''}{Prisma.RST}\n"
-            f"   {Prisma.RED}{ux('protocol_strings', 'folly_starvation') or ''}{Prisma.RST}"
-        )
+            f"   {Prisma.RED}{ux('protocol_strings', 'folly_starvation') or ''}{Prisma.RST}")
         return "INDIGESTION", msg, 0.0, None
 
 class ChronosKeeper:
@@ -615,13 +583,13 @@ class ChronosKeeper:
 
     def _build_continuity_packet(self) -> Dict[str, Any]:
         loc = "Void"
-        if (hasattr(self.eng, "phys") and hasattr(self.eng.phys, "observer")
-                and getattr(self.eng.phys.observer, "last_physics_packet", None)):
-            last_pkt = self.eng.phys.observer.last_physics_packet
-            loc = safe_get(last_pkt, "zone",
-                           safe_get(safe_get(last_pkt, "space"), "zone", "Void"))
-        last_speech = self.eng.cortex.dialogue_buffer[-1] if getattr(
-            self.eng.cortex, "dialogue_buffer", None) else "Silence."
+        if getattr(self.eng, "phys", None) and getattr(self.eng.phys, "observer", None):
+            if last_pkt := getattr(self.eng.phys.observer, "last_physics_packet", None):
+                space = safe_get(last_pkt, "space", {}) or {}
+                loc = safe_get(last_pkt, "zone", safe_get(space, "zone", "Void"))
+        last_speech = "Silence."
+        if getattr(self.eng, "cortex", None) and getattr(self.eng.cortex, "dialogue_buffer", None):
+            last_speech = self.eng.cortex.dialogue_buffer[-1]
         return {"location":
                     loc, "last_output":
                     last_speech, "inventory":
@@ -633,26 +601,16 @@ class ChronosKeeper:
             continuity_packet = self._build_continuity_packet()
             start_history = (history if history is not None else
                              self.eng.cortex.dialogue_buffer)
-            state_data = {
-                "health": self.eng.health,
-                "stamina": self.eng.stamina,
-                "trauma_accum": self.eng.trauma_accum,
-                "soul_data": self.eng.soul.to_dict(),
-                "village_data": self._gather_village_state(),
-                "continuity": continuity_packet,
-                "timestamp": time.time(),
-                "chat_history": start_history,
-            }
+            state_data = {"health": self.eng.health, "stamina": self.eng.stamina, "trauma_accum": self.eng.trauma_accum,
+                          "soul_data": self.eng.soul.to_dict(), "village_data": self._gather_village_state(),
+                          "continuity": continuity_packet, "timestamp": time.time(), "chat_history": start_history, }
             path = os.path.join(self.SAVE_DIR, "quicksave.json")
             with open(path, "w", encoding="utf-8") as f:
                 json.dump(state_data, f, indent=2, default=str)
             msg_save = ux("protocol_strings", "chronos_save_success")
             return msg_save.format(path=path)
         except Exception as e:
-            self.eng.events.log(
-                (ux("protocol_strings", "chronos_save_failed_log")).format(e=e),
-                "SYS_ERR",
-            )
+            self.eng.events.log((ux("protocol_strings", "chronos_save_failed_log")).format(e=e), "SYS_ERR",)
             return (ux("protocol_strings", "chronos_save_failed_msg")).format(e=e)
 
     def resume_checkpoint(self) -> Tuple[bool, list]:
@@ -695,32 +653,31 @@ class ChronosKeeper:
             msg2 = ux("protocol_strings", "chronos_freezing")
             print(f"{Prisma.GRY}{msg2}{Prisma.RST}")
             mito_traits = {}
-            if hasattr(self.eng.bio.mito, "state"):
+            if getattr(self.eng, "bio", None) and getattr(self.eng.bio, "mito", None) and hasattr(self.eng.bio.mito, "state"):
                 mito_traits = self.eng.bio.mito.state.__dict__
-            try:
-                atlas = self.eng.phys.nav.export_atlas()
-            except AttributeError:
-                atlas = {}
-            self.eng.mind.mem.save(
-                health=self.eng.health,
-                stamina=self.eng.stamina,
-                mutations={},
-                trauma_accum=self.eng.trauma_accum,
-                joy_history=[],
-                mitochondria_traits=mito_traits,
-                antibodies=list(self.eng.bio.immune.active_antibodies),
-                soul_data=self.eng.soul.to_dict(),
-                village_data=self._gather_village_state(),
-                continuity=continuity_packet,
-                world_atlas=atlas,
-            )
+            atlas = {}
+            if getattr(self.eng, "phys", None) and getattr(self.eng.phys, "nav", None):
+                atlas = getattr(self.eng.phys.nav, "export_atlas", lambda: {})()
+            immune_data = list(self.eng.bio.immune.active_antibodies) if getattr(self.eng, "bio", None) and getattr(self.eng.bio, "immune", None) else []
+            soul_data = self.eng.soul.to_dict() if getattr(self.eng, "soul", None) else {}
+            if getattr(self.eng, "mind", None) and getattr(self.eng.mind, "mem", None):
+                self.eng.mind.mem.save(
+                    health=getattr(self.eng, "health", 0.0),
+                    stamina=getattr(self.eng, "stamina", 0.0),
+                    mutations={},
+                    trauma_accum=getattr(self.eng, "trauma_accum", {}),
+                    joy_history=[],
+                    mitochondria_traits=mito_traits,
+                    antibodies=immune_data,
+                    soul_data=soul_data,
+                    village_data=self._gather_village_state(),
+                    continuity=continuity_packet,
+                    world_atlas=atlas,
+                )
         except Exception as e:
             msg3 = ux("protocol_strings", "chronos_mem_save_fail")
             print(f"{Prisma.RED}{msg3.format(e=e)}{Prisma.RST}")
-        subsystems = [
-            ("LEXICON", self.eng.lex, "save"),
-            ("AKASHIC", self.eng.akashic, "save_all"),
-        ]
+        subsystems = [("LEXICON", self.eng.lex, "save"),("AKASHIC", self.eng.akashic, "save_all"),]
         for name, sys, method in subsystems:
             if hasattr(sys, method):
                 try:
@@ -755,9 +712,7 @@ class ChronosKeeper:
                     msg = ux("protocol_strings", "chronos_hydrate_fail")
                     if hasattr(self.eng, "events"):
                         self.eng.events.log(f"Village Hydration Error [{name}]: {e}", "SYS_ERR")
-                    print(
-                        f"{Prisma.OCHRE}{msg.format(name=name, e='Trauma prevented full recall.')}{Prisma.RST}"
-                    )
+                    print(f"{Prisma.OCHRE}{msg.format(name=name, e='Trauma prevented full recall.')}{Prisma.RST}")
 
     def get_crash_path(self, prefix="crash"):
         os.makedirs(self.CRASH_DIR, exist_ok=True)
