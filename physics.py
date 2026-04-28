@@ -107,11 +107,10 @@ class NaviSADProtocol:
         history_avg = sum(self.attention_proxy_history) / len(self.attention_proxy_history)
         return max(0.0, min(1.0, history_avg))
 
-    def execute_nudge_test(self, engine_ref, _prompt: str = "") -> bool:
-        try:
-            return engine_ref.observer.last_physics_packet.energy.i_c < 0.4
-        except AttributeError:
-            return False
+    def execute_nudge_test(self, engine_ref, prompt: str = "") -> bool:
+        obs = getattr(engine_ref, "observer", None)
+        energy = safe_get(getattr(obs, "last_physics_packet", None), "energy")
+        return getattr(energy, "i_c", 1.0) < 0.4
 
     def detect_point_attractor(self) -> bool:
         if len(self.attention_proxy_history) < self.history_size: return False
@@ -335,18 +334,13 @@ class TheGatekeeper:
 
     @staticmethod
     def _pack_refusal(ctx, type_str, ui_msg):
-        current_metrics = getattr(ctx, "metrics", {"health": 100.0, "stamina": 100.0, "atp": 100.0, "efficiency": 1.0})
-        return {
-            "type": type_str,
-            "ui": ui_msg,
-            "logs": ctx.logs + [ui_msg],
-            "metrics": current_metrics,
-            "physics": ctx.physics.to_dict() if hasattr(ctx.physics, "to_dict") else {},
-            "bio": getattr(ctx, "bio_result", {}),
-            "mind": {"thought": "Gatekeeper blocked entry.", "context_msg": ui_msg},
-            "world": getattr(ctx, "world_state", {}),
-            "is_alive": True,
-        }
+        default_metrics = {"health": 100.0, "stamina": 100.0, "atp": 100.0, "efficiency": 1.0}
+        current_metrics = getattr(ctx, "metrics", default_metrics)
+        return {"type": type_str, "ui": ui_msg, "logs": ctx.logs + [ui_msg], "metrics": current_metrics,
+                "physics": ctx.physics.to_dict() if hasattr(ctx.physics, "to_dict") else {},
+                "bio": getattr(ctx, "bio_result", {}),
+                "mind": {"thought": "Gatekeeper blocked entry.", "context_msg": ui_msg},
+                "world": getattr(ctx, "world_state", {}), "is_alive": True, }
 
     def audit_generation(self, generated_text: str, mito_state: Any) -> Tuple[bool, str]:
         gen_txt = self.hla.mitigate_rejection(generated_text, current_psi=1.0, mito_state=mito_state)
@@ -825,7 +819,7 @@ class CycleStabilizer:
         energy = getattr(physics, "energy", physics)
         space = getattr(physics, "space", physics)
         manifold_key = safe_get(physics, "manifold", "DEFAULT")
-        cfg = self.manifolds.get(manifold_key) or self.manifolds.get("DEFAULT", {"voltage": 10.0, "drag": 1.0})
+        cfg = self.manifolds.get(manifold_key, self.manifolds.get("DEFAULT", {"voltage": 10.0, "drag": 1.0}))
         target_v, target_d = cfg.get("voltage", 10.0), cfg.get("drag", 1.0)
         if safe_get(space, "flow_state", "LAMINAR") in ("SUPERCONDUCTIVE", "FLOW_BOOST"):
             target_v, target_d = safe_get(energy, "voltage", target_v), max(0.1, target_d * 0.5)

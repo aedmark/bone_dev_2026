@@ -11,24 +11,10 @@ from core import LoreManifest, ux, safe_get
 from drivers import CongruenceValidator
 from gui import CycleReporter
 from machine import PanicRoom
-from phases import (
-    ObservationPhase,
-    SanctuaryPhase,
-    MaintenancePhase,
-    GatekeeperPhase,
-    MetabolismPhase,
-    RealityFilterPhase,
-    NavigationPhase,
-    MachineryPhase,
-    IntrusionPhase,
-    SoulPhase,
-    ArbitrationPhase,
-    SimulationPreflightPhase,
-    CognitionPhase,
-    SensationPhase,
-    StabilizationPhase,
-    SimulationPhase,
-)
+from phases import (ObservationPhase, SanctuaryPhase, MaintenancePhase, GatekeeperPhase,
+    MetabolismPhase, RealityFilterPhase, NavigationPhase, MachineryPhase,
+    IntrusionPhase, SoulPhase, ArbitrationPhase, SimulationPreflightPhase,
+    CognitionPhase, SensationPhase, StabilizationPhase, SimulationPhase)
 from physics import CycleStabilizer
 from presets import BoneConfig
 from symbiosis import SymbiosisManager
@@ -105,38 +91,24 @@ class CycleSimulator:
         target_cfg = getattr(self.eng, "config", BoneConfig)
         self.stabilizer = CycleStabilizer(self.eng.events, self.shared_governor, config_ref=target_cfg)
         self.executor = PhaseExecutor()
-        self.full_pipeline: List[SimulationPhase] = [
-            ObservationPhase(engine_ref),
-            MaintenancePhase(engine_ref),
-            SensationPhase(engine_ref),
-            GatekeeperPhase(engine_ref),
-            SanctuaryPhase(engine_ref, self.shared_governor),
-            MetabolismPhase(engine_ref),
-            NavigationPhase(engine_ref),
-            MachineryPhase(engine_ref),
-            RealityFilterPhase(engine_ref),
-            IntrusionPhase(engine_ref),
-            SoulPhase(engine_ref),
-            ArbitrationPhase(engine_ref),
-            SimulationPreflightPhase(engine_ref),
-            CognitionPhase(engine_ref),
-            StabilizationPhase(engine_ref, self.stabilizer),
-        ]
-        self.system_pipeline = [
-            p for p in self.full_pipeline
-            if p.name in ["OBSERVE", "GATEKEEP", "STABILIZATION"]
-        ]
+        self.full_pipeline: List[SimulationPhase] = [ObservationPhase(engine_ref),
+            MaintenancePhase(engine_ref), SensationPhase(engine_ref), GatekeeperPhase(engine_ref),
+            SanctuaryPhase(engine_ref, self.shared_governor), MetabolismPhase(engine_ref),
+            NavigationPhase(engine_ref), MachineryPhase(engine_ref), RealityFilterPhase(engine_ref),
+            IntrusionPhase(engine_ref), SoulPhase(engine_ref), ArbitrationPhase(engine_ref),
+            SimulationPreflightPhase(engine_ref), CognitionPhase(engine_ref),
+            StabilizationPhase(engine_ref, self.stabilizer),]
+        self.system_pipeline = [p for p in self.full_pipeline
+            if p.name in ["OBSERVE", "GATEKEEP", "STABILIZATION"]]
 
     def run_simulation(self, ctx: CycleContext) -> CycleContext:
         ctx = self.executor.execute_phases(self, ctx)
         return ctx
 
     def check_circuit_breaker(self, phase_name: str) -> bool:
-        breakers = {
-            "OBSERVE": self.eng.system_health.physics_online,
-            "COGNITION": self.eng.system_health.mind_online
-        }
-        return breakers.get(phase_name, True)
+        if phase_name == "OBSERVE": return self.eng.system_health.physics_online
+        if phase_name == "COGNITION": return self.eng.system_health.mind_online
+        return True
 
     def handle_phase_crash(self, ctx, phase_name, error):
         msg_crash = ux("cycle_strings", "sim_crash_header")
@@ -152,16 +124,14 @@ class CycleSimulator:
 
         """Native deterministic graph freezing based on Nelson Spence (Project Navi)."""
         ctx.physics = PanicRoom.get_safe_physics()
-        if hasattr(self.eng, "observer") and getattr(self.eng.observer, "last_physics_packet", None):
-            try:
-                last_good_graph = self.eng.observer.last_physics_packet.to_graph()
-                adj_dict = last_good_graph.adj if hasattr(last_good_graph, "adj") else {}
-                ctx.physics.space.godel_scar = _native_freeze_graph(adj_dict)
-                self.eng.events.log(
-                    f"{Prisma.VIOLET}[PANIC ROOM] System state safely loaded. Mnemonic structure frozen into Gödel Scar.{Prisma.RST}",
-                    "SYS")
-            except AttributeError:
-                pass
+        last_packet = getattr(getattr(self.eng, "observer", None), "last_physics_packet", None)
+        if last_packet and hasattr(last_packet, "to_graph"):
+            last_good_graph = last_packet.to_graph()
+            adj_dict = getattr(last_good_graph, "adj", {})
+            ctx.physics.space.godel_scar = _native_freeze_graph(adj_dict)
+            self.eng.events.log(
+                f"{Prisma.VIOLET}[PANIC ROOM] System state safely loaded. Mnemonic structure frozen into Gödel Scar.{Prisma.RST}",
+                "SYS")
         if comp == "BIO":
             ctx.bio_result = PanicRoom.get_safe_bio()
             ctx.is_alive = True
@@ -236,10 +206,8 @@ class GeodesicOrchestrator:
             ctx.refusal_triggered = True
             msg = f"{Prisma.OCHRE}[GORDON - Input Fence]: Adversarial injection detected. Struts locked. F -> ∞. Prompt rejected at O(1) latency.{Prisma.RST}"
             self.eng.events.log(msg, "CRIT")
-            ctx.refusal_packet = {
-                "type": "SYSTEM_HALT", "ui": msg, "physics": _safe_dict(ctx.physics),
-                "is_alive": True, "logs": [msg]
-            }
+            ctx.refusal_packet = {"type": "SYSTEM_HALT", "ui": msg, "physics": _safe_dict(ctx.physics),
+                "is_alive": True, "logs": [msg]}
             return True
         return False
 
@@ -327,15 +295,14 @@ class GeodesicOrchestrator:
             return
         lattice = getattr(self.eng, "shared_lattice", None)
         """Native WLS fractal dimension calculation (Project Navi)."""
-        if hasattr(self.eng, "memory") and hasattr(self.eng.memory, "cortex"):
-            radii_data = getattr(self.eng.memory.cortex, "get_local_mass_radius", lambda x: None)(clean_message)
+        cortex = getattr(getattr(self.eng, "memory", None), "cortex", None)
+        if cortex and hasattr(cortex, "get_local_mass_radius"):
+            radii_data = cortex.get_local_mass_radius(clean_message)
             if radii_data and lattice:
                 local_d = _native_wls(radii_data["log_r"], radii_data["log_m"], radii_data["weights"])
                 lattice.shared.omega_r = min(1.0, local_d / 2.0)
                 if local_d > 1.5:
-                    self.eng.events.log(
-                        f"{Prisma.CYN}[MNEMONIC] High Right-Brain Coherence (\u03a9r={lattice.shared.omega_r:.2f}). Semantic topology is rich. Lowering lateral ATP costs.{Prisma.RST}",
-                        "SYS")
+                    self.eng.events.log(f"{Prisma.CYN}[MNEMONIC] High Right-Brain Coherence (\u03a9r={lattice.shared.omega_r:.2f}). Semantic topology is rich. Lowering lateral ATP costs.{Prisma.RST}", "SYS")
         if clean_message != "(Waiting)":
             return
         atp_level = float(self.eng.bio.mito.state.atp_pool)
@@ -361,21 +328,17 @@ class GeodesicOrchestrator:
                          if hasattr(self.eng, "observer")
                          and getattr(self.eng.observer, "last_physics_packet", None)
                          else PanicRoom.get_safe_physics().to_dict())
-            return {
-                "type": "SNAPSHOT",
+            return {"type": "SNAPSHOT",
                 "ui":
                 f"\n{Prisma.VIOLET}☁️ The system slips into deep background REM. Memory consolidation and epigenetic autopoiesis are running asynchronously...{Prisma.RST}",
                 "physics": safe_phys,
                 "bio": {
-                    "is_alive": True
-                },
+                    "is_alive": True},
                 "mind": {
                     "lens": "DREAMER",
-                    "role": "The Dream Engine"
-                },
+                    "role": "The Dream Engine"},
                 "world": {},
-                "logs": ["[SYSTEM] Triggered Asynchronous Autopoiesis."],
-            }
+                "logs": ["[SYSTEM] Triggered Asynchronous Autopoiesis."],}
         ctx = self._execute_core_cycle(clean_message, is_system)
         if exit_pkt := self._check_early_exit(ctx):
             return exit_pkt
@@ -396,18 +359,12 @@ class GeodesicOrchestrator:
         return snapshot
 
     def _hydrate_snapshot_metadata(self, snapshot: Dict, ctx: CycleContext):
-        snapshot.update({
-            "trace_id": getattr(ctx, "trace_id", "UNKNOWN"),
+        snapshot.update({"trace_id": getattr(ctx, "trace_id", "UNKNOWN"),
             "is_alive": True,
-            "physics": _safe_dict(ctx.physics),
-            "bio": _safe_dict(ctx.bio_result),
-            "mind": _safe_dict(ctx.mind_state),
-            "world": _safe_dict(ctx.world_state),
-            "soul": _safe_dict(getattr(self.eng, "soul", {})),
-            "council_mandates": getattr(ctx, "council_mandates", []),
-            "dream": getattr(ctx, "last_dream", None),
-            "mutated_input": ctx.input_text,
-        })
+            "physics": _safe_dict(ctx.physics), "bio": _safe_dict(ctx.bio_result),
+            "mind": _safe_dict(ctx.mind_state), "world": _safe_dict(ctx.world_state),
+            "soul": _safe_dict(getattr(self.eng, "soul", {})), "council_mandates": getattr(ctx, "council_mandates", []),
+            "dream": getattr(ctx, "last_dream", None), "mutated_input": ctx.input_text,})
 
     @staticmethod
     def _generate_crash_report(e: Exception) -> Dict[str, Any]:
@@ -416,16 +373,9 @@ class GeodesicOrchestrator:
         safe_bio = PanicRoom.get_safe_bio()
         msg = ux("cycle_strings", "orch_reality_fracture")
         ui_report = f"{Prisma.RED}{msg.format(error=e, trace=full_trace)}{Prisma.RST}"
-        return {
-            "type": "CRASH",
-            "ui": ui_report,
-            "physics": safe_phys.to_dict(),
-            "bio": safe_bio,
-            "mind": PanicRoom.get_safe_mind(),
-            "world": {
-                "orbit": ["VOID"],
-                "loci_description": "System Failure"
-            },
+        return {"type": "CRASH", "ui": ui_report, "physics": safe_phys.to_dict(),
+            "bio": safe_bio, "mind": PanicRoom.get_safe_mind(),
+            "world": {"orbit": ["VOID"],
+                "loci_description": "System Failure"},
             "logs": ["CRITICAL FAILURE", "SAFE MODE ACTIVE"],
-            "is_alive": True,
-        }
+            "is_alive": True,}

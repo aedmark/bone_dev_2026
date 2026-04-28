@@ -62,9 +62,8 @@ class CerebralIndex:
         np_vectors = np.array(vectors, dtype=np.float32)
         self._index.add(np_vectors)
         for p in metadata_payloads:
-            p.setdefault("raw_verbatim_text", "")
-            if "vector_hash" in p:
-                self._phantom_lookup[p["vector_hash"]] = p["raw_verbatim_text"]
+            if "vector_hash" in p and p["vector_hash"]:
+                self._phantom_lookup[p["vector_hash"]] = p.get("raw_verbatim_text", "")
         self._payloads.extend(metadata_payloads)
         self.total_nodes += len(vectors)
         self.is_trained = True
@@ -108,7 +107,7 @@ class CerebralIndex:
                 results.append({**payload, "resonance": resonance})
         return results
 
-    def get_local_mass_radius(self) -> Optional[Dict[str, List[float]]]:
+    def get_local_mass_radius(self, query_text: str = "") -> Optional[Dict[str, List[float]]]:
         if not self.is_trained or self.total_nodes < 5:
             return None
         np_query = np.zeros((1, self.dimension), dtype="float32")
@@ -133,7 +132,8 @@ class MemoryConsolidator:
             return 0, 0.0
         pending_nodes = self.hippocampus.extract_for_consolidation(limit=max_nodes)
         vectors = [n["vector"] for _, n in pending_nodes if "vector" in n]
-        payloads = [{"id": k, **n.get("meta", {})} for k, n in pending_nodes if "vector" in n]
+        payloads = [{"id": k, "vector_hash": n.get("phantom", {}).get("vector_hash", ""), **n.get("meta", {})}
+            for k, n in pending_nodes if "vector" in n]
         if not vectors:
             return 0, 0.0
         self.cortex.add_memories(vectors, payloads)

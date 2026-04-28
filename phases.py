@@ -65,20 +65,14 @@ class ObservationPhase(SimulationPhase):
                 dream_engine = getattr(mind, "dreamer", None) or getattr(cortex, "dreamer", None)
                 if dream_engine:
                     soul_snap = _safe_dict(getattr(self.eng, "soul", {}))
-                    bio_packet = {
-                        "chem": (self.eng.bio.endo.get_state() if hasattr(
-                            self.eng.bio, "endo") else {}),
-                        "mito": {
+                    bio_packet = {"chem": (self.eng.bio.endo.get_state() if hasattr(
+                            self.eng.bio, "endo") else {}), "mito": {
                             "atp": self.eng.bio.mito.state.atp_pool,
-                            "ros": self.eng.bio.mito.state.ros_buildup,
-                        },
-                    }
+                            "ros": self.eng.bio.mito.state.ros_buildup,},}
                     dream_text, shift = dream_engine.enter_rem_cycle(
                         soul_snap, bio_state=bio_packet)
                     if dream_text:
-                        ctx.log(
-                            f"{Prisma.VIOLET}☁️ While you were gone: {dream_text}{Prisma.RST}"
-                        )
+                        ctx.log(f"{Prisma.VIOLET}☁️ While you were gone: {dream_text}{Prisma.RST}")
                         ctx.last_dream = dream_text
                     if hours_passed > 4.0:
                         defrag_msg = dream_engine.run_defragmentation(self.eng.mind.mem)
@@ -90,9 +84,7 @@ class ObservationPhase(SimulationPhase):
                 original_text = ctx.input_text
                 ctx.input_text = weaver.quantum_comb(ctx.input_text)
                 if original_text != ctx.input_text:
-                    ctx.log(
-                        f"{Prisma.CYN}🪮 QUANTUM COMB: Fluff stripped -> '{ctx.input_text}'{Prisma.RST}"
-                    )
+                    ctx.log(f"{Prisma.CYN}🪮 QUANTUM COMB: Fluff stripped -> '{ctx.input_text}'{Prisma.RST}")
             loot_candidate = self.eng.gordon.parse_loot(ctx.input_text, "")
             if loot_candidate:
                 acquire_msg = self.eng.gordon.acquire(loot_candidate)
@@ -391,7 +383,6 @@ class MetabolismPhase(SimulationPhase):
             defrag_msg = self.eng.mind.dreamer.run_defragmentation(self.eng.mind.mem)
             if defrag_msg:
                 ctx.log(f"{Prisma.CYN}🧹 {defrag_msg}{Prisma.RST}")
-            target_cfg = getattr(self.eng, "config", BoneConfig)
             reboot_val = getattr(target_cfg, "MAX_ATP", 100.0) * 0.33
             self.eng.bio.mito.state.atp_pool = reboot_val
             ctx.bio_result["atp"] = reboot_val
@@ -434,8 +425,8 @@ class MetabolismPhase(SimulationPhase):
             msg = ux("cycle_strings", "metabolism_kintsugi")
             ctx.log(f"{Prisma.YEL}{msg.format(koan=koan)}{Prisma.RST}")
         if self.eng.kintsugi.active_koan:
-            repair = self.eng.kintsugi.attempt_repair(ctx.physics, self.eng.trauma_accum, self.eng.soul, qualia,
-                                                      lexicon_ref=self.eng.lex, )
+            repair = self.eng.kintsugi.attempt_repair(ctx.physics, self.eng.trauma_accum,
+                        self.eng.soul, qualia, lexicon_ref=self.eng.lex, )
             if repair and repair["success"]:
                 ctx.log(repair["msg"])
                 if hasattr(self.eng.mind.mem, "record_scar"):
@@ -712,8 +703,8 @@ class SoulPhase(SimulationPhase):
     _DEFAULT_RULES = (
         ("CYNICISM", 0.8, "LOCKDOWN", "CYNICISM", {
             "narrative_drag": 5.0,
-            "voltage": -5.0
-        }, "OCHRE"),
+            "voltage": -5.0},
+            "OCHRE"),
         ("HOPE", 0.8, "STIMULUS", "HOPE", {
             "voltage": 5.0,
             "narrative_drag": -2.0
@@ -721,8 +712,7 @@ class SoulPhase(SimulationPhase):
         ("DISCIPLINE", 0.8, "STANDARDIZE", "DISCIPLINE", {
             "kappa": -0.5,
             "beta_index": 1.0
-        }, "CYN"),
-    )
+        }, "CYN"),)
 
     def __init__(self, engine_ref):
         super().__init__(engine_ref)
@@ -845,9 +835,7 @@ class ArbitrationPhase(SimulationPhase):
             soul_archetype=soul_arch, council_mandates=mandates, trigram=current_trigram, )
         tension = getattr(ctx.physics, "beta_index", 0.0)
         silence = getattr(ctx.physics, "silence", 0.0)
-        synergy_name = next((m.get("value")
-                             for m in getattr(ctx, "council_mandates", [])
-                             if m.get("action") == "SYNERGY_FIRED"), None)
+        synergy_name = next((m.get("value") for m in mandates if m.get("action") == "SYNERGY_FIRED"), None)
         synergy_active = bool(synergy_name)
         council_data = LoreManifest.get_instance().get("COUNCIL_DATA") or {}
         arb_opinions = council_data.get("ARBITRATION_OPINIONS", {})
@@ -902,24 +890,14 @@ class SimulationPreflightPhase(SimulationPhase):
         self.name = "EXECUTIVE_PREFLIGHT"
 
     def _build_refusal(self, ctx, phys_obj, rtype, msg):
-        return {
-            "type": rtype,
-            "ui":
-            f"\n{Prisma.RED if rtype == 'COUNTERFACTUAL_REJECTION' else Prisma.CYN}{msg}{Prisma.RST}",
-            "logs": [msg],
-            "metrics":
+        return {"type": rtype, "ui": f"\n{Prisma.RED if rtype == 'COUNTERFACTUAL_REJECTION' else Prisma.CYN}{msg}{Prisma.RST}",
+            "logs": [msg], "metrics":
             self.eng.get_metrics() if hasattr(self.eng, "get_metrics") else {},
-            "physics": _safe_dict(phys_obj),
-            "bio": getattr(ctx, "bio_result", {}),
-            "mind": {
-                "lens": "EXECUTIVE",
-                "role": "The Gatekeeper",
-                "thought": "System rejected prompt.",
-                "context_msg": msg
-            },
+            "physics": _safe_dict(phys_obj), "bio": getattr(ctx, "bio_result", {}),
+            "mind": {"lens": "EXECUTIVE", "role": "The Gatekeeper",
+                "thought": "System rejected prompt.", "context_msg": msg},
             "world": getattr(ctx, "world_state", {}),
-            "is_alive": rtype != "COUNTERFACTUAL_REJECTION",
-        }
+            "is_alive": rtype != "COUNTERFACTUAL_REJECTION"}
 
     def run(self, ctx: Any):
         if ctx.is_system_event:
@@ -1159,11 +1137,12 @@ class SensationPhase(SimulationPhase):
         qualia = self.synesthesia.get_current_qualia(impulse)
         ctx.physics = apply_somatic_feedback(ctx.physics, qualia)
         self.synesthesia.apply_impulse(impulse)
-        if impulse.stamina_impact != 0 and getattr(getattr(self.eng, "bio", None), "biometrics", None):
+        bio = getattr(self.eng, "bio", None)
+        if impulse.stamina_impact != 0 and bio and bio.biometrics:
             target_cfg = getattr(self.eng, "config", BoneConfig)
             max_s = float(getattr(target_cfg, "MAX_STAMINA", 100.0))
-            current = float(self.eng.bio.biometrics.stamina)
-            self.eng.bio.biometrics.stamina = max(0.0, min(max_s, current + float(impulse.stamina_impact)))
+            current = float(bio.biometrics.stamina)
+            bio.biometrics.stamina = max(0.0, min(max_s, current + float(impulse.stamina_impact)))
         return ctx
 
 class StabilizationPhase(SimulationPhase):
