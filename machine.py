@@ -5,7 +5,7 @@ import math
 from dataclasses import dataclass
 from typing import Tuple, Optional, List, Dict, Any
 from body import BioSystem, MitochondrialState, Biometrics, MitochondrialForge, EndocrineSystem, MetabolicGovernor
-from brain import DreamEngine
+from mind import DreamEngine
 from core import LoreManifest, ux, safe_get, safe_set
 from lexicon import LexiconService
 from physics import TheGatekeeper, QuantumObserver, SurfaceTension, CosmicDynamics

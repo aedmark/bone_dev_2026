@@ -6,7 +6,7 @@ import unittest
 import warnings
 from unittest.mock import patch, MagicMock
 from ann import MemoryConsolidator
-from brain import PromptComposer
+from composer import PromptComposer
 from commands import CommandProcessor
 from core import LoreManifest, EventBus
 from cycle import ObservationPhase, MetabolismPhase, SimulationPreflightPhase, SensationPhase
@@ -444,7 +444,7 @@ class TrueEngineTest(BoneTestCase):
         )
 
     def test_dream_defragmentation_pruning(self):
-        from brain import DreamEngine
+        from mind import DreamEngine
 
         class MockMemorySystem:
             def __init__(self):
