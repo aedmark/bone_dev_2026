@@ -247,14 +247,9 @@ class SubconsciousStrata:
         return [round(val, 3) for val in out]
 
 class MemoryCore:
-    DIMENSION_MAP = {
-        "STR": {"heavy", "constructive", "base"},
-        "VEL": {"kinetic", "explosive", "mot"},
-        "ENT": {"antigen", "toxin", "broken"},
-        "PHI": {"thermal", "photo"},
-        "PSI": {"abstract", "sacred", "idea"},
-        "BET": {"social", "suburban", "play"},
-    }
+    DIMENSION_MAP = {"STR": {"heavy", "constructive", "base"}, "VEL": {"kinetic", "explosive", "mot"},
+                     "ENT": {"antigen", "toxin", "broken"}, "PHI": {"thermal", "photo"},
+                     "PSI": {"abstract", "sacred", "idea"}, "BET": {"social", "suburban", "play"}, }
 
     def __init__(self, events_ref, subconscious_ref, config_ref=None, lexicon_ref=None):
         self.events = events_ref
@@ -334,11 +329,16 @@ class MemoryCore:
         pruned_count = total_decayed = 0
         for node in list(self.graph.keys()):
             edges = self.graph[node]["edges"]
-            new_edges = {t: w * (scaling_factor + (0.14 * min(1.0, w / 10.0))) for t, w in edges.items() if w * (scaling_factor + (0.14 * min(1.0, w / 10.0))) >= prune_threshold}
+            new_edges = {}
+            for t, w in edges.items():
+                decayed_w = w * (scaling_factor + (0.14 * min(1.0, w / 10.0)))
+                if decayed_w >= prune_threshold:
+                    new_edges[t] = decayed_w
             total_decayed += len(edges)
             pruned_count += len(edges) - len(new_edges)
             self.graph[node]["edges"] = new_edges
-            if not new_edges and not self.graph[node].get("is_diamond", False): del self.graph[node]
+            if not new_edges and not self.graph[node].get("is_diamond", False):
+                del self.graph[node]
         valid_nodes = set(self.graph.keys())
         for data in self.graph.values():
             data["edges"] = {k: v for k, v in data["edges"].items() if k in valid_nodes}
@@ -521,15 +521,10 @@ class MycelialNetwork:
             significance *= 2.0
         elif governor_mode == "LABORATORY":
             significance *= 1.2
-        engram = {
-            "trigger": clean_words[:3] if clean_words else ["void"],
-            "context": governor_mode,
-            "significance": significance,
-            "wing_id": safe_get(physics, "scope_boundary", "GLOBAL"),
-            "room_id": "_".join(clean_words[:2]) if clean_words else "GENERAL",
-            "raw_verbatim_text": safe_get(physics, "raw_text", ""),
-            "timestamp": time.time(),
-        }
+        engram = {"trigger": clean_words[:3] if clean_words else ["void"], "context": governor_mode,
+                  "significance": significance, "wing_id": safe_get(physics, "scope_boundary", "GLOBAL"),
+                  "room_id": "_".join(clean_words[:2]) if clean_words else "GENERAL",
+                  "raw_verbatim_text": safe_get(physics, "raw_text", ""), "timestamp": time.time(), }
         cfg = getattr(self.cfg, "SPORES", None)
         consolidation = getattr(cfg, "CONSOLIDATION_THRESHOLD", 5.0)
         if significance > consolidation:
@@ -637,9 +632,7 @@ class MycelialNetwork:
                 seed = ParadoxSeed(q, t)
                 loaded_seeds.append(seed)
         except Exception:
-            loaded_seeds = [
-                ParadoxSeed("Does the mask eat the face?", {"mask", "face", "hide"})
-            ]
+            loaded_seeds = [ParadoxSeed("Does the mask eat the face?", {"mask", "face", "hide"})]
         return loaded_seeds
 
     def tend_garden(self, current_words):
@@ -650,16 +643,14 @@ class MycelialNetwork:
                 bloom_msg = seed.bloom()
         return bloom_msg
 
-    SAFE_MUTATIONS = {
-        "STAMINA_REGEN", "MAX_DRAG_LIMIT", "GEODESIC_STRENGTH", "SIGNAL_DRAG_MULTIPLIER", "KINETIC_GAIN",
+    SAFE_MUTATIONS = {"STAMINA_REGEN", "MAX_DRAG_LIMIT", "GEODESIC_STRENGTH", "SIGNAL_DRAG_MULTIPLIER", "KINETIC_GAIN",
         "TOXIN_WEIGHT", "FLASHPOINT_THRESHOLD", "MAX_MEMORY_CAPACITY",
         "PRIORITY_LEARNING_RATE", "ANVIL_TRIGGER_VOLTAGE", "MAX_REPETITION_LIMIT",
         "PHYSICS.WEIGHT_HEAVY", "PHYSICS.WEIGHT_KINETIC", "PHYSICS.VOLTAGE_FLOOR",
         "PHYSICS.VOLTAGE_MAX", "BIO.CORTEX_SENSITIVITY", "BIO.ROS_CRITICAL",
         "BIO.DECAY_RATE", "BIO.REWARD_MEDIUM", "METABOLISM.PHOTOSYNTHESIS_GAIN",
         "METABOLISM.ROS_GENERATION_FACTOR", "COUNCIL.FOOTNOTE_CHANCE",
-        "COUNCIL.MANIC_VOLTAGE_TRIGGER", "GRAVITY_WELL_THRESHOLD"
-    }
+        "COUNCIL.MANIC_VOLTAGE_TRIGGER", "GRAVITY_WELL_THRESHOLD"}
     def _apply_epigenetics(self, data):
         mutations = data.get("config_mutations", {})
         if not mutations:
@@ -701,10 +692,8 @@ class MycelialNetwork:
         session_source = data.get("session_id", "UNKNOWN_ANCESTOR")
         timestamp = data.get("meta", {}).get("timestamp", 0)
         time_ago = int((time.time() - timestamp) / 3600)
-        trauma_summary = {
-            k: v
-            for k, v in data.get("trauma_vector", {}).items() if v > 0.1
-        }
+        trauma_summary = {k: v
+            for k, v in data.get("trauma_vector", {}).items() if v > 0.1}
         mutation_count = sum(len(v) for v in data.get("mutations", {}).values())
         self.lineage_log.append(
             {"source": session_source, "age_hours": time_ago, "trauma": trauma_summary, "mutations": mutation_count,
@@ -739,20 +728,18 @@ class MycelialNetwork:
                 for stat, ancestral_bonus in clade.get("buff", {}).items():
                     if hasattr(self.cfg, stat):
                         setattr(self.cfg, stat, ancestral_bonus)
-            if "seeds" in data:
-                self.seeds = []
-                for s_data in data["seeds"]:
-                    new_seed = ParadoxSeed(s_data["q"], set())
-                    new_seed.maturity = s_data.get("m", 0.0)
-                    new_seed.bloomed = s_data.get("b", False)
-                    self.seeds.append(new_seed)
-        return (
-            data.get("mitochondria", {}),
+        if "seeds" in data:
+            self.seeds = []
+            for s_data in data["seeds"]:
+                new_seed = ParadoxSeed(s_data["q"], set())
+                new_seed.maturity = s_data.get("m", 0.0)
+                new_seed.bloomed = s_data.get("b", False)
+                self.seeds.append(new_seed)
+        return (data.get("mitochondria", {}),
             set(data.get("antibodies", [])),
             data.get("soul_legacy", {}),
             data.get("continuity", None),
-            data.get("world_atlas", {}),
-        )
+            data.get("world_atlas", {}),)
 
     def save(self, health: float, stamina: float, mutations: dict, trauma_accum: dict,
              joy_history: List[Dict[str, Any]], mitochondria_traits=None, antibodies=None, soul_data=None,
@@ -767,10 +754,8 @@ class MycelialNetwork:
                                "resonance": best_joy.get("resonance", 0), "timestamp": best_joy.get("timestamp", 0), }
         core_graph = {}
         for k, data in self.graph.items():
-            valid_edges = {
-                t: round(w, 2)
-                for t, w in data.get("edges", {}).items() if w > 1.0
-            }
+            valid_edges = {t: round(w, 2)
+                for t, w in data.get("edges", {}).items() if w > 1.0}
             if valid_edges:
                 core_graph[k] = {"edges": valid_edges, "last_tick": 0}
         future_seed_q = self._generate_future_seed(temp_health=health, trauma_vec=final_vector)
@@ -926,9 +911,11 @@ class BioParasite:
             if random.random() < p_decay:
                 self.spores_deployed = max(0, self.spores_deployed - 1)
             return False, None
+        if not self.lex or not hasattr(self.lex, "get"):
+            return False, None
         graph = self.mem.graph
-        heavy_set = set(getattr(self.lex, "get", lambda x: [])("heavy") or [])
-        abstract_set = set(getattr(self.lex, "get", lambda x: [])("abstract") or [])
+        heavy_set = set(self.lex.get("heavy") or [])
+        abstract_set = set(self.lex.get("abstract") or [])
         if not heavy_set or not abstract_set:
             return False, None
         graph_keys = graph.keys()
