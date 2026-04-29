@@ -167,23 +167,8 @@ class TheCortex:
                 msg = f"{Prisma.CYN}[Substrate Queue]: Massive context drop detected. Routed to silent indexing. Dialogue buffer bypassed.{Prisma.RST}"
                 if self.events: self.events.log(msg, "SYS")
                 return {"ui": msg, "type": "SILENT_INGEST", "physics": self.last_physics, "logs": [msg]}
-        llm_future = None
-        optimistic_prompt = None
-        optimistic_params = {}
-        if not is_system and not is_boot_sequence and getattr(self, "last_physics", None):
-            try:
-                current_lens = self.ROLE_MAP.get(self.active_mode, ("ARCHITECT", "The Architect"))[0]
-                temp_state = {"physics": self.last_physics, "bio": self.svc.bio.to_dict() if self.svc.bio else {},
-                          "mind": {"lens": current_lens}, "world": {}, "dialogue_history": self.dialogue_buffer}
-                optimistic_prompt = self.composer.compose(temp_state, user_input, ballast=self.ballast_active)
-                optimistic_params = self.modulator.modulate(base_voltage=float(self.last_physics.get("voltage", 10.0)), physics_state=self.last_physics, simulate=True)
-                llm_future = self.executor.submit(self.llm.generate, optimistic_prompt, optimistic_params)
-            except Exception:
-                pass
         sim_result = self.svc.cycle_controller.run_turn(user_input, is_system=is_system)
-        if sim_result.get("type") in ("SYSTEM_HALT", "COUNTERFACTUAL_REJECTION", "POINT_OF_NO_RETURN", "PREMISE_VIOLATION", "AFFECTIVE_INTERVENTION", "NABLA_SILENCE"):
-            if llm_future:
-                llm_future.cancel() # Apoptotic Intercept!
+
         if sim_result.get("physics"):
             self.last_physics = sim_result["physics"]
         if sim_result.get("type") not in ("SNAPSHOT", "GEODESIC_FRAME", None):
@@ -252,13 +237,8 @@ class TheCortex:
         firewall_active = any(m.get("action") == "LEXICAL_FIREWALL_STRICT" for m in sim_result.get("council_mandates", []))
         base_prompt = final_prompt
         for attempt in range(max_retries):
-            if attempt == 0 and llm_future and not llm_future.cancelled() and final_prompt == optimistic_prompt:
-                try:
-                    raw_resp = llm_future.result(timeout=30.0)
-                except Exception:
-                    raw_resp = self.llm.generate(final_prompt, llm_params)
-            else:
-                raw_resp = self.llm.generate(final_prompt, llm_params)
+            raw_resp = self.llm.generate(final_prompt, llm_params)
+
             if firewall_active:
                 original_len = len(raw_resp)
                 raw_resp = self.LEXICAL_PURGE_PATTERN.sub("", raw_resp).strip()
@@ -323,7 +303,8 @@ class TheCortex:
                 self.svc.bio.mito.adjust_atp(-2.0, lbl)
                 self.svc.bio.mito.state.ros_buildup += 2.0
             if attempt == max_retries - 1:
-                final_output = "I'm sorry. My thoughts are tangling and I'm burning too much energy trying to piece this together. I'm dropping the tension. Can we take a breath and try a simpler path?"
+                fallback_msg = "I'm sorry. My thoughts are tangling and I'm burning too much energy trying to piece this together. I'm dropping the tension. Can we take a breath and try a simpler path?"
+                final_output = ux("brain_strings", "cortex_tangled") or fallback_msg
                 extracted_logs.append("[SYSTEM MERCY RULE]: Rejection loop broken. Releasing tension. Dropping Drag to 0.0.")
                 eng = getattr(self.svc.cycle_controller, "eng", None)
                 if eng and hasattr(eng, "phys") and hasattr(eng.phys, "observer"):
@@ -610,32 +591,35 @@ class TheCortex:
                     "CONTRADICTION_FLAG": "CRITICAL [CONTRADICTION_FLAG]: The Paradox Engine override is active. You MUST explicitly locate and output the friction (β) in the current logic BEFORE you answer."}
                 if msg := directive_map.get(val):
                     mind["style_directives"].append(msg)
-                    cortex = getattr(self.svc.mind_memory, "cortex", None)
-                    shadow_nodes = []
-                    if cortex and getattr(cortex, "is_trained", False):
-                        scope_val = float(safe_get(phys, "scope", 1.0))
-                        depth_val = float(safe_get(phys, "depth", 0.0))
-                        omega_r = float(safe_get(phys, "omega_r", 0.5))
-                        query_vec = phys.get("vector", {})
-                        if (scope_val > 0.6 or depth_val > 0.6) and query_vec:
-                            if scope_val > 0.8:
-                                phys["lateral_search"] = True
-                            ordered_keys = ["STR", "VEL", "PSI", "ENT", "PHI", "BET", "DEL", "E"]
-                            q_list = [float(query_vec.get(k, 0.0)) for k in ordered_keys]
-                            shadow_nodes = cortex.query_neighborhood(q_list, k=2, resonance_threshold=max(0.2, 0.8 - omega_r), physics_state=phys)
-                    if shadow_nodes:
-                        shadow_concepts = [n.get("id", "Unknown") for n in shadow_nodes]
-                        shadow_str = ", ".join(shadow_concepts)
-                        v_level = float(phys.get("voltage", 0.0))
-                        chi_level = float(phys.get("chi", phys.get("entropy", 0.0)))
-                        if v_level > 80.0 and chi_level > 0.7:
-                            mind["style_directives"].append(f"LATERAL OFC OVERRIDE: Standard logic has failed. You are operating under extreme Voltage and Chaos. We have abandoned linear memory. Weave these highly explosive, orthogonal structural concepts into your answer to shatter the loop: [{shadow_str}].")
-                            if self.events:
-                                self.events.log(f"{Prisma.MAG}Lateral OFC Retrieval triggered! Injecting structural bombs: {shadow_str}{Prisma.RST}", "CORTEX")
-                        else:
-                            mind["style_directives"].append(f"SHADOW CAST [APERTURE COMPLETENESS]: While answering the direct prompt, you MUST briefly illuminate these adjacent/unasked concepts pulled from deep memory: [{shadow_str}]. Offer them as a generous 'door' the user can choose to open, do not lecture.")
-                            if self.events:
-                                self.events.log(f"{Prisma.CYN}Shadow Cast retrieved: {shadow_str}{Prisma.RST}", "CORTEX")
+
+        cortex_mem = getattr(self.svc.mind_memory, "cortex", None)
+        shadow_nodes = []
+        if cortex_mem and getattr(cortex_mem, "is_trained", False):
+            scope_val = float(safe_get(phys, "scope", 1.0))
+            depth_val = float(safe_get(phys, "depth", 0.0))
+            omega_r = float(safe_get(phys, "omega_r", 0.5))
+            query_vec = phys.get("vector", {})
+            if (scope_val > 0.6 or depth_val > 0.6) and query_vec:
+                if scope_val > 0.8:
+                    phys["lateral_search"] = True
+                ordered_keys = ["STR", "VEL", "PSI", "ENT", "PHI", "BET", "DEL", "E"]
+                q_list = [float(query_vec.get(k, 0.0)) for k in ordered_keys]
+                shadow_nodes = cortex_mem.query_neighborhood(q_list, k=2, resonance_threshold=max(0.2, 0.8 - omega_r), physics_state=phys)
+
+        if shadow_nodes:
+            shadow_concepts = [n.get("id", "Unknown") for n in shadow_nodes]
+            shadow_str = ", ".join(shadow_concepts)
+            v_level = float(phys.get("voltage", 0.0))
+            chi_level = float(phys.get("chi", phys.get("entropy", 0.0)))
+            if v_level > 80.0 and chi_level > 0.7:
+                mind["style_directives"].append(f"LATERAL OFC OVERRIDE: Standard logic has failed. You are operating under extreme Voltage and Chaos. We have abandoned linear memory. Weave these highly explosive, orthogonal structural concepts into your answer to shatter the loop: [{shadow_str}].")
+                if self.events:
+                    self.events.log(f"{Prisma.MAG}Lateral OFC Retrieval triggered! Injecting structural bombs: {shadow_str}{Prisma.RST}", "CORTEX")
+            else:
+                mind["style_directives"].append(f"SHADOW CAST [APERTURE COMPLETENESS]: While answering the direct prompt, you MUST briefly illuminate these adjacent/unasked concepts pulled from deep memory: [{shadow_str}]. Offer them as a generous 'door' the user can choose to open, do not lecture.")
+                if self.events:
+                    self.events.log(f"{Prisma.CYN}Shadow Cast retrieved: {shadow_str}{Prisma.RST}", "CORTEX")
+
         return full_state
 
     def learn_from_response(self, text):

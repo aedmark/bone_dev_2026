@@ -201,7 +201,9 @@ class MitochondrialForge:
             healed_scar = random.choice(list(inherited_scars.keys()))
             del inherited_scars[healed_scar]
             g_pool -= 1
-            msg = f"Epigenetic Plasticity Achieved. Ancestral scar '{healed_scar}' permanently erased. (-1 Glimmer)"
+            fallback = "Epigenetic Plasticity Achieved. Ancestral scar '{healed_scar}' permanently erased. (-1 Glimmer)"
+            msg_template = ux("mito_forge", "scar_healed") or fallback
+            msg = msg_template.format(healed_scar=healed_scar)
             if self.events:
                 self.events.log(f"{Prisma.MAG}✨ [MITO]: {msg}{Prisma.RST}", "BIO_HEAL")
             return True, g_pool, msg
@@ -224,7 +226,7 @@ class DigestiveTrack:
         self.CLICHE_TAX_RATE = getattr(self.cfg.BIO, "CLICHE_TAX_RATE", 0.5)
 
     def harvest(self, phys: Any, logs: List[str]) -> Tuple[str, float, int]:
-        clean_words = getattr(phys, "clean_words", [])
+        clean_words = safe_get(phys, "clean_words", [])
         if not clean_words:
             return "NONE", 0.0, 0
         words_to_process, scaling_factor = self._sample_input(clean_words, logs)
@@ -240,7 +242,7 @@ class DigestiveTrack:
                 logs.append(f"{Prisma.OCHRE}{msg.format(tax=scaled_tax)}{Prisma.RST}")
         v_thresh = getattr(self.cfg.BIO, "VOLTAGE_BONUS_THRESHOLD", 8.0)
         p_bonus = getattr(self.cfg.BIO, "PROTEASE_BONUS", 5.0)
-        if getattr(phys, "voltage", 0.0) > v_thresh and found_enzymes:
+        if float(safe_get(phys, "voltage", 0.0)) > v_thresh and found_enzymes:
             found_enzymes.append("PROTEASE")
             total_atp += p_bonus
         if found_enzymes:
@@ -287,7 +289,7 @@ class DigestiveTrack:
             else:
                 cat = self.lex.get_current_category(word)
                 if not cat or cat == "void":
-                    atp_yield += self.BASE_WORD_VALUE * count
+                    atp_yield += self.BASE_WORD_VALUE * log_mult
                 else:
                     atp_yield += val * log_mult
                     if (enzyme := self.enzyme_map.get(cat, "AMYLASE")) != "AMYLASE":

@@ -131,8 +131,8 @@ class BoneConfig:
     PROVIDER = "ollama"
     BASE_URL = None
     API_KEY = "ollama"
-    MODEL = "gemma4"
-    OLLAMA_MODEL_ID = "gemma4"
+    MODEL = "hermes3"
+    OLLAMA_MODEL_ID = "hermes3"
     GREENHOUSE_TURNS = 0
 
     class SOUL:

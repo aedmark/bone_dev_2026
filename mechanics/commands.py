@@ -41,7 +41,7 @@ class CommandStateInterface:
         loc = ux("command_state", "default_loc")
         last_out = ux("command_state", "default_out")
         if cortex := getattr(self.eng, "cortex", None):
-            state = cortex.gather_state(getattr(cortex, "last_physics", {}))
+            state = cortex.gather_state({"physics": getattr(cortex, "last_physics", {})})
             orbit_list = state.get("world", {}).get("orbit") or [ux("command_state", "default_orbit")]
             loc = orbit_list[0] if orbit_list else ux("command_state", "default_orbit")
             if cortex.dialogue_buffer:
@@ -347,7 +347,7 @@ class CommandProcessor:
                 return True
             renderer = getattr(reporter, "renderer", None)
             if not hasattr(renderer, "dial_setting"):
-                from gui import TruthRenderer
+                from mechanics.gui import TruthRenderer
                 self.interface.log(f"{self.P.YEL}{ux('command_alerts', 'truth_transplant')}{self.P.RST}")
                 reporter.renderer = reporter.renderers.setdefault("STANDARD", TruthRenderer(self.interface.eng))
             reporter.renderer.dial_setting = mode
@@ -503,7 +503,7 @@ class CommandProcessor:
     def _execute_substrate_write(self, file_name: str, content: str):
         substrate = getattr(self.interface.eng, "substrate", None)
         if substrate is None:
-            from tools import TheSubstrate
+            from mechanics.tools import TheSubstrate
             substrate = TheSubstrate(getattr(self.interface.eng, "events", None))
             self.interface.eng.substrate = substrate
         substrate.queue_write(file_name, self.P.strip(content))

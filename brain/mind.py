@@ -93,25 +93,18 @@ class NeurotransmitterModulator:
         elif c.serotonin > mood_thresholds.get("ZEN_SER", 0.8):
             current_mood = "ZEN"
         if current_mood != self.last_mood and self.events:
-            self.events.publish(
-                "NEURAL_STATE_SHIFT",
-                {
-                    "state": current_mood, "chem": {"DOP": c.dopamine, "COR": c.cortisol, "SER": c.serotonin},
-                },
-            )
+            self.events.publish("NEURAL_STATE_SHIFT",
+                {"state": current_mood, "chem": {"DOP": c.dopamine, "COR": c.cortisol, "SER": c.serotonin},},)
             self.last_mood = current_mood
         v_offset = safe_get(cfg, "TEMP_VOLTAGE_OFFSET", 5.0)
         v_scalar = safe_get(cfg, "TEMP_VOLTAGE_SCALAR", 0.1)
         voltage_heat = math.log1p(max(0.0, base_voltage - v_offset)) * v_scalar
         chem_weights = safe_get(cfg, "TEMP_CHEM_WEIGHTS", {"dop": 0.4, "adr": 0.3, "cor": 0.2})
-        chemical_delta = ((c.dopamine * chem_weights.get("dop", 0.4)) -
-                          (c.adrenaline * chem_weights.get("adr", 0.3)) -
-                          (c.cortisol * chem_weights.get("cor", 0.2)))
+        chemical_delta = ((c.dopamine * chem_weights.get("dop", 0.4)) - (c.adrenaline * chem_weights.get("adr", 0.3)) - (c.cortisol * chem_weights.get("cor", 0.2)))
         base_temp = safe_get(cfg, "BASE_TEMP", 0.4)
         base_top_p = safe_get(cfg, "BASE_TOP_P", 0.95)
-        chi = float(physics_state.get("chi", physics_state.get("entropy", 0.2)))
-        beta = float(
-            physics_state.get("contradiction", physics_state.get("beta_index", 0.4)))
+        chi = float(safe_get(physics_state, "chi", safe_get(physics_state, "entropy", 0.2)))
+        beta = float(safe_get(physics_state, "contradiction", safe_get(physics_state, "beta_index", 0.4)))
         ent_offset = safe_get(cfg, "TEMP_ENTROPY_OFFSET", 0.5)
         ent_scalar = safe_get(cfg, "TEMP_ENTROPY_SCALAR", 1.5)
         entropy_bonus = max(0.0, chi - ent_offset) * ent_scalar
@@ -125,9 +118,7 @@ class NeurotransmitterModulator:
         base_penalty = min(1.2, 0.5 + beta_weight + chi_weight)
         freq_pen = pres_pen = base_penalty
         token_mods = safe_get(cfg, "TOKEN_CHEM_MODIFIERS", {"dop": 800, "adr": 400, "cor": 200})
-        token_delta = ((c.dopamine * token_mods.get("dop", 800)) -
-                       (c.adrenaline * token_mods.get("adr", 400)) -
-                       (c.cortisol * token_mods.get("cor", 200)))
+        token_delta = ((c.dopamine * token_mods.get("dop", 800)) - (c.adrenaline * token_mods.get("adr", 400)) - (c.cortisol * token_mods.get("cor", 200)))
         min_tokens = safe_get(cfg, "MIN_TOKENS", 150.0)
         raw_tokens = self.BASE_TOKENS + token_delta
         max_t = int(max(min_tokens, min(float(self.MAX_TOKENS), raw_tokens)))
@@ -137,7 +128,7 @@ class NeurotransmitterModulator:
     def _treat_yourself(self):
         """Mechanically injects dopamine to prevent system starvation."""
         if self.events:
-            msg = ux("brain_strings", "self_care")
+            msg = ux("brain_strings", "self_care") or "Engaging self-care protocols. Resting."
             self.events.log(f"{Prisma.VIOLET}{msg}{Prisma.RST}", "SYS")
         self.current_chem.dopamine += 0.2
         self.starvation_ticks = 0
@@ -146,14 +137,14 @@ class NeurotransmitterModulator:
         """Returns the natural language prompt injection for the current emotional state."""
         c = self.current_chem
         if c.cortisol > 0.7 and c.adrenaline > 0.7:
-            return ux("brain_strings", "mood_panic")
+            return ux("brain_strings", "mood_panic") or "You are panicking."
         if c.dopamine > 0.8 and c.adrenaline > 0.5:
-            return ux("brain_strings", "mood_manic")
+            return ux("brain_strings", "mood_manic") or "You are manic and inspired."
         if c.serotonin > 0.7:
-            return ux("brain_strings", "mood_lucid")
+            return ux("brain_strings", "mood_lucid") or "You are calm and lucid."
         if c.cortisol > 0.6:
-            return ux("brain_strings", "mood_defensive")
-        return ux("brain_strings", "mood_neutral")
+            return ux("brain_strings", "mood_defensive") or "You feel defensive and on edge."
+        return ux("brain_strings", "mood_neutral") or ""
 
 class NoeticLoop:
     """The background evaluator determining if physical tension should spark an autonomous thought."""
@@ -364,8 +355,9 @@ class DreamEngine:
             templates = [item for v in templates.values() for item in (v if isinstance(v, list) else [v])]
         if not templates:
             return "The walls breathe.", 0.1
-        from tools import TheTclWeaver
+        from mechanics.tools import TheTclWeaver
         weaver = TheTclWeaver.get_instance()
+
         v = _vector or {}
         active_chi = v.get("chi", v.get("entropy", 0.85))
         active_v = v.get("voltage", 90.0)

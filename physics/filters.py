@@ -3,11 +3,13 @@
 import random
 import re
 import unicodedata
-from typing import Dict, List, Any, Tuple, Optional, Deque
-from core import LoreManifest, ux, safe_set
-from presets import BoneConfig
+from typing import Dict, List, Any, Tuple, Optional
+
 from constants import Prisma, CycleContext
+from core import LoreManifest, ux, safe_set
 from physics.observer import apply_metabolic_tax
+from presets import BoneConfig
+
 
 class CerebrospinalFluidFilter:
     INVISIBLE_REGEX = re.compile(
@@ -46,9 +48,9 @@ class HLA_Stabilizer:
         self._weaver = None
 
     def _get_weaver(self):
+        from mechanics.tools import TheTclWeaver
         if self._weaver is None:
             try:
-                from tools import TheTclWeaver
                 self._weaver = TheTclWeaver.get_instance()
             except ImportError:
                 self._weaver = False
