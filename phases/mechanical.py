@@ -5,7 +5,7 @@ from typing import Any
 from presets import BoneConfig
 from physics import TheGatekeeper
 from core import LoreManifest, ux
-from gui import SoulDashboard
+from mechanics.gui import SoulDashboard
 from phases.base import SimulationPhase, _safe_dict, _deep_update
 
 class MaintenancePhase(SimulationPhase):

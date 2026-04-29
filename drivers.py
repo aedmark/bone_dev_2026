@@ -7,10 +7,9 @@ import time
 import difflib
 from dataclasses import dataclass, field
 from typing import Dict, Tuple, List, Optional, Any
-from core import LoreManifest, ux, safe_get, safe_set
+from core import LoreManifest, ux, safe_get
 from presets import BoneConfig
-from constants import PhysicsPacket
-from constants import Prisma, UserInferredState, SharedDynamics
+from constants import Prisma, UserInferredState, SharedDynamics, PhysicsPacket
 
 class SoulDriver:
     def __init__(self, soul_ref, config_ref=None):

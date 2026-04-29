@@ -1,7 +1,6 @@
 """symbiosis.py"""
 
 import math
-import re
 from collections import deque, Counter
 from dataclasses import dataclass
 from typing import Dict, Tuple, Optional, Any

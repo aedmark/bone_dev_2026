@@ -17,19 +17,17 @@ import subprocess
 import uuid
 from dataclasses import dataclass
 from typing import Dict, Any, Optional, Tuple
-
 from body import SomaticLoop
-from cortex import TheCortex
-from mind import NoeticLoop
-from composer import LLMInterface
-from commands import CommandProcessor
+from brain.cortex import TheCortex
+from brain.mind import NoeticLoop
+from brain.composer import LLMInterface
+from mechanics.commands import CommandProcessor
 from presets import BoneConfig, BonePresets
-from core import (EventBus, SystemHealth, TheObserver, LoreManifest, TelemetryService,
-    RealityStack, ux, safe_get, safe_set)
-from council import CouncilChamber
+from core import EventBus, SystemHealth, TheObserver, LoreManifest, TelemetryService, RealityStack, ux, safe_get, safe_set
+from archetypes.council import CouncilChamber
 from cycle import GeodesicOrchestrator
 from genesis import BoneGenesis
-from lexicon import LexiconService
+from mechanics.lexicon import LexiconService
 from physics import ZoneInertia, NaviSADProtocol
 from protocols import ChronosKeeper
 from constants import Prisma, RealityLayer
@@ -428,7 +426,7 @@ class BoneAmanita:
         for k in v_keys:
             setattr(self, k, v.get(k))
         from protocols import GriefProtocol
-        from tools import TheSubstrate
+        from mechanics.tools import TheSubstrate
         self.grief = GriefProtocol(self.events, engine_ref=self)
         self.substrate = TheSubstrate(self.events)
         self.soul.engine = self
@@ -650,7 +648,7 @@ class BoneAmanita:
                             has_comb = True
                             break
             if has_comb:
-                from tools import TheTclWeaver
+                from mechanics.tools import TheTclWeaver
                 last_phys = getattr(self.observer, "last_physics_packet", getattr(self.cortex, "last_physics", {}))
                 current_chi = float(safe_get(last_phys, "entropy", safe_get(last_phys, "chi", 0.5)))
                 pruned = TheTclWeaver.get_instance().quantum_comb(user_message, chi=current_chi)

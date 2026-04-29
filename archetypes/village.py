@@ -8,7 +8,7 @@ from itertools import chain
 from dataclasses import dataclass, field, asdict
 from typing import List, Dict, Any, Tuple, Optional, Set
 from presets import BoneConfig
-from core import LoreManifest, EventBus, ux, safe_get, safe_set
+from core import LoreManifest, EventBus, ux, safe_get
 from physics import PhysicsDelta
 from constants import Prisma, PhysicsPacket
 

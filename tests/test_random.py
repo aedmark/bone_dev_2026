@@ -1,14 +1,14 @@
 """tests/test_random.py"""
 
 from unittest.mock import patch, MagicMock
-from mechanics.composer import PromptComposer
+from brain.composer import PromptComposer
 from core import LoreManifest
 from cycle import MetabolismPhase, SimulationPreflightPhase
 from drivers import SharedLatticeDriver
-from gui import CycleReporter
+from mechanics.gui import CycleReporter
 from physics import ChromaScope
 from constants import PhysicsPacket, EnergyState, CycleContext
-from village import DeathGen
+from archetypes.village import DeathGen
 from tests.base import BoneTestCase
 
 class RandomTest(BoneTestCase):
@@ -67,7 +67,7 @@ class RandomTest(BoneTestCase):
                 )
 
     def test_ux_string_decoupling_inventory(self):
-            from inventory import Item
+            from mechanics.inventory import Item
             manifest = LoreManifest.get_instance()
             if "ux_strings" not in manifest._cache:
                 manifest._cache["ux_strings"] = {}

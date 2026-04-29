@@ -3,8 +3,8 @@
 import os
 import random
 import tempfile
-from ann import MemoryConsolidator
-from composer import PromptComposer
+from brain.ann import MemoryConsolidator
+from brain.composer import PromptComposer
 from core import EventBus
 from presets import BoneConfig
 from spores import MycelialNetwork, SubconsciousStrata
@@ -54,7 +54,7 @@ class MemoryTests(BoneTestCase):
             )
 
     def test_dream_defragmentation_pruning(self):
-            from mind import DreamEngine
+            from brain.mind import DreamEngine
 
             class MockMemorySystem:
                 def __init__(self):

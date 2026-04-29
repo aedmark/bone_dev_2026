@@ -1,18 +1,18 @@
 """genesis.py"""
 
 from typing import Dict, Any, Set
-from akashic import TheAkashicRecord
+from brain.akashic import TheAkashicRecord
 from presets import BoneConfig
 from core import EventBus, LoreManifest, ux
 from drivers import DriverRegistry, BoneConsultant
-from inventory import GordonKnot
+from mechanics.inventory import GordonKnot
 from machine import BoneArchitect
 from protocols import TheBureau, ZenGarden, TheCriticsCircle, TherapyProtocol, KintsugiProtocol, LimboLayer
-from soul import NarrativeSelf, TheOroboros
+from brain.soul import NarrativeSelf, TheOroboros
 from spores import LiteraryReproduction
-from symbiosis import SymbiosisManager
+from archetypes.symbiosis import SymbiosisManager
 from constants import Prisma
-from village import TownHall, DeathGen, TheCartographer, TheTinkerer, TheTherapist, TheGraveDigger
+from archetypes.village import TownHall, DeathGen, TheCartographer, TheTinkerer, TheTherapist, TheGraveDigger
 
 class BoneGenesis:
 

@@ -1,15 +1,9 @@
 """tests/test_fractures.py"""
 
-import random
-from unittest.mock import patch, MagicMock
-from composer import PromptComposer
-from commands import CommandProcessor
-from core import LoreManifest
-from cycle import MetabolismPhase, SimulationPreflightPhase
-from drivers import SharedLatticeDriver
-from gui import CycleReporter
-from physics import ChromaScope
-from symbiosis import SymbiosisManager
+from unittest.mock import MagicMock
+from brain.composer import PromptComposer
+from mechanics.commands import CommandProcessor
+from archetypes.symbiosis import SymbiosisManager
 from constants import PhysicsPacket
 from tests.base import BoneTestCase
 
@@ -54,7 +48,7 @@ class FractureEngineTest(BoneTestCase):
             if self.engine.bio.mito.state.atp_pool <= 0:
                 self.engine.mind.mem.trigger_autophagy()
             if self.engine.bio.mito.state.atp_pool <= 0 and len(mem_graph) == 0:
-                from village import DeathGen
+                from archetypes.village import DeathGen
                 from constants import PhysicsPacket
                 _, cause = DeathGen.eulogy(PhysicsPacket(**phys_state), {"atp": 0.0})
                 if cause in ["STARVATION", "APOPTOSIS", "GLUTTONY"]:
@@ -220,7 +214,7 @@ class FractureEngineTest(BoneTestCase):
 
     def test_fracture_false_cohesion(self):
         print("\n--- FRACTURE 8: False Cohesion (Anti-Sycophancy) ---")
-        from council import TheVillageCouncil
+        from archetypes.council import TheVillageCouncil
         sycophantic_physics = {"resonance": 0.95, "beta_index": 0.1, "voltage": 25.0, "narrative_drag": 1.0,
                                "stamina": 100.0, "T": 0.0, "S": 0.5, "D": 0.5, "C": 0.5, "psi": 0.1, "chi": 0.1,
                                "valence": 0.8, }
@@ -236,7 +230,7 @@ class FractureEngineTest(BoneTestCase):
 
     def test_fracture_systemic_health_medical_chip(self):
         print("\n--- FRACTURE 9: Systemic Health (The Medical Team) ---")
-        from council import TheOverseerCouncil
+        from archetypes.council import TheOverseerCouncil
         overseer = TheOverseerCouncil()
         physics_decay = {"m_a": 0.8, "narrative_drag": 6.0}
         hit, logs, corr, man = overseer.audit("[MOD:SYSTEMIC_HEALTH] fix this",

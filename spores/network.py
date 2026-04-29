@@ -5,10 +5,10 @@ import time
 from collections import deque
 from typing import List, Tuple, Optional, Dict, Any
 from core import EventBus, LoreManifest, ux, ux_format, safe_get, safe_set
-from ann import HippocampalCache, CerebralIndex
+from brain.ann import HippocampalCache, CerebralIndex
 from presets import BoneConfig
 from constants import Prisma
-from village import ParadoxSeed
+from archetypes.village import ParadoxSeed
 from spores.io import LocalFileSporeLoader
 from spores.memory import SubconsciousStrata, MemoryCore
 from spores.spore_utils import _word_to_vector, _householder, _mat_mul
@@ -269,7 +269,7 @@ class MycelialNetwork:
 
     @staticmethod
     def _load_seeds():
-        from village import ParadoxSeed
+        from archetypes.village import ParadoxSeed
         loaded_seeds = []
         try:
             raw_seeds = LoreManifest.get_instance().get("SEEDS") or []

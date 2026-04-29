@@ -3,7 +3,7 @@
 from unittest.mock import patch, MagicMock
 from cycle import ObservationPhase, SensationPhase
 from constants import PhysicsPacket, CycleContext
-from village import DeathGen
+from archetypes.village import DeathGen
 from tests.base import BoneTestCase
 
 class BiologyTests(BoneTestCase):

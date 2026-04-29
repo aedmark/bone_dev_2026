@@ -9,7 +9,7 @@ import threading
 from typing import Dict, Any, List, Optional
 from core import LoreManifest, ux, safe_get
 from drivers import CongruenceValidator
-from gui import CycleReporter
+from mechanics.gui import CycleReporter
 from machine import PanicRoom
 from phases import (ObservationPhase, SanctuaryPhase, MaintenancePhase, GatekeeperPhase,
     MetabolismPhase, RealityFilterPhase, NavigationPhase, MachineryPhase,
@@ -17,7 +17,7 @@ from phases import (ObservationPhase, SanctuaryPhase, MaintenancePhase, Gatekeep
     CognitionPhase, SensationPhase, StabilizationPhase, SimulationPhase)
 from physics import CycleStabilizer
 from presets import BoneConfig
-from symbiosis import SymbiosisManager
+from archetypes.symbiosis import SymbiosisManager
 from constants import Prisma, CycleContext
 
 _VSL_TAG_PATTERN = re.compile(r"\[VSL_(DEEP|CORE|LITE|HIDE)]", re.IGNORECASE)

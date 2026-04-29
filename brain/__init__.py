@@ -1,18 +1,20 @@
 """brain/__init__.py"""
 
-from .akashic import AkashicRecord
+from .akashic import TheAkashicRecord
 from .ann import MemoryConsolidator
 from .composer import PromptComposer
-from .cortex import Cortex
-from .mind import DreamEngine, Mind
-from .soul import Soul
+from .cortex import TheCortex
+from .mind import DreamEngine, ChemicalState, NeurotransmitterModulator, NoeticLoop
+from .soul import CoreMemory
 
 __all__ = [
-    "AkashicRecord",
+    "TheAkashicRecord",
     "MemoryConsolidator",
     "PromptComposer",
-    "Cortex",
+    "TheCortex",
     "DreamEngine",
-    "Mind",
-    "Soul"
+    "ChemicalState",
+    "NeurotransmitterModulator",
+    "NoeticLoop",
+    "CoreMemory"
 ]

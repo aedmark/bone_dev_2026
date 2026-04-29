@@ -6,7 +6,7 @@ from typing import Optional, Dict, List, Any, Tuple, TYPE_CHECKING
 from core import Prisma, LoreManifest, ux, safe_get, safe_set
 from presets import BoneConfig
 if TYPE_CHECKING:
-    from .system import BioSystem
+    from body.system import BioSystem
 
 class PIDController:
     def __init__(self, kp, ki, kd, setpoint, output_limits=(-10.0, 10.0)):

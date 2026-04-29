@@ -1,6 +1,6 @@
 """tests/test_agents.py"""
 
-from composer import PromptComposer
+from brain.composer import PromptComposer
 from core import LoreManifest
 from machine import TheParadoxEngine
 from physics import TheGatekeeper

@@ -12,9 +12,8 @@ import math, random, time, re
 from collections import deque
 from dataclasses import dataclass
 from typing import Dict, Any, List, Tuple, Optional
-
 from presets import BoneConfig
-from ann import MemoryConsolidator
+from brain.ann import MemoryConsolidator
 from core import LoreManifest, ux, safe_get, safe_set
 from constants import Prisma
 

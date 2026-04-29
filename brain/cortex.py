@@ -12,14 +12,14 @@ import re
 import random
 from dataclasses import dataclass
 from typing import Dict, Any, List, Tuple
-from composer import LLMInterface, PromptComposer, ResponseValidator
+from brain.composer import LLMInterface, PromptComposer, ResponseValidator
 from presets import BoneConfig, BonePresets
 from core import EventBus, TelemetryService, LoreManifest, safe_get, safe_set, ux
-from gui import beautify_thoughts
-from symbiosis import SymbiosisManager
+from mechanics.gui import beautify_thoughts
+from archetypes.symbiosis import SymbiosisManager
 from constants import Prisma, DecisionCrystal
-from tools import RandomRetrievalNavigator, LibraryGraph
-from mind import NeurotransmitterModulator, DreamEngine
+from mechanics.tools import RandomRetrievalNavigator, LibraryGraph
+from brain.mind import NeurotransmitterModulator, DreamEngine
 
 @dataclass
 class CortexServices:
@@ -75,8 +75,9 @@ class TheCortex:
         self.symbiosis = services.symbiosis
         self.composer = PromptComposer(self.svc.lore, config_ref=self.cfg)
         self.validator = ResponseValidator(self.svc.lore, config_ref=self.cfg)
-        from tools import DSPyCritic
+        from mechanics.tools import DSPyCritic
         self.dspy_critic = DSPyCritic(config_ref=self.cfg)
+
         # Disable Affective Critic on lightweight hardware to prevent latency spirals
         if getattr(self.cfg, "WEIGHT_CLASS", "HEAVYWEIGHT") == "LIGHTWEIGHT":
             self.dspy_critic.enabled = False
