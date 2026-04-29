@@ -428,7 +428,7 @@ class BoneAmanita:
         for k in v_keys:
             setattr(self, k, v.get(k))
         from protocols import GriefProtocol
-        from utils import TheSubstrate
+        from tools import TheSubstrate
         self.grief = GriefProtocol(self.events, engine_ref=self)
         self.substrate = TheSubstrate(self.events)
         self.soul.engine = self
@@ -650,7 +650,7 @@ class BoneAmanita:
                             has_comb = True
                             break
             if has_comb:
-                from utils import TheTclWeaver
+                from tools import TheTclWeaver
                 last_phys = getattr(self.observer, "last_physics_packet", getattr(self.cortex, "last_physics", {}))
                 current_chi = float(safe_get(last_phys, "entropy", safe_get(last_phys, "chi", 0.5)))
                 pruned = TheTclWeaver.get_instance().quantum_comb(user_message, chi=current_chi)

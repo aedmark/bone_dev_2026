@@ -365,7 +365,7 @@ class DreamEngine:
             templates = [item for v in templates.values() for item in (v if isinstance(v, list) else [v])]
         if not templates:
             return "The walls breathe.", 0.1
-        from utils import TheTclWeaver
+        from tools import TheTclWeaver
         weaver = TheTclWeaver.get_instance()
         v = _vector or {}
         active_chi = v.get("chi", v.get("entropy", 0.85))

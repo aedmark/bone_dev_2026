@@ -9,9 +9,14 @@ from core import EventBus
 from presets import BoneConfig
 from spores import MycelialNetwork, SubconsciousStrata
 from constants import PhysicsPacket
-from tests.base import BoneTestCase, generate_mock_memories
+from tests.base import BoneTestCase
 
 class MemoryTests(BoneTestCase):
+    def generate_mock_memories(self, count=50, dim=8):
+        return [(f"node_{i}", [random.uniform(-1.0, 1.0) for _ in range(dim)], {
+            "concept": f"ghost_node_{i}",
+            "mass": random.uniform(1.0, 10.0)
+        }) for i in range(count)]
     def test_autophagy_memory_cannibalization(self):
             memory_graph = self.engine.mind.mem.graph if hasattr(
                 self.engine.mind, "mem") else self.engine.akashic.graph

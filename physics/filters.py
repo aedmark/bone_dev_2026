@@ -7,6 +7,7 @@ from typing import Dict, List, Any, Tuple, Optional, Deque
 from core import LoreManifest, ux, safe_set
 from presets import BoneConfig
 from constants import Prisma, CycleContext
+from physics.observer import apply_metabolic_tax
 
 class CerebrospinalFluidFilter:
     INVISIBLE_REGEX = re.compile(
@@ -47,7 +48,7 @@ class HLA_Stabilizer:
     def _get_weaver(self):
         if self._weaver is None:
             try:
-                from utils import TheTclWeaver
+                from tools import TheTclWeaver
                 self._weaver = TheTclWeaver.get_instance()
             except ImportError:
                 self._weaver = False

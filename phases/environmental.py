@@ -5,7 +5,7 @@ import random
 from presets import BoneConfig, BonePresets
 from physics import QuantumObserver
 from core import LoreManifest, ux, safe_get, safe_set
-from utils import TheTclWeaver
+from tools import TheTclWeaver
 from phases.base import SimulationPhase, _safe_dict, _deep_update
 
 class NavigationPhase(SimulationPhase):

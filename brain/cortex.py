@@ -18,7 +18,7 @@ from core import EventBus, TelemetryService, LoreManifest, safe_get, safe_set, u
 from gui import beautify_thoughts
 from symbiosis import SymbiosisManager
 from constants import Prisma, DecisionCrystal
-from utils import RandomRetrievalNavigator, LibraryGraph
+from tools import RandomRetrievalNavigator, LibraryGraph
 from mind import NeurotransmitterModulator, DreamEngine
 
 @dataclass
@@ -75,7 +75,7 @@ class TheCortex:
         self.symbiosis = services.symbiosis
         self.composer = PromptComposer(self.svc.lore, config_ref=self.cfg)
         self.validator = ResponseValidator(self.svc.lore, config_ref=self.cfg)
-        from utils import DSPyCritic
+        from tools import DSPyCritic
         self.dspy_critic = DSPyCritic(config_ref=self.cfg)
         # Disable Affective Critic on lightweight hardware to prevent latency spirals
         if getattr(self.cfg, "WEIGHT_CLASS", "HEAVYWEIGHT") == "LIGHTWEIGHT":

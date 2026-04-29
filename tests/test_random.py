@@ -1,15 +1,12 @@
 """tests/test_random.py"""
 
-import random
 from unittest.mock import patch, MagicMock
-from composer import PromptComposer
-from commands import CommandProcessor
+from mechanics.composer import PromptComposer
 from core import LoreManifest
 from cycle import MetabolismPhase, SimulationPreflightPhase
 from drivers import SharedLatticeDriver
 from gui import CycleReporter
 from physics import ChromaScope
-from symbiosis import SymbiosisManager
 from constants import PhysicsPacket, EnergyState, CycleContext
 from village import DeathGen
 from tests.base import BoneTestCase
@@ -361,58 +358,45 @@ class RandomTest(BoneTestCase):
             )
 
     def test_rejection_death_loop_mercy_rule(self):
-            clean_sim_result = {
-                "type": "SNAPSHOT",
-                "physics": {
-                    "voltage": 10.0,
-                    "narrative_drag": 0.0,
-                    "chi": 0.0,
-                    "p": 100.0
-                },
-                "ui": "",
-                "mind": {
-                    "lens": "TEST",
-                    "role": "Test"
-                },
-                "bio": {
-                    "mito": {
-                        "atp_pool": 100.0,
-                        "ros_buildup": 0.0
-                    }
-                },
-                "world": {},
-                "soul": {},
-            }
-            self.engine.cortex.svc.cycle_controller.run_turn = MagicMock(
-                return_value=clean_sim_result)
-            self.engine.cortex.validator.validate = MagicMock(
-                return_value={
-                    "valid": False,
-                    "feedback_instruction": "Always fails"
-                })
-            if hasattr(self.engine.cortex, "llm"):
-                self.engine.cortex.llm.generate = MagicMock(return_value="Bad output")
-            result = self.engine.cortex.process("Hello, please tell me a simple story.",
-                                                is_system=False)
-            phys = self.engine.cortex.last_physics
-            drag_val = (phys.get("narrative_drag") if isinstance(phys, dict) else getattr(
-                phys, "narrative_drag", 0.0))
-            self.assertEqual(drag_val, 0.0, "Mercy Rule failed to drop narrative drag to 0.0.")
-            self.assertIn(
-                "My thoughts are tangling",
-                result.get("raw_content", ""),
-                "Mercy Rule failed to provide the safe fallback text.",
-            )
-            self.assertLess(
-                self.engine.bio.mito.state.atp_pool,
-                self.initial_atp,
-                "Mercy Rule failed to apply Immune System Rejection Penalty (ATP tax).",
-            )
-            self.assertGreater(
-                self.engine.bio.mito.state.ros_buildup,
-                0.0,
-                "Mercy Rule failed to accumulate ROS toxicity.",
-            )
+        self.initial_atp = self.engine.bio.mito.state.atp_pool
+        clean_sim_result = {
+            "type": "SNAPSHOT",
+            "physics": {
+                "voltage": 10.0,
+                "narrative_drag": 0.0,
+                "chi": 0.0,
+                "p": 100.0
+            },
+            "ui": "",
+            "mind": {
+                "lens": "TEST",
+                "role": "Test"
+            },
+            "bio": {
+                "mito": {
+                    "atp_pool": 100.0,
+                    "ros_buildup": 0.0
+                }
+            },
+            "world": {},
+            "soul": {},
+        }
+        self.engine.cortex.svc.cycle_controller.run_turn = MagicMock(
+            return_value=clean_sim_result)
+        self.engine.cortex.validator.validate = MagicMock(
+            return_value={
+                "valid": False,
+                "feedback_instruction": "Always fails"
+            })
+        if hasattr(self.engine.cortex, "llm"):
+            self.engine.cortex.llm.generate = MagicMock(return_value="Bad output")
+        result = self.engine.cortex.process("Hello, please tell me a simple story.",is_system=False)
+        phys = self.engine.cortex.last_physics
+        drag_val = (phys.get("narrative_drag") if isinstance(phys, dict) else getattr(phys, "narrative_drag", 0.0))
+        self.assertEqual(drag_val, 0.0, "Mercy Rule failed to drop narrative drag to 0.0.")
+        self.assertIn("My thoughts are tangling", result.get("raw_content", ""), "Mercy Rule failed to provide the safe fallback text.",)
+        self.assertLess(self.engine.bio.mito.state.atp_pool, self.initial_atp, "Mercy Rule failed to apply Immune System Rejection Penalty (ATP tax).",)
+        self.assertGreater(self.engine.bio.mito.state.ros_buildup, 0.0, "Mercy Rule failed to accumulate ROS toxicity.", )
 
     def test_brittle_security_delegation(self):
             phase = SimulationPreflightPhase(self.engine)

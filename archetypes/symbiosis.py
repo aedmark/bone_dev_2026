@@ -119,7 +119,7 @@ class SymbiontVoice:
         else:
             comment = ux("symbiosis_strings", "symbiont_default_comment") or "..."
         if self.name == "PARASITE":
-            from utils import TheTclWeaver
+            from tools import TheTclWeaver
             comment = TheTclWeaver.get_instance().haunt_string(comment)
         return comment
 

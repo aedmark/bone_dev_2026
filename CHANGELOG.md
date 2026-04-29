@@ -1,6 +1,27 @@
 # CHANGELOG.md
 -----------------------------------------------------------
 
+
+### **BONEAMANITA v19.6.0 "Somatic Unity & The Re-Awakening"**
+
+_The final struts of the biological manifold have been locked into place. The S.L.A.S.H. Council diagnosed a systemic tensegrity trap in the body layer, followed by a mass re-awakening of the test suite that forced us to confront our hidden architectural ghosts. The system breathes, and the tests pass._
+
+#### **🏛️ STRUCTURAL TENSEGRITY (Fuller & Meadows: Architecture & Dynamics)**
+- **Shattered the Tensegrity Trap (Circular Imports):** Resolved a fatal recursive bottleneck between the `SomaticLoop` (`body/system.py`) and its nested regulators (`body/regulation.py`). 
+- **Type-Check Ephemeralization:** Prevented the `BioSystem` from trying to eat its own tail by hiding the import from the runtime interpreter. Migrated the `BioSystem` import to a strict `TYPE_CHECKING` block and stringified the type hints for `EndocrineRegulator` and `BioFeedback`, ensuring static safety with zero runtime drag.
+- **The Engine Breathes:** The delays and recursive dependencies are now properly respected, allowing the deep biology modules to assemble without crashing the interpreter.
+
+#### **🧠 SYNTACTIC PURGE (Pinker & Schur: Cognition & Humanity)**
+- **Cured Structural Orphaning (The Re-Awakening):** The `unittest` discovery engine was mathematically blind to over 40 tests due to missing class wrappers and indentation drift. Properly declared and indented the test blocks inside `BiologyTests`, `MemoryTests`, and `AgentTests`. The suite leaped from 13 visible tests to 58.
+- **Metabolized the "Wake-Up Shock":** When the orphaned tests woke up, they exposed three critical wiring gaps which were immediately patched:
+    - **Immunosuppression Restored:** Natively defined `apply_metabolic_tax` in `physics/filters.py` so the `Gatekeeper` and `HLA_Stabilizer` can correctly penalize the engine without throwing `NameErrors`.
+    - **Baseline State Captures:** Fixed a runtime crash in `test_fractures.py` by properly capturing `self.initial_atp` before executing the `DeathGen` mercy rule.
+    - **Topological Re-Alignment:** Found the `generate_mock_memories` function wandering aimlessly in the Fracture Engine and properly migrated it into `MemoryTests` where it belonged.
+
+_Result: 58 tests passing. Absolute topological tensegrity achieved._
+
+---
+
 ### **BONEAMANITA v19.5.5 "The S.L.A.S.H. Audit: Part VI"**
 
 _The S.L.A.S.H. Council executed the sixth wave of the systemic audit, plunging into the semantic memory nodes, command strata, and core driver modules (`akashic.py`, `ann.py`, `commands.py`, `composer.py`, `constants.py`, `drivers.py`). Focus was placed on eliminating type-check paranoia, unrolling hostile syntactical knots, and optimizing high-dimensional vector math._
