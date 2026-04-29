@@ -32,9 +32,9 @@ def ux_format(section: str, key: str, default: str = "", **kwargs) -> str:
     Retrieves and safely formats a UX string.
     Fails gracefully to the raw string if the payload arguments mismatch the template.
     """
-    msg = ux(section, key, default)
+    msg = ux(section, key, default) or default
     if not msg:
-        return default
+        return ""
     try:
         return msg.format(**kwargs)
     except (KeyError, ValueError, IndexError) as e:
@@ -114,11 +114,10 @@ class EventBus:
 
                 if event_type != "EVENT_FAILURE":
                     self.log(f"EVENT_FAILURE: {short_err}\n{traceback.format_exc()}", source="EVENT_FAILURE", level="CRIT")
-                try:
+
+                if callback in self.subscribers[event_type]:
                     self.subscribers[event_type].remove(callback)
                     print(f"{Prisma.RED}[IMMUNE] Apoptotic pruning applied to toxic callback: {cb_name}{Prisma.RST}")
-                except ValueError:
-                    pass
 
     def log(self, message: str, source: str = "SYSTEM", level: str = "INFO"):
         """Creates an immutable, timestamped record of an event and pushes it downstream."""
@@ -308,19 +307,20 @@ class SystemHealth:
     def link_observer(self, observer_ref):
         self.observer = observer_ref
 
+    _HEALTH_MAP = { "physics": "physics_online", "bio": "bio_online", "mind": "mind_online", "cortex": "cortex_online"}
+
     def report_failure(self, component: str, error: Exception, severity="ERROR"):
         msg = str(error)
         self.errors.append(ErrorLog(component, msg, severity=severity))
         if self.observer:
             self.observer.log_error(component)
 
-        # Schur Note: Python reflection is fun, but dynamic attribute setting
-        # based on strings is how you introduce gremlins.
-        attr_name = f"{component.lower()}_online"
-        if hasattr(self, attr_name):
-            setattr(self, attr_name, False)
+        comp_key = component.lower()
+        if comp_key in self._HEALTH_MAP:
+            setattr(self, self._HEALTH_MAP[comp_key], False)
         else:
-            self.report_warning(f"Unmapped component '{component}' reported a failure. Missing from SystemHealth dataclass.")
+            self.report_warning(
+                f"Unmapped component '{component}' reported a failure. Missing from SystemHealth dataclass.")
         return ux_format("core_strings", "health_offline", component=component, msg=msg)
 
     def report_warning(self, message: str):

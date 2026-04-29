@@ -63,14 +63,14 @@ class TheCortex:
         self.consultant = services.consultant
         self.llm = llm_client or LLMInterface(self.events, provider="mock")
         # Link the DreamEngine (from mind.py)
-        if hasattr(self.svc.cycle_controller, "eng") and hasattr(self.svc.cycle_controller.eng, "mind"):
-            self.dreamer = self.svc.cycle_controller.eng.mind.dreamer
+        eng_ref = getattr(self.svc.cycle_controller, "eng", None)
+        self.dreamer = getattr(getattr(eng_ref, "mind", None), "dreamer", None)
+        if self.dreamer:
             self.dreamer.llm = self.llm
             self.dreamer.mem = self.svc.mind_memory
         else:
-            eng_ref = getattr(self.svc.cycle_controller, "eng", None)
             self.dreamer = DreamEngine(self.events, self.svc.lore, llm_ref=self.llm, mem_ref=self.svc.mind_memory,
-                                       eng_ref=eng_ref, config_ref=self.cfg, )
+                                       eng_ref=eng_ref, config_ref=self.cfg)
         self.llm.dreamer = self.dreamer
         self.symbiosis = services.symbiosis
         self.composer = PromptComposer(self.svc.lore, config_ref=self.cfg)
@@ -159,10 +159,11 @@ class TheCortex:
             return self._handle_vsl_command(user_input)
         is_boot_sequence = "SYSTEM_BOOT" in user_input
         if len(user_input) > 1500 and not is_system and not is_boot_sequence:
-            if hasattr(self.svc.cycle_controller, "eng") and hasattr(self.svc.cycle_controller.eng, "substrate"):
+            eng = getattr(self.svc.cycle_controller, "eng", None)
+            if eng and hasattr(eng, "substrate"):
                 safe_content = user_input.replace("\n", "|||NEWLINE|||")
                 filename = f"context_drop_{int(time.time())}.txt"
-                self.svc.cycle_controller.eng.substrate.queue_write(f"memory_queue/{filename}", safe_content)
+                eng.substrate.queue_write(f"memory_queue/{filename}", safe_content)
                 msg = f"{Prisma.CYN}[Substrate Queue]: Massive context drop detected. Routed to silent indexing. Dialogue buffer bypassed.{Prisma.RST}"
                 if self.events: self.events.log(msg, "SYS")
                 return {"ui": msg, "type": "SILENT_INGEST", "physics": self.last_physics, "logs": [msg]}
@@ -610,6 +611,7 @@ class TheCortex:
                 if msg := directive_map.get(val):
                     mind["style_directives"].append(msg)
                     cortex = getattr(self.svc.mind_memory, "cortex", None)
+                    shadow_nodes = []
                     if cortex and getattr(cortex, "is_trained", False):
                         scope_val = float(safe_get(phys, "scope", 1.0))
                         depth_val = float(safe_get(phys, "depth", 0.0))

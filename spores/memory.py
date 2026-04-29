@@ -168,7 +168,7 @@ class MemoryCore:
                or "{prefix} Engram: '{name}'{conn_str}")
         for score, name, data in scored_memories[:limit]:
             connections = list(data.get("edges", {}).keys())
-            if active_dims and hasattr(self, "subconscious"):
+            if active_dims:
                 if not data.get("is_diamond", False):
                     for edge_k, edge_v in data.get("edges", {}).items():
                         if not self.graph.get(edge_k, {}).get("is_diamond", False):

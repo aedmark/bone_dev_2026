@@ -33,7 +33,7 @@ class BoneGenesis:
         if embryo.soul_legacy:
             soul.load_from_dict(embryo.soul_legacy)
         oroboros = TheOroboros(config_ref=target_cfg)
-        if hasattr(embryo.physics, "observer"):
+        if embryo.physics:
             cfg_gen = getattr(target_cfg, "GENESIS", None)
             base_voltage = getattr(cfg_gen, "DUMMY_VOLTAGE", 10.0)
             base_drag = getattr(cfg_gen, "DUMMY_DRAG", 0.0)
@@ -46,14 +46,12 @@ class BoneGenesis:
                 msg = ux("genesis_strings", "legacy_scars") or "The lattice remembers. Inherited scars: {logs}"
                 events.log(f"{Prisma.MAG}{msg.format(logs=', '.join(logs))}{Prisma.RST}", "OROBOROS")
 
-                # Pinker: Direct, native application of inherited physics.
+                # Direct, native application of inherited physics.
                 if applied_drag := dummy_phys.get("narrative_drag", base_drag) - base_drag:
-                    current_drag = float(getattr(embryo.physics, "narrative_drag", 0.0))
-                    setattr(embryo.physics, "narrative_drag", current_drag + applied_drag)
+                    embryo.physics.narrative_drag += float(applied_drag)
 
                 if (volt_penalty := base_voltage - dummy_phys.get("voltage", base_voltage)) > 0:
-                    current_voltage = float(getattr(embryo.physics, "voltage", 0.0))
-                    setattr(embryo.physics, "voltage", max(0.0, current_voltage - volt_penalty))
+                    embryo.physics.voltage = max(0.0, float(embryo.physics.voltage) - float(volt_penalty))
 
             if mem:
                 mem.session_trauma_vector = bio_proxy.get("trauma_vector", {})

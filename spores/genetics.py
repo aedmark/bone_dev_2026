@@ -72,10 +72,8 @@ class LiteraryReproduction:
             for k in all_keys
         }
         mito = parent_a_bio.get("mito", {})
-        try:
-            enzymes_a = set(mito.state.enzymes)
-        except AttributeError:
-            enzymes_a = set(mito.get("enzymes", []) if isinstance(mito, dict) else [])
+        enzymes_a = set(mito.get("enzymes", [])) if isinstance(mito, dict) else set(
+            getattr(getattr(mito, "state", mito), "enzymes", []))
         enzymes_b = set(parent_b_data.get("mitochondria", {}).get("enzymes", []))
         child_enzymes = list(enzymes_a | enzymes_b)
         config_mutations = LiteraryReproduction.mutate_config(self.cfg)
@@ -101,9 +99,10 @@ class LiteraryReproduction:
             "trauma_vector": engine_ref.trauma_accum,
             "mito": mito_data,
         }
-        phys_packet = getattr(getattr(engine_ref, "cortex", None), "last_physics", None)
+        cortex = getattr(engine_ref, "cortex", None)
+        phys_packet = getattr(cortex, "last_physics", None) if cortex else None
         if not phys_packet:
-            obs = getattr(getattr(engine_ref, "phys", None), "observer", None)
+            obs = getattr(engine_ref, "observer", None)
             phys_packet = getattr(obs, "last_physics_packet", {}) or {}
         genome = {}
         child_id = "UNKNOWN"

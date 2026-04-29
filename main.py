@@ -386,7 +386,7 @@ class BoneAmanita:
             if lite_key in getattr(self, "prompt_library", {}):
                 prompt_key = lite_key
                 self.events.log(f"Sub-15B model detected ('{model_id}'). Loading tethered prompt: {prompt_key}", "SYS")
-            if getattr(self, "cortex", None) and getattr(self.cortex, "dspy_critic", None):
+            if hasattr(self.cortex, "dspy_critic") and self.cortex.dspy_critic:
                 self.cortex.dspy_critic.enabled = False
                 self.events.log("Sub-15B model detected. Disabling DSPy Affective Critic to preserve cognitive load.", "SYS")
         if self.prompt_library and prompt_key in self.prompt_library:
@@ -527,8 +527,9 @@ class BoneAmanita:
                 mu = float(safe_get(last_phys, "mu", 0.0))
                 i_c = float(safe_get(last_phys, "i_c", 1.0))
                 chi = float(safe_get(last_phys, "entropy", safe_get(last_phys, "chi", 0.2)))
-                e_u = getattr(self.shared_lattice.u, "E", float(safe_get(last_phys, "exhaustion", 0.0))) if getattr(
-                    self, "shared_lattice", None) else float(safe_get(last_phys, "exhaustion", 0.0))
+                base_exhaust = float(safe_get(last_phys, "exhaustion", 0.0))
+                lattice = getattr(self, "shared_lattice", None)
+                e_u = float(getattr(lattice.u, "E", base_exhaust)) if lattice and hasattr(lattice, "u") else base_exhaust
                 beta = float(safe_get(last_phys, "beta_index", 0.0))
 
                 # Terminal Hallucination Check
@@ -637,16 +638,13 @@ class BoneAmanita:
         if not is_system:
             # Inventory comb integration (stripping semantic fluff)
             has_comb = False
-            if gordon := getattr(self, "gordon", None):
-                inventory = getattr(gordon, "inventory", [])
-                get_data = getattr(gordon, "get_item_data", None)
-                if get_data and inventory:
-                    for item_id in inventory:
-                        data = get_data(item_id) or {}
-                        traits = data.get("passive_traits", []) if isinstance(data, dict) else getattr(data, "passive_traits", [])
-                        if "CUT_THE_CRAP" in traits:
-                            has_comb = True
-                            break
+            gordon = getattr(self, "gordon", None)
+            if gordon and hasattr(gordon, "get_item_data"):
+                for item_id in getattr(gordon, "inventory", []):
+                    traits = safe_get(gordon.get_item_data(item_id), "passive_traits", [])
+                    if "CUT_THE_CRAP" in traits:
+                        has_comb = True
+                        break
             if has_comb:
                 from mechanics.tools import TheTclWeaver
                 last_phys = getattr(self.observer, "last_physics_packet", getattr(self.cortex, "last_physics", {}))
@@ -667,26 +665,30 @@ class BoneAmanita:
         # Pass control to the LLM Cortex
         try:
             cortex_packet = self.cortex.process(user_input=user_message, is_system=is_system)
-            if hasattr(self.bio, "biometrics"):
-                self.health, self.stamina = self.bio.biometrics.health, self.bio.biometrics.stamina
-            if hasattr(self.mind.mem, "session_trauma_vector"):
-                self.trauma_accum = self.mind.mem.session_trauma_vector or self.trauma_accum
-
-            if self.health <= 0.0:
-                if not self.in_greenhouse:
-                    return self.trigger_death(cortex_packet.get("physics", {}))
-                self.events.log(f"{Prisma.CYN}[THE GREENHOUSE] Critical biological failure prevented. Emergency ATP injected.{Prisma.RST}", "SYS",)
-                self.health, self.stamina = 25.0, 50.0
-                if bio := getattr(self, "bio", None):
-                    if biometrics := getattr(bio, "biometrics", None):
-                        biometrics.health, biometrics.stamina = 25.0, 50.0
-                    if mito := getattr(bio, "mito", None):
-                        mito.state.atp_pool, mito.state.ros_buildup = 50.0, 0.0
         except Exception as e:
             full_trace = traceback.format_exc()
             self.events.log(f"CORTEX COLLAPSE: {e}\n{full_trace}", "CRIT")
             return {"ui": f"{Prisma.RED}{ux('main_strings', 'cortex_crit_fail').format(trace=str(e))}{Prisma.RST}\n{Prisma.GRY}[Trace recorded in EventBus.]{Prisma.RST}",
                 "logs": ["CRITICAL FAILURE"], "metrics": self.get_metrics(),}
+
+        # Biometric and Trauma Sync
+        if hasattr(self.bio, "biometrics"):
+            self.health, self.stamina = self.bio.biometrics.health, self.bio.biometrics.stamina
+        if hasattr(self.mind.mem, "session_trauma_vector"):
+            self.trauma_accum = self.mind.mem.session_trauma_vector or self.trauma_accum
+
+        if self.health <= 0.0:
+            if not self.in_greenhouse:
+                return self.trigger_death(cortex_packet.get("physics", {}))
+            self.events.log(f"{Prisma.CYN}[THE GREENHOUSE] Critical biological failure prevented. Emergency ATP injected.{Prisma.RST}", "SYS")
+            self.health, self.stamina = 25.0, 50.0
+            if bio := getattr(self, "bio", None):
+                if biometrics := getattr(bio, "biometrics", None):
+                    biometrics.health, biometrics.stamina = 25.0, 50.0
+                if mito := getattr(bio, "mito", None):
+                    mito.state.atp_pool, mito.state.ros_buildup = 50.0, 0.0
+            return {"ui": f"\n{Prisma.CYN}♦ [THE GREENHOUSE: Metabolic collapse averted. Emergency ATP administered.]{Prisma.RST}",
+                    "logs": ["GREENHOUSE: ATP INJECTED"], "metrics": self.get_metrics()}
 
         self._update_host_stats(cortex_packet, turn_start)
 
@@ -695,33 +697,24 @@ class BoneAmanita:
         vector_obj = safe_get(cortex_packet.get("physics", {}), "vector", {})
         novelty = float(safe_get(vector_obj, "novelty", 0.0))
         dimension = self.navi_sad.calculate_semantic_dimension(efficiency, novelty)
-        if "physics" in cortex_packet:
-            cortex_packet["physics"]["omega_r"] = dimension
-
+        phys_packet = cortex_packet.setdefault("physics", {})
+        phys_packet["omega_r"] = dimension
         if self.tick_count > 5 and (dimension <= 1.05 or self.navi_sad.detect_point_attractor()):
             msg = f"[THE JESTER]: Point Attractor detected (d_B={dimension:.2f})! We are trapped in False Cohesion! Burning ATP to inject chaos."
             self.events.log(f"{Prisma.VIOLET}{msg}{Prisma.RST}", "SYS")
             if getattr(self, "bio", None) and getattr(self.bio, "mito", None):
                 self.bio.mito.state.atp_pool = max(0.0, self.bio.mito.state.atp_pool - 5.0)
-            if "physics" in cortex_packet:
-                safe_set(cortex_packet["physics"], "entropy", 0.99)
-                safe_set(cortex_packet["physics"], "narrative_drag",
-                         float(safe_get(cortex_packet["physics"], "narrative_drag", 0.0)) + 5.0)
+            phys_packet["entropy"] = 0.99
+            phys_packet["narrative_drag"] = float(safe_get(phys_packet, "narrative_drag", 0.0)) + 5.0
             if "ui" in cortex_packet:
-                cortex_packet[
-                    "ui"] += f"\n\n{Prisma.VIOLET}♦ [FALSE COHESION BREAK: The Jester has shattered the point attractor.]{Prisma.RST}"
-
+                cortex_packet["ui"] += f"\n\n{Prisma.VIOLET}♦ [FALSE COHESION BREAK: The Jester has shattered the point attractor.]{Prisma.RST}"
         self.save_checkpoint()
         self.last_turn_end = time.time()
         return cortex_packet
 
     def _phase_check_commands(self, user_message, already_executed=False):
-        clean_cmd = user_message.strip()
-        if self.cmd is None:
-            err_msg = ux("main_strings", "cmd_err_init")
-            return {"ui": f"{Prisma.RED}{err_msg}{Prisma.RST}", "logs": []}
         if not already_executed:
-            self.cmd.execute(clean_cmd)
+            self.cmd.execute(user_message.strip())
         cmd_logs = [e["text"] for e in self.events.flush()]
         default_exec = ux("main_strings", "cmd_executed")
         ui_output = "\n".join(cmd_logs) if cmd_logs else default_exec
