@@ -1,5 +1,11 @@
 """phases/cognitive.py"""
 
+from constants import Prisma
+from presets import BoneConfig
+from core import ux, safe_set, LoreManifest, ArchetypeArbiter
+from typing import Dict, List, Any
+from phases.base import SimulationPhase, _safe_dict
+
 class CognitionPhase(SimulationPhase):
     def __init__(self, engine_ref):
         super().__init__(engine_ref)

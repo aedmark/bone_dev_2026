@@ -8,6 +8,8 @@ from typing import Dict, List, Any, Tuple, Optional, Deque
 from core import LoreManifest, ux, safe_get, safe_set
 from presets import BoneConfig
 from constants import Prisma, PhysicsPacket, SpatialState, MaterialState, EnergyState
+from physics.math import CreativeDeterminantEngine
+from physics.geodesics import GeodesicEngine
 
 @dataclass
 class PhysicsDelta:

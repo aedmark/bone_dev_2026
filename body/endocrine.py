@@ -1,11 +1,13 @@
 """body/endocrine.py"""
 
-import math, random, time
+import math, time
 from collections import deque
 from dataclasses import dataclass, field
 from typing import Optional, Dict, List, Any, Tuple
-from core import Prisma, LoreManifest, ux, safe_get
+from core import LoreManifest, safe_get
 from presets import BoneConfig
+from body.models import SemanticSignal
+
 
 @dataclass
 class EndocrineSystem:
@@ -187,31 +189,6 @@ class EndocrineSystem:
     def get_state(self) -> Dict[str, Any]:
         return {"DOP": round(self.dopamine, 2), "OXY": round(self.oxytocin, 2), "COR": round(self.cortisol, 2),
                 "SER": round(self.serotonin, 2), "ADR": round(self.adrenaline, 2), "MEL": round(self.melatonin, 2)}
-
-class EndocrineRegulator:
-    def __init__(self, bio_system_ref: BioSystem):
-        self.bio = bio_system_ref
-
-    def get_metabolic_modifier(self, phys: Any, logs: List[str]) -> float:
-        chem = self.bio.endo
-        modifier = 1.0
-        if chem.cortisol > 0.5:
-            stress_tax = 1.0 + (chem.cortisol * 0.5)
-            modifier *= stress_tax
-            if random.random() < 0.3 and (msg := ux("endocrine_regulator", "cortisol_spike")):
-                logs.append(f"{Prisma.RED}{msg.format(tax=stress_tax)}{Prisma.RST}")
-        if chem.adrenaline > 0.6:
-            modifier *= 0.5
-            if msg := ux("endocrine_regulator", "adrenaline_surge"):
-                logs.append(f"{Prisma.YEL}{msg}{Prisma.RST}")
-        if chem.dopamine > 0.7:
-            modifier *= 0.8
-        energy = getattr(phys, "energy", phys)
-        if (voltage := getattr(energy, "voltage", 0.0)) > 15.0:
-            modifier *= 1.2
-            if msg := ux("endocrine_regulator", "voltage_gap"):
-                logs.append(f"{Prisma.MAG}{msg.format(voltage=voltage)}{Prisma.RST}")
-        return modifier
 
 class SemanticEndocrinologist:
     def __init__(self, memory_ref, lexicon_ref):

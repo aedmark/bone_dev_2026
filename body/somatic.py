@@ -4,6 +4,7 @@ import random
 from typing import Optional, Dict, Any
 from core import Prisma, LoreManifest, safe_get
 from presets import BoneConfig
+from .models import BiologicalImpulse, Qualia
 
 class SynestheticCortex:
     def __init__(self, bio_ref, config_ref=None):

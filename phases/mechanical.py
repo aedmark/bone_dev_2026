@@ -6,6 +6,7 @@ from presets import BoneConfig
 from physics import TheGatekeeper
 from core import LoreManifest, ux
 from gui import SoulDashboard
+from phases.base import SimulationPhase, _safe_dict, _deep_update
 
 class MaintenancePhase(SimulationPhase):
     def __init__(self, engine_ref):

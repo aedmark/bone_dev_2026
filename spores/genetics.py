@@ -5,6 +5,7 @@ import random
 from typing import Tuple, Dict
 from core import LoreManifest, ux, safe_get
 from presets import BoneConfig
+from spores.spore_utils import _access_config_path
 
 class LiteraryReproduction:
     MUTATIONS = {}

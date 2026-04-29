@@ -1,12 +1,18 @@
 """body/system.py"""
 
 import math
-from models import Biometrics
+from .models import Biometrics
 from dataclasses import dataclass, asdict
-from typing import Optional, Dict, List, Any
+from typing import Optional, Dict, List, Any, TYPE_CHECKING
 from core import Prisma, LoreManifest, ux, safe_get, safe_set
 from presets import BoneConfig
 from spores import ImmuneMycelium, BioLichen, BioParasite
+from body.metabolism import DigestiveTrack
+from body.regulation import EndocrineRegulator, BioFeedback
+from body.endocrine import SemanticEndocrinologist
+from body.somatic import SynestheticCortex
+if TYPE_CHECKING:
+    from body.endocrine import EndocrineSystem
 
 @dataclass
 class BioSystem:

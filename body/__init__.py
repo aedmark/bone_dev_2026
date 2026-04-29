@@ -9,8 +9,8 @@ from .models import (
     MitochondrialState
 )
 from .metabolism import MitochondrialForge, DigestiveTrack
-from .endocrine import EndocrineSystem, EndocrineRegulator, SemanticEndocrinologist
-from .regulation import PIDController, MetabolicGovernor, BioFeedback
+from .endocrine import EndocrineSystem, SemanticEndocrinologist
+from .regulation import PIDController, MetabolicGovernor, BioFeedback, EndocrineRegulator
 from .somatic import SynestheticCortex
 from .system import BioSystem, SomaticLoop
 

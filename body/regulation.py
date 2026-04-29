@@ -2,9 +2,11 @@
 
 import math, time
 from dataclasses import dataclass, field
-from typing import Optional, Dict, List, Any, Tuple
+from typing import Optional, Dict, List, Any, Tuple, TYPE_CHECKING
 from core import Prisma, LoreManifest, ux, safe_get, safe_set
 from presets import BoneConfig
+if TYPE_CHECKING:
+    from .system import BioSystem
 
 class PIDController:
     def __init__(self, kp, ki, kd, setpoint, output_limits=(-10.0, 10.0)):
@@ -173,7 +175,7 @@ class MetabolicGovernor:
             return f"{colors.get(mode, '')}{defaults.get(mode, '')}{Prisma.RST}"
 
 class BioFeedback:
-    def __init__(self, bio_system_ref: BioSystem, config_ref=None):
+    def __init__(self, bio_system_ref: "BioSystem", config_ref=None):
         self.bio = bio_system_ref
         self.cfg = config_ref or BoneConfig
         self.consecutive_autophagy = 0
@@ -218,3 +220,28 @@ class BioFeedback:
             if msg := ux("bio_feedback", "clearing_sludge"):
                 logs.append(f"{Prisma.OCHRE}{msg.format(drag=drag)}{Prisma.RST}")
             safe_set(space, "narrative_drag", max(1.0, drag - safe_get(cfg, "SLUDGE_DRAG_REDUCTION", 2.0)))
+
+class EndocrineRegulator:
+    def __init__(self, bio_system_ref: "BioSystem"):
+        self.bio = bio_system_ref
+
+    def get_metabolic_modifier(self, phys: Any, logs: List[str]) -> float:
+        chem = self.bio.endo
+        modifier = 1.0
+        if chem.cortisol > 0.5:
+            stress_tax = 1.0 + (chem.cortisol * 0.5)
+            modifier *= stress_tax
+            if random.random() < 0.3 and (msg := ux("endocrine_regulator", "cortisol_spike")):
+                logs.append(f"{Prisma.RED}{msg.format(tax=stress_tax)}{Prisma.RST}")
+        if chem.adrenaline > 0.6:
+            modifier *= 0.5
+            if msg := ux("endocrine_regulator", "adrenaline_surge"):
+                logs.append(f"{Prisma.YEL}{msg}{Prisma.RST}")
+        if chem.dopamine > 0.7:
+            modifier *= 0.8
+        energy = getattr(phys, "energy", phys)
+        if (voltage := getattr(energy, "voltage", 0.0)) > 15.0:
+            modifier *= 1.2
+            if msg := ux("endocrine_regulator", "voltage_gap"):
+                logs.append(f"{Prisma.MAG}{msg.format(voltage=voltage)}{Prisma.RST}")
+        return modifier

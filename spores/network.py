@@ -9,6 +9,11 @@ from ann import HippocampalCache, CerebralIndex
 from presets import BoneConfig
 from constants import Prisma
 from village import ParadoxSeed
+from spores.io import LocalFileSporeLoader
+from spores.memory import SubconsciousStrata, MemoryCore
+from spores.spore_utils import _word_to_vector, _householder, _mat_mul
+from spores.biome import BioLichen, BioParasite, ImmuneMycelium
+from spores.genetics import LiteraryReproduction
 
 class MycelialNetwork:
     def __init__(self, events: EventBus, loader: "LocalFileSporeLoader" = None, seed_file=None,

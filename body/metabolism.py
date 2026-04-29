@@ -2,9 +2,12 @@
 
 import math, random
 from collections import Counter
-from typing import Dict, List, Any, Tuple
+from typing import Dict, List, Any, Tuple, TYPE_CHECKING
 from core import Prisma, LoreManifest, ux, safe_get
 from presets import BoneConfig
+from body.models import MitochondrialState, MetabolicReceipt
+if TYPE_CHECKING:
+    from body.system import BioSystem
 
 class MitochondrialForge:
     def __init__(self, state_ref: MitochondrialState, events_ref, config_ref=None):
@@ -205,7 +208,7 @@ class MitochondrialForge:
         return False, g_pool, ""
 
 class DigestiveTrack:
-    def __init__(self, bio_system_ref: BioSystem, lexicon_ref=None, config_ref=None):
+    def __init__(self, bio_system_ref: "BioSystem", lexicon_ref=None, config_ref=None):
         self.bio = bio_system_ref
         self.lex = lexicon_ref
         self.cfg = config_ref or BoneConfig

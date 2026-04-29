@@ -7,6 +7,7 @@ from presets import BoneConfig
 from physics import apply_somatic_feedback
 from core import ux, safe_set
 from utils import TheTclWeaver
+from phases.base import SimulationPhase, _safe_dict
 
 class MetabolismPhase(SimulationPhase):
     def __init__(self, engine_ref):
