@@ -1,0 +1,76 @@
+{
+  "health": 100.0,
+  "stamina": 100.0,
+  "trauma_accum": {},
+  "soul_data": {
+    "traits": {
+      "EMPATHY": 0.5,
+      "WISDOM": 0.1,
+      "CURIOSITY": 0.5,
+      "CYNICISM": 0.5,
+      "DISCIPLINE": 0.5,
+      "HOPE": 0.5
+    },
+    "archetype": "THE ARCHITECT",
+    "paradox_accum": 0.0,
+    "chapters": [],
+    "core_memories": [],
+    "obsession": {
+      "title": null,
+      "progress": 0.0,
+      "neglect": 0.0,
+      "target": "abstract",
+      "negate": "none"
+    }
+  },
+  "village_data": {
+    "navigator": {
+      "nodes": {
+        "GENESIS_POINT": {
+          "id": "GENESIS_POINT",
+          "name": "THE CONSTRUCT (Origin)",
+          "atmosphere": "Clean white void. Infinite potential.",
+          "smell": "Ozone and new plastic.",
+          "local_items": [],
+          "visited_count": 0,
+          "entropy_buildup": 0.0,
+          "state_key": "prime"
+        }
+      },
+      "current_id": "GENESIS_POINT"
+    },
+    "bureau": {
+      "stamp_count": 0
+    },
+    "zen": {
+      "stillness_streak": 0,
+      "max_streak": 0,
+      "pebbles_collected": 0
+    },
+    "critics": {
+      "active_cooldowns": {},
+      "last_review_turn": 0
+    },
+    "therapy": {
+      "streaks": {
+        "THERMAL": 0,
+        "CRYO": 0,
+        "SEPTIC": 0,
+        "BARIC": 0
+      }
+    },
+    "limbo": {
+      "ghosts": [],
+      "stasis_leak": 0.0
+    }
+  },
+  "continuity": {
+    "location": "Void",
+    "last_output": "Silence.",
+    "inventory": [
+      "SILENT_KNIFE"
+    ]
+  },
+  "timestamp": 1777519056.1949592,
+  "chat_history": []
+}
