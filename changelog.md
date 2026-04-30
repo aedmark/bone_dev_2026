@@ -1,7 +1,27 @@
 # CHANGELOG.md
 -----------------------------------------------------------
 
-### **BONEAMANITA 19.7.0 "The Restructure"**
+### **BONEAMANITA 19.7.0 "The Epigenetic Loop & Synaptic Reinforcement"**
+
+*The S.L.A.S.H. Council successfully closed the engine's learning loop, shifting the architecture from purely trauma-based survival (learning from pain) to inclusive positive reinforcement (learning from resonance).*
+
+#### **✨ SYNERGETIC REINFORCEMENT (Fuller's Pass: Architecture)**
+- **Epigenetic Boons (`brain/akashic.py`):** Added `record_glimmer()`. The system can now crystallize successful paradigms and deep interactions, injecting them into the bedrock `SYSTEM_PROMPTS` alongside scars to permanently improve structural geometry.
+
+#### **🧠 LANGUAGE & COGNITION (Pinker's Pass: The Mnemonic Layer)**
+- **Shadow Cast Engagement (`brain/cortex.py`):** The cortex now tracks the adjacent negative space it offers the user. If the user engages with a "Shadow Cast" concept on the subsequent turn, the system fires a reinforcement signal.
+
+#### **⚙️ DYNAMIC EQUILIBRIUM (Meadows' Pass: Systems & Dynamics)**
+- **Composting Autophagy (`brain/akashic.py`):** Overhauled `trigger_autophagy()`. The system no longer receives a flat ATP yield for consuming dead memories. Yield is now dynamically calculated based on the victim memory's accumulated mass, and the digestion process permanently lowers the engine's cognitive depth tax.
+
+#### **🛠️ FUNCTIONAL PRAGMATISM (Schur's Pass: Humanity)**
+- **The Consolidator (`machine/consolidator.py`, `genesis.py`, `main.py`):** Introduced a lightweight background listener hooked directly to the `EventBus`. It silently bridges short-term conversational interactions with long-term synaptic changes without blocking or slowing down the primary LLM generation loop.
+
+#### **🧪 INFRASTRUCTURE & PROVABILITY**
+- **Test-Driven Loop Validation (`tests/test_learning_loop.py`):** Added isolated unit tests mocking the event bus to mathematically prove that shadow engagement strengthens synapses, boons write to the Akashic record, and autophagy correctly modifies base thermodynamic efficiency.
+
+
+### **BONEAMANITA 19.6.9 "The Restructure"**
 
 -TL;Dr We moved a bunch of stuff around and turned a lot of scripts into modules. 
 

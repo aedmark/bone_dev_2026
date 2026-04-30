@@ -7,7 +7,7 @@ from core import EventBus, LoreManifest
 from struts import ux
 from drivers import DriverRegistry, BoneConsultant
 from mechanics.inventory import GordonKnot
-from machine import BoneArchitect
+from machine import BoneArchitect, TheConsolidator
 from protocols import TheBureau, ZenGarden, TheCriticsCircle, TherapyProtocol, KintsugiProtocol, LimboLayer
 from brain.soul import NarrativeSelf, TheOroboros
 from spores import LiteraryReproduction
@@ -60,7 +60,7 @@ class BoneGenesis:
         symbiosis = SymbiosisManager(events, config_ref=target_cfg)
         return {"events": events, "akashic": akashic, "embryo": embryo, "village": village_bundle, "soul": soul,
                 "oroboros": oroboros, "drivers": drivers, "consultant": village_bundle.get("consultant"),
-                "symbiosis": symbiosis, }
+                "symbiosis": symbiosis, "consolidator": consolidator}
 
     @staticmethod
     def _summon_village(events, embryo, akashic, suppressed: Set[str], boot_mode: str = "ADVENTURE", config_ref=None, lexicon_ref=None) -> Dict[str, Any]:

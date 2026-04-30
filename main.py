@@ -1,5 +1,4 @@
 """main.py
-
 The Macro-Organism and Central Orchestrator.
 This file contains the primary BoneAmanita engine loop that binds the physical,
 biological, and cognitive layers into a single continuous state machine.
@@ -101,14 +100,11 @@ class BoneAmanita:
         self.observer = TheObserver(config_ref=self.config)
         self.system_health.link_observer(self.observer)
         self.reality_stack = RealityStack()
-
         self._load_system_prompts()
         self._initialize_cognition()
-
         self.host_stats = HostStats(latency=0.0, efficiency_index=1.0)
         self.last_turn_end = time.time()
         self.current_time_delta = 0.0
-
         self._validate_state()
         self._apply_boot_mode()
 
@@ -194,10 +190,11 @@ class BoneAmanita:
         return sum(hist) / len(hist) if hist else 0.0
 
     def _unpack_anatomy(self, anatomy):
-        for k in ["akashic", "embryo", "soul", "oroboros", "drivers", "symbiosis"]:
+        for k in ["akashic", "embryo", "soul", "oroboros", "drivers", "symbiosis", "consolidator"]:
             setattr(self, k, anatomy.get(k))
+
         self.consultant = anatomy.get("consultant", None)
-        self.phys, self.mind, self.bio, self.shimmer = (self.embryo.physics, self.embryo.mind, self.embryo.bio, self.embryo.shimmer,)
+        self.phys, self.mind, self.bio, self.shimmer = (self.embryo.physics, self.embryo.mind, self.embryo.bio, self.embryo.shimmer)
         self.bio.setup_listeners()
         v = anatomy.get("village", {})
         v_keys = ("gordon", "navigator", "tinkerer", "death_gen", "bureau", "town_hall",
@@ -540,9 +537,8 @@ class BoneAmanita:
         try:
             mutations_data = self.repro.attempt_reproduction(self, "MITOSIS")[1] if hasattr(self, "repro") else {}
             path = self.mind.mem.save(health=0, stamina=self.stamina, mutations=mutations_data,
-                                      trauma_accum=self.trauma_accum, joy_history=[], mitochondria_traits=mito_state_dict,
-                                      antibodies=immune_data, soul_data=self.soul.to_dict(),
-                                      continuity=continuity_packet, )
+                trauma_accum=self.trauma_accum, joy_history=[], mitochondria_traits=mito_state_dict,
+                antibodies=immune_data, soul_data=self.soul.to_dict(), continuity=continuity_packet, )
             saved_msg = ux("main_strings", "legacy_saved")
             death_log.append(f"{Prisma.WHT}{saved_msg.format(path=path)}{Prisma.RST}")
         except Exception as e:
@@ -569,7 +565,7 @@ class BoneAmanita:
     def _ethical_audit(self):
         """
         Evaluates the buildup of trauma.
-        Schur Note: If the engine is holding too much contradictory friction,
+        If the engine is holding too much contradictory friction,
         it physically vents it via a 'Catharsis' drop to prevent permanent damage.
         """
         cfg = getattr(self.config, "MAIN", object())
@@ -631,6 +627,7 @@ class BoneAmanita:
         print(f"{Prisma.GRY}{msg_synth}{Prisma.RST}")
         scenarios = LoreManifest.get_instance().get("SCENARIOS", {})
         archetypes = scenarios.get("ARCHETYPES", ["A quiet room", "The edge of a forest", "A terminal screen"])
+        import random
         seed = random.choice(archetypes)
         msg_seed = ux("main_strings", "seed_loaded") or "Manifest Seed: {seed}"
         print(f"{Prisma.CYN}{msg_seed.format(seed=seed)}{Prisma.RST}")
@@ -701,7 +698,7 @@ if __name__ == "__main__":
                 ui_text = ui_text.strip()
 
                 # The Physical Exhaustion Engine
-                # Meadows Note: This is where biological latency maps to UI latency.
+                # This is where biological latency maps to UI latency.
                 speed = base_speed * (4.0 if stamina < 20.0 else 2.0 if stamina < 50.0 else 1.0)
                 if stamina < 20.0:
                     ui_text = f"{Prisma.GRY}{Prisma.strip(ui_text)}{Prisma.RST}"

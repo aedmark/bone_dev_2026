@@ -167,6 +167,16 @@ class TheCortex:
         if sim_result.get("type") not in ("SNAPSHOT", "GEODESIC_FRAME", None):
             self._update_history(user_input, sim_result.get("ui", "SYSTEM REJECTED PROMPT."))
             return sim_result
+        # Check if the user engaged with a shadow concept from the previous turn
+        if self.last_physics and "shadow_nodes_offered" in self.last_physics:
+            engaged = [node for node in self.last_physics["shadow_nodes_offered"] if node.lower() in user_input.lower()]
+            for node in engaged:
+                if self.events:
+                    self.events.publish("SHADOW_ENGAGED", {
+                        "source": self.last_physics.get("primary_node", "core"),
+                        "target": node,
+                        "user_input": user_input
+                    })
         full_state = self.gather_state(sim_result)
         phys_state = full_state.get("physics", {})
         f_drag = float(safe_get(phys_state, "narrative_drag", 0.0))
@@ -612,6 +622,10 @@ class TheCortex:
         if shadow_nodes:
             shadow_concepts = [n.get("id", "Unknown") for n in shadow_nodes]
             shadow_str = ", ".join(shadow_concepts)
+            # Explicitly store these in the physical state for next turn's engagement check
+            if "physics" in full_state:
+                full_state["physics"]["shadow_nodes_offered"] = shadow_concepts
+                self.last_physics["shadow_nodes_offered"] = shadow_concepts
             v_level = float(phys.get("voltage", 0.0))
             chi_level = float(phys.get("chi", phys.get("entropy", 0.0)))
             if v_level > 80.0 and chi_level > 0.7:

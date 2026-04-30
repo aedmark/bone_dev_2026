@@ -44,19 +44,35 @@ class TheAkashicRecord:
 
     def trigger_autophagy(self) -> Tuple[float, str]:
         akashic_cfg = getattr(BoneConfig, "AKASHIC", None)
-        yield_val = getattr(akashic_cfg, "AUTOPHAGY_YIELD", 15.0)
+        bio_cfg = getattr(BoneConfig, "BIO", None)
+
         if self.subconscious_strata:
-            target = self.subconscious_strata.pop(0).get("concept", "Unknown Node")
-            msg = ux("akashic_strings", "autophagy_memory")
+            victim_data = self.subconscious_strata.pop(0)
+            target = victim_data.get("concept", "Unknown Node")
+            mass = victim_data.get("data", {}).get("mass", 1.0)
+
+            # Dynamic yield based on the density of the memory
+            yield_val = min(50.0, 10.0 + (mass * 2.5))
+
+            # Reduce future depth tax slightly (the system becomes more efficient at digesting)
+            if bio_cfg and hasattr(bio_cfg, "DEPTH_TAX_MULT"):
+                bio_cfg.DEPTH_TAX_MULT = max(0.5, bio_cfg.DEPTH_TAX_MULT - 0.02)
+
+            msg = f"Autophagy complete. Composted '{target}' (Mass: {mass:.1f}). Recovered {yield_val:.1f} ATP. Synaptic efficiency improved."
+
         elif self.discovered_words:
             target = next(iter(self.discovered_words))
             del self.discovered_words[target]
-            msg = ux("akashic_strings", "autophagy_lexical")
+            yield_val = getattr(akashic_cfg, "AUTOPHAGY_YIELD", 15.0)
+            msg_template = ux("akashic_strings", "autophagy_lexical") or "Lexical purge: consumed {target}."
+            msg = msg_template.format(target=target, word=target)
         else:
-            return 0.0, ux("akashic_strings", "autophagy_failed")
+            return 0.0, ux("akashic_strings", "autophagy_failed") or "Starvation threshold. No matter left to consume."
+
         if self.events:
             self.events.publish("AUTOPHAGY_EVENT", {"node": target, "atp_gained": yield_val})
-        return yield_val, msg.format(target=target, word=target)
+
+        return yield_val, msg
 
     def record_scar(self, concept: str, p: Any):
         cfg = getattr(BoneConfig, "AKASHIC", object())
@@ -80,6 +96,31 @@ class TheAkashicRecord:
             msg = ux("akashic_strings", "mercy_scar")
             self.events.log(f"{Prisma.OCHRE}{msg.format(concept=concept)}{Prisma.RST}","VILLAGE")
             self.events.publish("SCAR_RECORDED", {"concept": concept, "coords": coords})
+
+    def record_glimmer(self, concept: str, paradigm: str):
+        """Crystallizes a successful interaction pattern into a permanent structural boon."""
+        try:
+            prompts = self.lore.get("SYSTEM_PROMPTS") or {}
+            epigenetic_list = prompts.setdefault("GLOBAL_BASELINE", {}).setdefault("EPIGENETIC_BOONS", [])
+
+            axiom = f"STRUCTURAL SUCCESS [{concept.upper()}]: The system achieved deep resonance using this paradigm: '{paradigm}'. Prioritize this geometry in future calculations."
+
+            if axiom not in epigenetic_list:
+                epigenetic_list.append(axiom)
+                max_epi = getattr(self.cfg_akashic, "MAX_EPIGENETIC_BOONS", 10)
+                if len(epigenetic_list) > max_epi:
+                    epigenetic_list.pop(0)
+
+                self.lore.inject("SYSTEM_PROMPTS", prompts)
+                self.save_to_disk("boons", epigenetic_list)
+
+                if self.events:
+                    self.events.log(f"{Prisma.MAG}🧬 [EPIGENETICS] Boon '{concept}' compiled into flow.{Prisma.RST}",
+                                    "SYS")
+
+        except Exception as e:
+            if self.events:
+                self.events.log(f"{Prisma.RED}Failed to mutate system_prompts with boon: {e}{Prisma.RST}", "SYS")
 
     def _mutate_system_prompts(self, concept: str, coords: dict):
         try:
