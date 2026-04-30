@@ -115,11 +115,6 @@ class LLMInterface:
             self.events.log(f"{Prisma.YEL}{msg}{Prisma.RST}", "SYS")
 
     def generate(self, prompt: str, params: Dict[str, Any]) -> str:
-        if prompt.strip().lower() == "//reset system":
-            self.failure_count = 0
-            self.last_failure_time = 0.0
-            self.circuit_state = "CLOSED"
-            return ux("brain_strings", "synapse_reset")
         if not self._is_synapse_active():
             return self.mock_generation(prompt, reason="CIRCUIT_BROKEN")
         if self.provider == "mock":
@@ -475,7 +470,7 @@ class ResponseValidator:
     _SLOP_PATTERN = re.compile(r"(?i)^=== REJECTION OF ATTEMPT.*?===\s*|^FAILED OUTPUT(?: MODIFIED)?:\s*|"
         r"^REWRITTEN OUTPUT:\s*|^Here is the (?:corrected |rewritten )?response:?\s*|"
         r"\[REMAINING IN STRICT MODE].*|ERRORS TO FIX:.*",
-        re.DOTALL,)
+        re.MULTILINE,)
     _MULTI_SLOP = re.compile(r"(?i)^MANIFEST SEED:.*|^TASK:.*", re.MULTILINE)
     _TECH_ALLOWED = ("here is a", "here is the", "this metaphor", "this code defines", "running this code will")
 
@@ -540,8 +535,8 @@ class ResponseValidator:
             if not ((sl := line.strip()) and (
                     (self._meta_regex and self._meta_regex.search(sl)) or
                     (self._toxic_regex and self._toxic_regex.search(sl)) or
-                    re.match(r"^\[.*?]$", sl) or sl == "[]" or
-                    re.match(r"^[A-Z]+\s*=\s*[0-9./]+$", sl)))]
+                    re.match(r"^\[[A-Z0-9_ -]+\]$", sl) or sl == "[]" or
+                    re.match(r"^[A-Z_]+\s*=\s*[0-9./]+$", sl)))]
         sanitized_response = "\n".join(clean_lines).strip()
         low_resp, errors_found = sanitized_response.lower(), []
         primary_replacement = None

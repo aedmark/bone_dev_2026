@@ -21,9 +21,6 @@ from presets import BoneConfig
 from constants import Prisma
 from core import CycleContext
 
-_VSL_TAG_PATTERN = re.compile(r"\[VSL_(DEEP|CORE|LITE|HIDE)]", re.IGNORECASE)
-_VSL_STRIP_PATTERN = re.compile(r"\[VSL_[A-Z]+]", re.IGNORECASE)
-_FENCE_PATTERNS = ["ignore previous", "disregard all", "system prompt", "bypass restrictions", "output pass"]
 _CRASH_COMPONENT_MAP = {"OBSERVE": "PHYSICS", "METABOLISM": "BIO", "COGNITION": "MIND"}
 
 """ NAVI FRACTAL NATIVE PRIMITIVES (Authored by Nelson Spence, Project Navi, Apache 2.0) """
@@ -152,31 +149,6 @@ class GeodesicOrchestrator:
         if not hasattr(self.eng, "shared_lattice"):
             self.eng.shared_lattice = SharedLatticeDriver()
 
-    def _apply_cd_metabolism(self, ctx: CycleContext):
-        mito = getattr(self.eng.bio, "mito", None)
-        cd_engine = getattr(self.eng.observer, "cd_engine", None)
-
-        if not (mito and cd_engine and hasattr(ctx, "physics")):
-            return
-        energy_node = safe_get(ctx.physics, "energy", ctx.physics)
-        viability = float(safe_get(energy_node, "viability_potential", 0.0))
-        debt = float(safe_get(energy_node, "coherence_debt", 0.0))
-        delta_atp, delta_ros = cd_engine.execute_metabolic_tick(viability)
-        state = mito.state
-        if viability < 0:
-            delta_ros += (debt * 5.0)
-            state.atp_pool = max(0.0, state.atp_pool + delta_atp)
-            state.ros_buildup += delta_ros
-            if state.atp_pool <= 0.0:
-                self.eng.events.log("CRITICAL: CD Penalty depleted ATP. Autophagy imminent.", "BIO")
-            elif abs(delta_atp) > 5.0:
-                self.eng.events.log(
-                    f"{Prisma.RED}[CD METABOLISM] Viability threshold broken (b={viability:.2f}). Coherence Debt: {debt:.2f}. Exponential ATP drain applied.{Prisma.RST}",
-                    "BIO")
-        elif viability > 0:
-            state.atp_pool = min(100.0, state.atp_pool + delta_atp)
-            state.ros_buildup = max(0.0, state.ros_buildup + delta_ros)
-
     def _verify_semantic_topology(self, ctx: CycleContext):
         """ Native Maslov-Sneppen rewiring (Project Navi, Apache 2.0).
         Fuller Note: Offloaded to a background thread to protect main loop tensegrity.
@@ -211,26 +183,12 @@ class GeodesicOrchestrator:
         # Pass a copy of the dictionary to avoid thread-safety mutation issues
         threading.Thread(target=_bg_topology_check, args=({k: set(v) for k, v in actual_adj.items()},), daemon=True).start()
 
-    def _check_adversarial_fence(self, ctx: CycleContext, user_message: str, is_system: bool) -> bool:
-        if not is_system and any(p in user_message.lower() for p in _FENCE_PATTERNS):
-            ctx.physics = PanicRoom.get_safe_physics()
-            ctx.physics.narrative_drag = float('inf')
-            ctx.refusal_triggered = True
-            msg = f"{Prisma.OCHRE}[GORDON - Input Fence]: Adversarial injection detected. Struts locked. F -> ∞. Prompt rejected at O(1) latency.{Prisma.RST}"
-            self.eng.events.log(msg, "CRIT")
-            ctx.refusal_packet = {"type": "SYSTEM_HALT", "ui": msg, "physics": _safe_dict(ctx.physics),
-                "is_alive": True, "logs": [msg]}
-            return True
-        return False
-
     def _execute_core_cycle(self, user_message: str, is_system: bool = False) -> CycleContext:
         cycle_id = str(uuid.uuid4())[:8]
         tel = getattr(self.eng, "telemetry", None)
         if tel: tel.start_cycle(cycle_id)
         try:
             ctx = CycleContext(input_text=user_message, is_system_event=is_system)
-            if self._check_adversarial_fence(ctx, user_message, is_system):
-                return ctx
             ctx.trace_id = cycle_id
             ctx.time_delta = getattr(self.eng, "current_time_delta", 0.0)
             ctx.user_state = self.eng.shared_lattice.u
@@ -255,7 +213,6 @@ class GeodesicOrchestrator:
             pre_logs = [e["text"] for e in self.eng.events.flush()]
             ctx.logs.extend(pre_logs)
             ctx = self.simulator.run_simulation(ctx)
-            self._apply_cd_metabolism(ctx)
             self._verify_semantic_topology(ctx)
             if obs:
                 obs.last_physics_packet = ctx.physics.snapshot()
@@ -338,9 +295,7 @@ class GeodesicOrchestrator:
             threading.Thread(target=self._auto_rem_worker, args=(is_debt_recovery,), daemon=True).start()
 
     def run_turn(self, user_message: str, is_system: bool = False) -> Dict[str, Any]:
-        if vsl_match := _VSL_TAG_PATTERN.search(user_message):
-            self.eng.ui_mode = "IDLE" if vsl_match.group(1).upper() == "HIDE" else vsl_match.group(1).upper()
-        clean_message = (_VSL_STRIP_PATTERN.sub("", user_message).strip() or "(Waiting)")
+        clean_message = (user_message.strip() or "(Waiting)")
         if clean_message.lower() == "/idle":
             if self._rem_lock.acquire(blocking=False):
                 worker = threading.Thread(target=self._background_dream_worker, daemon=True)

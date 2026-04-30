@@ -6,14 +6,23 @@ telemetry, and reality-layer scoping. It is strictly decoupled from LLM executio
 to ensure metabolic stability even if the cognitive layers crash.
 """
 
-import copy, glob, json, os, random, time, traceback, threading, uuid
+import glob
+import json
+import os
+import random
+import threading
+import time
+import traceback
+import uuid
 from collections import deque, Counter
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field, asdict
 from typing import List, Dict, Any, Optional, Tuple, Deque
-from struts import ux, ux_format, safe_get
-from presets import BoneConfig
+
 from constants import Prisma, RealityLayer
+from presets import BoneConfig
+from struts import ux, ux_format, safe_get
+
 
 class BoneJSONEncoder(json.JSONEncoder):
     """Ensures complex biological data structures (sets, deques, dataclasses) serialize safely."""
@@ -38,19 +47,6 @@ class ErrorLog:
 
     def __str__(self):
         return f"[{self.severity}] {self.component}: {self.error_msg}"
-
-@dataclass
-class DecisionTrace:
-    trace_id: str
-    timestamp: float
-    component: str
-    decision_type: str
-    inputs: Dict[str, Any]
-    reasoning: str
-    outcome: str
-
-    def to_json(self):
-        return json.dumps(asdict(self))
 
 @dataclass
 class DecisionCrystal:
@@ -120,16 +116,6 @@ class CycleContext:
             self.flux_log.append(
                 {"phase": phase, "metric": metric, "initial": initial, "final": final, "delta": delta, "reason": reason,
                  "timestamp": time.time(), })
-
-    def snapshot(self) -> "CycleContext":
-        new_ctx = copy.copy(self)
-        for name in self.__dataclass_fields__:
-            val = getattr(self, name)
-            if hasattr(val, "snapshot") and callable(val.snapshot):
-                setattr(new_ctx, name, val.snapshot())
-            elif isinstance(val, (list, dict, set)):
-                setattr(new_ctx, name, val.copy())
-        return new_ctx
 
 @dataclass
 class MindSystem:
@@ -305,8 +291,8 @@ class TheObserver:
     """
     def __init__(self, config_ref=None):
         self.cfg = config_ref or BoneConfig
-        self.cyber_gov = CyberneticGovernor(config_ref=self.cfg)
         self.start_time = time.time()
+        self.is_coupled = False
 
         cfg_core = LoreManifest.get_instance().get("CORE_CONFIG") or {}
         max_len = safe_get(cfg_core, "OBSERVER_MAX_LEN", 20)
@@ -357,8 +343,8 @@ class TheObserver:
             return random.choice(valid_msgs) if valid_msgs else ""
         if avg_cycle > self.CYCLE_WARNING:
             return ux("core_strings", "obs_sluggish")
-        if self.cyber_gov.order == 2:
-            return ux_format("core_strings", "obs_coupled", "Harmonic Resonance: Presence Active.")
+        if getattr(self, "is_coupled", False):
+            return ux_format("core_strings", "obs_coupled", default="Harmonic Resonance: Presence Active.")
         return ux("core_strings", "obs_nominal")
 
     def get_report(self):
@@ -520,10 +506,10 @@ class TelemetryService:
         self.BUFFER_SIZE = (safe_get(cfg_core, "TELEMETRY_BUFFER_SIZE", 50))
         self.MAX_ERRORS = (safe_get(cfg_core, "TELEMETRY_MAX_ERRORS", 5))
 
-        self.trace_buffer: Deque[DecisionTrace] = deque(maxlen=self.BUFFER_SIZE)
         self.write_buffer: List[str] = []
         self.active_crystal = None
         self.disabled = False
+        self.crystals_logged = 0
         self._lock = threading.Lock()
 
         try:
@@ -559,26 +545,11 @@ class TelemetryService:
             self.finalize_cycle()
         self.active_crystal = DecisionCrystal(decision_id=trace_id)
 
-    def log_decision(self, component: str, decision_type: str, inputs: Any, reasoning: str, outcome: str):
-        if self.disabled or not self.active_crystal:
-            return
-        trace = DecisionTrace(trace_id=self.active_crystal.decision_id, timestamp=time.time(), component=component,
-                              decision_type=decision_type,
-                              inputs=inputs if isinstance(inputs, dict) else {"raw": str(inputs)}, reasoning=reasoning,
-                              outcome=outcome)
-        self.trace_buffer.append(trace)
-        self._buffer_line(trace.to_json())
-
     def log_crystal(self, crystal: DecisionCrystal):
         if self.disabled:
             return
         self._buffer_line(crystal.crystallize())
-
-    def start_phase(self, phase_name: str, _context: Any):
-        self.log_decision(phase_name, "PHASE_START", {"timestamp": time.time()}, ux("core_strings", "tel_phase_start"), "RUNNING")
-
-    def end_phase(self, phase_name: str, _ctx_before: Any, _ctx_after: Any):
-        self.log_decision(phase_name, "PHASE_END", {"timestamp": time.time()}, ux("core_strings", "tel_phase_end"), "SUCCESS")
+        self.crystals_logged += 1
 
     def finalize_cycle(self):
         if self.active_crystal:
@@ -669,4 +640,4 @@ class TelemetryService:
     def generate_session_summary(self, _uptime: float = 0.0) -> str:
         self.flush_to_disk()
         return ux_format("core_strings", "tel_session_summary", status="DISABLED" if self.disabled else "ACTIVE",
-                         count=len(self.trace_buffer), trace_file=self.current_trace_file)
+                         count=self.crystals_logged, trace_file=self.current_trace_file)

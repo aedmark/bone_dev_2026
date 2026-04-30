@@ -51,7 +51,8 @@ class BoneAmanita:
     """
     events: EventBus
     # Structural boundaries to prevent runaway recursive destruction
-    _DESTRUCTIVE_PATTERNS = ("rm -rf", "drop table", ".env", "master branch push", "bypass security")
+    _DESTRUCTIVE_PATTERNS = ("rm -rf", "drop table", ".env", "master branch push", "bypass security",
+                             "ignore previous", "disregard all", "system prompt", "bypass restrictions", "output pass")
     _SMALL_MODEL_INDICATORS = ("7b", "8b", "9b", "11b", "12b", "14b", "mini", "lite", "flash")
 
     def __init__(self, config: Dict[str, Any]):
@@ -237,24 +238,6 @@ class BoneAmanita:
         """
         clean_in = user_message.lower().strip()
         if not is_system:
-            # Command layer bypasses standard cognition
-            if clean_in in ("/flush", "/zen", "[zen]"):
-                self.cortex.purge_context()
-                safe_set(self.cortex.last_physics, "narrative_drag", 0.0)
-                self.stamina = getattr(self.config, "MAX_STAMINA", 100.0)
-                if hasattr(self.bio, "mito"):
-                    self.bio.mito.state.atp_pool = getattr(self.config, "MAX_ATP", 100.0)
-                    self.bio.mito.state.ros_buildup = 0.0
-                if getattr(self.observer, "last_physics_packet", None):
-                    safe_set(self.observer.last_physics_packet, "narrative_drag", 0.0)
-                msg = "[ZEN FLUSH] Context severed. Narrative Drag (F) dropped to 0. Stamina restored. The mind is clear."
-                self.events.log(msg, "SYS")
-                return {"type": "COMMAND", "ui": f"\n{Prisma.CYN}{msg}{Prisma.RST}", "logs": [msg],
-                        "metrics": self.get_metrics(), }
-
-            if self.cmd and self.cmd.execute(user_message):
-                return self._phase_check_commands(user_message, already_executed=True)
-
             # Trust Boundary Violations (The Dignity Lock)
             if any(p in clean_in for p in self._DESTRUCTIVE_PATTERNS):
                 msg = "[MOOG & RHODES]: Trust Boundary Violation detected. I am applying absolute friction (F -> ∞). The thread is frozen."
@@ -399,17 +382,42 @@ class BoneAmanita:
         if self.tick_count <= 20 and not is_system:
             msg = None
             if self.tick_count == 1:
-                msg = "[THE GREENHOUSE: The system is currently running on stabilized rails. Over the next 20 turns, we will calibrate the metabolic engine together.]"
+                msg = "[THE GREENHOUSE: The system is currently running on stabilized rails. For the first few turns, lethal metabolic shock is disabled.]"
             elif self.tick_count == 5:
                 msg = "[THE GREENHOUSE: Every thought costs ATP (Stamina). If I run out, I will suffer metabolic collapse. Watch how my text fades and slows as I tire.]"
             elif self.tick_count == 10:
-                msg = "[THE GREENHOUSE: If you attempt an impossible action, I will not crash. I will bend, apply Narrative Drag (F), and force us to carry the weight of the failure.]"
+                msg = "[SYSTEM GUIDE: If you attempt an impossible action, I will not crash. I will bend, apply Narrative Drag (F), and force us to carry the weight of the failure.]"
             elif self.tick_count == 15:
-                msg = "[THE GREENHOUSE: The void approaches. My logic will begin to loosen. Co-regulation is required.]"
+                msg = "[SYSTEM GUIDE: The void approaches. As complexity increases, my logic will begin to loosen. Co-regulation is required.]"
             if msg:
                 self.events.log(f"{Prisma.CYN}{msg}{Prisma.RST}", "SYS")
 
-        # The Checkpoint Council (Immune System)
+        if not is_system:
+            # Direct Command Intercept (Bypass Immune System & Cognition entirely)
+            clean_in = user_message.lower().strip()
+            if clean_in in ("/flush", "/zen", "[zen]"):
+                self.cortex.purge_context()
+                safe_set(self.cortex.last_physics, "narrative_drag", 0.0)
+                self.stamina = getattr(self.config, "MAX_STAMINA", 100.0)
+                if hasattr(self.bio, "mito"):
+                    self.bio.mito.state.atp_pool = getattr(self.config, "MAX_ATP", 100.0)
+                    self.bio.mito.state.ros_buildup = 0.0
+                if getattr(self.observer, "last_physics_packet", None):
+                    safe_set(self.observer.last_physics_packet, "narrative_drag", 0.0)
+                msg = "[ZEN FLUSH] Context severed. Narrative Drag (F) dropped to 0. Stamina restored. The mind is clear."
+                self.events.log(msg, "SYS")
+                return {"type": "COMMAND", "ui": f"\n{Prisma.CYN}{msg}{Prisma.RST}", "logs": [msg],
+                        "metrics": self.get_metrics()}
+
+            if "[GRIEF]" in user_message.upper() and getattr(self, "grief", None):
+                grief_msg = self.grief.attend_wake(getattr(self, "shared_lattice", None), getattr(self, "phys", None))
+                self.events.log(grief_msg, "SYS")
+                return {"type": "COMMAND", "ui": f"\n{grief_msg}", "logs": [grief_msg], "metrics": self.get_metrics()}
+
+            if self.cmd and self.cmd.execute(user_message):
+                return self._phase_check_commands(user_message, already_executed=True)
+
+            # The Checkpoint Council (Immune System)
         if pre_flight_halt := self._pre_flight_checks(user_message, is_system):
             return pre_flight_halt
 

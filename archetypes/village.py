@@ -111,36 +111,6 @@ class ParadoxSeed:
         msg = ux("village_strings", "paradox_bloom")
         return msg.format(question=self.question) if msg else ""
 
-class MirrorGraph:
-    def __init__(self, events_ref, config_ref=None):
-        self.events = events_ref
-        self.cfg = config_ref or BoneConfig
-        self.stats = {"WAR": 0.0, "ART": 0.0, "LAW": 0.0, "ROT": 0.0}
-
-    def reflect(self, packet: PhysicsPacket):
-        txt = packet.raw_text or ""
-        step = _cfg_val(self.cfg, "VILLAGE", "MIRROR_STAT_STEP", 0.1)
-        self.stats["WAR"] += step * ("!" in txt or packet.voltage > _cfg_val(self.cfg, "COUNCIL", "MANIC_VOLTAGE_TRIGGER", 18.0))
-        self.stats["ART"] += step * ("?" in txt)
-        self.stats["LAW"] += step * (packet.narrative_drag > _cfg_val(self.cfg, "PHYSICS", "DRAG_HALT", 10.0))
-        self.stats["ROT"] += step * bool(packet.vector and packet.vector.get("ENT", 0.0) > _cfg_val(self.cfg, "VILLAGE", "MIRROR_ROT_ENTROPY_MIN", 0.5))
-        total = sum(self.stats.values())
-        cap = _cfg_val(self.cfg, "VILLAGE", "MIRROR_STAT_CAP", 5.0)
-        if total > cap:
-            compression = (cap / total) * _cfg_val(self.cfg, "VILLAGE", "MIRROR_DECAY", 0.8)
-            floor = _cfg_val(self.cfg, "VILLAGE", "MIRROR_DECAY_FLOOR", 0.1)
-            self.stats = {k: (v * compression if (v * compression) >= floor else 0.0) for k, v in self.stats.items()}
-
-    def get_reflection_modifiers(self) -> Dict:
-        if not self.stats or max(self.stats.values(), default=0.0) <= 0.0:
-            return {"flavor": ux("village_strings", "mirror_neutral") or "The mirror reflects a quiet stillness.", "drag_mult": 1.0}
-        top_stat = max(self.stats, key=self.stats.get)
-        cfg = getattr(self.cfg, "VILLAGE", None)
-        defaults = {"WAR": 1.2, "ROT": 1.5, "LAW": 0.8, "ART": 0.9}
-        mult = float(safe_get(cfg, f"MIRROR_DRAG_{top_stat}", defaults.get(top_stat, 1.0)))
-        return {"flavor": (ux("village_strings", "mirror_stat") or "The mirror reflects a subtle tension: {stat}.").format(stat=top_stat),
-            "drag_mult": mult,}
-
 @dataclass
 class GeniusLoci:
     id: str

@@ -6,7 +6,6 @@ context window, enforces the Lexical Firewall, and executes the actual API
 calls to the underlying neural network.
 """
 
-import concurrent.futures
 import random
 import re
 import time
@@ -18,10 +17,10 @@ from brain.composer import LLMInterface, PromptComposer, ResponseValidator
 from brain.mind import NeurotransmitterModulator, DreamEngine
 from constants import Prisma
 from core import EventBus, TelemetryService, LoreManifest, DecisionCrystal
-from struts import safe_get, safe_set, ux
 from mechanics.projector import beautify_thoughts
 from mechanics.tools import RandomRetrievalNavigator, LibraryGraph
 from presets import BoneConfig, BonePresets
+from struts import safe_get, safe_set, ux
 
 
 @dataclass
@@ -94,35 +93,22 @@ class TheCortex:
         if not hasattr(self.dreamer, "trauma_buffer"):
             self.dreamer.trauma_buffer = deque(maxlen=5)
         self.active_mode = "ADVENTURE"
-        self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=2)
         # The Lateral Graph Navigator (Serendipity Engine)
         if hasattr(self.svc.mind_memory, "nodes"):
             graph = LibraryGraph(nodes=self.svc.mind_memory.nodes, root=self.svc.mind_memory.root)
             self.navigator = RandomRetrievalNavigator(library_graph=graph)
         else:
             self.navigator = None
-        if hasattr(self.events, "subscribe"):
-            self.events.subscribe("AIRSTRIKE", self._trigger_ballast)
-
-    def _trigger_ballast(self, payload):
-        self.ballast_active = True
 
     @classmethod
     def from_engine(cls, engine_ref, llm_client=None):
         target_cfg = getattr(engine_ref, "config", BoneConfig)
         symbiosis_mgr = getattr(engine_ref, "symbiosis", None) or SymbiosisManager(engine_ref.events)
-        services = CortexServices(events=engine_ref.events,
-                                  lore=LoreManifest.get_instance(config_ref=target_cfg),
-                                  lexicon=engine_ref.lex,
-                                  inventory=engine_ref.gordon,
-                                  consultant=getattr(engine_ref, "consultant", None),
-                                  cycle_controller=engine_ref.cycle_controller,
-                                  symbiosis=symbiosis_mgr,
-                                  mind_memory=engine_ref.mind.mem,
-                                  bio=getattr(engine_ref, "bio", None),
-                                  host_stats=getattr(engine_ref, "host_stats", None),
-                                  village=getattr(engine_ref, "village", None),
-                                  config_ref=target_cfg, )
+        services = CortexServices(events=engine_ref.events, lore=LoreManifest.get_instance(config_ref=target_cfg),
+            lexicon=engine_ref.lex, inventory=engine_ref.gordon, consultant=getattr(engine_ref, "consultant", None),
+            cycle_controller=engine_ref.cycle_controller, symbiosis=symbiosis_mgr, mind_memory=engine_ref.mind.mem,
+            bio=getattr(engine_ref, "bio", None), host_stats=getattr(engine_ref, "host_stats", None),
+            village=getattr(engine_ref, "village", None), config_ref=target_cfg, )
         instance = cls(services, llm_client)
         instance.active_mode = getattr(engine_ref, "boot_mode", "ADVENTURE").upper()
         if instance.active_mode not in BonePresets.MODES:
@@ -135,8 +121,7 @@ class TheCortex:
             self.dialogue_buffer = self.dialogue_buffer[-self.MAX_HISTORY:]
 
     def shutdown(self):
-        if hasattr(self, "executor"):
-            self.executor.shutdown(wait=False)
+        pass
 
     def purge_context(self):
         """Executes a hard flush of the active context window."""
@@ -165,7 +150,8 @@ class TheCortex:
         if self.consultant and "/vsl" in user_input.lower():
             return self._handle_vsl_command(user_input)
         is_boot_sequence = "SYSTEM_BOOT" in user_input
-        if len(user_input) > 1500 and not is_system and not is_boot_sequence:
+        context_limit = getattr(getattr(self.cfg, "CORTEX", object()), "MAX_INPUT_CHARS", 15000)
+        if len(user_input) > context_limit and not is_system and not is_boot_sequence:
             eng = getattr(self.svc.cycle_controller, "eng", None)
             if eng and hasattr(eng, "substrate"):
                 safe_content = user_input.replace("\n", "|||NEWLINE|||")
@@ -340,7 +326,6 @@ class TheCortex:
                 self.svc.bio.mito.adjust_atp(-1.0, "Anti-AI Substrate Filter")
         telemetry_output = raw_resp if not val_res["valid"] else final_output
         self._log_telemetry(final_prompt, telemetry_output, full_state, sim_result)
-        self.learn_from_response(final_output)
         self.svc.symbiosis.monitor_host(time.time() - start_time, final_output, len(final_prompt))
         self._update_history("SYSTEM_INIT" if is_boot_sequence else user_input, final_output)
         ui_parts = [sim_result.get("ui", ""), "\n".join(e["text"] for e in self.events.flush())]
@@ -622,8 +607,7 @@ class TheCortex:
                     phys["lateral_search"] = True
                 ordered_keys = ["STR", "VEL", "PSI", "ENT", "PHI", "BET", "DEL", "E"]
                 q_list = [float(query_vec.get(k, 0.0)) for k in ordered_keys]
-                shadow_nodes = cortex_mem.query_neighborhood(q_list, k=2, resonance_threshold=max(0.2, 0.8 - omega_r),
-                                                             physics_state=phys)
+                shadow_nodes = cortex_mem.query_neighborhood(q_list, k=2, resonance_threshold=max(0.2, 0.8 - omega_r), physics_state=phys)
 
         if shadow_nodes:
             shadow_concepts = [n.get("id", "Unknown") for n in shadow_nodes]
@@ -645,24 +629,10 @@ class TheCortex:
 
         return full_state
 
-    def learn_from_response(self, text):
-        if random.random() >= 0.1:
-            return
-        words = self.svc.lexicon.sanitize(text)
-        unknowns = [w for w in words if not self.svc.lexicon.get_categories_for_word(w)]
-        if unknowns:
-            target = random.choice(unknowns)
-            if len(target) > 4:
-                self.svc.lexicon.teach(target, "structure", 0)
-                if self.events:
-                    msg = ux("brain_strings", "cortex_learned")
-                    self.events.log(msg.format(target=target), "CORTEX")
-
     def restore_context(self, history: List[str]):
         if not history:
             return
-        self.dialogue_buffer = [(line.replace("User: ", "Traveler: ").replace(" | System: ",
-                                                                              "\nSystem: ") if " | System: " in line else line)
+        self.dialogue_buffer = [(line.replace("User: ", "Traveler: ").replace(" | System: ",  "\nSystem: ") if " | System: " in line else line)
                                 for line in history[-self.MAX_HISTORY:]]
         if self.events:
             msg = ux("brain_strings", "cortex_resequenced")

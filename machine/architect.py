@@ -30,14 +30,12 @@ class BoneArchitect:
     def _construct_mind(events, lex, config_ref=None) -> Tuple[MindSystem, LimboLayer]:
         from spores.network import MycelialNetwork
         from brain.mind import DreamEngine
-        from archetypes.village import MirrorGraph
         target_cfg = config_ref or BoneConfig
         _mem = MycelialNetwork(events)
         limbo = LimboLayer(config_ref=target_cfg)
         _mem.cleanup_old_sessions(limbo)
         lore = LoreManifest.get_instance(config_ref=target_cfg)
-        mind = MindSystem(mem=_mem, lex=lex, dreamer=DreamEngine(events, lore, config_ref=target_cfg),
-                          mirror=MirrorGraph(events, config_ref=target_cfg), tracer=ViralTracer(_mem), )
+        mind = MindSystem(mem=_mem, mirror=None, lex=lex, dreamer=DreamEngine(events, lore, config_ref=target_cfg), tracer=ViralTracer(_mem), )
         return mind, limbo
 
     @staticmethod

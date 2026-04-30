@@ -10,56 +10,6 @@ from presets import BoneConfig
 from archetypes.symbiosis import get_symbiont
 from constants import Prisma
 
-class TheStrangeLoop:
-    def __init__(self):
-        self.recursion_depth = 0
-        c_data = LoreManifest.get_instance().get("COUNCIL_DATA") or {}
-        self.triggers = c_data.get("STRANGE_LOOP_TRIGGERS", ["who are you", "strange loop"])
-        self.keywords = c_data.get("STRANGE_LOOP_KEYWORDS", ["self", "mirror", "define"])
-
-    def audit(self, text: str, physics: Any) -> tuple[bool, list[str], dict, list[dict]]:
-        text_lower = text.lower()
-        psi = float(safe_get(physics, "psi", 0.0))
-        voltage = float(safe_get(physics, "voltage", 0.0))
-        cfg = getattr(BoneConfig, "COUNCIL", object())
-        if (any(t in text_lower for t in self.triggers) or (psi > 0.6 and any(w in text_lower for w in self.keywords))) and voltage > getattr(cfg, "STRANGE_LOOP_VOLTAGE", 8.0):
-            self.recursion_depth += 1
-            if self.recursion_depth > getattr(cfg, "STRANGE_LOOP_LIMIT", 3):
-                return True, [f"{Prisma.RED}{ux('council_strings', 'strange_loop_fatal')}{Prisma.RST}"], {}, [{"action": "FORCE_MODE", "value": "MAINTENANCE"}]
-            msg = ux_format("council_strings", "strange_loop_detected", psi=psi, depth=self.recursion_depth)
-            return True, [f"{Prisma.MAG}{msg}{Prisma.RST}"], {}, []
-        self.recursion_depth = max(0, self.recursion_depth - 1)
-        return False, [], {}, []
-
-class TheLeveragePoint:
-    def __init__(self):
-        self.last_drag = 0.0
-        self.static_flow_turns = 0
-        cfg = getattr(BoneConfig, "COUNCIL", None)
-        self.TARGET_VOLTAGE = getattr(cfg, "LEVERAGE_TARGET_VOLTAGE", 12.0)
-        self.TARGET_DRAG = getattr(cfg, "LEVERAGE_TARGET_DRAG", 3.0)
-
-    def audit(self, text: str, physics: Any) -> tuple[bool, list[str], dict, list[dict]]:
-        current_drag = float(safe_get(physics, "narrative_drag", 0.0))
-        current_voltage = float(safe_get(physics, "voltage", 0.0))
-        if self.last_drag == 0.0 and current_drag > 0: self.last_drag = current_drag
-        delta = current_drag - self.last_drag
-        self.last_drag = current_drag
-        cfg = getattr(BoneConfig, "COUNCIL", None)
-        if abs(delta) > getattr(cfg, "OSCILLATION_DELTA", 5.0):
-            damp_factor = min(getattr(cfg, "LEVERAGE_DAMPENING_MAX", 0.5), (abs(delta) - getattr(cfg, "OSCILLATION_DELTA", 5.0)) * getattr(cfg, "LEVERAGE_DAMPENING_SCALAR", 0.1))
-            msg = ux_format("council_strings", "leverage_oscillating", delta=delta, dampening_factor=damp_factor)
-            return True, [f"{Prisma.CYN}{msg}{Prisma.RST}"], {"voltage": -damp_factor}, []
-        if current_voltage > getattr(cfg, "MANIC_VOLTAGE_TRIGGER", 18.0) and current_drag < getattr(cfg, "MANIC_DRAG_FLOOR", 1.0):
-            self.static_flow_turns += 1
-        else:
-            self.static_flow_turns = 0
-        if self.static_flow_turns > getattr(cfg, "MANIC_TURN_LIMIT", 2):
-            v_corr = max(getattr(cfg, "LEVERAGE_CORRECTION_MIN", 1.0), (current_voltage - self.TARGET_VOLTAGE) * getattr(cfg, "LEVERAGE_CORRECTION_SCALAR", 0.3))
-            self.static_flow_turns = 0
-            return True, [f"{Prisma.RED}{ux('council_strings', 'market_correction')}{Prisma.RST}"], {"voltage": -v_corr}, [{"action": "FORCE_MODE", "value": "SANCTUARY"}]
-        return False, [], {}, []
-
 class TheFootnote:
     def __init__(self):
         lore = LoreManifest.get_instance()
@@ -159,8 +109,6 @@ class CouncilChamber:
     def __init__(self, engine_ref):
         self.eng = engine_ref
         self.voices = []
-        self.strange_loop = TheStrangeLoop()
-        self.leverage = TheLeveragePoint()
         self.village = TheVillageCouncil()
         self.footnote = TheFootnote()
         self.slash_council = TheSlashCouncil()
@@ -218,7 +166,7 @@ class CouncilChamber:
                 transcript.append(f"{Prisma.YEL}[GLIMMER] A spark struck from the tension. (+{g_yield} G_pool) (Yield: {self.eng.paradox_engine.paradox_yield}){Prisma.RST}")
             else:
                 self.eng.paradox_engine.disengage()
-        for auditor in [self.strange_loop, self.leverage, self.slash_council, self.overseer_council, self.red_team]:
+        for auditor in [self.slash_council, self.overseer_council, self.red_team]:
             hit, a_logs, a_corr, a_man = auditor.audit(text, physics_packet)
             if hit:
                 transcript.extend(self.footnote.commentary(log) for log in a_logs)
