@@ -1,8 +1,11 @@
 # CHANGELOG.md
 -----------------------------------------------------------
 
+### **BONEAMANITA 19.7.0 "The Restructure"**
 
-### **BONEAMANITA 19.5.7 "The SLASH Purge & Paranoia Eradication"**
+-TL;Dr We moved a bunch of stuff around and turned a lot of scripts into modules. 
+
+### **BONEAMANITA 19.6.0 "The SLASH Purge & Paranoia Eradication"**
 
 _The S.L.A.S.H. Council (Pinker, Fuller, Schur, Meadows) executed a comprehensive sweep across the core engine, brain, spores, and mechanics layers. The primary focus was eradicating "defensive paranoia"—nested `getattr()` chains, phantom failsafes, and exception-based type sniffing that bloated the syntax and, in several cases, silently broke core features._
 
