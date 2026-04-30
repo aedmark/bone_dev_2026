@@ -1,9 +1,6 @@
 """tools.py"""
 
-import math
-import random
-import os
-import logging
+import math, random, os, logging
 import contextlib
 import warnings
 import re
@@ -419,7 +416,7 @@ class DSPyCritic:
         self.cfg = config_ref
         if self.enabled:
             try:
-                from core import safe_get
+                from struts import safe_get
                 from presets import BoneConfig
                 def get_cfg(key: str, default: Any) -> Any:
                     val_upper = safe_get(self.cfg, key.upper())

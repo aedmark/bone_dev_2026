@@ -4,9 +4,11 @@ import math
 from collections import deque, Counter
 from dataclasses import dataclass
 from typing import Dict, Tuple, Optional, Any
-from core import LoreManifest, ux, safe_get, safe_set
+from core import LoreManifest
+from struts import ux, safe_get, safe_set
 from presets import BoneConfig
-from constants import Prisma, UserInferredState, SharedDynamics
+from constants import Prisma
+from physics.models import UserInferredState, SharedDynamics
 
 _MODE_TAGS = {
     "[!l]": "literal_mode",

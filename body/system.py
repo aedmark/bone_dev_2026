@@ -4,7 +4,8 @@ import math
 from .models import Biometrics
 from dataclasses import dataclass, asdict
 from typing import Optional, Dict, List, Any, TYPE_CHECKING
-from core import Prisma, LoreManifest, ux, safe_get, safe_set
+from core import Prisma, LoreManifest
+from struts import ux, safe_get, safe_set
 from presets import BoneConfig
 from spores import ImmuneMycelium, BioLichen, BioParasite
 from body.metabolism import DigestiveTrack

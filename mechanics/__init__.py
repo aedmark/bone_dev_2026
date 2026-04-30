@@ -1,7 +1,7 @@
 """mechanics/__init__.py"""
 
 from mechanics.commands import CommandProcessor
-from mechanics.gui import CycleReporter
+from mechanics.reporter import CycleReporter
 from mechanics.inventory import GordonKnot, Item
 from mechanics.lexicon import LexiconStore, LexiconService
 from mechanics.tools import TheTclWeaver

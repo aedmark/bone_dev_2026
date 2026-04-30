@@ -3,8 +3,7 @@
 import os
 import ast
 from unittest.mock import patch
-from constants import PhysicsPacket
-from core import safe_get
+from physics.models import PhysicsPacket
 from tests.base import BoneTestCase
 
 class ArchitectureTests(BoneTestCase):

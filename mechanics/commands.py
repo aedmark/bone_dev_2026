@@ -3,7 +3,8 @@
 import time, shlex
 from typing import Dict, Callable, List, Optional
 from presets import BonePresets, BoneConfig
-from core import LoreManifest, Prisma, ux
+from core import LoreManifest
+from struts import ux
 from constants import RealityLayer
 
 class CommandStateInterface:
@@ -347,7 +348,7 @@ class CommandProcessor:
                 return True
             renderer = getattr(reporter, "renderer", None)
             if not hasattr(renderer, "dial_setting"):
-                from mechanics.gui import TruthRenderer
+                from mechanics.reporter import TruthRenderer
                 self.interface.log(f"{self.P.YEL}{ux('command_alerts', 'truth_transplant')}{self.P.RST}")
                 reporter.renderer = reporter.renderers.setdefault("STANDARD", TruthRenderer(self.interface.eng))
             reporter.renderer.dial_setting = mode

@@ -8,6 +8,8 @@ rm -rf body/__pycache__
 rm -rf archetypes/__pycache__
 rm -rf brain/__pycache__
 rm -rf mechanics/__pycache__
+rm -rf protocols/__pycache__
+rm -rf drivers/__pycache__
 rm -rf logs
 rm -rf memories
 rm -rf saves
