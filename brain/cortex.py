@@ -241,6 +241,7 @@ class TheCortex:
             m.get("action") == "LEXICAL_FIREWALL_STRICT" for m in sim_result.get("council_mandates", []))
         base_prompt = final_prompt
         for attempt in range(max_retries):
+            val_res = {"valid": False}
             raw_resp = self.llm.generate(final_prompt, llm_params)
 
             if firewall_active:
@@ -443,7 +444,7 @@ class TheCortex:
         if not self.consultant:
             return
         self.consultant.update_coordinates(text, state.get("bio", {}), state.get("physics"))
-        state["mind"]["style_directives"] = [self.consultant.get_system_prompt()]
+        state["mind"].setdefault("style_directives", []).insert(0, self.consultant.get_system_prompt())
         sim_result["physics"]["voltage"] = self.consultant.state.B * 30.0
 
     def _apply_boot_overlay(self, state, text):

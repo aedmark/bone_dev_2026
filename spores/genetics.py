@@ -94,8 +94,9 @@ class LiteraryReproduction:
 
     def attempt_reproduction(self, engine_ref, mode="MITOSIS", target_spore=None) -> Tuple[str, Dict]:
         mem = engine_ref.mind.mem
-        mito_data = (engine_ref.bio.mito.state.__dict__ if hasattr(
-            engine_ref.bio.mito, "state") else {})
+        mito_data = {}
+        if getattr(engine_ref, "bio", None) and hasattr(engine_ref.bio, "mito"):
+            mito_data = getattr(engine_ref.bio.mito.state, "__dict__", {})
         bio_state = {
             "trauma_vector": engine_ref.trauma_accum,
             "mito": mito_data,

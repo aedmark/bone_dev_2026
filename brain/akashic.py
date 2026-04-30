@@ -376,8 +376,8 @@ class TheAkashicRecord:
             target_list.extend(new_words)
             self.discovered_words.update((w, category_name) for w in new_words)
             self.lore.inject("LEXICON", lexicon_data)
-            msg = ux("akashic_strings", "lexicon_expands")
-            print(msg.format(category=category_name.upper()))
+            msg = ux("akashic_strings", "lexicon_learned") or "Learned {word} in {category}."
+            print(msg.format(word=word, category=category))
             self.lore.save("LEXICON")
             if self.events:
                 for w in new_words:
@@ -399,8 +399,8 @@ class TheAkashicRecord:
             target_category.append(word)
             self.discovered_words[word] = category
             self.lore.inject("LEXICON", lexicon_data)
-            msg = ux("akashic_strings", "lexicon_learned")
-            print(msg.format(word=word, category=category))
+            msg = ux("akashic_strings", "lexicon_expands") or "Lexicon expands: {category}"
+            print(msg.format(category=category_name.upper()))
             bloat_limit = getattr(self.cfg_akashic, "BLOAT_THRESHOLD", 50)
             exempt_categories = getattr(self.cfg_akashic, "BLOAT_EXEMPT_CATEGORIES", ["heavy"])
             if (len(lexicon_data[category]) > bloat_limit

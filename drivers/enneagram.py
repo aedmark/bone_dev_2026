@@ -87,12 +87,11 @@ class EnneagramDriver:
             self.pending_persona = candidate
             self.stability_counter = 1
         msg_shift = (ux("driver_strings", "ennea_shift") or "Shifted persona. Reason: {reason}")
-        if "HYBRID" in candidate or self.stability_counter >= self.HYSTERESIS_THRESHOLD:
+        if self.stability_counter >= self.HYSTERESIS_THRESHOLD:
             self.current_persona = candidate
             self.stability_counter = 0
             self.pending_persona = None
             return self.current_persona, state_desc, msg_shift.format(reason=reason)
         msg_resisting = (ux("driver_strings", "ennea_resisting") or "Resisting shift to {candidate} ({count}/{thresh})")
         return (self.current_persona, "STABLE", msg_resisting.format(candidate=candidate,
-                                                                     count=self.stability_counter,
-                                                                     thresh=self.HYSTERESIS_THRESHOLD))
+                 count=self.stability_counter, thresh=self.HYSTERESIS_THRESHOLD))

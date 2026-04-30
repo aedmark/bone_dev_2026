@@ -342,7 +342,7 @@ class BoneAmanita:
                     "metrics": self.get_metrics(), }
 
         # Fatal biological check before processing
-        if self.health <= 0.0:
+        if self.health <= 0.0 and not self.in_greenhouse:
             return self.trigger_death(getattr(self.cortex, "last_physics", {}))
 
         return None
@@ -378,9 +378,9 @@ class BoneAmanita:
 
         if self.tick_count <= 20 and not is_system:
             msg = None
-            if self.tick_count == 1:
+            if self.tick_count == 1 and self.in_greenhouse:
                 msg = "[THE GREENHOUSE: The system is currently running on stabilized rails. For the first few turns, lethal metabolic shock is disabled.]"
-            elif self.tick_count == 5:
+            elif self.tick_count == 5 and self.in_greenhouse:
                 msg = "[THE GREENHOUSE: Every thought costs ATP (Stamina). If I run out, I will suffer metabolic collapse. Watch how my text fades and slows as I tire.]"
             elif self.tick_count == 10:
                 msg = "[SYSTEM GUIDE: If you attempt an impossible action, I will not crash. I will bend, apply Narrative Drag (F), and force us to carry the weight of the failure.]"
@@ -406,17 +406,13 @@ class BoneAmanita:
                 return {"type": "COMMAND", "ui": f"\n{Prisma.CYN}{msg}{Prisma.RST}", "logs": [msg],
                         "metrics": self.get_metrics()}
 
-            if "[GRIEF]" in user_message.upper() and getattr(self, "grief", None):
-                grief_msg = self.grief.attend_wake(getattr(self, "shared_lattice", None), getattr(self, "phys", None))
-                self.events.log(grief_msg, "SYS")
-                return {"type": "COMMAND", "ui": f"\n{grief_msg}", "logs": [grief_msg], "metrics": self.get_metrics()}
-
-            if self.cmd and self.cmd.execute(user_message):
-                return self._phase_check_commands(user_message, already_executed=True)
-
-            # The Checkpoint Council (Immune System)
+        # The Checkpoint Council (Immune System)
         if pre_flight_halt := self._pre_flight_checks(user_message, is_system):
             return pre_flight_halt
+
+        if not is_system:
+            if self.cmd and self.cmd.execute(user_message):
+                return self._phase_check_commands(user_message, already_executed=True)
 
         if not is_system:
             # Inventory comb integration (stripping semantic fluff)

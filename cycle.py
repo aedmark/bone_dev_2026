@@ -180,8 +180,12 @@ class GeodesicOrchestrator:
             except Exception as e:
                 self.eng.events.log(f"Async Topology Error: {e}", "WARN")
 
-        # Pass a copy of the dictionary to avoid thread-safety mutation issues
-        threading.Thread(target=_bg_topology_check, args=({k: set(v) for k, v in actual_adj.items()},), daemon=True).start()
+        # Pass a safely cast list to prevent RuntimeError on the main thread during dict mutation
+        try:
+            safe_adj = {k: set(v) for k, v in list(actual_adj.items())}
+            threading.Thread(target=_bg_topology_check, args=(safe_adj,), daemon=True).start()
+        except RuntimeError:
+            pass # Graph mutated too fast to safely copy; we skip the topology check this cycle.
 
     def _execute_core_cycle(self, user_message: str, is_system: bool = False) -> CycleContext:
         cycle_id = str(uuid.uuid4())[:8]

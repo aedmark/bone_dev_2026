@@ -24,9 +24,7 @@ class UserProfile:
             return
         self.confidence += 1
         threshold = safe_get(cfg, "PROFILE_CONFIDENCE_THRESHOLD", 50)
-        alpha = safe_get(cfg, "PROFILE_ALPHA_HIGH", 0.2) if self.confidence < threshold else safe_get(cfg,
-                                                                                                      "PROFILE_ALPHA_LOW",
-                                                                                                      0.05)
+        alpha = safe_get(cfg, "PROFILE_ALPHA_HIGH", 0.2) if self.confidence < threshold else safe_get(cfg,"PROFILE_ALPHA_LOW", 0.05)
         density_high = safe_get(cfg, "PROFILE_DENSITY_HIGH", 0.15)
         for cat in self.affinities:
             density = counts.get(cat, 0) / total_words

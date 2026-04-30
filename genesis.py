@@ -58,6 +58,7 @@ class BoneGenesis:
                 mem.session_trauma_vector = bio_proxy.get("trauma_vector", {})
         drivers = DriverRegistry(events, config_ref=target_cfg)
         symbiosis = SymbiosisManager(events, config_ref=target_cfg)
+        consolidator = TheConsolidator(config_ref=target_cfg)
         return {"events": events, "akashic": akashic, "embryo": embryo, "village": village_bundle, "soul": soul,
                 "oroboros": oroboros, "drivers": drivers, "consultant": village_bundle.get("consultant"),
                 "symbiosis": symbiosis, "consolidator": consolidator}

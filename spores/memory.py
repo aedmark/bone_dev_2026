@@ -178,7 +178,8 @@ class MemoryCore:
                 dim_words = list(self.DIMENSION_MAP.get(top_active_dim, {"static"}))
                 if dim_words:
                     chosen_word = random.choice(dim_words)
-                    data["edges"][chosen_word] = data["edges"].get(chosen_word, 0.0) + 1.0
+                    edges = data.setdefault("edges", {})
+                    edges[chosen_word] = edges.get(chosen_word, 0.0) + 1.0
                 try:
                     self.subconscious.bury({"word": name, "mass": 1.0, "reconstructive": True}, config_ref=self.cfg)
                 except Exception:

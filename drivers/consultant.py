@@ -45,6 +45,8 @@ class BoneConsultant:
         for mod in ("LIMINAL", "SYNTAX"):
             if f"[VSL_{mod}]" in user_text and mod not in self.state.active_modules:
                 self.state.active_modules.append(mod)
+            elif f"[-VSL_{mod}]" in user_text and mod in self.state.active_modules:
+                self.state.active_modules.remove(mod)
 
     def get_system_prompt(self, soul_snapshot: Optional[Dict] = None) -> str:
         directives = []

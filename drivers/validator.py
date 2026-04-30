@@ -37,4 +37,4 @@ class CongruenceValidator:
                 hits = len(exact_hits)
                 if hits > 0:
                     tone_score += safe_get(cfg, "CONGRUENCE_HIT_BONUS", 0.1) * hits
-            return min(safe_get(cfg, "CONGRUENCE_MAX_TONE", 1.5), tone_score)
+        return min(safe_get(cfg, "CONGRUENCE_MAX_TONE", 1.5), tone_score)

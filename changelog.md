@@ -1,6 +1,33 @@
 # CHANGELOG.md
 -----------------------------------------------------------
 
+### **BONEAMANITA 19.7.1 "The S.L.A.S.H. Engine Audit"**
+
+*A massive, multi-layer refactor executed by the S.L.A.S.H. Council. This update focused on repairing silent runtime failures, sealing memory cache desynchronizations, and protecting the cognitive layers from syntactic rot.*
+
+#### **🧠 LANGUAGE & COGNITION (Pinker's Pass: Syntactic Ergonomics)**
+- **Serialization Safety (`core.py`):** Repaired a truncated method call (`super().defau` -> `default()`) in the JSON encoder and explicitly bound `DecisionCrystal` telemetry loops to use `BoneJSONEncoder`, preventing terminal crashes when logging biological sets.
+- **Null-Pointer Execution (`brain/akashic.py`):** Wrapped all `ux()` string fetches with safe fallbacks before attempting to `.format()` them, protecting the memory index from missing translation keys.
+- **Biometric Null Handling (`spores/genetics.py`, `drivers/validator.py`):** Added explicit `hasattr` checks before pulling mitochondrial states to prevent terminal crashes during headless reproduction. Outdented implicit `None` returns in the `CongruenceValidator` to stop type-poisoning the math layer.
+
+#### **✨ SYNERGETIC REINFORCEMENT (Fuller's Pass: Architecture)**
+- **The Tensegrity Anchor (`brain/mind.py`, `spores/memory.py`):** Replaced blind dictionary key access with explicit `.setdefault("edges", {})` when forming lateral and epigenetic connections, preventing fatal `KeyError` crashes on legacy or damaged memory nodes.
+- **Trust Boundary Enforcement (`main.py`):** Moved system command execution to the far side of `_pre_flight_checks`. Users can no longer bypass the immune system using terminal commands.
+- **Boot & Disk Stabilization (`genesis.py`, `drivers/userprofile.py`):** Corrected a fatal `NameError` in the genesis boot sequence by properly instantiating `TheConsolidator`. Secured user profile saves by enforcing `os.makedirs` before file I/O operations.
+
+#### **⚙️ DYNAMIC EQUILIBRIUM (Meadows' Pass: Systems & Dynamics)**
+- **Poisoned Generation Retries (`brain/cortex.py`):** Reset the DSPy `val_res` payload *inside* the generation retry loop. Previously, if Attempt 0 failed the affective audit, Attempt 1 would inherit the failure instruction and permanently poison the output.
+- **Cache Desynchronization (`spores/network.py`):** Reordered the `bury()` function to evaluate max-capacity rejection *before* injecting words into the `cortical_stack`, preventing the short-term cache from desynchronizing from the actual deep graph.
+- **Hysteresis Restored (`drivers/enneagram.py`):** Prevented erratic "HYBRID" personas from bypassing the stability counter. Oscillating hybrid states must now wait out the same hysteresis delay as standard personas.
+- **Thread-Safe Graph Copying (`cycle.py`):** Wrapped dictionary comprehensions in a `try/except` and cast to `list(actual_adj.items())` to prevent fatal `RuntimeError` collisions when the graph rewires in the background.
+
+#### **🛠️ FUNCTIONAL PRAGMATISM (Schur's Pass: Humanity)**
+- **Bureaucratic Erasure (`brain/cortex.py`):** Modified the `BoneConsultant` overlay to `.insert()` its system prompt into the `style_directives` list rather than overwriting it, preserving critical human context (like user inventory and soul posture).
+- **The Escape Hatch (`drivers/consultant.py`):** Added `[-VSL_MOD]` syntax to allow users to toggle off active consultant modules, preventing them from being permanently trapped in experimental archetypes.
+- **Trimming the Fat (`main.py`, `spores/biome.py`):** Removed a dead, unreachable `[GRIEF]` parsing loop. Removed paranoid and mathematically impossible subset checks from the Parasite module.
+- **Honest Telemetry (`main.py`):** Fixed Greenhouse UI messages to explicitly respect `config.GREENHOUSE_TURNS`. The system will no longer falsely promise lethal protection to developers who have manually disabled the stabilizers.
+
+
 ### **BONEAMANITA 19.7.0 "The Epigenetic Loop & Synaptic Reinforcement"**
 
 *The S.L.A.S.H. Council successfully closed the engine's learning loop, shifting the architecture from purely trauma-based survival (learning from pain) to inclusive positive reinforcement (learning from resonance).*

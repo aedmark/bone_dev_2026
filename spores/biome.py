@@ -110,9 +110,8 @@ class BioParasite:
         is_metaphor = psi > m_psi
         weight = p_wt
         graph[host]["edges"][parasite] = weight
-        if parasite not in graph:
-            graph[parasite] = {"edges": {}, "last_tick": 0}
-        graph[parasite]["edges"][host] = weight
+        edges = graph[parasite].setdefault("edges", {})
+        edges[host] = weight
         self.spores_deployed += 1
         if is_metaphor:
             msg = ux_format("spore_strings", "para_syn_spark", "A parasitic metaphor bloomed.", host=host.upper(), para=parasite.upper())

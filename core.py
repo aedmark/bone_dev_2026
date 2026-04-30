@@ -30,7 +30,7 @@ class BoneJSONEncoder(json.JSONEncoder):
         if isinstance(obj, (set, deque)): return list(obj)
         if hasattr(obj, "to_dict"): return obj.to_dict()
         if hasattr(obj, "__dict__"): return obj.__dict__
-        return super().defau
+        return super().default(obj)
 
 from physics.models import PhysicsPacket, UserInferredState, SharedDynamics
 
@@ -70,7 +70,7 @@ class DecisionCrystal:
         data = asdict(self)
         data["_summary"] = f"{self.system_state}::{self.active_archetype}"
         data["_type"] = "CRYSTAL"
-        return json.dumps(data)
+        return json.dumps(data, cls=BoneJSONEncoder)
 
 @dataclass
 class CycleContext:

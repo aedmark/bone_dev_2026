@@ -199,7 +199,8 @@ class NoeticLoop:
         for a, b in [(wa, wb), (wb, wa)]:
             if a not in graph:
                 graph[a] = {"edges": {}, "last_tick": 0}
-            graph[a]["edges"][b] = min(max_edge, graph[a]["edges"].get(b, 0) + edge_boost)
+            edges = graph[a].setdefault("edges", {})
+            edges[b] = min(max_edge, edges.get(b, 0) + edge_boost)
 
 
 class DreamEngine:
