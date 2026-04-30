@@ -9,7 +9,7 @@ from drivers import DriverRegistry, BoneConsultant
 from mechanics.inventory import GordonKnot
 from machine import BoneArchitect, TheConsolidator
 from protocols import TheBureau, ZenGarden, TheCriticsCircle, TherapyProtocol, KintsugiProtocol, LimboLayer
-from brain.soul import NarrativeSelf, TheOroboros
+from soul import NarrativeSelf, TheOroboros
 from spores import LiteraryReproduction
 from archetypes.symbiosis import SymbiosisManager
 from constants import Prisma
