@@ -1,80 +1,122 @@
-"""protocols/critics.py"""
+"""protocols/zen.py
+
+The Zen Garden protocol is a passive monitoring system that tracks conversational
+stability and "stillness." When the system operates within an optimal voltage
+range with low narrative drag over consecutive turns, the Zen Garden rewards
+the engine with an ATP/efficiency boost and outputs philosophical koans.
+"""
 
 import random
-from typing import Optional, Any
+from typing import Dict, Tuple, Optional, Any
+from core import LoreManifest
 from struts import ux, safe_get
 from presets import BoneConfig
 from constants import Prisma
-from core import LoreManifest
 
+# Global cache retrieval for narrative strings and Zen Koans.
 NARRATIVE_DATA = LoreManifest.get_instance().get("narrative_data") or {}
 
-class TheCriticsCircle:
+class ZenGarden:
+    """
+    Monitors the metabolic and physical stability of the conversation.
+    It builds a 'stillness streak' when conditions are right, which slowly
+    grants passive energy regeneration (efficiency boosts) and milestone rewards.
+    """
+
     def __init__(self, events_ref, config_ref=None):
+        """
+        Initializes the Zen Garden state trackers and loads the koan database.
+
+        Args:
+            events_ref: Reference to the global event bus for logging streak breaks.
+            config_ref: Configuration settings, falling back to BoneConfig if not provided.
+        """
         self.events = events_ref
         self.cfg = config_ref or BoneConfig
-        self.critics = NARRATIVE_DATA.get("LITERARY_CRITICS", {})
-        self.active_cooldowns = {}
-        self.last_review_turn = 0
 
-    def to_dict(self):
-        return {"active_cooldowns": self.active_cooldowns, "last_review_turn": self.last_review_turn,}
+        # State tracking metrics
+        self.stillness_streak = 0
+        self.max_streak = 0
+        self.pebbles_collected = 0
 
-    def load_state(self, data):
-        self.active_cooldowns = data.get("active_cooldowns", {})
-        self.last_review_turn = data.get("last_review_turn", 0)
+        # Load koans from the lore manifest; fallback to a default coding koan
+        self.koans = NARRATIVE_DATA.get(
+            "ZEN_KOANS",
+            ["The code that is not written has no bugs."]
+        )
 
-    def audit_performance(self, physics: Any, turn_count: int) -> Optional[str]:
-        cfg = getattr(self.cfg, "CRITICS", object())
-        rev_cd = getattr(cfg, "REVIEW_COOLDOWN", 10)
-        if turn_count - self.last_review_turn < rev_cd:
-            return None
-        voltage = float(safe_get(physics, "voltage", 0.0))
+    def to_dict(self) -> Dict[str, Any]:
+        """Serializes the Zen Garden's progress for persistence across sessions."""
+        return {
+            "stillness_streak": self.stillness_streak,
+            "max_streak": self.max_streak,
+            "pebbles_collected": self.pebbles_collected,
+        }
+
+    def load_state(self, data: Dict[str, Any]):
+        """Restores the Zen Garden's progress from a serialized dictionary."""
+        self.stillness_streak = data.get("stillness_streak", 0)
+        self.max_streak = data.get("max_streak", 0)
+        self.pebbles_collected = data.get("pebbles_collected", 0)
+
+    def raking_the_sand(self, physics: Any, _bio: Dict) -> Tuple[float, Optional[str]]:
+        """
+        The core evaluation loop for the Zen protocol. Evaluates the current
+        physical state of the prompt against stability thresholds.
+
+        Args:
+            physics: The dimensional state of the text (voltage, drag).
+            _bio: The biological state of the system (unused in this specific check).
+
+        Returns:
+            A tuple containing the efficiency boost multiplier (float) and
+            an optional string message to display to the user if a milestone is hit.
+        """
+        # Safely extract the necessary physical metrics
+        vol = float(safe_get(physics, "voltage", 0.0))
         drag = float(safe_get(physics, "narrative_drag", 0.0))
-        velocity = safe_get(physics, "velocity")
-        if velocity is None:
-            velocity = voltage * (1.0 / max(0.1, drag))
-        best_match = None
-        review_type = "neutral"
-        max_contrib = getattr(cfg, "MAX_METRIC_CONTRIB", 5.0)
-        pos_thresh = getattr(cfg, "POSITIVE_REVIEW_THRESH", 15.0)
-        neg_thresh = getattr(cfg, "NEGATIVE_REVIEW_THRESH", -15.0)
-        for key, critic in self.critics.items():
-            if self.active_cooldowns.get(key, 0) > turn_count:
-                continue
-            prefs = critic.get("preferences", {})
-            score = 0.0
-            for metric, target in prefs.items():
-                metric_str = str(metric)
-                if metric_str.startswith("counts_"):
-                    category = metric_str.replace("counts_", "")
-                    counts = safe_get(physics, "counts", {})
-                    raw_count = (counts.get(category, 0) if isinstance(counts, dict) else getattr(counts, category, 0))
-                    current = min(max_contrib, raw_count * 0.5)
-                elif metric_str == "velocity":
-                    current = velocity
-                else:
-                    current = float(safe_get(physics, metric_str, 0.0))
-                if target > 0:
-                    score += current * target
-                else:
-                    score -= current * abs(target)
-            if score > pos_thresh:
-                best_match = (key, critic)
-                review_type = "high"
-            elif score < neg_thresh:
-                best_match = (key, critic)
-                review_type = "low"
-        if best_match:
-            key, critic = best_match
-            self.last_review_turn = turn_count
-            self.active_cooldowns[key] = turn_count + (getattr(cfg, "CRITIC_COOLDOWN_TICKS", 50))
-            comment = random.choice(
-                critic.get("reviews", {}).get(review_type, ["Hrm."]))
-            color = Prisma.GRN if review_type == "high" else Prisma.RED
-            icon_good = ux("council_strings", "critic_good_icon") or "🌟"
-            icon_bad = ux("council_strings", "critic_bad_icon") or "🥀"
-            icon = icon_good if review_type == "high" else icon_bad
-            rev_msg = ux("protocol_strings", "critic_review") or "[{icon}] {name}: {comment}"
-            return f"{color}{rev_msg.format(icon=icon, name=critic.get('name', key), comment=comment)}{Prisma.RST}"
-        return None
+
+        # Load configuration thresholds
+        cfg = getattr(self.cfg, "ZEN", object())
+        v_min = getattr(cfg, "VOLTAGE_MIN", 5.0)
+        v_max = getattr(cfg, "VOLTAGE_MAX", 12.0)
+        d_max = getattr(cfg, "DRAG_MAX", 2.0)
+
+        # Stability is defined by moderate, controlled voltage and low narrative friction
+        is_stable = (v_min <= vol <= v_max) and (drag <= d_max)
+
+        if is_stable:
+            # The system is in a state of flow; increment the streak
+            self.stillness_streak += 1
+            self.max_streak = max(self.max_streak, self.stillness_streak)
+
+            # Calculate the passive energy reward, scaling with the streak but hard-capped
+            efficiency_boost = min(
+                getattr(cfg, "EFFICIENCY_CAP", 0.5),
+                self.stillness_streak * getattr(cfg, "EFFICIENCY_SCALAR", 0.05)
+            )
+
+            msg = None
+
+            # Check for milestones to provide narrative feedback to the user
+            if self.stillness_streak == getattr(cfg, "ZEN_FIRST_TICK", 1):
+                # The user just entered a state of stillness
+                msg = f"{Prisma.GRY}{ux('protocol_strings', 'zen_enter')}{Prisma.RST}"
+
+            elif self.stillness_streak % getattr(cfg, "ZEN_MILESTONE_FREQ", 5) == 0:
+                # Milestone reached: grant a pebble, drop a koan, announce the efficiency boost
+                self.pebbles_collected += 1
+                koan = random.choice(self.koans)
+                msg = f"{Prisma.CYN}{ux('protocol_strings', 'zen_streak').format(streak=self.stillness_streak, koan=koan, boost=int(efficiency_boost * 100))}{Prisma.RST}"
+
+            return efficiency_boost, msg
+
+        # If the state is chaotic or highly tense, evaluate if we just broke a significant streak
+        if self.stillness_streak > getattr(cfg, "STREAK_BREAK_THRESHOLD", 3):
+            # The streak was long enough that breaking it is a notable narrative event
+            break_msg = ux("protocol_strings", "zen_break")
+            self.events.log(f"{Prisma.GRY}{break_msg}{Prisma.RST}", "SYS",)
+
+        # Reset the streak to zero; no passive efficiency boost is granted
+        self.stillness_streak = 0
+        return 0.0, None
