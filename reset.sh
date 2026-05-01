@@ -11,6 +11,7 @@ rm -rf mechanics/__pycache__
 rm -rf protocols/__pycache__
 rm -rf drivers/__pycache__
 rm -rf machine/__pycache__
+rm -rf soul/__pycache__
 rm -rf logs
 rm -rf memories
 rm -rf saves

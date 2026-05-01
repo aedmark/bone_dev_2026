@@ -95,8 +95,8 @@ class SubconsciousStrata:
             pass
 
     def _load_index(self):
-        # Rebuild the quick-lookup set on boot
-        self.index = {e.get("word") for e in self._iter_entries() if e.get("word")}
+        # Rebuild the quick-lookup dictionary on boot to prevent O(N) disk reads
+        self.index = {e.get("word"): e for e in self._iter_entries() if e.get("word")}
 
     def bury(self, fossil_data: Dict, config_ref=None):
         """
@@ -117,7 +117,9 @@ class SubconsciousStrata:
             with open(self.filepath, "a", encoding="utf-8") as f:
                 fossil_data["buried_at"] = time.time()
                 f.write(json.dumps(fossil_data, cls=BoneJSONEncoder) + "\n")
-            self.index.add(fossil_data["word"])
+
+            # Cache the payload in memory to ensure O(1) resurrection lookups
+            self.index[fossil_data["word"]] = fossil_data
 
             word = fossil_data["word"]
             mass = fossil_data.get("mass", 1.0)
@@ -154,24 +156,22 @@ class SubconsciousStrata:
             keep_count = int(len(lines) * 0.9)
             survivors = lines[-keep_count:] if keep_count else []
 
-            with open(self.filepath, "w", encoding="utf-8") as f:
+            # Meadows: Write atomically to prevent a complete subconscious wipe on an OS crash
+            import tempfile
+            fd, temp_path = tempfile.mkstemp(dir=self.directory, text=True)
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
                 f.writelines(survivors)
+                f.flush()
+                os.fsync(f.fileno())
+            os.replace(temp_path, self.filepath)
 
-            self.index = set()
-            for line in survivors:
-                try:
-                    word = json.loads(line).get("word")
-                    if word: self.index.add(word)
-                except json.JSONDecodeError:
-                    pass
+            self._load_index()
         except Exception:
             pass
 
     def dredge(self, trigger_word: str) -> Optional[Dict]:
-        """Attempts to dig up the exact literal data of a buried word."""
-        if trigger_word not in self.index:
-            return None
-        return next((e for e in self._iter_entries() if e.get("word") == trigger_word), None)
+        """Attempts to dig up the exact literal data of a buried word using O(1) memory cache."""
+        return self.index.get(trigger_word)
 
     def dredge_vibe(self, trigger_word: str) -> list:
         """

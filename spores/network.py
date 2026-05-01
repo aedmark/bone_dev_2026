@@ -370,8 +370,11 @@ class MycelialNetwork:
             if len(w) <= 4 and w in solvents:
                 return False
             cat = self.lex.get_current_category(w) if self.lex else None
-            # Unknown short words are discarded, categorized or long words are kept
-            return (cat and cat != "void") or len(w) > 4
+
+            # Pinker: Ensure explicitly "void" words are rejected regardless of length.
+            # Uncategorized words are only kept if they are substantial (length > 4).
+            if cat == "void": return False
+            return bool(cat) or len(w) > 4
 
         return [w for w in words if is_valuable(w)]
 
@@ -530,6 +533,10 @@ class MycelialNetwork:
 
     def _extract_legacy_traits(self, data):
         """Extracts deep personality state, ancestral buffs, and dormant paradox seeds."""
+
+        # Store village data on the network object so the engine can reconstruct the council
+        self.village_legacy = data.get("village_data", {})
+
         # Process "Joy" (Profound resonance) bonuses
         if "joy_legacy" in data and isinstance(data["joy_legacy"], dict):
             joy = data["joy_legacy"]
@@ -589,7 +596,7 @@ class MycelialNetwork:
         seed_list.append({"q": future_seed_q, "m": 0.0, "b": False})
 
         # Construct the final DNA package
-        data = {"genome": "BA_01971", "session_id": self.session_id, "parent_id": self.session_id,
+        data = {"genome": "BA_01972", "session_id": self.session_id, "parent_id": self.session_id,
                 "meta": {"timestamp": time.time(), "final_health": health, "final_stamina": stamina, },
                 "trauma_vector": final_vector, "joy_vectors": top_joy or [], "joy_legacy": joy_legacy_data,
                 "core_graph": core_graph, "mutations": mutations or {},

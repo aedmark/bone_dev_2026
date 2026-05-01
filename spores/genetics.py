@@ -99,12 +99,13 @@ class LiteraryReproduction:
         mutation_data = LiteraryReproduction.MUTATIONS.get(dominant.upper(), {"trait": "NEUTRAL", "mod": {}, "lexicon": []})
 
         # Name the child based on the parent and the adopted trait
-        child_id = f"{parent_id}_({mutation_data['trait']})"
+        child_trait = mutation_data.get("trait", "NEUTRAL")
+        child_id = f"{parent_id}_({child_trait})"
 
         # Apply random genetic drift to the baseline config
         config_mutations = LiteraryReproduction.mutate_config(self.cfg)
-        # Apply the dominant flavor's specific forced mutations
-        config_mutations.update(mutation_data["mod"])
+        # Apply the dominant flavor's specific forced mutations safely
+        config_mutations.update(mutation_data.get("mod", {}))
 
         # Inherit specific vocabulary mutations
         lexicon_mutations = {dominant.lower(): mutation_data.get("lexicon", [])}
@@ -139,9 +140,9 @@ class LiteraryReproduction:
 
         parent_b_id = parent_b_data.get("session_id", "UNKNOWN")
 
-        # Extract both parents' trauma histories
-        trauma_a = parent_a_bio.get("trauma_vector", {})
-        trauma_b = parent_b_data.get("trauma_vector", {})
+        # Extract both parents' trauma histories safely (accounting for explicit nulls in JSON)
+        trauma_a = parent_a_bio.get("trauma_vector") or {}
+        trauma_b = parent_b_data.get("trauma_vector") or {}
         all_keys = trauma_a.keys() | trauma_b.keys()
 
         # The child's trauma is the mathematical average of both parents' scars
@@ -151,10 +152,12 @@ class LiteraryReproduction:
         }
 
         # Extract and combine metabolic enzymes (learned biological coping mechanisms)
-        mito = parent_a_bio.get("mito", {})
+        mito = parent_a_bio.get("mito") or {}
         enzymes_a = set(mito.get("enzymes", [])) if isinstance(mito, dict) else set(
             getattr(getattr(mito, "state", mito), "enzymes", []))
-        enzymes_b = set(parent_b_data.get("mitochondria", {}).get("enzymes", []))
+
+        mito_b = parent_b_data.get("mitochondria") or {}
+        enzymes_b = set(mito_b.get("enzymes", []))
 
         # The child inherits the union of all survival enzymes
         child_enzymes = list(enzymes_a | enzymes_b)
@@ -219,4 +222,6 @@ class LiteraryReproduction:
                 if res[0]: # If crossover was successful and not corrupted
                     child_id, genome = res
 
-        return child_id, genome.get("lexicon_mutations", {})
+        # Return the ENTIRE genome dictionary, not just the lexicon mutations,
+        # so the resulting child actually inherits its config mutations and trauma.
+        return child_id, genome

@@ -182,13 +182,16 @@ class BioParasite:
         if not heavy_candidates or not abstract_candidates:
             return False, None
 
-        # Select targets for the forced connection
-        host = random.choice(heavy_candidates)
-        parasite = random.choice(abstract_candidates)
+        # Meadows & Fuller: Find valid pairs that aren't already connected to prevent RNG starvation
+        valid_pairs = [
+            (h, p) for h in heavy_candidates for p in abstract_candidates
+            if p not in graph[h].get("edges", {})
+        ]
 
-        # Abort if they are already connected
-        if parasite in graph[host]["edges"]:
+        if not valid_pairs:
             return False, None
+
+        host, parasite = random.choice(valid_pairs)
 
         m_psi = getattr(cfg, "PARASITE_METAPHOR_PSI", 0.7)
         p_wt = getattr(cfg, "PARASITE_WEIGHT", 8.88)
@@ -197,10 +200,12 @@ class BioParasite:
         is_metaphor = psi > m_psi
         weight = p_wt
 
-        # Inject the connection bidirectionally into the memory graph
-        graph[host]["edges"][parasite] = weight
-        edges = graph[parasite].setdefault("edges", {})
-        edges[host] = weight
+        # Inject the connection bidirectionally with structural safety
+        host_edges = graph[host].setdefault("edges", {})
+        host_edges[parasite] = weight
+
+        para_edges = graph[parasite].setdefault("edges", {})
+        para_edges[host] = weight
 
         self.spores_deployed += 1
 
@@ -262,10 +267,10 @@ class BioLichen:
         # Photosynthesis requires light AND low systemic drag/friction
         if light > 0 and drag < 3.0:
             # Yield is multiplied by 2 per unit of light
-            sugar += (s := light * 2)
+            sugar = float(light * 2)
             source_str = f" via '{random.choice(light_words)}'" if light_words else ""
 
-            if msg := ux_format("spore_strings", "lichen_photo", source=source_str, sugar=s):
+            if msg := ux_format("spore_strings", "lichen_photo", source=source_str, sugar=sugar):
                 msgs.append(f"{Prisma.GRN}{msg}{Prisma.RST}")
 
         # If successful synthesis occurred, attempt to 'colonize' heavy concepts

@@ -39,14 +39,13 @@ class LocalFileSporeLoader:
         and the spore is dead. Instead, we write to a temporary file, flush the buffer,
         and then execute an atomic OS-level replacement.
         """
-        temp_path = filename
+        temp_path = None
 
-        # Ensure we are writing to the correct absolute or relative path
-        if not os.path.isabs(filename) and not filename.startswith(
-                os.path.join(self.directory, "")):
-            final_path = os.path.join(self.directory, filename)
-        else:
+        # Pinker: Purged the clunky path-string manipulation for clean os.path semantics
+        if os.path.isabs(filename) or filename.startswith(self.directory):
             final_path = filename
+        else:
+            final_path = os.path.join(self.directory, filename)
 
         # Ensure the sub-directories exist before we attempt to write
         os.makedirs(os.path.dirname(final_path), exist_ok=True)
@@ -72,8 +71,9 @@ class LocalFileSporeLoader:
             if msg := ux_format("spore_strings", "loader_save_err", e=e):
                 print(f"{Prisma.RED}{msg}{Prisma.RST}")
 
-            # Clean up the dangling temporary file so we don't leak storage
-            if os.path.exists(temp_path):
+            # Only clean up if mkstemp successfully assigned a new path.
+            # If we used the old logic, we might accidentally delete the original file!
+            if temp_path and os.path.exists(temp_path):
                 os.remove(temp_path)
             return None
 
@@ -108,12 +108,12 @@ class LocalFileSporeLoader:
 
         try:
             files = []
-            for filename in os.listdir(self.directory):
-                # Filter for valid spore patterns to avoid parsing unrelated files
-                if filename.endswith(".json") and filename.startswith("session_"):
-                    full_path = os.path.join(self.directory, filename)
-                    # Store as a tuple: (Absolute Path, Last Modified Timestamp, Raw Filename)
-                    files.append((full_path, os.path.getmtime(full_path), filename))
+            # Meadows: Using os.scandir() is significantly faster than os.listdir() + getmtime()
+            # because it retrieves the file stats in the same OS-level call, saving an I/O trip.
+            with os.scandir(self.directory) as it:
+                for entry in it:
+                    if entry.is_file() and entry.name.endswith(".json") and entry.name.startswith("session_"):
+                        files.append((entry.path, entry.stat().st_mtime, entry.name))
 
             # Sort newest-first based on the timestamp
             return sorted(files, key=lambda x: x[1], reverse=True)

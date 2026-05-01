@@ -12,15 +12,14 @@ def _word_to_vector(word: str, dim: int = 8) -> list:
     """
     Synergetic Coordinate Mapping.
     Converts any arbitrary word into a deterministic, normalized vector in N-dimensional space.
-    Instead of using a massive pre-trained embedding model (which costs heavy RAM),
-    we use a fast MD5 hash to generate a perfectly reproducible pseudo-random vector.
+    Uses SHAKE-256 (an Extendable-Output Function) to guarantee exactly `dim` bytes,
+    preventing structural collapse if the matrix is ever scaled beyond 16 dimensions.
 
     The resulting coordinates are normalized to sit between -1.0 and 1.0.
     """
-    h = hashlib.md5(word.encode("utf-8")).digest()
-    # 127.5 is half of a byte's max value (255).
-    # (b / 127.5) - 1.0 shifts the byte value from [0, 255] to [-1.0, 1.0].
-    return [(b / 127.5) - 1.0 for b in h[:dim]]
+    # Fuller: Generate exactly 'dim' bytes dynamically to support infinite dimensional scaling.
+    h = hashlib.shake_256(word.encode("utf-8")).digest(dim)
+    return [(b / 127.5) - 1.0 for b in h]
 
 def _identity(n=8):
     """
@@ -113,9 +112,11 @@ def _access_config_path(root, path, value=None, set_mode=False):
         is_dict = isinstance(target, dict)
 
         if set_mode:
-            curr = target.get(leaf) if is_dict else getattr(target, leaf)
-            # Type safety check: We only allow genetic mutations on numbers, not strings or lists.
-            if isinstance(curr, (int, float)):
+            curr = target.get(leaf) if is_dict else getattr(target, leaf, None)
+
+            # Meadows & Pinker: Python considers 'bool' a subclass of 'int'.
+            # We must explicitly exclude booleans to prevent genetic drift from turning flags into floats.
+            if isinstance(curr, (int, float)) and not isinstance(curr, bool):
                 if is_dict:
                     target[leaf] = value
                 else:
@@ -123,9 +124,9 @@ def _access_config_path(root, path, value=None, set_mode=False):
                 return True
             return False
 
-        # Read mode: Just return the value
+        # Just return the value
         return target.get(leaf) if is_dict else getattr(target, leaf, None)
 
     except (AttributeError, KeyError, TypeError):
-        # Fail gracefully if the path doesn't exist
-        return None
+        # Fail gracefully with consistent return types if the path doesn't exist
+        return False if set_mode else None

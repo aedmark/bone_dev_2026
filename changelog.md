@@ -1,6 +1,31 @@
 # CHANGELOG.md
 -----------------------------------------------------------
 
+### **BONEAMANITA 19.7.2 "The Biological Substrate Audit"**
+
+*A deep, full-stack architectural audit executed by the S.L.A.S.H. Council. This update resolved critical `O(N^2)` performance bottlenecks in the cognitive layer, fortified the physics engine against mathematical inversion, and patched severe data leaks in the evolutionary reproductive cycle.*
+
+#### **🧠 LANGUAGE & COGNITION (Pinker's Pass: Syntactic Ergonomics)**
+- **The Lexical Firewall (`main.py`, `brain/cortex.py`, `physics/observer.py`):** Extracted all hardcoded narrative strings and system tutorial prompts from the execution layer and routed them through `ux()` fallbacks, completely separating engine mechanics from language output.
+- **Syntactic Demining (`brain/composer.py`, `spores/biome.py`):** Purged 6-line nested walrus-operator (`:=`) list comprehensions and temporary inline variable assignments in favor of clean, explicit loops and declarative math.
+- **Boolean Type-Safety (`spores/spore_utils.py`):** Explicitly excluded `bool` from `isinstance(int)` checks in the config accessor, preventing genetic radiation from randomly drifting structural flags into floating-point crashes.
+
+#### **✨ SYNERGETIC REINFORCEMENT (Fuller's Pass: Architecture)**
+- **Vectorized Cognition (`brain/ann.py`):** Obliterated an `O(N^2)` nested Python loop for semantic graph building, replacing it with pure, C-level vectorized NumPy matrix multiplication for instantaneous adjacency mapping.
+- **Infinite Dimensional Scaling (`spores/spore_utils.py`):** Upgraded `_word_to_vector` from fixed 16-byte MD5 hashes to the extendable `SHAKE-256` XOF function, allowing the `CerebralIndex` to scale to infinite dimensions without crashing.
+- **Atomic Substrate Preservation (`spores/io.py`, `spores/memory.py`):** Fortified the jsonl fossil record pruning and spore saving with `tempfile` atomic OS replacements. Repaired an apoptotic exception handler that could accidentally delete a user's original memory file on a permission error.
+- **Genome Hydration (`spores/genetics.py`):** Fixed a massive data leak in the reproduction loop that was abandoning trauma scars and config mutations at birth, ensuring offspring now inherit their full epigenetic genome.
+
+#### **⚖️ DYNAMIC EQUILIBRIUM (Meadows' Pass: Systems & Dynamics)**
+- **RAM Caching & I/O Speedups (`spores/memory.py`, `spores/io.py`):** Decoupled `SubconsciousStrata.dredge` from live disk reads by caching dead fossil payloads in an `O(1)` dictionary. Swapped `os.listdir` and `os.path.getmtime` for unified `os.scandir()` calls, halving disk reads during lineage tracking.
+- **Fluid Dynamics Correction (`physics/geodesics.py`, `physics/dynamics.py`):** Fixed an inverted viscosity formula where shear resistance was dividing friction instead of multiplying it. Applied a hard `max()` clamp to the narrative gravity floor.
+- **Metaphor Starvation (`spores/biome.py`):** Refactored `BioParasite.infect` to mathematically pre-filter for valid, unconnected pathways before choosing targets, ensuring the engine generates lateral connections instead of choking on random RNG collisions.
+
+#### **🛠️ FUNCTIONAL PRAGMATISM (Schur's Pass: Humanity)**
+- **Bleeding Cognitive Drag (`main.py`, `physics/filters.py`):** Lifted `O(N)` passive inventory checks into a short-circuiting generator. Hoisted regex compilation for semantic filters into the `__init__` sequence to prevent JIT lag inside the core execution loop.
+- **Village Extinction Prevention (`spores/network.py`):** Hard-linked `village_data` into legacy trait extraction, preventing the system from forgetting the state of active critics, cooldowns, and suppressed archetypes upon reboot.
+- **Telemetry Consolidation (`core.py`, `brain/mind.py`):** Merged aggressive, multi-line Apoptotic red-errors into a single graceful terminal print while routing the stack traces to silent background log files. Added `BoneJSONEncoder` to the Akashic state saver.
+
 ### **BONEAMANITA 19.7.1 "The S.L.A.S.H. Engine Audit"**
 
 *A massive, multi-layer refactor executed by the S.L.A.S.H. Council. This update focused on repairing silent runtime failures, sealing memory cache desynchronizations, and protecting the cognitive layers from syntactic rot.*
