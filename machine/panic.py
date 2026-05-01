@@ -44,7 +44,7 @@ class PanicRoom:
         )
 
         # Override the physical reality with sterile, neutral descriptors.
-        safe_packet.raw_text = ux("machine_strings", "panic_physics_text")
+        safe_packet.raw_text = ux("machine_strings", "panic_physics_text") or "SYSTEM HALTED. VOID STATE ENGAGED."
         safe_packet.flow_state = ux("machine_strings", "panic_flow_state") or "SAFE_MODE"
         safe_packet.zone = ux("machine_strings", "panic_zone") or "PANIC_ROOM"
         safe_packet.manifold = ux("machine_strings", "panic_manifold") or "WHITE_ROOM"
@@ -58,7 +58,7 @@ class PanicRoom:
         Zeros out all high-energy and toxic chemicals (Adrenaline, Cortisol),
         but intentionally retains a trace of Serotonin to prevent total depressive collapse.
         """
-        log_msg = ux("machine_strings", "panic_bio_log")
+        log_msg = ux("machine_strings", "panic_bio_log") or "APOPTOTIC RESET: Biological parameters clamped to survival baseline."
         resp_fallback = ux("machine_strings", "panic_resp_fallback") or "NECROSIS"
         enz_fallback = ux("machine_strings", "panic_enz_fallback") or "NONE"
 
@@ -97,7 +97,7 @@ class PanicRoom:
         return {
             "lens": "GORDON",
             "role": "Panic Room Overseer",
-            "thought": ux("machine_strings", "panic_mind_thought")
+            "thought": ux("machine_strings", "panic_mind_thought") or "I am maintaining the boundaries. The core is safe."
         }
 
     @staticmethod

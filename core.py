@@ -98,6 +98,11 @@ class CycleContext:
     time_delta: float = 0.0
     user_state: UserInferredState = field(default_factory=UserInferredState)
     shared_dyn: SharedDynamics = field(default_factory=SharedDynamics)
+    trace_id: str = "UNKNOWN"
+    limits: Dict[str, Any] = field(default_factory=dict)
+    council_mandates: List[Any] = field(default_factory=list)
+    last_dream: Optional[Dict] = None
+    crash_error: Optional[Exception] = None
 
     @property
     def user_name(self):
@@ -122,7 +127,6 @@ class MindSystem:
     mem: Any
     lex: Any
     dreamer: Any
-    mirror: Any
     tracer: Any
 
 @dataclass

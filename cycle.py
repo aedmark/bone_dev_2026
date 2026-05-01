@@ -185,11 +185,13 @@ class CycleSimulator:
 
     def check_circuit_breaker(self, phase_name: str) -> bool:
         """
-        Prevents cascading failure. If the Physics engine is offline, do not attempt to run the
-        Observation phase. Just pass through silently.
+        Prevents cascading failure by dynamically checking system health against the crash map.
+        If a mapped subsystem is offline, its corresponding phases are bypassed.
         """
-        if phase_name == "OBSERVE": return self.eng.system_health.physics_online
-        if phase_name == "COGNITION": return self.eng.system_health.mind_online
+        component = _CRASH_COMPONENT_MAP.get(phase_name)
+        if component:
+            health_flag = f"{component.lower()}_online"
+            return getattr(self.eng.system_health, health_flag, True)
         return True
 
     def handle_phase_crash(self, ctx, phase_name, error):
@@ -512,6 +514,10 @@ class GeodesicOrchestrator:
         if "ui" in snapshot:
             self.symbiosis.monitor_host(time.time() - ctx.timestamp, snapshot["ui"], len(user_message))
 
+        # Ensure the UI snapshot explicitly knows which lens is active for Chaos Test Vector 1.
+        if "mind" in snapshot:
+            snapshot["mind"]["lens"] = getattr(ctx, "active_lens", "NARRATOR")
+
         return snapshot
 
     def run_headless_turn(self, user_message: str, latency: float = 0.0) -> Dict[str, Any]:
@@ -532,15 +538,15 @@ class GeodesicOrchestrator:
     def _hydrate_snapshot_metadata(self, snapshot: Dict, ctx: CycleContext):
         """Ensures the UI layer receives all necessary telemetry and background state info."""
         snapshot.update({
-            "trace_id": getattr(ctx, "trace_id", "UNKNOWN"),
+            "trace_id": ctx.trace_id,
             "is_alive": True,
             "physics": _safe_dict(ctx.physics),
             "bio": _safe_dict(ctx.bio_result),
             "mind": _safe_dict(ctx.mind_state),
             "world": _safe_dict(ctx.world_state),
             "soul": _safe_dict(getattr(self.eng, "soul", {})),
-            "council_mandates": getattr(ctx, "council_mandates", []),
-            "dream": getattr(ctx, "last_dream", None),
+            "council_mandates": ctx.council_mandates,
+            "dream": ctx.last_dream,
             "mutated_input": ctx.input_text,
         })
 

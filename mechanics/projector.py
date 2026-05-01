@@ -53,17 +53,24 @@ class Projector:
     def __init__(self, config_ref=None):
         self.cfg = config_ref or BoneConfig
         self.width = 80
+        # Cache the UX symbols once to prevent metabolic drain during render loops
+        self.symbols = ux("projector", "symbols", {})
 
-    @staticmethod
-    def _safe_val(obj, k, default):
-        """A hyper-paranoid data extractor to prevent UI rendering crashes."""
-        v = safe_get(obj, k)
-        if v is None:
-            return default
-        try:
-            return float(v)
-        except (ValueError, TypeError):
-            return default
+    def enforce_metric(obj: dict, key: str) -> float:
+        """
+        Strict typing enforcement.
+        If the metric is missing or corrupted, the system dies. As it should.
+        """
+        val = obj.get(key)
+
+        if val is None:
+            raise ValueError(f"CRITICAL FAULT: Missing structural metric '{key}'. The Void has breached the hull.")
+
+        if not isinstance(val, (int, float)):
+            raise TypeError(
+                f"CRITICAL FAULT: Metric '{key}' requires a float. Received {type(val)}. The physics engine is compromised.")
+
+        return float(val)
 
     @staticmethod
     def _extract(physics_obj: Any, field: str, sub_field: str, default: Any = 0.0):
@@ -180,38 +187,42 @@ class Projector:
 
     def _render_vital_strip(self, data: Dict, mind: tuple, labels: Dict) -> str:
         """Renders the biological health, stamina, ATP, and dignity reserves."""
-        max_h = float(getattr(self.cfg, "MAX_HEALTH", 100.0) or 100.0)
-        max_s = float(getattr(self.cfg, "MAX_STAMINA", 100.0) or 100.0)
+        maximum_health = float(getattr(self.cfg, "MAX_HEALTH", 100.0) or 100.0)
+        maximum_stamina = float(getattr(self.cfg, "MAX_STAMINA", 100.0) or 100.0)
 
-        cfg = getattr(self.cfg, "GUI", object())
-        d_med = getattr(cfg, "DIGNITY_MED", 50.0)
-        d_high = getattr(cfg, "DIGNITY_HIGH", 80.0)
-        r_len = getattr(cfg, "ROLE_TRUNC_LEN", 30)
+        gui_config = getattr(self.cfg, "GUI", object())
+        dignity_medium = getattr(gui_config, "DIGNITY_MED", 50.0)
+        dignity_high = getattr(gui_config, "DIGNITY_HIGH", 80.0)
+        role_truncation_length = getattr(gui_config, "ROLE_TRUNC_LEN", 30)
 
-        health = float(data.get("health") or max_h)
-        stamina = float(data.get("stamina") or max_s)
-        atp = float(data.get("bio", {}).get("atp") or 0.0)
-        dignity = float(data.get("dignity") or 100.0)
+        current_health = float(data.get("health") or maximum_health)
+        current_stamina = float(data.get("stamina") or maximum_stamina)
+        current_atp = float(data.get("bio", {}).get("atp") or 0.0)
+        current_dignity = float(data.get("dignity") or 100.0)
 
-        hp_bar = self._mini_bar(health, max_h, 6, Prisma.RED)
-        stm_bar = self._mini_bar(stamina, max_s, 6, Prisma.GRN)
-        dig_color = Prisma.VIOLET if dignity > d_med else Prisma.GRY
+        health_bar = self._mini_bar(current_health, maximum_health, 6, Prisma.RED)
+        stamina_bar = self._mini_bar(current_stamina, maximum_stamina, 6, Prisma.GRN)
 
-        sym = ux("projector", "symbols", {})
-        dig_icon = sym.get("dig_high", "") if dignity > d_high else sym.get("dig_low", "")
-        role = self._get_role(mind)
-        role = f"{role[:r_len - 3]}..." if len(role) > r_len else role
+        dignity_color = Prisma.VIOLET if current_dignity > dignity_medium else Prisma.GRY
+        dignity_icon = self.symbols.get("dig_high", "") if current_dignity > dignity_high else self.symbols.get("dig_low", "")
 
-        l_hp = labels.get("HP", "HP")
-        l_stm = labels.get("STM", "STM")
-        i_role = sym.get("role", "")
+        active_role = self._get_role(mind)
+        if len(active_role) > role_truncation_length:
+            active_role = f"{active_role[:role_truncation_length - 3]}..."
 
-        role_block = f"{Prisma.WHT}{i_role} {role}{Prisma.RST}"
-        return ("  {role_block:<35} "
-            f"{l_hp} {hp_bar}  "
-            f"{l_stm} {stm_bar}  "
-            f"{dig_color}{dig_icon}{int(dignity)}%{Prisma.RST} "
-            f"{Prisma.YEL}ATP:{int(atp)}{Prisma.RST}")
+        label_health = labels.get("HP", "HP")
+        label_stamina = labels.get("STM", "STM")
+        icon_role = self.symbols.get("role", "")
+
+        role_block = f"{Prisma.WHT}{icon_role} {active_role}{Prisma.RST}"
+
+        return (
+            f"  {role_block:<35} "
+            f"{label_health} {health_bar}  "
+            f"{label_stamina} {stamina_bar}  "
+            f"{dignity_color}{dignity_icon}{int(current_dignity)}%{Prisma.RST} "
+            f"{Prisma.YEL}ATP:{int(current_atp)}{Prisma.RST}"
+        )
 
     def _render_physics_strip(self, physics: Any, vectors: Dict) -> str:
         """Renders the Voltage, Drag, and active Semantic Vector of the conversation."""
@@ -244,6 +255,21 @@ class Projector:
                     except (ValueError, TypeError):
                         pass
         return default
+
+    from typing import Any, Dict, List
+
+    def resolve_lattice_coordinate(lattice: Dict[str, Any], path: List[str]) -> float:
+        """
+        Exact traversal of the semantic lattice. No guessing. No blind loops.
+        """
+        current_node = lattice
+
+        for node in path:
+            if not isinstance(current_node, dict) or node not in current_node:
+                raise KeyError(f"LATTICE FRACTURE: Traversal failed at node '{node}'. Coordinate path {path} is dead.")
+            current_node = current_node[node]
+
+        return enforce_metric({'val': current_node}, 'val')
 
     def _render_lattice_strip(self, physics: Any, data_ctx: Dict = None, depth: str = "DEEP") -> str:
         """
@@ -332,20 +358,19 @@ class Projector:
             f"{l_vec} [{vec_str}]\n"
             f"{l_bio} {str(data.get('bio', {}))[:60]}...")
 
-    @staticmethod
-    def _mini_bar(val, max_val, width, color):
+    def _mini_bar(self, val, max_val, width, color):
         """Constructs a tiny, fixed-width progress bar for the HUD."""
         if max_val == 0:
             return ""
+
         ratio = max(0.0, min(1.0, val / max_val))
-        fill = int(ratio * width)
-        empty = width - fill
+        fill_count = int(ratio * width)
+        empty_count = width - fill_count
 
-        sym = ux("projector", "symbols", {})
-        c_fill = sym.get("bar_fill", "")
-        c_empty = sym.get("bar_empty", "")
+        char_fill = self.symbols.get("bar_fill", "")
+        char_empty = self.symbols.get("bar_empty", "")
 
-        return f"{color}{c_fill * fill}{Prisma.GRY}{c_empty * empty}{Prisma.RST}"
+        return f"{color}{char_fill * fill_count}{Prisma.GRY}{char_empty * empty_count}{Prisma.RST}"
 
 
 class SoulDashboard:

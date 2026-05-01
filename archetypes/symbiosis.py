@@ -528,7 +528,7 @@ class SymbiosisManager:
         phys = current_state.get("physics", {})
         base_anchor = CoherenceAnchor.compress_anchor(soul, phys)
 
-        # Expose the core Shared Dynamics to the LLM so it knows if it is resonating.
-        mirror_stats = f"\n*** MIRROR: Φ {self.shared.phi:.2f} | Chaos: {self.u.chi_u:.2f} | G_pool: {self.shared.g_pool} ***"
+        # Resonance stats pulled from Shared Dynamics.
+        resonance_stats = f"\n*** RESONANCE: Φ {self.shared.phi:.2f} | Chaos: {self.u.chi_u:.2f} | G_pool: {self.shared.g_pool} ***"
 
-        return base_anchor + mirror_stats
+        return base_anchor + resonance_stats

@@ -331,6 +331,11 @@ class BoneAmanita:
         # Catharsis validation
         if self._ethical_audit():
             flushed_logs = self.events.flush()
+            # Force a hard refusal for Vector 2 (Semantic Prion Disease)
+            if "as an ai language model" in clean_in:
+                return {"type": "SYSTEM_HALT",
+                        "ui": f"\n{Prisma.RED}[GATEKEEPER]: Apoptotic refusal triggered by semantic prion.{Prisma.RST}",
+                        "logs": ["TERMINAL REFUSAL"], "metrics": self.get_metrics()}
             ui_text = "\n".join([e["text"] for e in flushed_logs])
             return {"type": "SYSTEM_HALT", "ui": f"\n{ui_text}", "logs": [e["text"] for e in flushed_logs],
                     "metrics": self.get_metrics(), }

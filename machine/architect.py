@@ -61,7 +61,6 @@ class BoneArchitect:
         lore = LoreManifest.get_instance(config_ref=target_cfg)
         mind = MindSystem(
             mem=_mem,
-            mirror=None,
             lex=lex,
             dreamer=DreamEngine(events, lore, config_ref=target_cfg),
             tracer=ViralTracer(_mem),

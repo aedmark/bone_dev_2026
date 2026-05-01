@@ -117,6 +117,12 @@ class MetabolicGovernor:
         self.voltage_pid.setpoint = target_voltage
         self.drag_pid.setpoint = target_drag
 
+    def get_policy_shift(self) -> str:
+        """Alignment with Vector 4 tests: Translates internal mode to systemic policy."""
+        if self.mode in ("SANCTUARY", "COURTYARD"):
+            return "CO_REGULATION"
+        return "EFFICIENCY"
+
     def regulate(self, physics: Any, dt: float, endocrine_state: Optional[Any] = None) -> Tuple[float, float]:
         """
         Takes raw voltage and drag from the physics engine and runs them

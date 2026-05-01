@@ -111,8 +111,7 @@ class RealityFilterPhase(SimulationPhase):
         self.trigrams = LoreManifest.get_instance().get("PHYSICS_CONSTANTS", "TRIGRAM_MAP") or {}
 
     def run(self, ctx: CycleContext):
-        reflection = self.eng.mind.mirror.get_reflection_modifiers()
-        ctx.physics.narrative_drag *= reflection["drag_mult"]
+        ctx.physics.narrative_drag *= drag_mult
         vector = ctx.physics.vector
         sufficient_mass = len(ctx.clean_words) >= 3
         sufficient_tension = getattr(ctx.physics, "voltage", 0.0) >= 5.0

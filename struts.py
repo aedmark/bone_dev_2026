@@ -63,12 +63,13 @@ def ux_format(section: str, key: str, default: str = "", **kwargs) -> str:
     if not msg:
         return ""
     try:
-        return msg.format(**kwargs)
-    except (KeyError, ValueError, IndexError) as e:
+        # Force string conversion to prevent AttributeError if the UX cache returns a list or dict.
+        return str(msg).format(**kwargs)
+    except (KeyError, ValueError, IndexError, AttributeError, TypeError) as e:
         # We log the grammatical failure so the developer can fix it,
         # but we do not crash the biological engine over a missing noun.
         print(f"{Prisma.GRY}[UX] Formatting mismatch ({e}) in {section}.{key}. Falling back to raw string.{Prisma.RST}")
-        return msg
+        return str(msg)
 
 
 def safe_get(obj: Any, key: str, default: Any = None) -> Any:
@@ -117,7 +118,10 @@ def safe_set(obj: Any, key: str, value: Any) -> None:
     if obj is None:
         print(f"{Prisma.RED}[STRUCTURAL ROT] safe_set swallowed a write to '{key}'. Target object is None.{Prisma.RST}")
         return
-    if isinstance(obj, dict):
-        obj[key] = value
-    else:
-        setattr(obj, key, value)
+    try:
+        if isinstance(obj, dict):
+            obj[key] = value
+        else:
+            setattr(obj, key, value)
+    except (TypeError, AttributeError) as e:
+        print(f"{Prisma.RED}[STRUCTURAL ROT] safe_set failed on '{key}'. Target is immutable or rejects assignment: {e}{Prisma.RST}")
