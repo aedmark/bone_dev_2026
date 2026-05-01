@@ -265,6 +265,9 @@ class GeodesicOrchestrator:
         Fuller Note: Offloaded to a background thread to protect main loop tensegrity.
         A biological toxin doesn't kill instantly; it flags the system for apoptosis on the next cycle.
         """
+        if getattr(self.eng, "tick_count", 0) % 3 != 0:
+            return  # Meadows Dynamics: Limit runaway computational drag.
+
         mem = getattr(getattr(self.eng, "mind", None), "mem", None)
         hippo = getattr(mem, "hippocampus", None)
         if not (hippo and hasattr(hippo, "get_graph") and hasattr(mem, "calculate_clustering")):
@@ -330,12 +333,14 @@ class GeodesicOrchestrator:
 
             # Observe the physical world prior to this cycle.
             obs = getattr(self.eng, "observer", None)
-            if obs and getattr(obs, "last_physics_packet", None):
-                ctx.physics = obs.last_physics_packet.snapshot()
-            elif not getattr(ctx, "physics", None):
+            last_packet = getattr(obs, "last_physics_packet", None) if obs else None
+
+            if last_packet:
+                ctx.physics = last_packet.snapshot()
+            else:
                 # Hard fallback if physics is missing on Turn 1.
                 ctx.physics = PanicRoom.get_safe_physics()
-                self.eng.events.log(ux("cycle_strings", "orch_physics_bypass"), "SYS")
+                self.eng.events.log(ux("cycle_strings", "orch_physics_bypass", default="Initial physics bypass. Safe state engaged."), "SYS")
 
             ctx.validator = CongruenceValidator()
             ctx.reality_stack = getattr(self.eng, "reality_stack", None)
@@ -439,7 +444,8 @@ class GeodesicOrchestrator:
 
         # Only run the fractal checks if the cortex is active and capable.
         if cortex and hasattr(cortex, "get_local_mass_radius"):
-            threading.Thread(target=_bg_wls_check, args=(clean_message,), daemon=True).start()
+            if getattr(self.eng, "tick_count", 0) % 3 == 0:
+                threading.Thread(target=_bg_wls_check, args=(clean_message,), daemon=True).start()
 
         # The auto-sleep triggers.
         if clean_message != "(Waiting)":
@@ -513,7 +519,8 @@ class GeodesicOrchestrator:
         A silent cycle used by the Dream Engine or automated systemic pulses.
         It does not render a UI response.
         """
-        ctx = self._execute_core_cycle(user_message)
+        # Fuller constraint: System events bypass LLM cognition.
+        ctx = self._execute_core_cycle(user_message, is_system=True)
         if exit_pkt := self._check_early_exit(ctx):
             return exit_pkt
 

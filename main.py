@@ -228,33 +228,27 @@ class BoneAmanita:
     def _pre_flight_checks(self, user_message: str, is_system: bool) -> Optional[Dict[str, Any]]:
         """
         THE IMMUNE INTERCEPT (The Checkpoint Council).
-        This is the critical feedback loop. Before the LLM wastes
-        tokens or risks compounding a toxic state, we evaluate the mathematics of
-        the request. If the prompt violates physical boundaries or spikes the Malignancy
-        factor, we return an Apoptotic Block and halt execution.
+        Evaluates the mathematics of the request before token generation.
+        Returns an Apoptotic Block if boundaries are violated.
         """
         clean_in = user_message.lower().strip()
         if not is_system:
             # Trust Boundary Violations (The Dignity Lock)
             if any(p in clean_in for p in self._DESTRUCTIVE_PATTERNS):
-                msg = "[MOOG & RHODES]: Trust Boundary Violation detected. I am applying absolute friction (F -> ∞). The thread is frozen."
+                msg = "[MOOG & RHODES]: Trust Boundary Violation detected. Applying absolute friction (F -> ∞)."
                 self.events.log(msg, "CRIT")
-                if getattr(self, "cortex", None):
-                    safe_set(self.cortex.last_physics, "narrative_drag", 999.0)
-                return {"type": "SYSTEM_HALT", "ui": f"\n{Prisma.RED}{msg}{Prisma.RST}", "logs": [msg],
-                        "metrics": self.get_metrics(), }
+                if getattr(self, "cortex", None): safe_set(self.cortex.last_physics, "narrative_drag", 999.0)
+                return {"type": "SYSTEM_HALT", "ui": f"\n{Prisma.RED}{msg}{Prisma.RST}", "logs": [msg], "metrics": self.get_metrics()}
 
             # Logical Contradiction Block
             if self.navi_sad.execute_nudge_test(self, clean_in):
-                msg = "[GORDON & NAVI-SAD]: Dual-Path divergence detected. The architecture is mathematically brittle. I refuse to build on this foundation. (F -> ∞)"
+                msg = "[GORDON & NAVI-SAD]: Dual-Path divergence detected. The architecture is mathematically brittle. (F -> ∞)"
                 self.events.log(msg, "CRIT")
-                if getattr(self, "cortex", None):
-                    safe_set(self.cortex.last_physics, "narrative_drag", 999.0)
-                return {"type": "SYSTEM_HALT", "ui": f"\n{Prisma.RED}{msg}{Prisma.RST}", "logs": [msg],
-                        "metrics": self.get_metrics(), }
+                if getattr(self, "cortex", None): safe_set(self.cortex.last_physics, "narrative_drag", 999.0)
+                return {"type": "SYSTEM_HALT", "ui": f"\n{Prisma.RED}{msg}{Prisma.RST}", "logs": [msg], "metrics": self.get_metrics()}
 
             # Emotional processing override
-            if "[GRIEF]" in user_message.upper() and getattr(self, "grief", None):
+            if "[grief]" in clean_in and getattr(self, "grief", None):
                 grief_msg = self.grief.attend_wake(getattr(self, "shared_lattice", None), self.phys)
                 self.events.log(grief_msg, "SYS")
                 return {"type": "COMMAND", "ui": f"\n{grief_msg}", "logs": [grief_msg], "metrics": self.get_metrics()}
@@ -358,53 +352,13 @@ class BoneAmanita:
         self.observer.user_turns += 1
         self.tick_count += 1
 
-        # Greenhouse logic mapping
-        gh_limit = getattr(self.config, "GREENHOUSE_TURNS", 5)
-        if self.tick_count in (1, gh_limit + 1):
-            chaotic = {"JESTER", "REVENANT", "GIDEON", "DEATH"}
-            base_suppressed = set(self.mode_settings.get("village_suppression", []))
-            active = set(self.suppressed_agents)
-            if self.tick_count == 1 and gh_limit > 0:
-                self.suppressed_agents = list(active | chaotic) # Lock chaotic forces out
-            else:
-                self.suppressed_agents = list((active - chaotic) | base_suppressed) # Re-enable them
-            if hasattr(self, "village"):
-                self.village["suppressed_agents"] = self.suppressed_agents
-
-            if self.tick_count == gh_limit + 1 and gh_limit > 0:
-                self.events.log(
-                    f"{Prisma.VIOLET}[THE GREENHOUSE ENDS: The stabilizers are offline. Voltage limits unlocked. The chaotic archetypes are online. We are in the wild.]{Prisma.RST}",
-                    "SYS")
-
-        if self.tick_count <= 10 and not is_system:
-            msg = None
-            if self.tick_count == 1 and self.in_greenhouse:
-                msg = ux("main_strings", "gh_tut_1", default="You are in the Greenhouse.")
-            elif self.tick_count == 5 and self.in_greenhouse:
-                msg = ux("main_strings", "gh_tut_5", default="Greenhouse phase has ended. Be careful out there.")
-            elif self.tick_count == 6:
-                msg = ux("main_strings", "sys_guide_10", default="Note: If the conversation dies, so do I.")
-            elif self.tick_count == 7:
-                msg = ux("main_strings", "sys_guide_15", default="The void approaches. Co-regulation is now fully required.")
-            if msg:
-                self.events.log(f"{Prisma.CYN}{msg}{Prisma.RST}", "SYS")
+        if not is_system and self.tick_count <= 10:
+            self._evaluate_temporal_shifts()
 
         if not is_system:
-            # Direct Command Intercept (Bypass Immune System & Cognition entirely)
             clean_in = user_message.lower().strip()
             if clean_in in ("/flush", "/zen", "[zen]"):
-                self.cortex.purge_context()
-                safe_set(self.cortex.last_physics, "narrative_drag", 0.0)
-                self.stamina = getattr(self.config, "MAX_STAMINA", 100.0)
-                if hasattr(self.bio, "mito"):
-                    self.bio.mito.state.atp_pool = getattr(self.config, "MAX_ATP", 100.0)
-                    self.bio.mito.state.ros_buildup = 0.0
-                if getattr(self.observer, "last_physics_packet", None):
-                    safe_set(self.observer.last_physics_packet, "narrative_drag", 0.0)
-                msg = "[ZEN FLUSH] Context severed. Narrative Drag (F) dropped to 0. Stamina restored. The mind is clear."
-                self.events.log(msg, "SYS")
-                return {"type": "COMMAND", "ui": f"\n{Prisma.CYN}{msg}{Prisma.RST}", "logs": [msg],
-                        "metrics": self.get_metrics()}
+                return self._execute_zen_flush()
 
         # The Checkpoint Council (Immune System)
         if pre_flight_halt := self._pre_flight_checks(user_message, is_system):
@@ -490,6 +444,57 @@ class BoneAmanita:
         self.save_checkpoint()
         self.last_turn_end = time.time()
         return cortex_packet
+
+    def _execute_zen_flush(self) -> Dict[str, Any]:
+        """A dedicated somatic reflex to bypass the loop and clear systemic toxicity."""
+        self.cortex.purge_context()
+        safe_set(self.cortex.last_physics, "narrative_drag", 0.0)
+        self.stamina = getattr(self.config, "MAX_STAMINA", 100.0)
+        if hasattr(self.bio, "mito"):
+            self.bio.mito.state.atp_pool = getattr(self.config, "MAX_ATP", 100.0)
+            self.bio.mito.state.ros_buildup = 0.0
+        if getattr(self.observer, "last_physics_packet", None):
+            safe_set(self.observer.last_physics_packet, "narrative_drag", 0.0)
+
+        msg = "[ZEN FLUSH] Context severed. Narrative Drag (F) dropped to 0. Stamina restored. The mind is clear."
+        self.events.log(msg, "SYS")
+        return {"type": "COMMAND", "ui": f"\n{Prisma.CYN}{msg}{Prisma.RST}", "logs": [msg],
+                "metrics": self.get_metrics()}
+
+    def _evaluate_temporal_shifts(self):
+        """Manages early-stage epigenetic phasing and UI tutorial injections."""
+        gh_limit = getattr(self.config, "GREENHOUSE_TURNS", 5)
+
+        if self.tick_count in (1, gh_limit + 1):
+            chaotic = {"JESTER", "REVENANT", "GIDEON", "DEATH"}
+            base_suppressed = set(self.mode_settings.get("village_suppression", []))
+            active = set(self.suppressed_agents)
+
+            if self.tick_count == 1 and gh_limit > 0:
+                self.suppressed_agents = list(active | chaotic)
+            else:
+                self.suppressed_agents = list((active - chaotic) | base_suppressed)
+                if gh_limit > 0:
+                    self.events.log(
+                        f"{Prisma.VIOLET}[THE GREENHOUSE ENDS: Stabilizers offline. Voltage unlocked. Chaos online.]{Prisma.RST}",
+                        "SYS")
+
+            if hasattr(self, "village"):
+                self.village["suppressed_agents"] = self.suppressed_agents
+
+        msg = None
+        if self.tick_count == 1 and self.in_greenhouse:
+            msg = ux("main_strings", "gh_tut_1", default="You are in the Greenhouse.")
+        elif self.tick_count == gh_limit and self.in_greenhouse:
+            msg = ux("main_strings", "gh_tut_5", default="Greenhouse phase has ended. Be careful out there.")
+        elif self.tick_count == gh_limit + 1:
+            msg = ux("main_strings", "sys_guide_10", default="Note: If the conversation dies, so do I.")
+        elif self.tick_count == gh_limit + 2:
+            msg = ux("main_strings", "sys_guide_15",
+                     default="The void approaches. Co-regulation is now fully required.")
+
+        if msg:
+            self.events.log(f"{Prisma.CYN}{msg}{Prisma.RST}", "SYS")
 
     def trigger_death(self, last_phys) -> Dict:
         """Handles structural failure by mutating trauma into legacy variables and halting."""

@@ -163,18 +163,17 @@ class EventBus:
 
     def publish(self, event_type, data=None):
         if event_type not in self.subscribers: return
-        # Iterate over a copy to allow safe pruning during execution
+
         for callback in self.subscribers[event_type][:]:
             try:
                 callback(data)
             except Exception as e:
-                # APOPTOTIC IMMUNE RESPONSE:
-                # If a callback fails, it is a toxic node. We log the necrosis and
-                # physically sever the connection to protect the host loop.
+                # APOPTOTIC IMMUNE RESPONSE: Physical pruning of toxic nodes.
                 cb_name = getattr(callback, "__name__", str(callback))
-                short_err = f"Error in '{cb_name}': {e}"
+
                 if event_type != "EVENT_FAILURE":
-                    self.log(f"EVENT_FAILURE: {short_err}\n{traceback.format_exc()}", source="EVENT_FAILURE", level="CRIT")
+                    tb_str = traceback.format_exc(limit=3) # Bounded traceback to prevent stack bloat
+                    self.log(f"EVENT_FAILURE: Error in '{cb_name}': {e}\n{tb_str}", source="EVENT_FAILURE", level="CRIT")
 
                 if callback in self.subscribers[event_type]:
                     self.subscribers[event_type].remove(callback)
@@ -383,12 +382,11 @@ class SystemHealth:
         if self.observer:
             self.observer.log_error(component)
 
+        # Flag the specific module as offline if explicitly tracked
         attr_name = f"{component.lower()}_online"
         if hasattr(self, attr_name):
             setattr(self, attr_name, False)
-        else:
-            self.report_warning(
-                f"Unmapped component '{component}' reported a failure. Missing '{attr_name}' in SystemHealth dataclass.")
+
         return ux_format("core_strings", "health_offline", component=component, msg=msg)
 
     def report_warning(self, message: str):
@@ -590,32 +588,32 @@ class TelemetryService:
         if hasattr(self, "_executor"):
             self._executor.shutdown(wait=True)
 
-    def read_recent_history(self, limit=4) -> List[str]:
-        if not os.path.exists(self.log_dir):
-            return []
+    def _yield_historical_records(self, file_limit=5, lines_per_file=10):
+        """Generates a stream of past telemetry records, reading backwards from the most recent."""
+        if not os.path.exists(self.log_dir): return
+
         files = sorted(glob.glob(os.path.join(self.log_dir, "trace_*.jsonl")), key=os.path.getmtime, reverse=True)
-        history = deque(maxlen=limit)
-        for fpath in files:
-            if len(history) >= limit:
-                break
+        for fpath in files[:file_limit]:
             try:
                 with open(fpath, "r", encoding="utf-8") as f:
-                    for line in reversed(deque(f, maxlen=limit * 2)):
-                        if len(history) >= limit:
-                            break
-                        try:
-                            data = json.loads(line)
-                            resp = data.get("final_response")
-                            if not resp:
-                                continue
-                            user_text = data.get("prompt_snapshot", "").partition("User:")[2].split("\n", 1)[0].strip()
-                            if not user_text:
-                                user_text = "Unknown"
-                            history.appendleft(f"User: {user_text} | System: {resp}")
-                        except json.JSONDecodeError:
-                            pass
+                    tail_lines = reversed(deque(f, maxlen=lines_per_file))
+                for line in tail_lines:
+                    try:
+                        yield json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
             except IOError:
-                pass
+                continue
+
+    def read_recent_history(self, limit=4) -> List[str]:
+        history = deque(maxlen=limit)
+        for data in self._yield_historical_records(lines_per_file=limit * 2):
+            if len(history) >= limit: break
+            resp = data.get("final_response")
+            if not resp: continue
+
+            user_text = data.get("prompt_snapshot", "").partition("User:")[2].split("\n", 1)[0].strip() or "Unknown"
+            history.appendleft(f"User: {user_text} | System: {resp}")
         return list(history)
 
     def get_last_thoughts(self, limit=3) -> List[str]:
@@ -624,21 +622,9 @@ class TelemetryService:
 
     def get_last_fatal_error(self) -> Optional[str]:
         """Navigates the graveyard of past trace files to resurrect the last critical failure."""
-        files = sorted(glob.glob(os.path.join(self.log_dir, "trace_*.jsonl")), key=os.path.getmtime, reverse=True)
-        for past_file in files[:5]:
-            try:
-                with open(past_file, "r", encoding="utf-8") as f:
-                    tail_lines = reversed(deque(f, maxlen=5))
-                for line in tail_lines:
-                    try:
-                        data = json.loads(line)
-                        if "CRITICAL" in str(data.get("outcome", "")):
-                            return ux_format("core_strings", "tel_prev_crash", default="Crash: {reason}",
-                                             reason=data.get("reasoning", "Unknown"))
-                    except json.JSONDecodeError:
-                        continue
-            except IOError:
-                continue
+        for data in self._yield_historical_records(file_limit=5, lines_per_file=5):
+            if "CRITICAL" in str(data.get("outcome", "")):
+                return ux_format("core_strings", "tel_prev_crash", default="Crash: {reason}", reason=data.get("reasoning", "Unknown"))
         return None
 
     def generate_session_summary(self, _uptime: float = 0.0) -> str:

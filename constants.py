@@ -95,7 +95,7 @@ class LoreCategory(Enum):
     strict categorical boundaries. When data is ingested, it must belong to one of
     these specific domains, allowing targeted, lateral retrieval without systemic noise.
     """
-    LEXICON = "LEXICON"       # The baseline definitions of system terminology.
+    LEXICON = "lexicon"       # The baseline definitions of system terminology.
     SCENARIOS = "scenarios"   # Contextual scenes and environmental setups.
     GORDON = "gordon"         # Core architectural logic and non-negotiable boundaries.
     GORDON_LOGS = "gordon_logs" # Historical records of boundary enforcements and system faults.

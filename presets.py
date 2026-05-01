@@ -282,19 +282,27 @@ class BoneConfig:
     def validate_integrity(self) -> List[str]:
         """
         Meadows' Dynamics Boundary.
-        Mathematical constraints must hold true for the engine to function.
-        If a user manually sets the Minimum Voltage higher than the Maximum Voltage,
-        the system forces a correction and logs an error to prevent collapse.
+        Enforces mathematical bounds. Prevents crashes from missing configuration keys
+        by establishing explicit default anchors.
         """
         errors = []
 
         # Check that physical floors are beneath physical ceilings
-        bounds = [("VOLTAGE_FLOOR", "VOLTAGE_MAX", "repair_floor_max"), ("DRAG_FLOOR", "DRAG_HALT", "repair_drag_halt")]
-        for floor, ceil, ux_key in bounds:
-            if getattr(self.PHYSICS, floor) > getattr(self.PHYSICS, ceil):
-                # Clamp the floor to immediately below the ceiling
-                setattr(self.PHYSICS, floor, getattr(self.PHYSICS, ceil) - 1.0)
-                if msg := ux("config_strings", ux_key):
+        bounds = [("VOLTAGE_FLOOR", "VOLTAGE_MAX", 0.0, 100.0, "repair_floor_max"),
+                  ("DRAG_FLOOR", "DRAG_HALT", 0.0, self.MAX_DRAG_LIMIT, "repair_drag_halt")]
+
+        for floor, ceil, def_floor, def_ceil, ux_key in bounds:
+            f_val = getattr(self.PHYSICS, floor, def_floor)
+            c_val = getattr(self.PHYSICS, ceil, def_ceil)
+
+            # Anchor missing nodes so downstream systems don't crash
+            setattr(self.PHYSICS, floor, f_val)
+            setattr(self.PHYSICS, ceil, c_val)
+
+            if f_val > c_val:
+                # Clamp the floor precisely to the ceiling to prevent negative bounds
+                setattr(self.PHYSICS, floor, float(c_val))
+                if msg := ux("config_strings", ux_key, default=f"Repaired inverted boundary: {floor}"):
                     errors.append(msg)
 
         # Check that biological rates are not inverted (time cannot flow backwards)
@@ -321,20 +329,30 @@ class BoneConfig:
     def reconcile_state(self, physics_packet: Any):
         """
         The Rubber Band.
-        Takes an active physics dictionary and ensures its current values (voltage, drag)
-        have not drifted outside the established boundaries of the current Preset.
+        Ensures physics values have not drifted outside the established boundaries,
+        expressly allowing for absolute zero (0.0) states.
         """
         from struts import safe_get, safe_set
         e_obj = safe_get(physics_packet, "energy") or {}
         s_obj = safe_get(physics_packet, "space") or {}
 
-        # Clamp Voltage
-        raw_v = safe_get(physics_packet, "voltage") or safe_get(e_obj, "voltage") or 5.0
-        new_v = max(self.PHYSICS.VOLTAGE_FLOOR, min(float(raw_v), self.PHYSICS.VOLTAGE_MAX))
+        # Safe Voltage retrieval (preventing 0.0 from being overwritten by fallbacks)
+        v_val = safe_get(physics_packet, "voltage")
+        v_val = safe_get(e_obj, "voltage") if v_val is None else v_val
+        raw_v = float(v_val if v_val is not None else 5.0)
 
-        # Clamp Drag
-        raw_d = safe_get(physics_packet, "narrative_drag") or safe_get(s_obj, "narrative_drag") or 1.0
-        new_d = max(self.PHYSICS.DRAG_FLOOR, min(float(raw_d), self.PHYSICS.DRAG_HALT))
+        v_floor = getattr(self.PHYSICS, "VOLTAGE_FLOOR", 0.0)
+        v_max = getattr(self.PHYSICS, "VOLTAGE_MAX", 100.0)
+        new_v = max(v_floor, min(raw_v, v_max))
+
+        # Safe Drag retrieval
+        d_val = safe_get(physics_packet, "narrative_drag")
+        d_val = safe_get(s_obj, "narrative_drag") if d_val is None else d_val
+        raw_d = float(d_val if d_val is not None else 1.0)
+
+        d_floor = getattr(self.PHYSICS, "DRAG_FLOOR", 0.0)
+        d_halt = getattr(self.PHYSICS, "DRAG_HALT", self.MAX_DRAG_LIMIT)
+        new_d = max(d_floor, min(raw_d, d_halt))
 
         safe_set(physics_packet, "voltage", new_v)
         safe_set(physics_packet, "narrative_drag", new_d)
