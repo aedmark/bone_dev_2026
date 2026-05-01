@@ -553,7 +553,10 @@ class GeodesicOrchestrator:
     @staticmethod
     def _generate_crash_report(e: Exception) -> Dict[str, Any]:
         """The absolute final safety net to ensure the UI layer never receives a NoneType on crash."""
-        full_trace = "".join(traceback.format_exception(type(e), e, e.__traceback__))
+        if e is not None:
+            full_trace = "".join(traceback.format_exception(type(e), e, e.__traceback__))
+        else:
+            full_trace = "Biological execution halted. No standard Python exception provided."
         safe_phys = PanicRoom.get_safe_physics()
         safe_bio = PanicRoom.get_safe_bio()
         msg = ux("cycle_strings", "orch_reality_fracture")

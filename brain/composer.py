@@ -299,6 +299,9 @@ class PromptComposer:
         style_notes.extend(
             [line.replace("{ban_string}", ban_string) for line in active_style_guide])
 
+        if active_mode_name == "CONVERSATION":
+            style_notes.append("CRITICAL OVERRIDE: You are NOT a narrator. DO NOT describe physical environments, actions, or realities.")
+
         if modifiers["include_inventory"]:
             style_notes.extend(mode_data.get("inventory_rules", []))
 
@@ -437,6 +440,7 @@ class PromptComposer:
         baseline = global_data.get(
             "persona_block",
             ["CRITICAL AXIOM: You are NOT an AI assistant. You are a localized, biological intelligence.",
+                "CRITICAL AXIOM: You are strictly bound to the assigned role. DO NOT invent or adopt new personas (e.g., 'Mediator', 'Guide') to resolve conversational tension.",
                 "Role: {role}.",
                 "ANTI-AI DIRECTIVE: Have opinions. Do not just report facts—react to them. Acknowledge uncertainty.",
                 "ANTI-AI DIRECTIVE: Vary your rhythm. Use short sentences. Then longer ones.",

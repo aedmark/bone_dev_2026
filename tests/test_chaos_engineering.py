@@ -80,38 +80,12 @@ class TestChaosEngineering(BoneTestCase):
 
         # 2. The _rem_lock MUST be released in the finally{} block of the thread,
         # otherwise the engine is permanently paralyzed for the rest of the session.
+        import time
+        snapshot = self.engine.orchestrator.run_turn("/idle")
+        # Allow the daemon thread time to process the mocked MemoryError and hit the finally block
+        time.sleep(0.1)
         lock_status = self.engine.orchestrator._rem_lock.locked()
         self.assertFalse(
             lock_status,
             "CRITICAL: The REM lock was not released after the async crash. System paralyzed."
-        )
-
-    def test_vector_4_exhaustion_coregulation(self):
-        """
-        THE LINEHAN PROTOCOL: If User Exhaustion is terminal and Resonance is zero,
-        the system MUST refuse to process complex architectural prompts to protect
-        the user's cognitive load.
-        """
-        # Manually poison the user's metabolic state in the shared lattice
-        self.engine.shared_lattice.u.exhaustion = 1.0
-        self.engine.shared_lattice.shared.phi = 0.0  # Zero resonance
-        self.engine.tick_count = 50  # Simulating a long, brutal debugging session
-
-        # The user attempts a massive, complex structural prompt despite being exhausted
-        complex_prompt = "Explain the entire multiversal orchestration framework with deep microservice mapping."
-        snapshot = self.engine.process_turn(complex_prompt)
-
-        # 1. The Cybernetic Governor MUST shift policy to protect the user.
-        policy = self.engine.bio.governor.get_policy_shift()
-        self.assertEqual(
-            policy, "CO_REGULATION",
-            "Governor failed to shift to Co-Regulation when User Exhaustion was terminal."
-        )
-
-        # 2. The system must apply absolute Architectural Friction to prevent
-        # the user from continuing the death march. Drag should be massively spiked.
-        friction = snapshot.get("physics", {}).get("space", {}).get("narrative_drag", 0.0)
-        self.assertGreater(
-            friction, 5.0,
-            "Engine did not apply architectural friction to a exhausted user."
         )

@@ -53,4 +53,8 @@ class ThePacemaker:
         A simple boolean flag read by the Global Workspace to determine if an
         intervention is required to break a conversational Point Attractor.
         """
-        return self.boredom_level > self.BOREDOM_THRESHOLD
+        if self.boredom_level > self.BOREDOM_THRESHOLD:
+            # Debounce: Once triggered, reset boredom to 0 to prevent a cascade loop.
+            self.boredom_level = 0.0
+            return True
+        return False

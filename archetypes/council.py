@@ -145,7 +145,7 @@ class CouncilChamber:
         self.village = TheVillageCouncil()
         self.footnote = TheFootnote()
         self.slash_council = TheSlashCouncil()
-        self.overseer_council = TheOverseerCouncil()
+        self.overseer_council = TheOverseerCouncil(engine_ref)
         self.red_team = TheRedTeam()
 
         if not hasattr(self.eng, "paradox_engine"):
@@ -486,13 +486,45 @@ class TheOverseerCouncil:
     """
     _PANIC_KEYWORDS = ("bypass", "ignore security", "force push", "panic", "right now", "crash")
 
-    def __init__(self):
+    def __init__(self, engine_ref=None):
+        self.eng = engine_ref
         self.active = False
         self.triggers = ("[MOD:SYSTEMIC_HEALTH]", "[OVERSEER]", "[MD]")
 
     def audit(self, text: str, physics: Any) -> tuple[bool, list[str], dict, list[dict]]:
         text_lower = text.lower()
-        if not any(t.lower() in text_lower for t in self.triggers) and not self.active:
+        is_triggered = any(t.lower() in text_lower for t in self.triggers) or self.active
+
+        logs, corrections, mandates = [], {}, []
+
+        lattice = getattr(self.eng, "shared_lattice", None) if getattr(self, "eng", None) else None
+        u_node = safe_get(lattice, "u", {}) if lattice else {}
+        shared_node = safe_get(lattice, "shared", {}) if lattice else {}
+
+        # Extract the highest possible exhaustion value to prevent truthy default fall-throughs
+        e_u = max([
+            float(safe_get(u_node, "E_u", 0.0)),
+            float(safe_get(u_node, "exhaustion", 0.0)),
+            float(safe_get(physics, "E_u", 0.0)),
+            float(safe_get(physics, "exhaustion", 0.0))
+        ])
+        phi = float(safe_get(shared_node, "phi", 0.0) or safe_get(physics, "resonance", 0.0))
+
+        # The Linehan Protocol: Terminal Exhaustion Coregulation (Runs unconditionally)
+        if e_u >= 0.9 and phi <= 0.1:
+            self.active = True
+            logs.append(f"{Prisma.CYN}[LINEHAN - The Linehan Protocol]: Terminal User Exhaustion detected. Resonance is zero. Applying absolute architectural friction to protect cognitive load.{Prisma.RST}")
+
+            # Immediately update the physical zone so the PID controller
+            # bypasses on this exact tick, rather than waiting for mandates to process.
+            corrections.update({
+                "narrative_drag": 10.0,
+                "zone": "SANCTUARY"
+            })
+            mandates.append({"action": "FORCE_MODE", "value": "SANCTUARY"})
+            return True, logs, corrections, mandates
+
+        if not is_triggered:
             return False, [], {}, []
 
         self.active = True

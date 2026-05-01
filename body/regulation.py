@@ -136,6 +136,13 @@ class MetabolicGovernor:
         v_val = float(safe_get(physics, "voltage") or energy_dict.get("voltage", 0.0))
         d_val = float(safe_get(physics, "narrative_drag") or space_dict.get("narrative_drag", 0.0))
 
+        current_zone = str(safe_get(physics, "zone", "")).upper()
+
+        # If the Checkpoint Council has forced a systemic survival state,
+        # do not let the PID dampener smooth out the friction.
+        if self.manual_override or self.mode == "SANCTUARY" or current_zone == "SANCTUARY":
+            return v_val, d_val
+
         if endocrine_state:
             # Panic spikes the target voltage
             adr_spike = getattr(endocrine_state, "adrenaline", 0.0) * 2.0
@@ -192,7 +199,7 @@ class MetabolicGovernor:
         current_voltage = float(safe_get(physics, "voltage", 0.0))
         gov_crit = safe_get(getattr(self.cfg, "BIO", None), "GOV_VOLTAGE_CRITICAL", 25.0)
 
-        if current_voltage > gov_crit:
+        if current_voltage > gov_crit and self.mode != "SANCTUARY":
             self.manual_override = False
             return gov_text.get("OVERRIDE_CLEARED", "")
         return None
