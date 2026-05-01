@@ -108,8 +108,8 @@ def _native_freeze_graph(adj_dict: dict) -> tuple:
 
 def _safe_dict(obj):
     """Schur's Pragmatism: Don't crash the UI just because an object forgot to implement to_dict()."""
-    if hasattr(obj, "to_dict"):
-        return obj.to_dict()
+    if hasattr(obj, "to_dict"): return obj.to_dict()
+    if hasattr(obj, "__dict__"): return vars(obj)
     return obj if isinstance(obj, dict) else {}
 
 
@@ -326,11 +326,7 @@ class GeodesicOrchestrator:
             ctx.shared_dyn = self.eng.shared_lattice.shared
 
             target_cfg = getattr(self.eng, "config", BoneConfig)
-            cfg_obj = getattr(target_cfg, "CYCLE", None)
-            if hasattr(cfg_obj, "__dict__"):
-                ctx.limits = vars(cfg_obj)
-            else:
-                ctx.limits = cfg_obj or {}
+            ctx.limits = _safe_dict(getattr(target_cfg, "CYCLE", {}))
 
             # Observe the physical world prior to this cycle.
             obs = getattr(self.eng, "observer", None)
@@ -347,13 +343,13 @@ class GeodesicOrchestrator:
             ctx.council_mandates = []
             ctx.timestamp = time.time()
 
-            # Ingest all events that occurred between the last cycle and this one.
-            pre_logs = [e["text"] for e in self.eng.events.flush()]
-            ctx.logs.extend(pre_logs)
-
             # ------ RUN REALITY ------
             ctx = self.simulator.run_simulation(ctx)
             # -------------------------
+
+            # Ingest all events generated during (and immediately before) this cycle.
+            post_logs = [e["text"] for e in self.eng.events.flush()]
+            ctx.logs.extend(post_logs)
 
             # Post-processing topology checks
             self._verify_semantic_topology(ctx)
@@ -451,8 +447,10 @@ class GeodesicOrchestrator:
 
         atp_level = float(self.eng.bio.mito.state.atp_pool)
         delta_level = float(getattr(lattice.shared, "delta", 0.0)) if lattice else 0.0
-        energy_node = safe_get(getattr(ctx, "physics", {}), "energy", getattr(ctx, "physics", {}))
-        debt = float(safe_get(energy_node, "coherence_debt", 0.0))
+
+        phys_dict = _safe_dict(getattr(ctx, "physics", {}))
+        energy_node = phys_dict.get("energy", phys_dict)
+        debt = float(energy_node.get("coherence_debt", 0.0))
 
         # Standard REM: We are resting, and energy is high. Process memories.
         is_standard_rem = (atp_level >= 80.0 and delta_level >= 0.6)

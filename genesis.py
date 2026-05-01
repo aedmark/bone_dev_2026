@@ -108,9 +108,9 @@ class BoneGenesis:
                 if applied_drag := dummy_phys.get("narrative_drag", base_drag) - base_drag:
                     embryo.physics.narrative_drag += float(applied_drag)
 
-                # Penalize starting energy (Voltage) if the last session was exhausted.
-                if (volt_penalty := base_voltage - dummy_phys.get("voltage", base_voltage)) > 0:
-                    embryo.physics.voltage = max(0.0, float(embryo.physics.voltage) - float(volt_penalty))
+                    # Penalize starting energy (Voltage) if the last session was exhausted.
+                    if (volt_penalty := base_voltage - dummy_phys.get("voltage", base_voltage)) > 0:
+                        embryo.physics.voltage = max(0.0, embryo.physics.voltage - volt_penalty)
 
             # Re-attach the persistent trauma directly to the active session memory.
             if mem:
@@ -119,22 +119,14 @@ class BoneGenesis:
         # 7. Final Dependency Injections
         # Spin up the auxiliary drivers, symbiosis management, and the REM consolidator.
         drivers = DriverRegistry(events, config_ref=target_cfg)
+        consultant = BoneConsultant(config_ref=target_cfg, lexicon_ref=lexicon_ref) if "CONSULTANT" not in suppressed_set else None
         symbiosis = SymbiosisManager(events, config_ref=target_cfg)
         consolidator = TheConsolidator(events_ref=events, memory_ref=embryo.mind.mem, akashic_ref=akashic)
 
         # The organism is fully awake.
-        return {
-            "events": events,
-            "akashic": akashic,
-            "embryo": embryo,
-            "village": village_bundle,
-            "soul": soul,
-            "oroboros": oroboros,
-            "drivers": drivers,
-            "consultant": village_bundle.get("consultant"),
-            "symbiosis": symbiosis,
-            "consolidator": consolidator
-        }
+        return {"events": events, "akashic": akashic, "embryo": embryo, "village": village_bundle, "soul": soul,
+                "oroboros": oroboros, "drivers": drivers, "consultant": consultant, "symbiosis": symbiosis,
+                "consolidator": consolidator}
 
     @staticmethod
     def _summon_village(events, embryo, akashic, suppressed: Set[str], boot_mode: str = "ADVENTURE", config_ref=None, lexicon_ref=None) -> Dict[str, Any]:
@@ -157,7 +149,7 @@ class BoneGenesis:
         gordon = spawn("GORDON", GordonKnot, events=events, mode=boot_mode, config_ref=c)
 
         # The Cartographer relies on Shimmer, so we handle it specifically.
-        navigator = TheCartographer(embryo.shimmer, config_ref=c) if not {"CARTOGRAPHER", "NAVIGATOR"} & suppressed else None
+        navigator = spawn("NAVIGATOR", TheCartographer, embryo.shimmer, config_ref=c)
 
         # Base protocol loads if not suppressed.
         if "DEATH" not in suppressed: DeathGen.load_protocols()
@@ -177,7 +169,6 @@ class BoneGenesis:
             "therapy": spawn("THERAPY", TherapyProtocol, config_ref=c),
             "limbo": spawn("LIMBO", LimboLayer, config_ref=c),
             "kintsugi": spawn("KINTSUGI", KintsugiProtocol, config_ref=c),
-            "consultant": spawn("CONSULTANT", BoneConsultant, config_ref=c, lexicon_ref=lexicon_ref),
             "therapist": spawn("THERAPIST", TheTherapist, events, config_ref=c),
             "gravedigger": spawn("GRAVEDIGGER", TheGraveDigger, gordon, events, config_ref=c),
         }

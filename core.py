@@ -185,10 +185,17 @@ class EventBus:
 
     def log(self, message: str, source: str = "SYSTEM", level: str = "INFO"):
         """Creates an immutable, timestamped record of an event and pushes it downstream."""
-        event = {"timestamp": time.time(), "source": source, "level": level, "message": message, "text": message, "_type": "EVENT_LOG"}
+        event = {"timestamp": time.time(), "source": source, "level": level, "message": message, "text": message,
+                 "_type": "EVENT_LOG"}
         self.buffer.append(event)
         self.publish(source, event)
-        self.telemetry.record_event(event) if self.telemetry else print(f"[{source}] {message}")
+
+        if self.telemetry:
+            self.telemetry.record_event(event)
+            if level in ("CRIT", "ERROR"):
+                print(f"{Prisma.RED}[{source}] {message}{Prisma.RST}")
+        else:
+            print(f"[{source}] {message}")
 
     def flush(self) -> List[Dict]:
         """Drains the current buffer, returning the accumulated state and resetting the queue."""
@@ -233,7 +240,8 @@ class LoreManifest:
         return data.get(sub_key) if isinstance(data, dict) else None
 
     def _load_from_disk(self, category: str) -> Optional[Dict]:
-        filepath = os.path.join(self.DATA_DIR, f"{category}.json")
+        safe_category = os.path.basename(category)
+        filepath = os.path.join(self.DATA_DIR, f"{safe_category}.json")
         if not os.path.exists(filepath):
             return None
         try:
@@ -371,20 +379,18 @@ class SystemHealth:
     def link_observer(self, observer_ref):
         self.observer = observer_ref
 
-    _HEALTH_MAP = { "physics": "physics_online", "bio": "bio_online", "mind": "mind_online", "cortex": "cortex_online"}
-
     def report_failure(self, component: str, error: Exception, severity="ERROR"):
         msg = str(error)
         self.errors.append(ErrorLog(component, msg, severity=severity))
         if self.observer:
             self.observer.log_error(component)
 
-        comp_key = component.lower()
-        if comp_key in self._HEALTH_MAP:
-            setattr(self, self._HEALTH_MAP[comp_key], False)
+        attr_name = f"{component.lower()}_online"
+        if hasattr(self, attr_name):
+            setattr(self, attr_name, False)
         else:
             self.report_warning(
-                f"Unmapped component '{component}' reported a failure. Missing from SystemHealth dataclass.")
+                f"Unmapped component '{component}' reported a failure. Missing '{attr_name}' in SystemHealth dataclass.")
         return ux_format("core_strings", "health_offline", component=component, msg=msg)
 
     def report_warning(self, message: str):

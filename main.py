@@ -197,18 +197,18 @@ class BoneAmanita:
         self.phys, self.mind, self.bio, self.shimmer = (self.embryo.physics, self.embryo.mind, self.embryo.bio, self.embryo.shimmer)
         self.bio.setup_listeners()
         v = anatomy.get("village", {})
-        v_keys = ("gordon", "navigator", "tinkerer", "death_gen", "bureau", "town_hall",
-            "repro", "zen", "critics", "therapy", "limbo", "kintsugi", "therapist", "gravedigger")
-        for k in v_keys:
-            setattr(self, k, v.get(k))
+        for k, val in v.items():
+            setattr(self, k, val)
+
         from protocols import GriefProtocol
         from mechanics.tools import TheSubstrate
         self.grief = GriefProtocol(self.events, engine_ref=self)
         self.substrate = TheSubstrate(self.events)
         self.soul.engine = self
         self.council = CouncilChamber(self)
+
         exclude_set = {"gordon", "death_gen", "repro", "kintsugi"}
-        self.village = {k: v.get(k) for k in v_keys if k not in exclude_set and v.get(k) is not None}
+        self.village = {k: val for k, val in v.items() if k not in exclude_set and val is not None}
         self.village.update({"council": self.council, "enneagram": self.drivers.enneagram, "suppressed_agents": self.suppressed_agents})
 
 
@@ -412,7 +412,9 @@ class BoneAmanita:
 
         if not is_system:
             if self.cmd and self.cmd.execute(user_message):
-                return self._phase_check_commands(user_message, already_executed=True)
+                cmd_logs = [e["text"] for e in self.events.flush()]
+                ui_output = "\n".join(cmd_logs) if cmd_logs else ux("main_strings", "cmd_executed")
+                return {"type": "COMMAND", "ui": f"\n{ui_output}", "logs": cmd_logs, "metrics": self.get_metrics()}
 
         if not is_system:
             # Inventory comb integration (stripping semantic fluff)
@@ -491,14 +493,6 @@ class BoneAmanita:
         self.last_turn_end = time.time()
         return cortex_packet
 
-    def _phase_check_commands(self, user_message, already_executed=False):
-        if not already_executed:
-            self.cmd.execute(user_message.strip())
-        cmd_logs = [e["text"] for e in self.events.flush()]
-        default_exec = ux("main_strings", "cmd_executed")
-        ui_output = "\n".join(cmd_logs) if cmd_logs else default_exec
-        return {"type": "COMMAND", "ui": f"\n{ui_output}", "logs": cmd_logs, "metrics": self.get_metrics()}
-
     def trigger_death(self, last_phys) -> Dict:
         """Handles structural failure by mutating trauma into legacy variables and halting."""
         if self.death_gen is None:
@@ -527,8 +521,8 @@ class BoneAmanita:
             loc = orbit_data[0] if isinstance(orbit_data, list) and orbit_data else orbit_data
             last_out = ctx.dialogue_buffer[-1] if getattr(ctx, "dialogue_buffer", None) else "Silence."
 
-        continuity_packet = {"location": loc, "last_output": last_out,
-            "inventory": getattr(self.gordon, "inventory", []) if getattr(self, "gordon", None) else [],}
+        gordon_inv = getattr(self.gordon, "inventory", []) if getattr(self, "gordon", False) else []
+        continuity_packet = {"location": loc, "last_output": last_out, "inventory": gordon_inv}
 
         try:
             mutations_data = self.repro.attempt_reproduction(self, "MITOSIS")[1] if hasattr(self, "repro") else {}
