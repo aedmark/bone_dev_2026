@@ -263,9 +263,13 @@ class DreamEngine:
                             "SYS", )
         if self.dspy_critic and self.dspy_critic.enabled:
             if self.trauma_buffer:
-                trauma = self.trauma_buffer.popleft()
+                # Batch all lingering trauma into a single structural lesson.
+                traumas = list(self.trauma_buffer)
+                self.trauma_buffer.clear()
+                trauma_str = " | ".join(traumas)
+
                 current_state_str = f"Archetype: {soul_snapshot.get('archetype', 'UNKNOWN')}"
-                new_axiom = self.dspy_critic.evolve_prompt(current_state_str, trauma)
+                new_axiom = self.dspy_critic.evolve_prompt(current_state_str, trauma_str)
                 if new_axiom:
                     active_mode = "CONVERSATION"
                     if hasattr(self.eng, "boot_mode"):

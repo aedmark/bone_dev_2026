@@ -9,12 +9,9 @@ the engine with an ATP/efficiency boost and outputs philosophical koans.
 import random
 from typing import Dict, Tuple, Optional, Any
 from core import LoreManifest
-from struts import ux, safe_get
+from struts import ux, safe_get, ux_format
 from presets import BoneConfig
 from constants import Prisma
-
-# Global cache retrieval for narrative strings and Zen Koans.
-NARRATIVE_DATA = LoreManifest.get_instance().get("narrative_data") or {}
 
 class ZenGarden:
     """
@@ -40,7 +37,8 @@ class ZenGarden:
         self.pebbles_collected = 0
 
         # Load koans from the lore manifest; fallback to a default coding koan
-        self.koans = NARRATIVE_DATA.get(
+        narrative_data = LoreManifest.get_instance().get("narrative_data") or {}
+        self.koans = narrative_data.get(
             "ZEN_KOANS",
             ["The code that is not written has no bugs."]
         )
@@ -107,7 +105,7 @@ class ZenGarden:
                 # Milestone reached: grant a pebble, drop a koan, announce the efficiency boost
                 self.pebbles_collected += 1
                 koan = random.choice(self.koans)
-                msg = f"{Prisma.CYN}{ux('protocol_strings', 'zen_streak').format(streak=self.stillness_streak, koan=koan, boost=int(efficiency_boost * 100))}{Prisma.RST}"
+                msg = f"{Prisma.CYN}{ux_format('protocol_strings', 'zen_streak', default='Stillness {streak}: {koan} (+{boost}%)', streak=self.stillness_streak, koan=koan, boost=int(efficiency_boost * 100))}{Prisma.RST}"
 
             return efficiency_boost, msg
 

@@ -9,13 +9,10 @@ increased paradox capacity and resilience.
 """
 
 from typing import Dict
-from struts import safe_get, safe_set
-from presets import BoneConfig
-from constants import Prisma
-from core import LoreManifest
 
-# Global cache retrieval for narrative strings and lore configurations.
-NARRATIVE_DATA = LoreManifest.get_instance().get("narrative_data") or {}
+from constants import Prisma
+from struts import safe_get, safe_set
+
 
 class GriefProtocol:
     """
@@ -89,10 +86,6 @@ class GriefProtocol:
             if self.eng and hasattr(self.eng, "trauma_accum"):
                 for k in self.eng.trauma_accum:
                     self.eng.trauma_accum[k] = max(0.0, self.eng.trauma_accum[k] - 2.0)
-
-            # Fallback configuration check for potential max_beta (paradox capacity) increases
-            target_cfg = (self.eng.config if self.eng
-                          and hasattr(self.eng, "config") else BoneConfig)
 
             # Clear the recent loss state since it has been successfully mourned
             node = self.recent_loss or "the void"

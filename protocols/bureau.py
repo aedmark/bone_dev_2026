@@ -15,9 +15,6 @@ from struts import ux, safe_get
 from presets import BoneConfig
 from constants import Prisma
 
-# Global cache retrieval for narrative strings and arrays.
-NARRATIVE_DATA = LoreManifest.get_instance().get("narrative_data") or {}
-
 class TheBureau:
     """
     A bureaucratic governor that enforces syntactic and systemic discipline.
@@ -33,8 +30,9 @@ class TheBureau:
         self.stamp_count = 0  # Tracks how many times the Bureau has intervened
 
         # Load the administrative forms and responses used in UI alerts
-        self.forms = NARRATIVE_DATA.get("BUREAU_FORMS", ["Form 27B-6", "Form 404"])
-        self.responses = NARRATIVE_DATA.get("BUREAU_RESPONSES", ["Processing..."])
+        narrative_data = LoreManifest.get_instance().get("narrative_data") or {}
+        self.forms = narrative_data.get("BUREAU_FORMS", ["Form 27B-6", "Form 404"])
+        self.responses = narrative_data.get("BUREAU_RESPONSES", ["Processing..."])
 
         # Load the Lexical Firewall's banned buzzwords
         lex_data = LoreManifest.get_instance().get("LEXICON") or {}
@@ -61,7 +59,7 @@ class TheBureau:
                     print(f"{Prisma.RED}{err_msg.format(name=p.get('name'), e=e)}{Prisma.RST}")
 
         # Load broad cliches to penalize
-        scenarios = LoreManifest.get_instance().get("scenarios")
+        scenarios = LoreManifest.get_instance().get("scenarios") or {}
         self.cliches = {str(c).lower() for c in scenarios.get("BANNED_CLICHES", [])}
 
     def to_dict(self) -> Dict[str, Any]:
@@ -86,10 +84,6 @@ class TheBureau:
             A dictionary containing UI alerts, logs, and ATP tax values if an audit was triggered,
             or None if the text passes inspection.
         """
-        # If the system is dying, bypass bureaucracy to save computational overhead
-        if bio_state.get("health", 100.0) < self.cfg.BUREAU.MIN_HEALTH_TO_AUDIT:
-            return None
-
         # Extract physics metrics safely
         vol = float(safe_get(physics, "voltage", 0.0))
         clean_words = safe_get(physics, "clean_words", [])

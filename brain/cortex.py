@@ -48,7 +48,7 @@ class TheCortex:
     """
     # The Lexical Firewall: Physically intercepts and destroys sycophantic AI boilerplate.
     LEXICAL_PURGE_PATTERN = re.compile(
-        r"(?i)^(that makes sense|i understand|you bring up|great point|good point|certainly|absolutely|i hear you|yes, )[.,!]*\s*")
+        r"(?im)^\s*(that makes sense|i understand|you bring up|great point|good point|certainly|absolutely|i hear you|yes, )[.,!]*\s*")
     ROLE_MAP = {"CONVERSATION": ("CONVERSATIONALIST", "The Conversationalist"),
                 "TECHNICAL": ("SYSTEM_KERNEL", "The System Kernel"),
                 "CREATIVE": ("CATALYST", "The Catalyst"), }
@@ -271,7 +271,10 @@ class TheCortex:
                         is_faithful, judge_reason = self.dspy_critic.audit_generation(
                             user_input, context_str, final_text)
                     except Exception as e:
-                        is_faithful, judge_reason = False, "Critic JSON parsing collapse - suspected toxic slop."
+                        # The ResponseValidator will catch any actual formatting crimes in the next step.
+                        is_faithful, judge_reason = True, ""
+                        if self.events:
+                            self.events.log(f"{Prisma.OCHRE}[CRITIC OFFLINE]: DSPy failed to parse. Bypassing audit.{Prisma.RST}", "SYS")
                     if is_faithful:
                         e_u = float(safe_get(phys_state, "exhaustion", 0.0))
                         beta = float(safe_get(phys_state, "beta_index", safe_get(phys_state, "contradiction", 0.0)))

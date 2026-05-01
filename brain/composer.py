@@ -112,7 +112,7 @@ class LLMInterface:
             except (urllib.error.URLError, TimeoutError) as e:
                 err = e
             except Exception as e:
-                raise SynapseError(f"Unexpected Protocol Failure: {e}")
+                err = f"Unexpected Protocol Failure: {e}"
 
             self._log_flicker(attempt, err)
             if attempt < max_retries:
@@ -507,7 +507,7 @@ class PromptComposer:
             if getattr(self.cfg, "WEIGHT_CLASS", "HEAVYWEIGHT") == "LIGHTWEIGHT":
                 return [f"Role: {role}.", mood_note,
                         "SYSTEM HEURISTIC: You are running on Lightweight Physics. Prioritize brief, direct, and grounded physical actions over deep philosophical analysis.",
-                        *[line for line in persona_block if "CRITICAL" in line or line.startswith("- ")]]
+                        *[line for line in persona_block if any(k in line for k in ["CRITICAL", "ANTI-AI", "DIRECTIVE", "MANDATE"]) or line.startswith("- ")]]
 
             return persona_block
         return None
@@ -728,7 +728,7 @@ class ResponseValidator:
         voltage = float(safe_get(phys_ref, "voltage", fallback_voltage))
 
         # High Voltage rule: The system cannot ask clarifying questions when under extreme stress.
-        if voltage > 60 and "?" in sanitized_response:
+        if voltage > 60 and sanitized_response.rstrip().endswith("?"):
             if not primary_replacement:
                 primary_replacement = f"{self._generate_dynamic_rejection('QUESTION_ASKED')}{ux('brain_strings', 'val_gordon_question', '')}"
             errors_found.append("DO NOT END YOUR TURN WITH A QUESTION. Let the silence hang.")
