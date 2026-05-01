@@ -129,18 +129,24 @@ class ZoneInertia:
         pressure = min(1.0, math.dist(current_vec, self.last_vector) / self.grav_tolerance) if self.last_vector else 0.0
 
         if self.is_anchored:
-            return self._handle_anchored_state(proposed_zone, pressure)
+            result = self._handle_anchored_state(proposed_zone, pressure)
+            self.last_vector = current_vec
+            return result
 
-        # If the topic hasn't changed, reset the dwell counter and update the vector.
+        # If the topic hasn't changed, reset the dwell counter.
         if proposed_zone == self.current_zone:
-            self.dwell_counter, self.last_vector = 0, current_vec
+            self.dwell_counter = 0
+            self.last_vector = current_vec
             return proposed_zone, None
 
         # Prevent jitter: don't allow a zone jump if we just arrived here.
         if self.dwell_counter < self.min_dwell:
+            self.last_vector = current_vec
             return self.current_zone, None
 
-        return self._attempt_migration(proposed_zone, pressure)
+        result = self._attempt_migration(proposed_zone, pressure)
+        self.last_vector = current_vec
+        return result
 
     def _handle_anchored_state(self, proposed_zone: str, pressure: float) -> Tuple[str, Optional[str]]:
         """Handles the logic when the system is deliberately fighting a zone change."""
@@ -239,8 +245,7 @@ class CosmicDynamics:
             new_drag -= pull_strength
 
         # Ensure we never drop below the physical floor of the system
-        if new_drag < drag_floor:
-            new_drag += 0.05
+        new_drag = max(drag_floor, new_drag)
 
         return new_drag, logs
 

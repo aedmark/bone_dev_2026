@@ -286,7 +286,11 @@ class DreamEngine:
                             self.lore.inject("SYSTEM_PROMPTS", disk_prompts)
                             self.lore.save("SYSTEM_PROMPTS")
                     except Exception as e:
-                        print(f"Failed to write epigenetic mutation to disk: {e}")
+                        err_msg = f"Failed to write epigenetic mutation to disk: {e}"
+                        if self.events:
+                            self.events.log(f"{Prisma.RED}[EPIGENETIC ERROR] {err_msg}{Prisma.RST}", "CRIT")
+                        else:
+                            print(err_msg)
                     dream_text = f"The system processes conversational trauma in its sleep. It permanently mutates its own source code, forming a scar-tissue axiom: '{new_axiom}'"
                     is_deep_rem = True
         if self.mem and hasattr(self.mem, "subconscious") and self.llm:
@@ -296,7 +300,7 @@ class DreamEngine:
                 index.extend(g.get("concept", "Forgotten Echo") for g in recent_shadows if "concept" in g)
             if len(index) >= 2:
                 ghost1, ghost2 = random.sample(index, 2)
-                prompt = (f"SYSTEM_INSTRUCTION: You are the autonomous dream-engine of a cybernetic lattice. "
+                prompt = (f"SYSTEM_INSTRUCTION: You are the autonomous dream-engine of a cybernetic organism. "
                           f"Your task is to defragment two dead, cannibalized concepts: [{ghost1.upper()}] and [{ghost2.upper()}]. "
                           f"Synthesize them into a single, highly surreal, abstract image. "
                           f"DO NOT explain the dream. DO NOT use UI tags. Output ONLY the 2-3 sentence narrative description of the dream.")

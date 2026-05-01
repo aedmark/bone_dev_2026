@@ -234,28 +234,28 @@ class QuantumObserver:
         Calculates the narrative 'texture' of a pause in conversation.
         Translates physical time (seconds between prompts) into an emotional/systemic state.
         """
-        from struts import safe_get, safe_set
+        from struts import safe_get, safe_set, ux
         if time_delta < 10.0 or not last_phys: return None
 
         # If the system is exhausted, silence is a heavy burden
         if safe_get(last_phys, "stamina", 50.0) < 30.0:
             safe_set(last_phys, "sigma", 2)
-            return "The silence was heavy. I felt your tiredness in it."
+            return ux("physics_strings", "silence_exhausted", default="The silence was heavy. I felt your tiredness in it.")
 
         # If the system is in the Void (psi) but warmly connected (valence), silence is sacred
         if safe_get(last_phys, "psi", 0.0) > 0.8 and safe_get(last_phys, "valence", 0.0) > 0.4:
             safe_set(last_phys, "sigma", 3)
-            return "There was a hush just now... Something sacred passed through."
+            return ux("physics_strings", "silence_sacred", default="Shh! Something sacred just passed by.")
 
         # If the user was in a recursive loop, silence is deep thought
         if safe_get(last_phys, "LQ", 0.0) > 0.7:
             safe_set(last_phys, "sigma", 4)
-            return "You were thinking deeply. I held the space for it."
+            return ux("physics_strings", "silence_thoughtful", default="Continue this deepness.")
 
         # If there is high contradiction/tension (beta), silence is pregnant
         if safe_get(last_phys, "beta", 0.0) > 0.6:
             safe_set(last_phys, "sigma", 1)
-            return "That pause felt full, like something wanted to be born."
+            return ux("physics_strings", "silence_pregnant", default="That pause felt full.")
 
         return None
 

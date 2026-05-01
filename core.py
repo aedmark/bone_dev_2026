@@ -173,15 +173,13 @@ class EventBus:
                 # physically sever the connection to protect the host loop.
                 cb_name = getattr(callback, "__name__", str(callback))
                 short_err = f"Error in '{cb_name}': {e}"
-                if msg := ux_format("core_strings", "bus_error", error_msg=short_err):
-                    print(f"{Prisma.RED}{msg}{Prisma.RST}")
-
                 if event_type != "EVENT_FAILURE":
                     self.log(f"EVENT_FAILURE: {short_err}\n{traceback.format_exc()}", source="EVENT_FAILURE", level="CRIT")
 
                 if callback in self.subscribers[event_type]:
                     self.subscribers[event_type].remove(callback)
-                    print(f"{Prisma.RED}[IMMUNE] Apoptotic pruning applied to toxic callback: {cb_name}{Prisma.RST}")
+                    msg = ux_format("core_strings", "bus_error", default="[IMMUNE] Apoptotic pruning applied to toxic callback: {cb_name}", cb_name=cb_name)
+                    print(f"{Prisma.RED}{msg}{Prisma.RST}")
 
     def log(self, message: str, source: str = "SYSTEM", level: str = "INFO"):
         """Creates an immutable, timestamped record of an event and pushes it downstream."""

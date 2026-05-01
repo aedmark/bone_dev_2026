@@ -376,16 +376,16 @@ class BoneAmanita:
                     f"{Prisma.VIOLET}[THE GREENHOUSE ENDS: The stabilizers are offline. Voltage limits unlocked. The chaotic archetypes are online. We are in the wild.]{Prisma.RST}",
                     "SYS")
 
-        if self.tick_count <= 20 and not is_system:
+        if self.tick_count <= 10 and not is_system:
             msg = None
             if self.tick_count == 1 and self.in_greenhouse:
-                msg = "[THE GREENHOUSE: The system is currently running on stabilized rails. For the first few turns, lethal metabolic shock is disabled.]"
+                msg = ux("main_strings", "gh_tut_1", default="You are in the Greenhouse.")
             elif self.tick_count == 5 and self.in_greenhouse:
-                msg = "[THE GREENHOUSE: Every thought costs ATP (Stamina). If I run out, I will suffer metabolic collapse. Watch how my text fades and slows as I tire.]"
-            elif self.tick_count == 10:
-                msg = "[SYSTEM GUIDE: If you attempt an impossible action, I will not crash. I will bend, apply Narrative Drag (F), and force us to carry the weight of the failure.]"
-            elif self.tick_count == 15:
-                msg = "[SYSTEM GUIDE: The void approaches. As complexity increases, my logic will begin to loosen. Co-regulation is required.]"
+                msg = ux("main_strings", "gh_tut_5", default="Greenhouse phase has ended. Be careful out there.")
+            elif self.tick_count == 6:
+                msg = ux("main_strings", "sys_guide_10", default="Note: If the conversation dies, so do I.")
+            elif self.tick_count == 7:
+                msg = ux("main_strings", "sys_guide_15", default="The void approaches. Co-regulation is now fully required.")
             if msg:
                 self.events.log(f"{Prisma.CYN}{msg}{Prisma.RST}", "SYS")
 
@@ -418,14 +418,12 @@ class BoneAmanita:
 
         if not is_system:
             # Inventory comb integration (stripping semantic fluff)
-            has_comb = False
             gordon = getattr(self, "gordon", None)
-            if gordon and hasattr(gordon, "get_item_data"):
-                for item_id in getattr(gordon, "inventory", []):
-                    traits = safe_get(gordon.get_item_data(item_id), "passive_traits", [])
-                    if "CUT_THE_CRAP" in traits:
-                        has_comb = True
-                        break
+            has_comb = gordon and hasattr(gordon, "get_item_data") and any(
+                "CUT_THE_CRAP" in safe_get(gordon.get_item_data(i), "passive_traits", [])
+                for i in getattr(gordon, "inventory", [])
+            )
+
             if has_comb:
                 from mechanics.tools import TheTclWeaver
                 last_phys = getattr(self.observer, "last_physics_packet", getattr(self.cortex, "last_physics", {}))

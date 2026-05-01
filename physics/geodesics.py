@@ -115,7 +115,8 @@ class GeodesicEngine:
         shear = 1.0 + (tot_kin / safe_vol) * get_const("SHEAR_RESISTANCE_SCALAR", 0.1)
 
         # Total Viscosity: How thick/difficult the text is to move through.
-        visc = (base_friction + heavy_friction) / lubrication / shear
+        # Meadows: Shear is a resistance vector, so it multiplies friction rather than dividing it.
+        visc = ((base_friction + heavy_friction) * shear) / lubrication
 
         # Lift: Playful words and kinetic energy provide upward momentum, countering viscosity.
         lift = masses["play"] * get_const("PLAY_LIFT_MULT", 1.5) + (tot_kin * get_const("KINETIC_LIFT_RATIO", 0.8)) / (masses["heavy"] * 0.5 + 1.0)
@@ -138,12 +139,8 @@ class GeodesicEngine:
         max_tension = min(100.0, (raw_tension / safe_vol) * get_const("DENSITY_SCALAR") * getattr(t_cfg, "KINETIC_GAIN", 1.0) * mass_scalar)
         clamped_comp = max(-5.0, min(get_cfg("DRAG_HALT", 10.0), raw_comp * mass_scalar))
 
-        return {
-            "tension": round(max_tension, 2),
-            "compression": round(clamped_comp, 2),
-            "coherence": round(coherence_val, 3),
-            "abstraction": round(abstraction_val, 2),
-        }
+        return {"tension": round(max_tension, 2), "compression": round(clamped_comp, 2),
+                "coherence": round(coherence_val, 3), "abstraction": round(abstraction_val, 2), }
 
     @staticmethod
     def _calculate_dimensions(masses, forces, counts, volume) -> Dict[str, float]:

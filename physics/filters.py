@@ -123,7 +123,14 @@ class TheGatekeeper:
         self.hla = HLA_Stabilizer(config_ref=self.cfg)
 
         style_crimes = self.lex.get("style_crimes") or LoreManifest.get_instance().get("STYLE_CRIMES") or {}
-        self._scrub_patterns = style_crimes.get("SCRUB_PATTERNS", [])
+        raw_scrubs = style_crimes.get("SCRUB_PATTERNS", [])
+
+        # Pre-compile regex patterns so we don't JIT compile them on every LLM generation turn
+        self._compiled_scrubs = []
+        for scrub in raw_scrubs:
+            if pat := scrub.get("regex"):
+                self._compiled_scrubs.append((re.compile(pat, flags=re.IGNORECASE), scrub.get("replacement", "")))
+
         self._banned_phrases = style_crimes.get("BANNED_PHRASES", []) + style_crimes.get("TOXIC_KEYWORDS", [])
         self._rejection_patterns = style_crimes.get("PATTERNS", [])
         self._default_rejections = style_crimes.get("REJECTIONS", ["[CRITICAL: BANNED_SYNTAX '{trigger}' DETECTED. CSF FILTER TRIGGERED APOPTOTIC BLOCK.]"])
@@ -219,9 +226,8 @@ class TheGatekeeper:
             apply_metabolic_tax(mito_state, atp_cost=2.0, ros_cost=0.0)
 
         # 3. Regex Scrubbing (General cleanups of known bad patterns defined in JSON)
-        for scrub in self._scrub_patterns:
-            if regex_pattern := scrub.get("regex"):
-                gen_txt = re.sub(regex_pattern, scrub.get("replacement", ""), gen_txt, flags=re.IGNORECASE)
+        for pattern, replacement in self._compiled_scrubs:
+            gen_txt = pattern.sub(replacement, gen_txt)
 
         gen_txt = gen_txt.strip()
         text_lower = gen_txt.lower()

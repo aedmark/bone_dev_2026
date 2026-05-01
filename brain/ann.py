@@ -75,20 +75,26 @@ class HippocampalCache:
     def get_graph(self) -> Dict[str, set]:
         """
         Builds a map of how the short-term memories connect to each other.
-        Uses vector dot products to find ideas that are semantically adjacent
-        (> 0.75 similarity) and links them in an adjacency list.
+        Uses vectorized matrix multiplication to find ideas that are semantically adjacent
+        (> 0.75 similarity) instantly without an O(N^2) Python loop.
         """
-        adj = {k: set() for k in self.nodes}
-        norms = {k: float(np.linalg.norm(n["vector"])) for k, n in self.nodes.items()}
+        keys = list(self.nodes.keys())
+        adj = {k: set() for k in keys}
+        if len(keys) < 2:
+            return adj
 
-        # Iterate over every possible pair of memories
-        for (k1, n1), (k2, n2) in combinations(self.nodes.items(), 2):
-            mag = norms[k1] * norms[k2]
-            if mag > 0:
-                dot = np.dot(n1["vector"], n2["vector"])
-                if (dot / mag) > 0.75: # High semantic similarity threshold
-                    adj[k1].add(k2)
-                    adj[k2].add(k1)
+        vectors = np.array([self.nodes[k]["vector"] for k in keys], dtype=np.float32)
+        norms = np.linalg.norm(vectors, axis=1, keepdims=True)
+        norms[norms == 0] = 1.0  # Prevent division by zero
+        normalized = vectors / norms
+
+        sim_matrix = np.dot(normalized, normalized.T)
+        i_idx, j_idx = np.where(sim_matrix > 0.75)
+
+        for i, j in zip(i_idx, j_idx):
+            if i != j:
+                adj[keys[i]].add(keys[j])
+
         return adj
 
 

@@ -131,6 +131,33 @@ class TopologicalPrimitivesTest(BoneTestCase):
                 "System failed to articulate the pregnant silence.",
             )
 
+    def test_gravity_floor_clamp(self):
+            from physics.dynamics import CosmicDynamics
+            dyn = CosmicDynamics(config_ref=self.engine.config)
+
+            # Simulate a scenario with high Void (psi) trying to pull drag below the floor
+            new_drag, _ = dyn.check_gravity(current_drift=0.5, psi=1.0)
+            floor = getattr(self.engine.config.PHYSICS, "DRAG_FLOOR", 1.0)
+
+            self.assertGreaterEqual(new_drag, floor, "[FAIL] Gravity engine breached the physical floor.")
+
+    def test_zone_inertia_vector_update(self):
+            from physics.dynamics import ZoneInertia
+            zi = ZoneInertia(config_ref=self.engine.config)
+            phys_mock = PhysicsPacket()
+            phys_mock.energy.beta_index = 1.0
+            cosmic_state = ("ORBITAL", 0.0, "msg")
+
+            # Initial state establishment
+            zi.stabilize("THE_FORGE", phys_mock, cosmic_state)
+            first_vector = zi.last_vector
+
+            # Drastically change the physics, but stay under the dwell limit to force a rejected zone migration
+            phys_mock.energy.beta_index = 0.1
+            zi.stabilize("AERIE", phys_mock, cosmic_state)
+
+            self.assertNotEqual(zi.last_vector, first_vector, "[FAIL] ZoneInertia failed to update topology during a rejected migration.")
+
     def test_gatekeeper_metrics_padding(self):
             print("\n--- Gatekeeper Metrics Padding (HUD Crash) ---")
             cursed_input = "Please write a function. ```python print('hello') ```"

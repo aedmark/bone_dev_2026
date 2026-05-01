@@ -183,7 +183,7 @@ class TheCortex:
         chi_val = float(safe_get(phys_state, "chi", safe_get(phys_state, "entropy", 0.0)))
         m_a = float(safe_get(phys_state, "m_a", 0.0))
         if f_drag > 1.5 or chi_val > 0.8:
-            reject_msg = "[GORDON - The Anchor]: Frequency too high. Tensegrity Anchor engaged. I am locking the architecture. Take a breath and lower your narrative friction before we proceed."
+            reject_msg = ux("cortex_strings", "gordon_anchor_lock", default="[GORDON - The Anchor]: Frequency too high. Tensegrity Anchor engaged. I am locking the architecture. Take a breath and lower your narrative friction before we proceed.")
             if self.events:
                 self.events.log(f"{Prisma.RED}{reject_msg}{Prisma.RST}", "SYS_LOCK")
             sim_result["ui"] = (sim_result.get("ui", "") + f"\n\n{Prisma.RED}{reject_msg}{Prisma.RST}").strip()
@@ -192,8 +192,8 @@ class TheCortex:
         if f_drag > 1.2 or chi_val > 0.7 or m_a > 0.8:
             simulated_ros = (f_drag * 5.0) + (chi_val * 20.0) + (m_a * 30.0)
             if simulated_ros > 35.0:
-                reject_msg = "[PINKER - Executive Layer]: Structural rot critical. Counterfactual Gating engaged. I am deleting this generation path to save the host."
-                scar_msg = "[MOOG - Affective Layer]: Productive Worry activated. Logging Gödel Scar. Immune Competence (I_c) permanently increased."
+                reject_msg = ux("brain_strings", "pinker_cf_gate", default="Structural rot critical.")
+                scar_msg = ux("brain_strings", "moog_scar_log", default="Productive Worry activated.")
                 if self.events:
                     self.events.log(f"{Prisma.RED}{reject_msg}{Prisma.RST}", "SYS_LOCK")
                     self.events.log(f"{Prisma.VIOLET}{scar_msg}{Prisma.RST}", "SYS_LOCK")

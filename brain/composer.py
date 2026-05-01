@@ -680,12 +680,21 @@ class ResponseValidator:
         for pattern, replacement in self.scrub_patterns:
             clean_text = pattern.sub(replacement, clean_text)
 
-        clean_lines = [line for line in clean_text.splitlines()
-            if not ((sl := line.strip()) and (
-                    (self._meta_regex and self._meta_regex.search(sl)) or
-                    (self._toxic_regex and self._toxic_regex.search(sl)) or
-                    re.match(r"^\[[A-Z0-9_ -]+\]$", sl) or sl == "[]" or
-                    re.match(r"^[A-Z_]+\s*=\s*[0-9./]+$", sl)))]
+        clean_lines = []
+        for line in clean_text.splitlines():
+            sl = line.strip()
+            if not sl:
+                clean_lines.append(line)
+                continue
+
+            # Filter out internal telemetry, toxic sludge, and bracketed system tags
+            if self._meta_regex and self._meta_regex.search(sl): continue
+            if self._toxic_regex and self._toxic_regex.search(sl): continue
+            if sl == "[]" or re.match(r"^\[[A-Z0-9_ -]+\]$", sl): continue
+            if re.match(r"^[A-Z_]+\s*=\s*[0-9./]+$", sl): continue
+
+            clean_lines.append(line)
+
         sanitized_response = "\n".join(clean_lines).strip()
 
         low_resp, errors_found = sanitized_response.lower(), []

@@ -325,7 +325,7 @@ class TheAkashicRecord:
         os.makedirs(self.save_dir, exist_ok=True)
         try:
             with open(self.state_path, "w", encoding="utf-8") as f:
-                json.dump(state, f, indent=2)
+                json.dump(state, f, indent=2, cls=BoneJSONEncoder)
         except Exception as e:
             msg = ux("akashic_strings", "save_failed")
             print(f"{Prisma.RED}{msg.format(error=e)}{Prisma.RST}")
@@ -535,8 +535,9 @@ class TheAkashicRecord:
             # Warn if a vocabulary category is getting too bloated
             bloat_limit = getattr(self.cfg_akashic, "BLOAT_THRESHOLD", 50)
             exempt_categories = getattr(self.cfg_akashic, "BLOAT_EXEMPT_CATEGORIES", ["heavy"])
-            if len(lexicon_data[category]) > bloat_limit and category not in exempt_categories:
-                bloat_msg = ux("akashic_strings", "lexicon_bloat")
+            # Meadows: Only warn EXACTLY when crossing the threshold to prevent terminal spam
+            if len(lexicon_data[category]) == bloat_limit + 1 and category not in exempt_categories:
+                bloat_msg = ux("akashic_strings", "lexicon_bloat", default="[WARNING] Lexicon category '{category}' is bloated.")
                 print(bloat_msg.format(category=category))
             return True
         return False

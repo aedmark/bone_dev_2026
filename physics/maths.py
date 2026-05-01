@@ -167,11 +167,11 @@ class NaviSADProtocol:
         packet = getattr(obs, "last_physics_packet", None)
 
         if isinstance(packet, dict):
-            energy = packet.get("energy")
+            energy = packet.get("energy", {})
+            return float(energy.get("i_c", 1.0)) < 0.4
         else:
             energy = getattr(packet, "energy", None)
-
-        return getattr(energy, "i_c", 1.0) < 0.4
+            return float(getattr(energy, "i_c", 1.0)) < 0.4
 
     def detect_point_attractor(self) -> bool:
         """
