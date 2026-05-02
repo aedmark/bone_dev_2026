@@ -152,14 +152,12 @@ class TheCortex:
         is_boot_sequence = "SYSTEM_BOOT" in user_input
         context_limit = getattr(getattr(self.cfg, "CORTEX", object()), "MAX_INPUT_CHARS", 15000)
         if len(user_input) > context_limit and not is_system and not is_boot_sequence:
-            eng = getattr(self.svc.cycle_controller, "eng", None)
-            if eng and hasattr(eng, "substrate"):
-                safe_content = user_input.replace("\n", "|||NEWLINE|||")
-                filename = f"context_drop_{int(time.time())}.txt"
-                eng.substrate.queue_write(f"memory_queue/{filename}", safe_content)
-                msg = f"{Prisma.CYN}[Substrate Queue]: Massive context drop detected. Routed to silent indexing. Dialogue buffer bypassed.{Prisma.RST}"
-                if self.events: self.events.log(msg, "SYS")
-                return {"ui": msg, "type": "SILENT_INGEST", "physics": self.last_physics, "logs": [msg]}
+            safe_content = user_input.replace("\n", "|||NEWLINE|||")
+            filename = f"context_drop_{int(time.time())}.txt"
+            self.svc.cycle_controller.eng.substrate.queue_write(f"memory_queue/{filename}", safe_content)
+            msg = f"{Prisma.CYN}[Substrate Queue]: Massive context drop detected. Routed to silent indexing. Dialogue buffer bypassed.{Prisma.RST}"
+            self.events.log(msg, "SYS")
+            return {"ui": msg, "type": "SILENT_INGEST", "physics": self.last_physics, "logs": [msg]}
         sim_result = self.svc.cycle_controller.run_turn(user_input, is_system=is_system)
 
         if sim_result.get("physics"):
@@ -199,9 +197,8 @@ class TheCortex:
                     self.events.log(f"{Prisma.VIOLET}{scar_msg}{Prisma.RST}", "SYS_LOCK")
                 if hasattr(self.svc.mind_memory, "record_scar"):
                     self.svc.mind_memory.record_scar("Cortex Counterfactual Toxicity", phys_state)
-                if getattr(self.svc.bio, "mito", None):
-                    self.svc.bio.mito.state.ros_buildup += simulated_ros
-                    self.svc.bio.mito.state.atp_pool -= 10.0
+                self.svc.bio.mito.state.ros_buildup += simulated_ros
+                self.svc.bio.mito.state.atp_pool -= 10.0
                 sim_result["ui"] = (sim_result.get("ui", "") +
                                     f"\n\n{Prisma.RED}{reject_msg}{Prisma.RST}\n{Prisma.VIOLET}{scar_msg}{Prisma.RST}").strip()
                 sim_result["type"] = "COUNTERFACTUAL_REJECTION"
@@ -290,17 +287,15 @@ class TheCortex:
                     self.events.log(f"DSPy Critic Objected: {short_reason}", "SYS")
             else:
                 gate_txt = final_text
-                eng = getattr(self.svc.cycle_controller, "eng", None)
-                mito = getattr(self.svc.bio, "mito", None)
-                if eng and mito:
-                    from physics import TheGatekeeper
-                    gk = getattr(eng, "gatekeeper", None) or TheGatekeeper(self.svc.lexicon, config_ref=self.cfg)
-                    gate_pass, gate_txt = gk.audit_generation(final_text, mito)
-                    if not gate_pass or "IMMUNOSUPPRESSION ENGAGED" in gate_txt:
-                        val_res = {"valid": False,
-                                   "feedback_instruction": "HLA Stabilizer flagged toxic AI slop. Drop the corporate persona immediately.",
-                                   "replacement": "Gatekeeper Apoptotic Block.",
-                                   "meta_logs": ["[SYSTEM] HLA Stabilizer engaged."]}
+                from physics import TheGatekeeper
+                eng = self.svc.cycle_controller.eng
+                gk = getattr(eng, "gatekeeper", None) or TheGatekeeper(self.svc.lexicon, config_ref=self.cfg)
+                gate_pass, gate_txt = gk.audit_generation(final_text, self.svc.bio.mito)
+                if not gate_pass or "IMMUNOSUPPRESSION ENGAGED" in gate_txt:
+                    val_res = {"valid": False,
+                               "feedback_instruction": "HLA Stabilizer flagged toxic AI slop. Drop the corporate persona immediately.",
+                               "replacement": "Gatekeeper Apoptotic Block.",
+                               "meta_logs": ["[SYSTEM] HLA Stabilizer engaged."]}
                 if not val_res.get("feedback_instruction"):
                     val_res = self.validator.validate(gate_txt, full_state)
             if val_res["valid"]:
@@ -316,10 +311,8 @@ class TheCortex:
                 final_output = ux("brain_strings", "cortex_tangled") or fallback_msg
                 extracted_logs.append(
                     "[SYSTEM MERCY RULE]: Rejection loop broken. Releasing tension. Dropping Drag to 0.0.")
-                eng = getattr(self.svc.cycle_controller, "eng", None)
-                if eng and hasattr(eng, "phys") and hasattr(eng.phys, "observer"):
-                    if obs_packet := getattr(eng.phys.observer, "last_physics_packet", None):
-                        safe_set(obs_packet, "narrative_drag", 0.0)
+                if obs_packet := getattr(self.svc.cycle_controller.eng.observer, "last_physics_packet", None):
+                    safe_set(obs_packet, "narrative_drag", 0.0)
                 if self.last_physics:
                     safe_set(self.last_physics, "narrative_drag", 0.0)
                 break
@@ -352,32 +345,27 @@ class TheCortex:
         sim_result["logs"] = sim_result.get("logs", []) + extracted_logs
         sim_result["raw_content"] = final_output
         self.ballast_active = False
-        eng = getattr(self.svc.cycle_controller, "eng", None)
-        if eng and hasattr(eng, "substrate"):
-            sub = eng.substrate
-            for log in extracted_logs:
-                if isinstance(log, str) and log.startswith("[SUBSTRATE_QUEUE]"):
-                    try:
-                        _, _, data = log.partition(" ")
-                        path, _, safe_content = data.partition(":::")
-                        if path and safe_content:
-                            sub.queue_write(path.strip(), safe_content.replace("|||NEWLINE|||", "\n"))
-                    except Exception as e:
-                        err_msg = f"Failed to parse or write file block. {e}"
-                        print(f"{Prisma.RED}[SUBSTRATE QUEUE ERROR]: {err_msg}{Prisma.RST}")
-                        if self.events:
-                            self.events.log(
-                                f"{Prisma.RED}[SUBSTRATE QUEUE ERROR]: {err_msg}{Prisma.RST}",
-                                "SYS")
-            if sub.pending_writes:
-                stamina = self.svc.bio.biometrics.stamina if self.svc.bio else 100.0
-                s_logs, s_cost = sub.execute_writes(stamina)
-                if s_logs:
-                    sim_result["ui"] += "\n\n" + "\n".join(s_logs)
-                if s_cost > 0 and self.svc.bio and hasattr(self.svc.bio, "mito"):
-                    self.svc.bio.mito.adjust_atp(-s_cost, "Substrate File Forging")
-                    sim_result[
-                        "ui"] += f"\n{Prisma.OCHRE}METABOLIC: File forging consumed {s_cost:.1f} Stamina.{Prisma.RST}"
+        sub = self.svc.cycle_controller.eng.substrate
+        for log in extracted_logs:
+            if isinstance(log, str) and log.startswith("[SUBSTRATE_QUEUE]"):
+                try:
+                    _, _, data = log.partition(" ")
+                    path, _, safe_content = data.partition(":::")
+                    if path and safe_content:
+                        sub.queue_write(path.strip(), safe_content.replace("|||NEWLINE|||", "\n"))
+                except Exception as e:
+                    err_msg = f"Failed to parse or write file block. {e}"
+                    print(f"{Prisma.RED}[SUBSTRATE QUEUE ERROR]: {err_msg}{Prisma.RST}")
+                    self.events.log(f"{Prisma.RED}[SUBSTRATE QUEUE ERROR]: {err_msg}{Prisma.RST}", "SYS")
+
+        if sub.pending_writes:
+            stamina = self.svc.bio.biometrics.stamina
+            s_logs, s_cost = sub.execute_writes(stamina)
+            if s_logs:
+                sim_result["ui"] += "\n\n" + "\n".join(s_logs)
+            if s_cost > 0:
+                self.svc.bio.mito.adjust_atp(-s_cost, "Substrate File Forging")
+                sim_result["ui"] += f"\n{Prisma.OCHRE}METABOLIC: File forging consumed {s_cost:.1f} Stamina.{Prisma.RST}"
         if random.random() < 0.15 and not is_system:
             bureau = getattr(self.svc.village, "bureau", None)
             suppressed = getattr(self.svc.village, "suppressed_agents", [])
@@ -421,17 +409,13 @@ class TheCortex:
         topic = re.sub(r"(?i)\[COUNCIL]", "", user_input).strip()
         if not topic:
             topic = "The nature of our shared existence."
-        if self.events:
-            self.events.log(
-                f"{Prisma.VIOLET}🎙️ SPINNING UP COUNCIL STUDIO...{Prisma.RST}", "SYS")
-        eng = getattr(self.svc.cycle_controller, "eng", None)
-        script = (eng.council.host_podcast(topic, self.llm)
-                  if eng and hasattr(eng, "council") else "COUNCIL UNAVAILABLE.")
+        self.events.log(f"{Prisma.VIOLET}🎙️ SPINNING UP COUNCIL STUDIO...{Prisma.RST}", "SYS")
+        eng = self.svc.cycle_controller.eng
+        script = eng.council.host_podcast(topic, self.llm)
         extracted_logs = []
-        if eng and hasattr(eng, "substrate"):
-            filename = f"podcast_script_{int(time.time())}.txt"
-            safe_script = script.replace("\n", "|||NEWLINE|||")
-            extracted_logs.append(f"[SUBSTRATE_QUEUE] {filename}:::{safe_script}")
+        filename = f"podcast_script_{int(time.time())}.txt"
+        safe_script = script.replace("\n", "|||NEWLINE|||")
+        extracted_logs.append(f"[SUBSTRATE_QUEUE] {filename}:::{safe_script}")
         script += f"\n\n[SYSTEM] The studio light switches off. The Council has concluded its debate. Awaiting your next directive."
         return script, extracted_logs
 

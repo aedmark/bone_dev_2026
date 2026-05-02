@@ -34,9 +34,7 @@ class BoneJSONEncoder(json.JSONEncoder):
 
 from physics.models import PhysicsPacket, UserInferredState, SharedDynamics
 
-# =============================================================================
 # CORE ORCHESTRATION MODELS
-# =============================================================================
 
 @dataclass
 class ErrorLog:
@@ -63,7 +61,7 @@ class DecisionCrystal:
 
     def __str__(self):
         e_val = self.leverage_metrics.get("E", 0.0)
-        return (f"♦ CRYSTAL [{self.decision_id}] {self.system_state} | "
+        return (f"CRYSTAL [{self.decision_id}] {self.system_state} | "
                 f"ARCHETYPE: {self.active_archetype} | E: {e_val:.2f}")
 
     def crystallize(self) -> str:
@@ -141,10 +139,7 @@ class PhysSystem:
     tension: Optional[Any] = None
     dynamics: Any = None
 
-
-# =============================================================================
 # THE CIRCULATORY SYSTEM
-# =============================================================================
 
 class EventBus:
     """
@@ -186,10 +181,6 @@ class EventBus:
 
     def log(self, message: str, source: str = "SYSTEM", level: str = "INFO"):
         """Creates an immutable, timestamped record of an event and pushes it downstream."""
-        # Heuristic: Auto-correct misplaced severity levels passed as the source
-        if source in ("CRIT", "ERROR", "WARN", "SYS") and level == "INFO":
-            level, source = source, "SYSTEM"
-
         event = {"timestamp": time.time(), "source": source, "level": level, "message": message, "text": message,
                  "_type": "EVENT_LOG"}
         self.buffer.append(event)
@@ -210,10 +201,7 @@ class EventBus:
     def get_recent_logs(self, count=10):
         return list(self.buffer)[-count:]
 
-
-# =============================================================================
 # THE HIPPOCAMPUS
-# =============================================================================
 
 class LoreManifest:
     """
@@ -247,9 +235,6 @@ class LoreManifest:
         safe_category = os.path.basename(category)
         filepath = os.path.join(self.DATA_DIR, f"{safe_category}.json")
         if not os.path.exists(filepath):
-            # Suppress warnings for known dynamic files (created at runtime) or legacy ghosts
-            if safe_category not in ("lenses", "seeds"):
-                print(f"{Prisma.YEL}[LORE]: Missing data for '{category}'. Loading empty matrix.{Prisma.RST}")
             return None
         try:
             with open(filepath, "r", encoding="utf-8") as f:
@@ -288,13 +273,8 @@ class LoreManifest:
         cat_key = category.lower()
         if self._cache.pop(cat_key, None) is not None:
             print(f"{Prisma.CYN}[LORE]: Flushed '{cat_key}'.{Prisma.RST}")
-        else:
-            print(f"{Prisma.GRY}[LORE]: Category '{cat_key}' not in cache.{Prisma.RST}")
 
-
-# =============================================================================
 # METABOLIC GOVERNANCE & TELEMETRY
-# =============================================================================
 
 class TheObserver:
     """
@@ -421,7 +401,7 @@ class RealityStack:
     def current_depth(self) -> int:
         return self._stack[-1]
 
-    def push_layer(self, layer: int, _context: Any = None) -> bool:
+    def push_layer(self, layer: int) -> bool:
         if layer == self.current_depth:
             return True
         if layer == RealityLayer.DEBUG or layer == self.current_depth + 1:
@@ -473,7 +453,7 @@ class ArchetypeArbiter:
     """
     @staticmethod
     def arbitrate(physics_lens: str, soul_archetype: str, council_mandates: List[Dict],
-                  trigram: Dict = None, config_ref=None, ) -> Tuple[str, str, str]:
+                  trigram: Dict = None) -> Tuple[str, str, str]:
         mandates = council_mandates or []
 
         # Hard overrides based on systemic trauma or toxicity.
@@ -498,9 +478,7 @@ class ArchetypeArbiter:
         return soul_archetype, "SOUL", ux("core_strings", "arb_soul")
 
 
-# =============================================================================
 # ASYNCHRONOUS LOGGING & SUBCONSCIOUS WRITING
-# =============================================================================
 
 class TelemetryService:
     """

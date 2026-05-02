@@ -9,29 +9,27 @@ the system stable over time.
 """
 
 import random
-import re
+import threading
 import time
 import traceback
 import uuid
-import threading
 from typing import Dict, Any, List, Optional
 
-# Core structural imports
-from core import LoreManifest
-from struts import ux, safe_get
-from drivers import CongruenceValidator
-from mechanics.reporter import CycleReporter
-from machine import PanicRoom
-
-# The sequence of reality
-from phases import (ObservationPhase, SanctuaryPhase, MaintenancePhase, GatekeeperPhase,
-    MetabolismPhase, RealityFilterPhase, NavigationPhase, MachineryPhase,
-    IntrusionPhase, SoulPhase, ArbitrationPhase, SimulationPreflightPhase,
-    CognitionPhase, SensationPhase, StabilizationPhase, SimulationPhase)
-from physics import CycleStabilizer
-from presets import BoneConfig
 from constants import Prisma
 from core import CycleContext
+# Core structural imports
+from core import LoreManifest
+from drivers import CongruenceValidator
+from machine import PanicRoom
+from mechanics.reporter import CycleReporter
+# The sequence of reality
+from phases import (ObservationPhase, SanctuaryPhase, MaintenancePhase, GatekeeperPhase,
+                    MetabolismPhase, RealityFilterPhase, NavigationPhase, MachineryPhase,
+                    IntrusionPhase, SoulPhase, ArbitrationPhase, SimulationPreflightPhase,
+                    CognitionPhase, SensationPhase, StabilizationPhase, SimulationPhase)
+from physics import CycleStabilizer
+from presets import BoneConfig
+from struts import ux
 
 # Maps specific phase failures to systemic health components so the engine knows *what* died.
 _CRASH_COMPONENT_MAP = {"OBSERVE": "PHYSICS", "METABOLISM": "BIO", "COGNITION": "MIND"}
@@ -270,9 +268,9 @@ class GeodesicOrchestrator:
         if getattr(self.eng, "tick_count", 0) % 3 != 0:
             return  # Meadows Dynamics: Limit runaway computational drag.
 
-        mem = getattr(getattr(self.eng, "mind", None), "mem", None)
-        hippo = getattr(mem, "hippocampus", None)
-        if not (hippo and hasattr(hippo, "get_graph") and hasattr(mem, "calculate_clustering")):
+        mem = self.eng.mind.mem
+        hippo = mem.hippocampus
+        if not (hasattr(hippo, "get_graph") and hasattr(mem, "calculate_clustering")):
             return
 
         actual_graph = hippo.get_graph()
@@ -334,8 +332,8 @@ class GeodesicOrchestrator:
             ctx.limits = _safe_dict(getattr(target_cfg, "CYCLE", {}))
 
             # Observe the physical world prior to this cycle.
-            obs = getattr(self.eng, "observer", None)
-            last_packet = getattr(obs, "last_physics_packet", None) if obs else None
+            obs = self.eng.observer
+            last_packet = getattr(obs, "last_physics_packet", None)
 
             if last_packet:
                 ctx.physics = last_packet.snapshot()
@@ -349,10 +347,7 @@ class GeodesicOrchestrator:
             ctx.user_name = self.eng.user_name
             ctx.council_mandates = []
             ctx.timestamp = time.time()
-
-            # ------ RUN REALITY ------
             ctx = self.simulator.run_simulation(ctx)
-            # -------------------------
 
             # Ingest all events generated during (and immediately before) this cycle.
             post_logs = [e["text"] for e in self.eng.events.flush()]
@@ -419,13 +414,13 @@ class GeodesicOrchestrator:
         Meadows' Dynamics: This observes the state *after* the cycle and triggers autonomous
         reactions (like falling asleep) based on the resultant stocks and flows.
         """
-        if not getattr(self.eng.bio, "mito", None):
+        if not hasattr(self.eng.bio, "mito"):
             return
         lattice = getattr(self.eng, "shared_lattice", None)
 
         """Native WLS fractal dimension calculation (Project Navi). Offloaded to prevent UI drag."""
-        mem = getattr(getattr(self.eng, "mind", None), "mem", None)
-        cortex = getattr(mem, "cortex", None)
+        mem = self.eng.mind.mem
+        cortex = mem.cortex
 
         def _bg_wls_check(msg_str):
             try:
@@ -456,7 +451,7 @@ class GeodesicOrchestrator:
         atp_level = float(self.eng.bio.mito.state.atp_pool)
         delta_level = float(getattr(lattice.shared, "delta", 0.0)) if lattice else 0.0
 
-        phys_dict = _safe_dict(getattr(ctx, "physics", {}))
+        phys_dict = _safe_dict(ctx.physics)
         energy_node = phys_dict.get("energy", phys_dict)
         debt = float(energy_node.get("coherence_debt", 0.0))
 
