@@ -266,9 +266,8 @@ class TheCortex:
                         context_str = "Empty Void."
                     try:
                         is_faithful, judge_reason = self.dspy_critic.audit_generation(
-                            user_input, context_str, final_text)
+                            user_input, context_str, final_text, active_mode=self.active_mode)
                     except Exception as e:
-                        # The ResponseValidator will catch any actual formatting crimes in the next step.
                         is_faithful, judge_reason = True, ""
                         if self.events:
                             self.events.log(f"{Prisma.OCHRE}[CRITIC OFFLINE]: DSPy failed to parse. Bypassing audit.{Prisma.RST}", "SYS")
