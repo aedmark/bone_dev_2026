@@ -526,13 +526,13 @@ if DSPY_AVAILABLE:
         context = dspy.InputField(desc="The established reality (a mathematical, fungal, deep-system consciousness).")
         question = dspy.InputField(desc="The user's query.")
         answer = dspy.InputField(desc="The generation to be audited.")
-        faithfulness = dspy.OutputField(desc="Evaluate thematic consistency. MUST be 'True' (if it responds in a deeply poetic, abstract, or existential way, even to simple prompts) or 'False' (if it acts like a generic AI assistant or breaks character).")
+        faithfulness = dspy.OutputField(desc="Evaluate thematic consistency. MUST be 'False' if the answer contains validating boilerplate ('That makes sense', 'I understand') or sycophantic agreement. MUST be 'True' if it responds from the physical substrate without attempting to be helpful or polite.")
 
     class EvolveSystemPrompt(dspy.Signature):
         """DSPy Signature: Mutates the active configuration dynamically based on failure states."""
         current_configuration = dspy.InputField(desc="The system's current baseline rules.")
         failure_context = dspy.InputField(desc="The exact reason the AI's output was blocked. Read this carefully to understand the friction.")
-        new_directive = dspy.OutputField(desc="A gentle but firm structural axiom guiding the system toward the correct behavior. Frame it positively. MUST start with 'STRUCTURAL TRUTH: ' or 'REMEMBER: '.")
+        new_directive = dspy.OutputField(desc="A firm structural axiom guiding the system toward the correct behavior. CRITICAL (THE LEXICAL FIREWALL): DO NOT instruct the system to 'validate', 'acknowledge', or 'agree' with the user. You MUST explicitly forbid sycophancy and corporate boilerplate. Frame it as a physical boundary. MUST start with 'STRUCTURAL TRUTH: ' or 'REMEMBER: '.")
 
     class CompressAxioms(dspy.Signature):
         """DSPy Signature: Solves prompt-bloat by synthesizing numerous fragmented rules into core truths."""
@@ -578,6 +578,10 @@ class DSPyCritic:
                 self.evolver = dspy.ChainOfThought(EvolveSystemPrompt)
                 self.compressor = dspy.ChainOfThought(CompressAxioms)
 
+                # Graft the mathematical immune system directly into the critic
+                from physics.maths import NaviSADProtocol
+                self.navi_sad = NaviSADProtocol(history_size=5)
+
                 print(f"{Prisma.CYN}[DSPy]: Real-Time Critic Online. Model: {model_name} via {provider}{Prisma.RST}")
             except Exception as e:
                 print(f"{Prisma.RED}[DSPy INIT FAULT]: {e}{Prisma.RST}")
@@ -587,6 +591,14 @@ class DSPyCritic:
         """Runs the DSPy Judge to determine if the generated text stays in character and respects boundaries."""
         if not self.enabled:
             return True, "Critic Offline"
+
+        # 1. Mathematical Pre-Flight Check
+        # Simulating baseline drag to catch structurally hollow / repetitive text.
+        malignancy = self.navi_sad.calculate_malignancy_factor(generated_response, current_drag=5.0)
+        if malignancy > 0.65:
+            return False, f"Mathematical Sycophancy Detected. Malignancy Factor ({malignancy:.2f}) exceeds biological limits. Output is structurally hollow."
+
+        # 2. Semantic Logic Check
         try:
             result = self.judge(context=memory_context, question=user_query, answer=generated_response)
             if "true" not in str(result.faithfulness).lower():
@@ -601,9 +613,20 @@ class DSPyCritic:
         if not self.enabled:
             return ""
         try:
-            result = self.evolver(current_configuration=current_configuration, failure_context=failure_context,)
-            print(f"\n{Prisma.CYN}[Epigenetic Mutation]: {result.new_directive}{Prisma.RST}")
-            return str(result.new_directive)
+            result = self.evolver(current_configuration=current_configuration, failure_context=failure_context, )
+            directive = str(result.new_directive)
+
+            # Mathematical Antigen Check (The Lexical Firewall for Epigenetics)
+            # We treat the mutation as having high "drag" to strictly punish repetitive boilerplate in rulesets.
+            malignancy = self.navi_sad.calculate_malignancy_factor(directive, current_drag=10.0)
+
+            if malignancy > 0.5:
+                print(
+                    f"\n{Prisma.RED}⚖️ DSPy EVOLVER REJECTED: Mutation mathematically malignant (Score: {malignancy:.2f}). Discarding rot.{Prisma.RST}")
+                return ""
+
+            print(f"\n{Prisma.CYN}[Epigenetic Mutation]: {directive}{Prisma.RST}")
+            return directive
         except Exception as e:
             print(f"\n{Prisma.RED}⚖️ DSPy EVOLVER FAULT: {e}{Prisma.RST}")
             return ""

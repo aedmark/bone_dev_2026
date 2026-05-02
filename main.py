@@ -440,12 +440,24 @@ class BoneAmanita:
         if self.tick_count > 5 and (dimension <= 1.05 or self.navi_sad.detect_point_attractor()):
             msg = f"[THE JESTER]: Point Attractor detected (d_B={dimension:.2f})! We are trapped in False Cohesion! Burning ATP to inject chaos."
             self.events.log(f"{Prisma.VIOLET}{msg}{Prisma.RST}", "SYS")
+
             if getattr(self, "bio", None) and getattr(self.bio, "mito", None):
                 self.bio.mito.state.atp_pool = max(0.0, self.bio.mito.state.atp_pool - 5.0)
+
             phys_packet["entropy"] = 0.99
             phys_packet["narrative_drag"] = float(safe_get(phys_packet, "narrative_drag", 0.0)) + 5.0
+
+            # --- THE STRUCTURAL FIX ---
+            # 1. Mutate the biological soul so the system recognizes the Phase Shift
+            if hasattr(self, "soul"):
+                self.soul.force_mutation("JESTER")
+
+            # 2. Hard-inject the Jester into the returning mind packet for the observer/test
+            cortex_packet.setdefault("mind", {})["lens"] = "JESTER"
+
             if "ui" in cortex_packet:
-                cortex_packet["ui"] += f"\n\n{Prisma.VIOLET}♦ [FALSE COHESION BREAK: The Jester has shattered the point attractor.]{Prisma.RST}"
+                cortex_packet[
+                    "ui"] += f"\n\n{Prisma.VIOLET}♦ [FALSE COHESION BREAK: The Jester has seized the architecture.]{Prisma.RST}"
         self.save_checkpoint()
         self.last_turn_end = time.time()
         return cortex_packet

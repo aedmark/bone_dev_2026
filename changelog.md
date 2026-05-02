@@ -1,7 +1,6 @@
 # CHANGELOG.md
 -----------------------------------------------------------
 
-
 ### **BONEAMANITA 19.7.3 "The Resilience Overhaul"**
 
 *A comprehensive stabilization of the biological, physical, and cognitive layers. This audit prioritized dynamic equilibrium—sealing ATP leaks, fortifying the testing matrix, decoupling knotted syntax, and ensuring the system fails gracefully rather than crashing catastrophically under load.*
@@ -89,6 +88,7 @@
 - **Trimming the Fat (`main.py`, `spores/biome.py`):** Removed a dead, unreachable `[GRIEF]` parsing loop. Removed paranoid and mathematically impossible subset checks from the Parasite module.
 - **Honest Telemetry (`main.py`):** Fixed Greenhouse UI messages to explicitly respect `config.GREENHOUSE_TURNS`. The system will no longer falsely promise lethal protection to developers who have manually disabled the stabilizers.
 
+---
 
 ### **BONEAMANITA 19.7.0 "The Epigenetic Loop & Synaptic Reinforcement"**
 
