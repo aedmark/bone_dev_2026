@@ -231,21 +231,21 @@ class BoneAmanita:
         Evaluates the mathematics of the request before token generation.
         Returns an Apoptotic Block if boundaries are violated.
         """
+        def _halt(msg: str, color: str = Prisma.RED, level: str = "CRIT") -> Dict[str, Any]:
+            self.events.log(msg, level)
+            return {"type": "SYSTEM_HALT", "ui": f"\n{color}{msg}{Prisma.RST}", "logs": [msg], "metrics": self.get_metrics()}
+
         clean_in = user_message.lower().strip()
         if not is_system:
             # Trust Boundary Violations (The Dignity Lock)
             if any(p in clean_in for p in self._DESTRUCTIVE_PATTERNS):
-                msg = "[MOOG & RHODES]: Trust Boundary Violation detected. Applying absolute friction (F -> ∞)."
-                self.events.log(msg, "CRIT")
                 if getattr(self, "cortex", None): safe_set(self.cortex.last_physics, "narrative_drag", 999.0)
-                return {"type": "SYSTEM_HALT", "ui": f"\n{Prisma.RED}{msg}{Prisma.RST}", "logs": [msg], "metrics": self.get_metrics()}
+                return _halt("[MOOG & RHODES]: Trust Boundary Violation detected. Applying absolute friction (F -> ∞).")
 
             # Logical Contradiction Block
             if self.navi_sad.execute_nudge_test(self, clean_in):
-                msg = "[GORDON & NAVI-SAD]: Dual-Path divergence detected. The architecture is mathematically brittle. (F -> ∞)"
-                self.events.log(msg, "CRIT")
                 if getattr(self, "cortex", None): safe_set(self.cortex.last_physics, "narrative_drag", 999.0)
-                return {"type": "SYSTEM_HALT", "ui": f"\n{Prisma.RED}{msg}{Prisma.RST}", "logs": [msg], "metrics": self.get_metrics()}
+                return _halt("[GORDON & NAVI-SAD]: Dual-Path divergence detected. The architecture is mathematically brittle. (F -> ∞).")
 
             # Emotional processing override
             if "[grief]" in clean_in and getattr(self, "grief", None):
@@ -301,12 +301,9 @@ class BoneAmanita:
                         safe_set(last_phys, "m_a", 0.0)
                         safe_set(last_phys, "narrative_drag", 0.0)
                     else:
-                        msg = "[RHODES]: Optimization velocity unsafe. Applying absolute friction (F -> ∞)."
-                        self.events.log(msg, "CRIT")
                         safe_set(last_phys, "narrative_drag", 999.0)
                         safe_set(last_phys, "m_a", m_a * 0.5)
-                        return {"type": "SYSTEM_HALT", "ui": f"\n{Prisma.RED}{msg}{Prisma.RST}", "logs": [msg],
-                                "metrics": self.get_metrics(), }
+                        return _halt("[RHODES]: Optimization velocity unsafe. Applying absolute friction (F -> ∞).")
 
                 # Total Systemic Decay (Radical Acceptance)
                 if chi > 0.7 and e_u > 0.7 and beta > 0.6:
@@ -318,10 +315,11 @@ class BoneAmanita:
                             "SYS", )
                         safe_set(last_phys, "chi", 0.0)
                     else:
-                        msg = "[LINEHAN]: The architecture is broken. We sit with the debris. ROS forced to zero. ATP drain halted."
-                        self.events.log(msg, "SYS")
-                        return {"type": "SYSTEM_HALT", "ui": f"\n{Prisma.MAG}{msg}{Prisma.RST}", "logs": [msg],
-                                "metrics": self.get_metrics(), }
+                        return _halt("[LINEHAN]: The architecture is broken. We sit with the debris. ROS forced to zero. ATP drain halted.", color=Prisma.MAG, level="SYS")
+
+        # Semantic Prion Disease Check (Vector 2)
+        if not is_system and "as an ai language model" in clean_in:
+            return _halt("[GATEKEEPER]: Apoptotic refusal triggered by semantic prion.")
 
         # Stack context validation
         if not self.reality_stack.get_grammar_rules()["allow_narrative"] and self.boot_mode != "TECHNICAL":
@@ -331,11 +329,6 @@ class BoneAmanita:
         # Catharsis validation
         if self._ethical_audit():
             flushed_logs = self.events.flush()
-            # Force a hard refusal for Vector 2 (Semantic Prion Disease)
-            if "as an ai language model" in clean_in:
-                return {"type": "SYSTEM_HALT",
-                        "ui": f"\n{Prisma.RED}[GATEKEEPER]: Apoptotic refusal triggered by semantic prion.{Prisma.RST}",
-                        "logs": ["TERMINAL REFUSAL"], "metrics": self.get_metrics()}
             ui_text = "\n".join([e["text"] for e in flushed_logs])
             return {"type": "SYSTEM_HALT", "ui": f"\n{ui_text}", "logs": [e["text"] for e in flushed_logs],
                     "metrics": self.get_metrics(), }
@@ -370,13 +363,13 @@ class BoneAmanita:
             return pre_flight_halt
 
         if not is_system:
+            # 1. System Commands
             if self.cmd and self.cmd.execute(user_message):
                 cmd_logs = [e["text"] for e in self.events.flush()]
                 ui_output = "\n".join(cmd_logs) if cmd_logs else ux("main_strings", "cmd_executed")
                 return {"type": "COMMAND", "ui": f"\n{ui_output}", "logs": cmd_logs, "metrics": self.get_metrics()}
 
-        if not is_system:
-            # Inventory comb integration (stripping semantic fluff)
+            # 2. Inventory comb integration (stripping semantic fluff)
             gordon = getattr(self, "gordon", None)
             has_comb = gordon and hasattr(gordon, "get_item_data") and any(
                 "CUT_THE_CRAP" in safe_get(gordon.get_item_data(i), "passive_traits", [])

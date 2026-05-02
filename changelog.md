@@ -1,6 +1,29 @@
 # CHANGELOG.md
 -----------------------------------------------------------
 
+### **BONEAMANITA 19.7.4 "The Tensegrity Purge"**
+
+*A surgical optimization of the central nervous system and macro-organism loops. This audit targeted bureaucratic rot, silent fail-states, memory leaks, and miswired cognitive checks, resulting in a cleaner, tighter, and more biologically sound architecture.*
+
+#### **🧠 COGNITIVE ERGONOMICS (Pinker's Pass: Code as Language)**
+- **The Prion Misfire (`main.py`):** Un-nested the Semantic Prion disease check (`"as an ai language model"`) from the episodic Ethical Audit loop. The Gatekeeper is now permanently awake and will instantly reject injected tropes on every turn.
+- **Phantom Silencing (`core.py`):** Muted the `LoreManifest` from warning about missing `seeds` and `lenses` on fresh boots, purging syntactic noise from the terminal during diagnostics.
+- **Syntactic Consolidation (`main.py`):** Unified scattered `if not is_system:` blocks inside the core engine loop to reduce narrative drag and cognitive friction.
+
+#### **🛠️ FUNCTIONAL PRAGMATISM (Schur's Pass: Code as Humanity)**
+- **Bureaucratic Rot Purge (`main.py`):** Eliminated enterprise-grade dictionary replication in `_pre_flight_checks`. Introduced a localized `_halt()` closure to handle Apoptotic blocks cleanly and consistently (DRY principle).
+
+#### **⚖️ DYNAMIC EQUILIBRIUM (Meadows' Pass: Code as Dynamics)**
+- **The Alarm Bell Misfire (`core.py`):** Taught the `EventBus.log` a self-correcting heuristic. If a severity tag (like `CRIT`) is accidentally passed as a source, the system auto-pivots the arguments to ensure critical red-text alarms are never silenced.
+- **Sensory Flood Prevention (`core.py`):** Decoupled terminal printing logic from the telemetry state. If the background logger fails due to disk I/O, the system no longer falls back to blindly flooding the user's terminal with background metabolic noise.
+
+#### **✨ SYNERGETIC REINFORCEMENT (Fuller's Pass: Code as a System)**
+- **Zombie Thread Eradication (`core.py`):** Tucked the `ThreadPoolExecutor` instantiation safely behind the disk I/O validation block, preventing the engine from spinning up dead memory-leak threads when storage is inaccessible.
+- **Terminal Crash on Exit (`core.py`):** Fortified the `shutdown()` sequence to explicitly check `is not None` on the executor, preventing the engine from attempting to execute commands on a null object and crashing during final saves.
+- **The Orphaned Seeds (`humanity.py`, `network.py`):** Re-routed stray, hardcoded calls for `SEEDS` to properly query inside the `SCENARIOS` lore matrix, preventing the system from endlessly hunting for a deprecated `seeds.json` file.
+
+---
+
 ### **BONEAMANITA 19.7.3 "The Resilience Overhaul"**
 
 *A comprehensive stabilization of the biological, physical, and cognitive layers. This audit prioritized dynamic equilibrium—sealing ATP leaks, fortifying the testing matrix, decoupling knotted syntax, and ensuring the system fails gracefully rather than crashing catastrophically under load.*

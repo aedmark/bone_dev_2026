@@ -186,6 +186,10 @@ class EventBus:
 
     def log(self, message: str, source: str = "SYSTEM", level: str = "INFO"):
         """Creates an immutable, timestamped record of an event and pushes it downstream."""
+        # Heuristic: Auto-correct misplaced severity levels passed as the source
+        if source in ("CRIT", "ERROR", "WARN", "SYS") and level == "INFO":
+            level, source = source, "SYSTEM"
+
         event = {"timestamp": time.time(), "source": source, "level": level, "message": message, "text": message,
                  "_type": "EVENT_LOG"}
         self.buffer.append(event)
@@ -193,10 +197,9 @@ class EventBus:
 
         if self.telemetry:
             self.telemetry.record_event(event)
-            if level in ("CRIT", "ERROR"):
-                print(f"{Prisma.RED}[{source}] {message}{Prisma.RST}")
-        else:
-            print(f"[{source}] {message}")
+
+        if level in ("CRIT", "ERROR"):
+            print(f"{Prisma.RED}[{source}] {message}{Prisma.RST}")
 
     def flush(self) -> List[Dict]:
         """Drains the current buffer, returning the accumulated state and resetting the queue."""
@@ -244,12 +247,13 @@ class LoreManifest:
         safe_category = os.path.basename(category)
         filepath = os.path.join(self.DATA_DIR, f"{safe_category}.json")
         if not os.path.exists(filepath):
+            # Suppress warnings for known dynamic files (created at runtime) or legacy ghosts
+            if safe_category not in ("lenses", "seeds"):
+                print(f"{Prisma.YEL}[LORE]: Missing data for '{category}'. Loading empty matrix.{Prisma.RST}")
             return None
         try:
             with open(filepath, "r", encoding="utf-8") as f:
-                data = json.load(f)
-            print(f"{Prisma.GRY}[LORE]: Lazy-loaded '{category}'.{Prisma.RST}")
-            return data
+                return json.load(f)
         except Exception as e:
             print(f"{Prisma.RED}[LORE]: Corrupt JSON in '{category}': {e}{Prisma.RST}")
             return None
@@ -521,15 +525,15 @@ class TelemetryService:
         try:
             os.makedirs(self.log_dir, exist_ok=True)
             self.current_trace_file = os.path.join(self.log_dir, f"trace_{int(time.time())}.jsonl")
+            # Offloads file operations to a dedicated thread to preserve main loop tensegrity.
+            self._executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="BoneTelemetry")
         except OSError as e:
             # Apoptotic Fallback: If disk I/O fails, shut down the logger, keep the engine alive.
             msg = ux("core_strings", "tel_disk_denied") or "Disk access denied for Telemetry."
             print(f"{Prisma.OCHRE}[GRACEFUL DEGRADATION] {msg} - {e}. Telemetry offline.{Prisma.RST}")
             self.disabled = True
             self.current_trace_file = None
-
-        # Offloads file operations to a dedicated thread to preserve main loop tensegrity.
-        self._executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="BoneTelemetry")
+            self._executor = None
 
     def record_event(self, event_dict: dict):
         if self.disabled or not self.current_trace_file:
@@ -589,7 +593,7 @@ class TelemetryService:
 
     def shutdown(self):
         self.flush_to_disk()
-        if hasattr(self, "_executor"):
+        if getattr(self, "_executor", None) is not None:
             self._executor.shutdown(wait=True)
 
     def _yield_historical_records(self, file_limit=5, lines_per_file=10):
