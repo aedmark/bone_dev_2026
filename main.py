@@ -134,10 +134,11 @@ class BoneAmanita:
         tuning_key = self.mode_settings.get("tuning", "STANDARD")
         if hasattr(BonePresets, tuning_key):
             self.config.load_preset(getattr(BonePresets, tuning_key))
-        if getattr(self.mind.mem, "session_health", None) is not None:
-            self.health = self.mind.mem.session_health
-            self.stamina = self.mind.mem.session_stamina
-            self.trauma_accum = getattr(self.mind.mem, "session_trauma_vector", {}) or {}
+        mem = getattr(self.mind, "mem", None)
+        if mem and getattr(mem, "session_health", None) is not None:
+            self.health = mem.session_health
+            self.stamina = mem.session_stamina
+            self.trauma_accum = getattr(mem, "session_trauma_vector", {}) or {}
         if self.tick_count == 0 and hasattr(self.bio, "mito"):
             self.bio.mito.state.atp_pool = self.config.BIO.STARTING_ATP
 
@@ -173,7 +174,7 @@ class BoneAmanita:
             msg_warn = ux("main_strings", "prompt_not_found")
             self.events.log(msg_warn.format(prompt_key=prompt_key), "WARN")
         active_mods = self.mode_settings.get("active_mods", [])
-        if active_mods and hasattr(self, "consultant") and self.consultant:
+        if active_mods and getattr(self, "consultant", None):
             for mod in active_mods:
                 if mod not in self.consultant.state.active_modules:
                     self.consultant.state.active_modules.append(mod)
@@ -267,7 +268,7 @@ class BoneAmanita:
                     self.cortex.ballast_active, self.cortex.gordon_shock = True, violation
 
             # Runaway Toxicity Math (Moog, Rhodes, Linehan Checkpoints)
-            last_phys = getattr(self.observer, "last_physics_packet", getattr(self.cortex, "last_physics", None))
+            last_phys = getattr(self.observer, "last_physics_packet", None) or getattr(self.cortex, "last_physics", None)
             if last_phys:
                 m_a = self.navi_sad.calculate_malignancy_factor(user_message, float(safe_get(last_phys, "narrative_drag", 0.0)))
                 safe_set(last_phys, "m_a", m_a)
@@ -279,23 +280,32 @@ class BoneAmanita:
                 e_u = float(getattr(lattice.u, "E", base_exhaust)) if lattice and hasattr(lattice, "u") else base_exhaust
                 beta = float(safe_get(last_phys, "beta_index", 0.0))
 
-                # Terminal Hallucination Check
+                # [MOOG]: Terminal Hallucination Check
                 if (chi * m_a) > i_c:
                     self.events.log("MOOG: Apoptotic Gate triggered. Runaway loop exceeds Immune Competence.", "CRIT")
                     return self.trigger_death(last_phys)
 
-                # Over-optimization Check
+                # [RHODES]: Over-optimization Check
                 if m_a > 0.8 and mu < 0.2:
                     safe_set(last_phys, "narrative_drag", 999.0)
                     safe_set(last_phys, "m_a", m_a * 0.5)
 
-                    # [MEADOWS]: The Amplification Tax. Burn ATP to penalize the runaway loop.
+                    # The Amplification Tax. Burn ATP to penalize the runaway loop.
                     if getattr(self, "bio", None) and hasattr(self.bio, "mito"):
                         tax = max(10.0, m_a * 20.0)
                         self.bio.mito.state.atp_pool = max(0.0, self.bio.mito.state.atp_pool - tax)
                         self.events.log(f"[RHODES]: Amplification Tax applied. Drained {tax:.1f} ATP.", "SYS")
 
                     return _halt("[RHODES]: Optimization velocity unsafe. Applying absolute friction (F -> ∞).")
+
+                # [LINEHAN]: Radical Acceptance Check
+                if e_u > 0.75 and beta > 0.6:
+                    safe_set(last_phys, "entropy", 0.1)
+                    safe_set(last_phys, "narrative_drag", 999.0)
+                    msg = "[LINEHAN]: High exhaustion and contradiction detected. The architecture is stable. We sit with the debris."
+                    self.events.log(msg, "SYS")
+                    return {"type": "SYSTEM_HALT", "ui": f"\n{Prisma.CYN}{msg}{Prisma.RST}", "logs": [msg],
+                            "metrics": self.get_metrics()}
 
         # Semantic Prion Disease Check (Vector 2)
         if not is_system and any(prion in clean_in for prion in self._SEMANTIC_PRIONS):
@@ -348,6 +358,7 @@ class BoneAmanita:
 
             # 2. Inventory comb integration (stripping semantic fluff)
             gordon_ref = getattr(self, "gordon", None)
+            has_comb = False
             if gordon_ref:
                 has_comb = any("CUT_THE_CRAP" in safe_get(gordon_ref.get_item_data(i), "passive_traits", [])
                                for i in gordon_ref.inventory)
@@ -471,7 +482,7 @@ class BoneAmanita:
             fail_msg = ux("main_strings", "save_failed")
             death_log.append(fail_msg.format(e=e))
 
-        if hasattr(self, "cortex") and self.cortex:
+        if getattr(self, "cortex", None):
             self.cortex.purge_context()
         return {"type": "DEATH", "ui": "\n".join(death_log), "logs": death_log, "metrics": self.get_metrics()}
 
