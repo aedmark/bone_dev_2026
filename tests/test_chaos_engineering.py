@@ -105,9 +105,6 @@ class TestChaosEngineering(BoneTestCase):
         safe_set(self.engine.cortex.last_physics, "exhaustion", 0.85)
         safe_set(self.engine.cortex.last_physics, "beta_index", 0.75)
 
-        # The engine strictly prioritizes the Observer's state and the User's biological Lattice.
-        # We must physically mirror the exhaustion to these layers so it isn't overridden by a "healthy" baseline.
-        self.engine.observer.last_physics_packet = self.engine.cortex.last_physics
         lattice = getattr(self.engine, "shared_lattice", None)
         if lattice and hasattr(lattice, "u"):
             safe_set(lattice.u, "E", 0.85)

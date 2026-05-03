@@ -673,7 +673,7 @@ class ResponseValidator:
                 extracted_meta_logs.extend(f"[THOUGHT]: {line.strip()}" for line in match.group(1).split("\n") if line.strip())
             clean_text = pattern.sub("", clean_text)
 
-        # Parse output designated for disk storage (Code execution).
+        # Parse output designated for disk storage.
         for match in self._file_pattern.finditer(clean_text):
             safe_content = match.group(2).strip().replace("\n", "|||NEWLINE|||")
             extracted_meta_logs.append(
@@ -704,7 +704,7 @@ class ResponseValidator:
         low_resp, errors_found = sanitized_response.lower(), []
         primary_replacement = None
 
-        # Pinker's Antigen Scan: Check for banned boilerplate phrases.
+        # Check for banned boilerplate phrases.
         if self._banned_regex:
             for match in self._banned_regex.finditer(sanitized_response):
                 phrase = match.group(0).lower()

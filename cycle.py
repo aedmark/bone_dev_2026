@@ -11,6 +11,7 @@ the system stable over time.
 import random
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 import traceback
 import uuid
 from typing import Dict, Any, List, Optional
@@ -254,19 +255,24 @@ class GeodesicOrchestrator:
         self._rem_lock = threading.Lock()
         self.symbiosis = self.eng.symbiosis
 
+        # Bounded cellular membrane for asynchronous background tasks.
+        # Prevents thread-exhaustion during latency spikes.
+        self._async_pool = ThreadPoolExecutor(max_workers=3, thread_name_prefix="CycleAsync")
+
         # Connects the local organism to the shared multiplex (if running in a networked state).
         from drivers import SharedLatticeDriver
         if not hasattr(self.eng, "shared_lattice"):
             self.eng.shared_lattice = SharedLatticeDriver()
 
+        self.congruence_validator = CongruenceValidator()
+
     def _verify_semantic_topology(self, ctx: CycleContext):
         """
         Native Maslov-Sneppen rewiring (Project Navi, Apache 2.0).
-        Fuller Note: Offloaded to a background thread to protect main loop tensegrity.
         A biological toxin doesn't kill instantly; it flags the system for apoptosis on the next cycle.
         """
         if getattr(self.eng, "tick_count", 0) % 3 != 0:
-            return  # Meadows Dynamics: Limit runaway computational drag.
+            return
 
         mem = self.eng.mind.mem
         hippo = mem.hippocampus
@@ -306,7 +312,7 @@ class GeodesicOrchestrator:
         # Pass a safely cast list to prevent RuntimeError on the main thread during dict mutation
         try:
             safe_adj = {k: set(v) for k, v in list(actual_adj.items())}
-            threading.Thread(target=_bg_topology_check, args=(safe_adj,), daemon=True).start()
+            self._async_pool.submit(_bg_topology_check, safe_adj)
         except RuntimeError:
             pass # Graph mutated too fast to safely copy; we skip the topology check this cycle.
 
@@ -338,11 +344,10 @@ class GeodesicOrchestrator:
             if last_packet:
                 ctx.physics = last_packet.snapshot()
             else:
-                # Hard fallback if physics is missing on Turn 1.
                 ctx.physics = PanicRoom.get_safe_physics()
                 self.eng.events.log(ux("cycle_strings", "orch_physics_bypass", default="Initial physics bypass. Safe state engaged."), "SYS")
 
-            ctx.validator = CongruenceValidator()
+            ctx.validator = self.congruence_validator
             ctx.reality_stack = getattr(self.eng, "reality_stack", None)
             ctx.user_name = self.eng.user_name
             ctx.council_mandates = []
@@ -431,7 +436,7 @@ class GeodesicOrchestrator:
         # Only run the fractal checks if the cortex is active and capable.
         if cortex and hasattr(cortex, "get_local_mass_radius"):
             if getattr(self.eng, "tick_count", 0) % 3 == 0:
-                threading.Thread(target=_bg_wls_check, args=(clean_message,), daemon=True).start()
+                self._async_pool.submit(_bg_wls_check, clean_message)
 
         # The auto-sleep triggers.
         if clean_message != "(Waiting)":

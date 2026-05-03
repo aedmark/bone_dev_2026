@@ -68,7 +68,7 @@ class TheAkashicRecord:
     def trigger_autophagy(self) -> Tuple[float, str]:
         """
         The survival mechanism.
-        If the LLM is starving (out of ATP) but forced to process a prompt,
+        If the LLM is out of ATP but forced to process a prompt,
         it physically consumes its own long-term memories or acquired vocabulary,
         converting the semantic mass back into raw energy to survive the turn.
         """
@@ -84,7 +84,7 @@ class TheAkashicRecord:
             # Dynamic yield based on the density of the memory consumed
             yield_val = min(50.0, 10.0 + (mass * 2.5))
 
-            # Epigenetic benefit: digesting a memory makes the system better at digesting in the future
+            # Digesting a memory makes the system better at digesting in the future
             if bio_cfg and hasattr(bio_cfg, "DEPTH_TAX_MULT"):
                 bio_cfg.DEPTH_TAX_MULT = max(0.5, bio_cfg.DEPTH_TAX_MULT - 0.02)
 
@@ -118,8 +118,7 @@ class TheAkashicRecord:
         axis_map = {
             "E": ("exhaustion", 0.2), "beta": ("beta_index", 0.4), "S": ("scope", 0.3),
             "D": ("depth", 0.3), "C": ("connectivity", 0.2), "T": ("trauma", 0.0),
-            "psi": ("psi", 0.0), "chi": ("entropy", 0.0), "valence": ("valence", 0.0), "ROS": ("ros", 0.0)
-        }
+            "psi": ("psi", 0.0), "chi": ("entropy", 0.0), "valence": ("valence", 0.0), "ROS": ("ros", 0.0)}
         coords = {}
         energy_layer = safe_get(p, "energy") or {}
 
@@ -188,7 +187,7 @@ class TheAkashicRecord:
                 self.save_to_disk("scars", epigenetic_list)
 
                 if self.events:
-                    self.events.log(f"{Prisma.VIOLET}🧬 [EPIGENETICS] Scar '{concept}' compiled into flow.{Prisma.RST}", "SYS")
+                    self.events.log(f"{Prisma.VIOLET}[EPIGENETICS] Scar '{concept}' compiled into flow.{Prisma.RST}", "SYS")
         except Exception as e:
             if self.events:
                 self.events.log(f"{Prisma.RED}Failed to mutate system_prompts: {e}{Prisma.RST}", "SYS",)
@@ -368,7 +367,6 @@ class TheAkashicRecord:
             gordon_data = self.lore.get("GORDON") or {}
             if recipes := gordon_data.get("RECIPES", []):
                 self.known_recipes.update((r.get("ingredient"), r.get("catalyst_category")) for r in recipes if r.get("ingredient") and r.get("catalyst_category"))
-
         words_path = os.path.join(self.save_dir, "akashic_discovered_words.json")
         if os.path.exists(words_path):
             try:

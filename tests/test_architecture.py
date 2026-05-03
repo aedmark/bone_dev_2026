@@ -143,3 +143,27 @@ class ArchitectureTests(BoneTestCase):
                          "[FAIL] Panic Room failed to apply the 0.2 Serotonin survival floor.")
 
         print("  [SUCCESS] Panic Room cleanly purged stress chemistry while retaining necessary structural Serotonin.")
+
+    @patch("cycle.CongruenceValidator.__init__", return_value=None)
+    def test_arch_hot_loop_validator_singleton(self, mock_validator_init):
+        """The Synergetic Test: Ensures the CongruenceValidator is not instantiated during the hot loop."""
+        print("\n--- ARCH 6: Hot-Loop Instantiation Leak Check ---")
+
+        # The orchestrator was already instantiated during engine boot,
+        # so the init call count should be exactly 0 during a standard turn.
+
+        # Run a headless turn to trigger the cycle without UI overhead
+        self.engine.orchestrator.run_headless_turn("Testing the loop.")
+
+        self.assertEqual(
+            mock_validator_init.call_count, 0,
+            "[FAIL] CongruenceValidator was instantiated during the cycle hot-loop! This causes a memory leak."
+        )
+
+        # Verify the single instance actually exists on the orchestrator
+        self.assertTrue(
+            hasattr(self.engine.orchestrator, "congruence_validator"),
+            "[FAIL] GeodesicOrchestrator is missing the single-instance congruence_validator."
+        )
+
+        print("  [SUCCESS] CongruenceValidator is safely anchored as a singleton outside the hot loop.")

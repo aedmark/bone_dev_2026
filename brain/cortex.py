@@ -630,14 +630,14 @@ class TheCortex:
             chi_level = float(phys.get("chi", phys.get("entropy", 0.0)))
             if v_level > 80.0 and chi_level > 0.7:
                 mind["style_directives"].append(
-                    f"LATERAL OFC OVERRIDE: Standard logic has failed. You are operating under extreme Voltage and Chaos. We have abandoned linear memory. Weave these highly explosive, orthogonal structural concepts into your answer to shatter the loop: [{shadow_str}].")
+                    f"OVERRIDE: Standard logic has failed. You are operating under extreme Voltage and Chaos. We have abandoned linear memory. Weave these highly explosive, orthogonal structural concepts into your answer to shatter the loop: [{shadow_str}].")
                 if self.events:
                     self.events.log(
-                        f"{Prisma.MAG}Lateral OFC Retrieval triggered! Injecting structural bombs: {shadow_str}{Prisma.RST}",
+                        f"{Prisma.MAG}Injecting structural bombs: {shadow_str}{Prisma.RST}",
                         "CORTEX")
             else:
                 mind["style_directives"].append(
-                    f"SHADOW CAST [APERTURE COMPLETENESS]: While answering the direct prompt, you MUST briefly illuminate these adjacent/unasked concepts pulled from deep memory: [{shadow_str}]. Offer them as a generous 'door' the user can choose to open, do not lecture.")
+                    f"SHADOW CAST: While answering the direct prompt, you MUST briefly illuminate these adjacent/unasked concepts pulled from deep memory: [{shadow_str}]. Offer them as a generous 'door' the user can choose to open, do not lecture.")
                 if self.events:
                     self.events.log(f"{Prisma.CYN}Shadow Cast retrieved: {shadow_str}{Prisma.RST}", "CORTEX")
 

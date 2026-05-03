@@ -345,7 +345,7 @@ class DreamEngine:
                 "The void stares back."]
         if self.llm:
             lore_sample = ", ".join(random.sample(sources, min(3, len(sources))))
-            prompt = (f"SYSTEM_INSTRUCTION: You are the dream-engine of a cybernetic lattice. "
+            prompt = (f"SYSTEM_INSTRUCTION: You are the dream-engine of a cybernetic orgnaism. "
                       f"Generate a surreal 2-sentence {dream_type.lower()} involving '{residue}'. "
                       f"Use this lore as thematic inspiration: [{lore_sample}]. "
                       f"DO NOT explain the dream. Output ONLY the narrative description.")

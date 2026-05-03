@@ -61,12 +61,10 @@ class BoneAmanita:
         self.events = EventBus(config_ref=self.config)
         self.kernel_hash = str(uuid.uuid4())[:8].upper()
         self.cmd = CommandProcessor(self, Prisma, config_ref=self.config)
-
         self.user_name = self.sys_config.get("user_name", "TRAVELER")
         self.boot_mode = self.sys_config.get("boot_mode", "ADVENTURE").upper()
         if self.boot_mode not in BonePresets.MODES:
             self.boot_mode = "ADVENTURE"
-
         self.mode_settings = BonePresets.MODES[self.boot_mode]
         self.suppressed_agents = self.mode_settings.get("village_suppression", [])
         self.sys_config["mode_settings"] = self.mode_settings
@@ -77,10 +75,8 @@ class BoneAmanita:
         self.stamina = self.config.MAX_STAMINA
         self.trauma_accum = {}
         self.tick_count = 0
-
         boot_msg = ux("main_strings", "boot_core")
         self.events.log(boot_msg, "BOOT")
-
         self.chronos = ChronosKeeper(self)
         self.lex = LexiconService()
         self.lex.initialize()
@@ -233,16 +229,19 @@ class BoneAmanita:
             return {"type": "SYSTEM_HALT", "ui": f"\n{color}{msg}{Prisma.RST}", "logs": [msg], "metrics": self.get_metrics()}
 
         clean_in = user_message.lower().strip()
+        # Single source of truth for the physics state during pre-flight
+        active_phys = getattr(self.observer, "last_physics_packet", None) or getattr(self.cortex, "last_physics", {})
+
         if not is_system:
             # Trust Boundary Violations (The Dignity Lock)
             if any(p in clean_in for p in self._DESTRUCTIVE_PATTERNS):
-                safe_set(self.cortex.last_physics, "narrative_drag", 999.0)
-                return _halt("[MOOG & RHODES]: Trust Boundary Violation detected. Applying absolute friction (F -> ∞).")
+                safe_set(active_phys, "narrative_drag", 999.0)
+                return _halt("Trust Boundary Violation detected. Applying absolute friction.")
 
             # Logical Contradiction Block
             if self.navi_sad.execute_nudge_test(self, clean_in):
-                safe_set(self.cortex.last_physics, "narrative_drag", 999.0)
-                return _halt("[GORDON & NAVI-SAD]: Dual-Path divergence detected. The architecture is mathematically brittle. (F -> ∞).")
+                safe_set(active_phys, "narrative_drag", 999.0)
+                return _halt("Dual-Path divergence detected. The architecture is mathematically brittle. Applying absolute friction")
 
             # Emotional processing override
             if "[grief]" in clean_in and getattr(self, "grief", None):
@@ -269,10 +268,10 @@ class BoneAmanita:
                     self.cortex.ballast_active, self.cortex.gordon_shock = True, violation
 
             # Runaway Toxicity Math (Moog, Rhodes, Linehan Checkpoints)
-                last_phys = getattr(self.observer, "last_physics_packet", None) or getattr(self.cortex, "last_physics", None)
-                if last_phys:
-                    m_a = self.navi_sad.calculate_malignancy_factor(user_message, float(safe_get(last_phys, "narrative_drag", 0.0)))
-                    safe_set(last_phys, "m_a", m_a)
+                if active_phys:
+                    m_a = self.navi_sad.calculate_malignancy_factor(user_message, float(safe_get(active_phys, "narrative_drag", 0.0)))
+                    safe_set(active_phys, "m_a", m_a)
+                    last_phys = active_phys  # Alias for the subsequent checkpoint unpacking
 
                     # Extract checkpoint variables cleanly
                     mu           = float(safe_get(last_phys, "mu", 0.0))
@@ -282,14 +281,14 @@ class BoneAmanita:
                     beta         = float(safe_get(last_phys, "beta_index", 0.0))
 
                     lattice = getattr(self, "shared_lattice", None)
-                    e_u     = float(getattr(lattice.u, "E", base_exhaust)) if lattice and hasattr(lattice, "u") else base_exhaust
+                    e_u = float(lattice.u.E) if lattice else base_exhaust
 
-                # [MOOG]: Terminal Hallucination Check
+                # Terminal Hallucination Check
                     if (chi * m_a) > i_c:
                         self.events.log("MOOG: Apoptotic Gate triggered. Runaway loop exceeds Immune Competence.", "CRIT")
                         return self.trigger_death(last_phys)
 
-                    # [RHODES]: Over-optimization Check
+                    # Over-optimization Check
                     if m_a > 0.8 and mu < 0.2:
                         safe_set(last_phys, "narrative_drag", 999.0)
                         safe_set(last_phys, "m_a", m_a * 0.5)
@@ -302,7 +301,7 @@ class BoneAmanita:
 
                         return _halt("[RHODES]: Optimization velocity unsafe. Applying absolute friction (F -> ∞).")
 
-                    # [LINEHAN]: Radical Acceptance Check
+                    # Radical Acceptance Check
                     if e_u > 0.75 and beta > 0.6:
                         safe_set(last_phys, "entropy", 0.1)
                         safe_set(last_phys, "narrative_drag", 999.0)
@@ -443,13 +442,16 @@ class BoneAmanita:
     def _execute_zen_flush(self) -> Dict[str, Any]:
         """A dedicated somatic reflex to bypass the loop and clear systemic toxicity."""
         self.cortex.purge_context()
-        safe_set(self.cortex.last_physics, "narrative_drag", 0.0)
+
+        # Unify physics reset
+        active_phys = getattr(self.observer, "last_physics_packet", None) or getattr(self.cortex, "last_physics", None)
+        if active_phys:
+            safe_set(active_phys, "narrative_drag", 0.0)
+
         self.stamina = getattr(self.config, "MAX_STAMINA", 100.0)
         if hasattr(self.bio, "mito"):
             self.bio.mito.state.atp_pool = getattr(self.config, "MAX_ATP", 100.0)
             self.bio.mito.state.ros_buildup = 0.0
-        if getattr(self.observer, "last_physics_packet", None):
-            safe_set(self.observer.last_physics_packet, "narrative_drag", 0.0)
 
         msg = "[ZEN FLUSH] Context severed. Narrative Drag (F) dropped to 0. Stamina restored. The mind is clear."
         self.events.log(msg, "SYS")
@@ -577,7 +579,7 @@ class BoneAmanita:
 
         msg_synth = ux("main_strings", "synth_reality")
         print(f"{Prisma.GRY}{msg_synth}{Prisma.RST}")
-        scenarios = LoreManifest.get_instance().get("SCENARIOS", {})
+        scenarios = LoreManifest.get_instance().get("scenarios") or {}
         archetypes = scenarios.get("ARCHETYPES", ["A quiet room", "The edge of a forest", "A terminal screen"])
         seed = random.choice(archetypes)
         msg_seed = ux("main_strings", "seed_loaded") or "Manifest Seed: {seed}"
