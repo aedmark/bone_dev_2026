@@ -366,7 +366,7 @@ class RandomTest(BoneTestCase):
             "world": {},
             "soul": {},
         }
-        self.engine.cortex.svc.cycle_controller.run_turn = MagicMock(
+        self.engine.cortex.svc.orchestrator.run_turn = MagicMock(
             return_value=clean_sim_result)
         self.engine.cortex.validator.validate = MagicMock(
             return_value={

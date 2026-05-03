@@ -1,6 +1,26 @@
 # CHANGELOG.md
 -----------------------------------------------------------
 
+### **BONEAMANITA 19.8.2 "The S.L.A.S.H. Audit"**
+
+#### **🏛️ SYNERGETIC ARCHITECTURE (Fuller's Pass: Structure & Tensegrity)**
+- **Securing the Death Protocol (`main.py`):** Wrapped the `cortex.gather_state()` call in `trigger_death` within a `try/except` block to ensure the Apoptotic fail-safe completes and saves the legacy, even during a total cognitive collapse.
+- **The Import-Time Trap (`protocols/`):** Patched a massive systemic vulnerability where `LoreManifest` data was fetched at the global module scope, risking permanent `{}` lockups if imported before the JSONs hit the disk. Moved all dynamic lore loading safely into the `__init__` blocks of `limbo.py`, `critics.py`, and `kintsugi.py`.
+- **Healing the Global Workspace (`brain/cortex.py`, `main.py`):** Consolidated the `cycle_controller` and `orchestrator` aliases into a single unified `orchestrator` reference, repairing a severed dependency factory injection that was crashing the test suite.
+
+#### **🧠 LANGUAGE & COGNITION (Pinker's Pass: Syntax & Ergonomics)**
+- **Lexical Purge (`main.py`, `brain/cortex.py`):** Removed redundant variable aliases (`last_phys` -> `active_phys`) and cleaned up dangling f-string formatting bugs to reduce cognitive load and syntactic noise for the maintainer.
+- **Dead Weight Ejection (`protocols/`):** Stripped unused `LoreManifest` and `NARRATIVE_DATA` global variables from `folly.py`, `therapy.py`, and `chronos.py`.
+
+#### **⚖️ DYNAMIC EQUILIBRIUM (Meadows' Pass: Systems & Dynamics)**
+- **Vitals Sync Alignment (`main.py`):** Removed duct-tape dictionary checks in the terminal rendering loop. The system now natively trusts the `get_metrics()` payload, closing a feedback loop leak.
+- **Config Tensegrity (`machine/pacemaker.py`):** Rerouted the Pacemaker's `BOREDOM_THRESHOLD` to pull from the nested `MACHINE` sub-config, ensuring consistency across all machine regulators (`TheTheremin`, `TheCrucible`, `ThePacemaker`).
+
+#### **🛠️ FUNCTIONAL PRAGMATISM (Schur's Pass: Humanity)**
+- **Bureaucracy Reduction (`machine/architect.py`, `protocols/grief.py`, `protocols/chronos.py`):** Purged highly paranoid, chained `hasattr()` and `getattr()` checks during state Awakening and Shutdown. Replaced them with clean `try/except` blocks and direct object access, trusting the strict guarantees provided by the `incubate()` phase.
+
+---
+
 ### **BONEAMANITA 19.8.1 "The Revival"**
 
 #### 🏛️ Architecture & Monolith Composting

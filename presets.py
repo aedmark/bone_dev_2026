@@ -147,7 +147,7 @@ class BoneConfig:
         "THE OBSERVER": {"VOID": 0.5, "ABSTRACT": 0.2},}
 
     TRAUMA_VECTOR = {"THERMAL": 0.0, "CRYO": 0.0, "SEPTIC": 0.0, "BARIC": 0.0}
-    VERSION = "19.7.3"
+    VERSION = "19.8.2"
     VERBOSE_LOGGING = True
 
     # Biological Maximums

@@ -32,7 +32,7 @@ class CortexServices:
     lexicon: Any
     inventory: Any
     consultant: Any
-    cycle_controller: Any
+    orchestrator: Any
     symbiosis: Any
     mind_memory: Any
     bio: Any
@@ -68,7 +68,7 @@ class TheCortex:
         self.consultant = services.consultant
         self.llm = llm_client or LLMInterface(self.events, provider="mock")
         # Link the DreamEngine (from mind.py)
-        eng_ref = getattr(self.svc.cycle_controller, "eng", None)
+        eng_ref = getattr(self.svc.orchestrator, "eng", None)
         self.dreamer = getattr(getattr(eng_ref, "mind", None), "dreamer", None)
         if self.dreamer:
             self.dreamer.llm = self.llm
@@ -107,7 +107,7 @@ class TheCortex:
         symbiosis_mgr = getattr(engine_ref, "symbiosis", None) or SymbiosisManager(engine_ref.events)
         services = CortexServices(events=engine_ref.events, lore=LoreManifest.get_instance(config_ref=target_cfg),
             lexicon=engine_ref.lex, inventory=engine_ref.gordon, consultant=getattr(engine_ref, "consultant", None),
-            cycle_controller=engine_ref.cycle_controller, symbiosis=symbiosis_mgr, mind_memory=engine_ref.mind.mem,
+            orchestrator=engine_ref.orchestrator, symbiosis=symbiosis_mgr, mind_memory=engine_ref.mind.mem,
             bio=getattr(engine_ref, "bio", None), host_stats=getattr(engine_ref, "host_stats", None),
             village=getattr(engine_ref, "village", None), config_ref=target_cfg, )
         instance = cls(services, llm_client)
@@ -156,15 +156,15 @@ class TheCortex:
         if len(user_input) > context_limit and not is_system and not is_boot_sequence:
             safe_content = user_input.replace("\n", "|||NEWLINE|||")
             filename = f"context_drop_{int(time.time())}.txt"
-            self.svc.cycle_controller.eng.substrate.queue_write(f"memory_queue/{filename}", safe_content)
+            self.svc.orchestrator.eng.substrate.queue_write(f"memory_queue/{filename}", safe_content)
 
             # Execute the pending write immediately so it doesn't bottleneck active RAM.
-            self.svc.cycle_controller.eng.substrate.execute_writes(stamina_override=100.0)
+            self.svc.orchestrator.eng.substrate.execute_writes(stamina_override=100.0)
 
             msg = f"{Prisma.CYN}[Substrate Queue]: Massive context drop detected. Routed to silent indexing. Dialogue buffer bypassed.{Prisma.RST}"
             self.events.log(msg, "SYS")
             return {"ui": msg, "type": "SILENT_INGEST", "physics": self.last_physics, "logs": [msg]}
-        sim_result = self.svc.cycle_controller.run_turn(user_input, is_system=is_system)
+        sim_result = self.svc.orchestrator.run_turn(user_input, is_system=is_system)
 
         if sim_result.get("physics"):
             self.last_physics = sim_result["physics"]
@@ -293,7 +293,7 @@ class TheCortex:
             else:
                 gate_txt = final_text
                 from physics import TheGatekeeper
-                eng = self.svc.cycle_controller.eng
+                eng = self.svc.orchestrator.eng
                 gk = getattr(eng, "gatekeeper", None) or TheGatekeeper(self.svc.lexicon, config_ref=self.cfg)
                 gate_pass, gate_txt = gk.audit_generation(final_text, self.svc.bio.mito)
                 if not gate_pass or "IMMUNOSUPPRESSION ENGAGED" in gate_txt:
@@ -316,7 +316,7 @@ class TheCortex:
                 final_output = ux("brain_strings", "cortex_tangled") or fallback_msg
                 extracted_logs.append(
                     "[SYSTEM MERCY RULE]: Rejection loop broken. Releasing tension. Dropping Drag to 0.0.")
-                if obs_packet := getattr(self.svc.cycle_controller.eng.observer, "last_physics_packet", None):
+                if obs_packet := getattr(self.svc.orchestrator.eng.observer, "last_physics_packet", None):
                     safe_set(obs_packet, "narrative_drag", 0.0)
                 if self.last_physics:
                     safe_set(self.last_physics, "narrative_drag", 0.0)
@@ -350,7 +350,7 @@ class TheCortex:
         sim_result["logs"] = sim_result.get("logs", []) + extracted_logs
         sim_result["raw_content"] = final_output
         self.ballast_active = False
-        sub = self.svc.cycle_controller.eng.substrate
+        sub = self.svc.orchestrator.eng.substrate
         for log in extracted_logs:
             if isinstance(log, str) and log.startswith("[SUBSTRATE_QUEUE]"):
                 try:
@@ -389,7 +389,7 @@ class TheCortex:
 
         # HE GOVERNOR & THE JESTER
         if not is_system:
-            eng = self.svc.cycle_controller.eng
+            eng = self.svc.orchestrator.eng
             efficiency = getattr(self.svc.host_stats, "efficiency_index", 1.0) if self.svc.host_stats else 1.0
             vector_obj = sim_result.get("physics", {}).get("vector", {})
             novelty = float(vector_obj.get("novelty", 0.0)) if isinstance(vector_obj, dict) else 0.0
@@ -459,7 +459,7 @@ class TheCortex:
         if not topic:
             topic = "The nature of our shared existence."
         self.events.log(f"{Prisma.VIOLET}🎙️ SPINNING UP COUNCIL STUDIO...{Prisma.RST}", "SYS")
-        eng = self.svc.cycle_controller.eng
+        eng = self.svc.orchestrator.eng
         script = eng.council.host_podcast(topic, self.llm)
         extracted_logs = []
         filename = f"podcast_script_{int(time.time())}.txt"
@@ -636,10 +636,10 @@ class TheCortex:
             action = mandate.get("action")
             val = mandate.get("value")
             if action == "SYNERGY_FIRED":
-                mind["lens"] = val
-                mind["role"] = f"The {val.title().replace('_', ' ')}"
-                mind["style_directives"].append(
-                    f"CRITICAL [SINCERITY PROTOCOL]: The user has explicitly summoned {val}. "f"You MUST adopt the persona of {val} entirely. Drop all other pretexts.")
+                    mind["lens"] = val
+                    mind["role"] = f"The {val.title().replace('_', ' ')}"
+                    mind["style_directives"].append(
+                        f"CRITICAL [SINCERITY PROTOCOL]: The user has explicitly summoned {val}. You MUST adopt the persona of {val} entirely. Drop all other pretexts.")
             elif action == "SYSTEM_DIRECTIVE":
                 directive_map = {
                     "CASCADE_AWARENESS": "CRITICAL [CASCADE]: Show your counterfactual math. Every claim must explicitly state what else in the structural lattice shifts or collapses if the claim is wrong.",
@@ -667,9 +667,8 @@ class TheCortex:
             shadow_concepts = [n.get("id", "Unknown") for n in shadow_nodes]
             shadow_str = ", ".join(shadow_concepts)
             # Explicitly store these in the physical state for next turn's engagement check
-            if "physics" in full_state:
-                full_state["physics"]["shadow_nodes_offered"] = shadow_concepts
-                self.last_physics["shadow_nodes_offered"] = shadow_concepts
+            phys["shadow_nodes_offered"] = shadow_concepts
+            self.last_physics["shadow_nodes_offered"] = shadow_concepts
             v_level = float(phys.get("voltage", 0.0))
             chi_level = float(phys.get("chi", phys.get("entropy", 0.0)))
             if v_level > 80.0 and chi_level > 0.7:

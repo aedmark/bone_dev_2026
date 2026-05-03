@@ -119,7 +119,7 @@ class BoneAmanita:
     def _initialize_cognition(self):
         self.soma = SomaticLoop(self.bio, self.mind.mem, self.lex, self.events)
         self.noetic = NoeticLoop(self.mind, self.bio, self.events)
-        self.cycle_controller = self.orchestrator = GeodesicOrchestrator(self)
+        self.orchestrator = GeodesicOrchestrator(self)
         llm_args = {k: v for k, v in self.sys_config.items() if k in ["provider", "base_url", "api_key", "model"]}
         self.cortex = TheCortex.from_engine(self, llm_client=LLMInterface(events_ref=self.events, **llm_args))
         self.mind.mem.lex = self.lex
@@ -281,14 +281,13 @@ class BoneAmanita:
                 if active_phys:
                     m_a = self.navi_sad.calculate_malignancy_factor(user_message, float(safe_get(active_phys, "narrative_drag", 0.0)))
                     safe_set(active_phys, "m_a", m_a)
-                    last_phys = active_phys  # Alias for the subsequent checkpoint unpacking
 
                     # Extract checkpoint variables cleanly
-                    mu           = float(safe_get(last_phys, "mu", 0.0))
-                    i_c          = float(safe_get(last_phys, "i_c", 1.0))
-                    chi          = float(safe_get(last_phys, "entropy", safe_get(last_phys, "chi", 0.2)))
-                    base_exhaust = float(safe_get(last_phys, "exhaustion", 0.0))
-                    beta         = float(safe_get(last_phys, "beta_index", 0.0))
+                    mu           = float(safe_get(active_phys, "mu", 0.0))
+                    i_c          = float(safe_get(active_phys, "i_c", 1.0))
+                    chi          = float(safe_get(active_phys, "entropy", safe_get(active_phys, "chi", 0.2)))
+                    base_exhaust = float(safe_get(active_phys, "exhaustion", 0.0))
+                    beta         = float(safe_get(active_phys, "beta_index", 0.0))
 
                     lattice = getattr(self, "shared_lattice", None)
                     e_u = float(lattice.u.E) if lattice else base_exhaust
@@ -296,12 +295,12 @@ class BoneAmanita:
                 # Terminal Hallucination Check
                     if (chi * m_a) > i_c:
                         self.events.log("MOOG: Apoptotic Gate triggered. Runaway loop exceeds Immune Competence.", "CRIT")
-                        return self.trigger_death(last_phys)
+                        return self.trigger_death(active_phys)
 
                     # Over-optimization Check
                     if m_a > 0.8 and mu < 0.2:
-                        safe_set(last_phys, "narrative_drag", 999.0)
-                        safe_set(last_phys, "m_a", m_a * 0.5)
+                        safe_set(active_phys, "narrative_drag", 999.0)
+                        safe_set(active_phys, "m_a", m_a * 0.5)
 
                         # The Amplification Tax. Burn ATP to penalize the runaway loop.
                         tax = max(10.0, m_a * 20.0)
@@ -312,8 +311,8 @@ class BoneAmanita:
 
                     # Radical Acceptance Check
                     if e_u > 0.75 and beta > 0.6:
-                        safe_set(last_phys, "entropy", 0.1)
-                        safe_set(last_phys, "narrative_drag", 999.0)
+                        safe_set(active_phys, "entropy", 0.1)
+                        safe_set(active_phys, "narrative_drag", 999.0)
                         msg = "[LINEHAN]: High exhaustion and contradiction detected. The architecture is stable. We sit with the debris."
                         self.events.log(msg, "SYS")
                         return {"type": "SYSTEM_HALT", "ui": f"\n{Prisma.CYN}{msg}{Prisma.RST}", "logs": [msg],
@@ -383,10 +382,7 @@ class BoneAmanita:
                     user_message = pruned
                     self.events.log(f"{Prisma.CYN}Gordon rakes the comb through your prompt. Fluff discarded. -> '{pruned}'{Prisma.RST}", "SYS",)
 
-            # ---------------------------------------------------------
         # THE HAND-OFF: Delegate reality generation to the Cortex
-        # (The Cortex will internally run the Orchestrator's physics first)
-        # ---------------------------------------------------------
         try:
             snapshot = self.cortex.process(user_message, is_system=is_system)
         except Exception as e:
@@ -472,9 +468,13 @@ class BoneAmanita:
 
         loc, last_out = "Void", "Silence."
         if self.cortex:
-            world_state = safe_get(self.cortex.gather_state({"physics": self.cortex.last_physics}), "world", {})
-            orbit_data = safe_get(world_state, "orbit", ["Void"])
-            loc = orbit_data[0] if isinstance(orbit_data, list) and orbit_data else orbit_data
+            try:
+                world_state = safe_get(self.cortex.gather_state({"physics": self.cortex.last_physics}), "world", {})
+                orbit_data = safe_get(world_state, "orbit", ["Void"])
+                loc = orbit_data[0] if isinstance(orbit_data, list) and orbit_data else orbit_data
+            except Exception as e:
+                self.events.log(f"Cortex harvest failed during death sequence: {e}", "WARN")
+
             last_out = self.cortex.dialogue_buffer[-1] if getattr(self.cortex, "dialogue_buffer", None) else "Silence."
 
         gordon_inv = getattr(self.gordon, "inventory", []) if getattr(self, "gordon", False) else []
@@ -639,11 +639,6 @@ if __name__ == "__main__":
                     print(f"\n{dashboard.strip()}\n")
                 ui_text = ui_text.strip()
 
-                # Bridge the gap between main.py and cycle.py output geometries
-                if "bio" in res and "stamina" in res["bio"]:
-                    stamina = res["bio"]["stamina"]
-
-                # The Physical Exhaustion Engine
                 # This is where biological latency maps to UI latency.
                 speed = base_speed * (4.0 if stamina < 20.0 else 2.0 if stamina < 50.0 else 1.0)
                 if stamina < 20.0:
