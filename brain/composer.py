@@ -277,7 +277,7 @@ class PromptComposer:
                                                 high_voltage_data, state.get("physics", {}), )
 
         scenarios = self.lore.get("scenarios") or {}
-        banned = scenarios.get("BANNED_CLICHES", [])
+        banned = LoreManifest.get_instance().get("style_crimes", "BANNED_CLICHES") or []
         ban_string = ", ".join(set(banned))
 
         phys_ref = state.get("physics", {})

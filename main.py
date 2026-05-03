@@ -285,7 +285,8 @@ class BoneAmanita:
                     # Extract checkpoint variables cleanly
                     mu           = float(safe_get(active_phys, "mu", 0.0))
                     i_c          = float(safe_get(active_phys, "i_c", 1.0))
-                    chi          = float(safe_get(active_phys, "entropy", safe_get(active_phys, "chi", 0.2)))
+                    # Favor 'entropy', fallback to 'chi', default to 0.2
+                    chi          = float(safe_get(active_phys, "entropy", active_phys.get("chi", 0.2)))
                     base_exhaust = float(safe_get(active_phys, "exhaustion", 0.0))
                     beta         = float(safe_get(active_phys, "beta_index", 0.0))
 
@@ -354,7 +355,9 @@ class BoneAmanita:
         if not is_system:
             clean_in = user_message.lower().strip()
             if clean_in in ("/flush", "/zen", "[zen]"):
-                return self._execute_zen_flush()
+                zen_packet = self._execute_zen_flush()
+                self._update_host_stats(zen_packet, turn_start)
+                return zen_packet
 
         # The Checkpoint Council (Immune System)
         if pre_flight_halt := self._pre_flight_checks(user_message, is_system):
@@ -448,10 +451,6 @@ class BoneAmanita:
 
     def trigger_death(self, last_phys) -> Dict:
         """Handles structural failure by mutating trauma into legacy variables and halting."""
-        if self.death_gen is None:
-            crit_msg = ux("main_strings", "death_no_proto")
-            return {"type": "DEATH", "ui": f"{Prisma.RED}{crit_msg}{Prisma.RST}", "logs": []}
-
         mito_state_dict = {}
         immune_data = []
         if getattr(self, "bio", None):
@@ -461,7 +460,11 @@ class BoneAmanita:
             if hasattr(self.bio, "immune"):
                 immune_data = list(self.bio.immune.active_antibodies)
 
-        eulogy_text, cause_code = self.death_gen.eulogy(last_phys, mito_state_dict, self.trauma_accum)
+        if self.death_gen is not None:
+            eulogy_text, cause_code = self.death_gen.eulogy(last_phys, mito_state_dict, self.trauma_accum)
+        else:
+            eulogy_text = ux("main_strings", "death_no_proto") or "Critical systemic collapse. Eulogy missing."
+            cause_code = "UNKNOWN_FATAL_ERROR"
         halt_msg = ux("main_strings", "death_halt")
         death_log = [f"\n{Prisma.RED}{halt_msg.format(eulogy_text=eulogy_text)}{Prisma.RST}",
             f"{Prisma.MAG}🐍 {self.oroboros.crystallize(cause_code, self.soul)}{Prisma.RST}"]

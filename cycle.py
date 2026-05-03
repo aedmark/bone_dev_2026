@@ -103,7 +103,9 @@ def _native_freeze_graph(adj_dict: dict) -> tuple:
     Immutability enforcer. Converts a mutable adjacency dictionary into a deeply nested,
     hashed tuple. Used to permanently freeze a snapshot of the graph when the system crashes (The Gödel Scar).
     """
-    return tuple(tuple(sorted(neighbors, key=str)) for _, neighbors in sorted(adj_dict.items(), key=lambda x: str(x[0])))
+    # Safely cast to list to prevent RuntimeError if a rogue thread mutates the dict during a crash
+    safe_items = list(adj_dict.items())
+    return tuple(tuple(sorted(neighbors, key=str)) for _, neighbors in sorted(safe_items, key=lambda x: str(x[0])))
 
 def _safe_dict(obj):
     """Schur's Pragmatism: Don't crash the UI just because an object forgot to implement to_dict()."""
@@ -220,18 +222,21 @@ class CycleSimulator:
 
         """Native deterministic graph freezing based on Nelson Spence (Project Navi)."""
         # Load the ultimate fallback variables so the UI has something to render.
-        ctx.physics = PanicRoom.get_safe_physics()
         last_packet = getattr(self.eng.observer, "last_physics_packet", None)
 
-        # Create the Gödel Scar: A permanent, immutable imprint of the exact topological
-        # structure of the system's memory right before it crashed.
-        if last_packet and hasattr(last_packet, "to_graph"):
-            last_good_graph = last_packet.to_graph()
-            adj_dict = getattr(last_good_graph, "adj", {})
-            ctx.physics.space.godel_scar = _native_freeze_graph(adj_dict)
-            self.eng.events.log(
-                f"{Prisma.VIOLET}[PANIC ROOM] System state safely loaded. Mnemonic structure frozen into Gödel Scar.{Prisma.RST}",
-                "SYS")
+        # Only overwrite physics if the physics module itself collapsed, or if we have no prior state
+        if comp == "PHYSICS" or not getattr(ctx, "physics", None):
+            ctx.physics = PanicRoom.get_safe_physics()
+
+            # Create the Gödel Scar: A permanent, immutable imprint of the exact topological
+            # structure of the system's memory right before it crashed.
+            if last_packet and hasattr(last_packet, "to_graph"):
+                last_good_graph = last_packet.to_graph()
+                adj_dict = getattr(last_good_graph, "adj", {})
+                ctx.physics.space.godel_scar = _native_freeze_graph(adj_dict)
+                self.eng.events.log(
+                    f"{Prisma.VIOLET}[PANIC ROOM] System state safely loaded. Mnemonic structure frozen into Gödel Scar.{Prisma.RST}",
+                    "SYS")
 
         # Safely wrap whichever biological system was responsible for the crash.
         if comp == "BIO":
@@ -483,8 +488,7 @@ class GeodesicOrchestrator:
         if clean_message.lower() == "/idle":
             if self._rem_lock.acquire(blocking=False):
                 try:
-                    worker = threading.Thread(target=self._dispatch_rem_worker, args=("Spawning detached worker for Dream Engine...",), daemon=True)
-                    worker.start()
+                    self._async_pool.submit(self._dispatch_rem_worker, "Spawning detached worker for Dream Engine...")
                 except RuntimeError:
                     self._rem_lock.release()
             else:

@@ -193,9 +193,14 @@ class EventBus:
             print(f"{Prisma.RED}[{source}] {message}{Prisma.RST}")
 
     def flush(self) -> List[Dict]:
-        """Drains the current buffer, returning the accumulated state and resetting the queue."""
-        current_logs = list(self.buffer)
-        self.buffer.clear()
+        """Drains the current buffer safely, returning the accumulated state."""
+        # Atomic drain to prevent async race conditions dropping events between the list cast and the clear.
+        current_logs = []
+        while True:
+            try:
+                current_logs.append(self.buffer.popleft())
+            except IndexError:
+                break
         return current_logs
 
     def get_recent_logs(self, count=10):
@@ -343,9 +348,8 @@ class TheObserver:
     def get_report(self):
         avg_cycle = sum(self.cycle_times) / max(1, len(self.cycle_times))
         avg_llm = sum(self.llm_latencies) / max(1, len(self.llm_latencies))
-        uptime = time.time() - self.start_time
         status_msg = self.pass_judgment(avg_cycle, avg_llm)
-        return {"uptime_sec": int(uptime), "turns": self.user_turns, "avg_cycle_sec": round(avg_cycle, 2),
+        return {"uptime_sec": int(self.uptime), "turns": self.user_turns, "avg_cycle_sec": round(avg_cycle, 2),
                 "avg_llm_sec": round(avg_llm, 2), "status": status_msg, "errors": dict(self.error_counts),
                 "graph_size": self.memory_snapshots[-1] if self.memory_snapshots else 0}
 
@@ -462,21 +466,22 @@ class ArchetypeArbiter:
         if any(m.get("type") == "FORCE_MODE" for m in mandates):
             return "THE MACHINE", "COUNCIL", ux("core_strings", "arb_bureaucratic")
 
-        # Hybrid states and Gestalt resonance mappings
+    # Hybrid states and Gestalt resonance mappings
         if soul_archetype and "/" in soul_archetype:
-            return soul_archetype, "SOUL", ux_format("core_strings", "arb_diamond", soul_archetype=soul_archetype)
+            msg = ux_format("core_strings", "arb_diamond", soul_archetype=soul_archetype, default=f"Gestalt Resonance: {soul_archetype}")
+            return soul_archetype, "SOUL", msg
         if trigram:
             meta_resonance = LoreManifest.get_instance().get("NARRATIVE_DATA", "_META_RESONANCE_") or []
             for r in meta_resonance:
                 if r.get("trigram") == trigram.get("name") and r.get("lens", physics_lens) == physics_lens and r.get(
                         "soul", soul_archetype) == soul_archetype:
-                    return r["result"], r.get("source", "COSMIC"), r.get("msg") or ux("core_strings", "arb_resonance")
+                    return r["result"], r.get("source", "COSMIC"), r.get("msg") or ux("core_strings", "arb_resonance") or "Cosmic Resonance."
 
         loud_lenses = LoreManifest.get_instance().get("COUNCIL_DATA", "LOUD_LENSES") or ["THE MANIC", "THE VOID"]
         if physics_lens in loud_lenses:
-            return physics_lens, "PHYSICS", ux_format("core_strings", "arb_loud", physics_lens=physics_lens)
-        return soul_archetype, "SOUL", ux("core_strings", "arb_soul")
-
+            msg = ux_format("core_strings", "arb_loud", physics_lens=physics_lens, default=f"Physics Override: {physics_lens}")
+            return physics_lens, "PHYSICS", msg
+        return soul_archetype, "SOUL", ux("core_strings", "arb_soul") or "The soul speaks."
 
 # ASYNCHRONOUS LOGGING & SUBCONSCIOUS WRITING
 
