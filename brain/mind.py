@@ -258,15 +258,14 @@ class DreamEngine:
         consolidator = MemoryConsolidator(self.mem.hippocampus, self.mem.cortex, self.events)
         nodes_moved, atp_cost = consolidator.trigger_rem_consolidation(available_atp)
         if nodes_moved > 0:
-                is_deep_rem = True
-                shift["voltage"] = 2.0
-                shift["atp_drain"] = atp_cost
-                if nodes_moved > 10:
-                    dream_text = f"The system enters Deep REM. {nodes_moved} synaptic structures dissolve from the active cache and permanently crystallize into the deep Cerebral Cortex."
-                    if self.events:
-                        self.events.log(
-                            f"{{Prisma.MAG}}✨ [REM CYCLE]: Synaptic Consolidation complete. {nodes_moved} nodes written to deep index. (-{atp_cost:.1f} ATP){{Prisma.RST}}",
-                            "SYS", )
+            is_deep_rem = True
+            shift["voltage"] = 2.0
+            shift["atp_drain"] = atp_cost
+            if nodes_moved > 10:
+                dream_text = f"The system enters Deep REM. {nodes_moved} synaptic structures dissolve from the active cache and permanently crystallize into the deep Cerebral Cortex."
+                if self.events:
+                    self.events.log(
+                        f"{{Prisma.MAG}}✨ [REM CYCLE]: Synaptic Consolidation complete. {nodes_moved} nodes written to deep index. (-{atp_cost:.1f} ATP){{Prisma.RST}}", "SYS", )
         if self.dspy_critic and self.dspy_critic.enabled:
             if self.trauma_buffer:
                 # Batch all lingering trauma into a single structural lesson.
@@ -281,16 +280,19 @@ class DreamEngine:
                     if hasattr(self.eng, "boot_mode"):
                         active_mode = getattr(self.eng, "boot_mode", "CONVERSATION").upper()
                     try:
-                        disk_prompts = getattr(self.eng, "prompt_library", None) or self.lore.get("SYSTEM_PROMPTS", {})
-                        if active_mode in disk_prompts:
-                            dirs = disk_prompts[active_mode].setdefault("directives", [])
-                            if new_axiom not in dirs:
-                                dirs.append(new_axiom)
-                            threshold = safe_get(safe_get(self.cfg, "CORTEX", {}), "EPIGENETIC_PRUNE_THRESHOLD", 12)
-                            if len(dirs) > threshold:
-                                compressed = getattr(self.dspy_critic, "compress_prompts", lambda x: None)(dirs)
-                                if compressed:
-                                    disk_prompts[active_mode]["directives"] = compressed
+                        disk_prompts = getattr(self.eng, "prompt_library", None) or self.lore.get("SYSTEM_PROMPTS",
+                                                                                                      {})
+                        # Meadows: Force the node to exist so we don't leak memory on custom modes
+                        mode_data = disk_prompts.setdefault(active_mode, {})
+                        dirs = mode_data.setdefault("directives", [])
+
+                        if new_axiom not in dirs:
+                            dirs.append(new_axiom)
+                        threshold = safe_get(safe_get(self.cfg, "CORTEX", {}), "EPIGENETIC_PRUNE_THRESHOLD", 12)
+                        if len(dirs) > threshold:
+                            compressed = getattr(self.dspy_critic, "compress_prompts", lambda x: None)(dirs)
+                            if compressed:
+                                disk_prompts[active_mode]["directives"] = compressed
                             if self.eng:
                                 self.eng.prompt_library = disk_prompts
                             self.lore.inject("SYSTEM_PROMPTS", disk_prompts)

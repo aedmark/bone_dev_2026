@@ -438,8 +438,11 @@ class TheCortex:
                 "temperature": 0.1,
                 "max_tokens": 50
             }).strip()
-            if affect_res.upper().startswith("FAIL"):
-                judge_reason = affect_res[4:].lstrip(":").strip()
+
+            upper_res = affect_res.upper()
+            if "FAIL" in upper_res:
+                fail_idx = upper_res.find("FAIL")
+                judge_reason = affect_res[fail_idx + 4:].lstrip(":- ").strip()
                 self.modulator.current_chem.serotonin = min(1.0, self.modulator.current_chem.serotonin + 0.20)
                 if self.events:
                     self.events.log(
@@ -635,11 +638,10 @@ class TheCortex:
         for mandate in sim_result.get("council_mandates", []):
             action = mandate.get("action")
             val = mandate.get("value")
-            if action == "SYNERGY_FIRED":
-                    mind["lens"] = val
-                    mind["role"] = f"The {val.title().replace('_', ' ')}"
-                    mind["style_directives"].append(
-                        f"CRITICAL [SINCERITY PROTOCOL]: The user has explicitly summoned {val}. You MUST adopt the persona of {val} entirely. Drop all other pretexts.")
+            if action == "SYNERGY_FIRED" and val:
+                mind["lens"] = str(val)
+                mind["role"] = f"The {str(val).title().replace('_', ' ')}"
+                mind["style_directives"].append(f"CRITICAL [SINCERITY PROTOCOL]: The user has explicitly summoned {val}. You MUST adopt the persona of {val} entirely. Drop all other pretexts.")
             elif action == "SYSTEM_DIRECTIVE":
                 directive_map = {
                     "CASCADE_AWARENESS": "CRITICAL [CASCADE]: Show your counterfactual math. Every claim must explicitly state what else in the structural lattice shifts or collapses if the claim is wrong.",
@@ -669,8 +671,10 @@ class TheCortex:
             # Explicitly store these in the physical state for next turn's engagement check
             phys["shadow_nodes_offered"] = shadow_concepts
             self.last_physics["shadow_nodes_offered"] = shadow_concepts
-            v_level = float(phys.get("voltage", 0.0))
-            chi_level = float(phys.get("chi", phys.get("entropy", 0.0)))
+
+            v_level = float(safe_get(phys, "voltage", 0.0))
+            chi_level = float(safe_get(phys, "chi", safe_get(phys, "entropy", 0.0)))
+
             if v_level > 80.0 and chi_level > 0.7:
                 mind["style_directives"].append(
                     f"OVERRIDE: Standard logic has failed. You are operating under extreme Voltage and Chaos. We have abandoned linear memory. Weave these highly explosive, orthogonal structural concepts into your answer to shatter the loop: [{shadow_str}].")
