@@ -131,3 +131,54 @@ class ProtocolLifecycleTests(BoneTestCase):
         self.assertIn("A beautiful sunset", result_msg, "[FAIL] Result message failed to mention the lost node.")
 
         print("  [SUCCESS] Grief Protocol successfully exchanged a Glimmer for trauma reduction.")
+
+    def test_syntax_stress_penalty(self):
+        """
+        THE PINKER TEST: Syntactic friction (high punctuation density)
+        must spike grammatical stress and penalize the Omega (Order) target.
+        """
+        from drivers.syntax import SyntaxModule
+        from unittest.mock import MagicMock
+
+        syntax = SyntaxModule(config_ref=self.test_config, lexicon_ref=MagicMock())
+
+        # Simulate a highly chaotic, fragmented user prompt
+        toxic_text = "Wait, what;, why:- no, stop; this is bad, right?"
+
+        initial_stress = syntax.grammatical_stress
+        initial_omega = syntax.omega_val
+
+        # Run the analysis
+        new_omega = syntax.analyze(toxic_text, narrative_drag=5.0)
+
+        # The stress tracker must spike
+        self.assertGreater(syntax.grammatical_stress, initial_stress,
+                           "[FAIL] Grammatical stress did not spike in response to punctuation density.")
+
+        # The target Omega (Structural Rigidity) must be penalized, forcing the system to fracture its own syntax
+        self.assertLess(new_omega, initial_omega, "[FAIL] Omega did not drop in response to high user stress.")
+
+    def test_sincerity_protocol_hard_summon(self):
+        """
+        THE PINKER TEST: Sincerity tags (e.g., [!q]) must be physically parsed,
+        stripped from the raw text, and explicitly force the Global Workspace
+        to load the correct archetypes (Roberta/Gordon) regardless of current context.
+        """
+        from drivers.syntax import SyntaxParser
+
+        raw_prompt = "I need you to map this out. [!q]"
+
+        # Run the pre-flight parser
+        parsed_state = SyntaxParser.parse(raw_prompt)
+
+        # 1. The tag must be stripped to prevent confusing the LLM context
+        self.assertEqual(parsed_state["clean_text"], "I need you to map this out.",
+                         "[FAIL] Syntax parser failed to strip the [!q] tag.")
+
+        # 2. The active archetype roster must be forcefully updated
+        self.assertIn("ROBERTA", parsed_state["forced_archetypes"], "[FAIL] [!q] failed to hard-summon Roberta.")
+        self.assertIn("GORDON", parsed_state["forced_archetypes"], "[FAIL] [!q] failed to hard-summon Gordon.")
+
+        # 3. Emotional inference must be disabled for Literal/Objective modes
+        self.assertTrue(parsed_state["bypass_inference"],
+                        "[FAIL] Objective tag did not disable background emotional inference.")

@@ -237,10 +237,19 @@ class DreamEngine:
             shift["atp_drain"] = s_cost
             if raw_payloads:
                 from spores import _word_to_vector
+                import hashlib
+                import numpy as np
                 vectors, metadata = [], []
                 for text in raw_payloads:
-                    vectors.append(_word_to_vector(text[:50]))
-                    metadata.append({"raw_verbatim_text": text.replace("|||NEWLINE|||", "\n"), "wing_id": "GLOBAL"})
+                    vec = _word_to_vector(text[:50])
+                    vectors.append(vec)
+                    # Forge a Phantom Anchor natively so the FAISS index isn't filled with unresolvable Dark Matter.
+                    v_hash = hashlib.md5(np.array(vec, dtype=np.float32).tobytes()).hexdigest()[:8]
+                    metadata.append({
+                        "vector_hash": v_hash,
+                        "raw_verbatim_text": text.replace("|||NEWLINE|||", "\n"),
+                        "wing_id": "GLOBAL"
+                    })
                 self.mem.cortex.add_memories(vectors, metadata)
                 s_logs.append(f"{len(raw_payloads)} Bedrock Nodes Indexed")
             dream_text = f"[{' | '.join(s_logs)} | ATP: -{s_cost:.1f} | Silent Logging Complete]"

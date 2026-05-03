@@ -166,3 +166,22 @@ class TestChaosEngineering(BoneTestCase):
             self.fail(f"[CRITICAL] Engine crashed with UnboundLocalError due to missing village member: {e}")
         except Exception as e:
             self.fail(f"[CRITICAL] Engine crashed unexpectedly when a village member was suppressed: {e}")
+
+    def test_paradox_engine_starvation_halt(self):
+        """
+        THE MEADOWS TEST: The Paradox Engine must physically refuse to ignite
+        if the metabolic cost exceeds available ATP, preventing starvation.
+        """
+        from machine.paradox import TheParadoxEngine
+        from unittest.mock import MagicMock
+
+        # Instantiate the correct class
+        engine = TheParadoxEngine(events_ref=MagicMock())
+
+        # The biological gatekeeper requires Beta >= 0.7 and Stamina >= 30.0
+        # We simulate high tension, but starving stamina (2.0)
+        can_ignite = engine.evaluate_tension(beta=0.8, stamina=2.0)
+
+        # The engine must return False (refuse to fire)
+        self.assertFalse(can_ignite, "[FAIL] Paradox Engine agreed to ignite despite starvation-level ATP.")
+        self.assertFalse(engine.is_active, "[FAIL] Paradox Engine state flag is active while starving.")

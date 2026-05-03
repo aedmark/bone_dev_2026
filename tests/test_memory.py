@@ -53,6 +53,42 @@ class MemoryTests(BoneTestCase):
                 "The specific consumed memory was not communicated to the LLM.",
             )
 
+    def test_autophagy_phantom_generation(self):
+        """
+        THE FULLER TEST: When MemoryCore reaches critical load and executes Autophagy,
+        it must physically delete the active node but bury a fossil in the SubconsciousStrata.
+        """
+        from spores.memory import MemoryCore, SubconsciousStrata
+        from unittest.mock import MagicMock
+        import os
+        import tempfile
+
+        # Setup an isolated test strata
+        temp_dir = tempfile.TemporaryDirectory()
+        sub = SubconsciousStrata(filename=os.path.join(temp_dir.name, "subconscious.jsonl"))
+        core = MemoryCore(events_ref=MagicMock(), subconscious_ref=sub)
+
+        # Inject two memories into the active graph.
+        # node_0 is older (last_tick 1) and lighter. node_1 is newer (last_tick 10).
+        core.graph["node_0"] = {"edges": {"node_1": 1.0}, "last_tick": 1}
+        core.graph["node_1"] = {"edges": {"node_0": 5.0}, "last_tick": 10}
+
+        # Force Autophagy (Cannibalize)
+        victim, msg = core.cannibalize(current_tick=20)
+
+        # 1. Assert node_0 (the older/weaker node) was chosen as the victim
+        self.assertEqual(victim, "node_0", "[FAIL] Autophagy targeted the wrong node.")
+
+        # 2. Assert it was physically deleted from the active graph
+        self.assertNotIn("node_0", core.graph, "[FAIL] Cannibalized node remained in active RAM.")
+        self.assertNotIn("node_0", core.graph["node_1"]["edges"],
+                         "[FAIL] Edges pointing to the dead node were not pruned.")
+
+        # 3. Assert it was safely buried in the deep strata index (The Fossil/Phantom)
+        self.assertIn("node_0", sub.index, "[FAIL] Memory was destroyed without being buried in the deep strata!")
+
+        temp_dir.cleanup()
+
     def test_dream_defragmentation_pruning(self):
             from brain.mind import DreamEngine
 

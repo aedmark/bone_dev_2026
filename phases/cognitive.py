@@ -30,7 +30,8 @@ def _deep_update(obj: Any, data: dict):
             if hasattr(target, "__dict__") and isinstance(v, dict):
                 _deep_update(target, v)
             elif isinstance(target, dict) and isinstance(v, dict):
-                target.update(v)
+                # [Pinker Constraint]: Do not shallow-merge class dict attributes. Maintain deep recursion to prevent clobbering.
+                _deep_update(target, v)
             else:
                 setattr(obj, k, v)
 

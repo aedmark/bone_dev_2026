@@ -1,6 +1,38 @@
 # CHANGELOG.md
 -----------------------------------------------------------
 
+### **BONEAMANITA 19.8.1 "The Revival"**
+
+#### 🏛️ Architecture & Monolith Composting
+
+- **The Monolith Compost:** Hollowed out the legacy `process_turn()` in `main.py`, transforming it into a sleek Gateway Proxy that correctly routes reality generation through the `cortex.py` pipeline.
+- **Bounded Cellular Membranes:** Replaced raw `threading.Thread` spawns in `cycle.py` with a bounded `ThreadPoolExecutor` for asynchronous Topology WLS checks and REM Bridge generation, permanently preventing runaway thread memory leaks during latency spikes.
+- **Hot-Loop Instantiation Leak:** Anchored the `CongruenceValidator` as a singleton in the `GeodesicOrchestrator` `__init__`, preventing the Python garbage collector from thrashing during the hot loop. Added `test_arch_hot_loop_validator_singleton` to legally enforce this boundary.
+
+#### ⚙️ Systemic Dynamics
+
+- **The Split-Brain Physics Bug:** Unified `self.cortex.last_physics` and `self.observer.last_physics_packet` in `main.py` to `active_phys`. This prevents runaway Toxicity Math from bypassing the Apoptotic block if the Observer is holding the active packet.
+- **The Apoptosis Resurrection Bug:** Fixed a race condition where the asynchronous background WLS thread successfully killed the engine (`health = 0.0`), but the local biometric sync in `main.py` resurrected it on the very next tick.
+- **The Biological Stasis Bug:** Patched `GeodesicOrchestrator` to properly increment `self.eng.tick_count`, unfreezing the physical progression of time for background processes.
+
+#### 🧠 Cognition & Memory
+
+- **Governor & Jester Transplant:** Successfully migrated the Second-Order Cybernetic Governor and Jester's Anti-Sycophancy Break directly into the `cortex.py` generation loop, allowing them to calculate semantic dimensions natively against generated LLM vectors.
+- **Structural Dark Matter Excision:** Modified `DreamEngine.enter_rem_cycle()` to natively cast `vector_hash` anchors before injecting raw text into the FAISS memory index. Substrate memories can now be fully retrieved instead of acting as un-resolvable mathematical "dark matter".
+- **Lexical Amnesia & Hollow Sacrifices:** Fixed `akashic.py` to explicitly inject saved `discovered_words` back into the active `LEXICON` on boot. Additionally, forced `trigger_autophagy()` to physically purge consumed words from the active Lexicon so the metabolic sacrifice is real.
+- **Semantic Clobbering:** Rewrote `_deep_update` in `phases/cognitive.py` to maintain recursive merging on dictionary class attributes, preventing shallow Python `.update()` calls from deleting un-modified nested tensor coordinates.
+
+#### 👨‍⚕️ Pragmactics & Encapsulation
+
+- **ATP Encapsulation:** Cleared out paranoid `hasattr(self.bio, "mito")` boilerplate by building `drain_atp()` and `restore_atp()` natively into the `BoneAmanita` base class.
+- **Generational & Epigenetic Atomic Saves:** Enforced `.tmp` > `os.replace` atomic writes for both Subconscious Save states (`akashic.py`) and Generational Death tracking (`legacy.json` in `oroboros.py`). The corpse will no longer vaporize on an ill-timed OS crash.
+- **Bureaucratic Decoupling:** Removed hardcoded `if/elif` statements in `apply_legacy()`. Generational scars can now target any arbitrary physical constraint listed in the UX Manifest without needing python-side structural updates.
+- **Test Suite I/O Shield:** Mocked the `TelemetryService` inside `tests/base.py` to completely eliminate Phantom JSONL Bleed into the local test directory.
+
+---
+
+
+
 ### **BONEAMANITA 19.8.0 "The Epigenetic Tensegrity Patch"**
 
 *A comprehensive stabilization of the hypervisor's memory, physics, and immune pathways. This audit repaired fatal memory leaks, established atomic write safety for the Akashic Record, sealed a lethal payload injection vector, and restored the Checkpoint Council's ability to halt runaway toxicity loops.*
