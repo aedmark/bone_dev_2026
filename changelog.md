@@ -1,6 +1,36 @@
 # CHANGELOG.md
 -----------------------------------------------------------
 
+### **BONEAMANITA 19.7.5 "The Substrate Synapse Audit"**
+
+*A deep-tissue sweep of the engine's central nervous system, testing boundaries, and phase layers. This audit hunted down live grenades, wired up massive dormant modules, cured an autoimmune configuration disease, and restored the engine's ability to sleep, adapt, and peacefully die.*
+
+#### **🏛️ STRUCTURAL TENSEGRITY (Fuller's Pass: Architecture)**
+- **The Epigenetic Testing Boundary (`tests/base.py`):** Mlocked `LoreManifest.save()` inside the chaos test suite. This prevents the DSPy Critic and the Jester from permanently "lobotomizing" physical `system_prompts.json` files on disk when generating epigenetic mutations during simulated stress tests.
+- **The Amnesiac Soul (`phases/cognitive.py`):** Reattached the SoulPhase's short-term memory. Abstract structural mutations made to the temporary `phys_data` mapping are now properly committed back to the core manifold via `_deep_update`.
+- **The Immortality Bug (`cycle.py`):** Replaced tautological `hasattr` checks on `CycleContext` dataclass fields with explicit `is not None` verifications. The engine is no longer forced into terminal crash handlers and can finally execute peaceful Apoptosis (`trigger_death`).
+- **Brittle Dot-Notation Traps (`main.py`):** Secured system validations from blindly traversing into `self.mind.mem` without first explicitly verifying that the `mind` organ was successfully instantiated.
+
+#### **🌊 DYNAMIC EQUILIBRIUM (Meadows' Pass: Systems & Dynamics)**
+- **Wiring the Cybernetic Governor (`main.py`, `core.py`):** The `CyberneticGovernor` was fully imported, instantiated, and plugged directly into the execution loop. The engine now actively reads User Exhaustion (`e_u`) and Resonance to continuously update its Macro-Policy shifts (e.g., transitioning from EFFICIENCY to CO_REGULATION).
+- **The Severed Nerve (`main.py`):** Re-wired calculated exhaustion and contradiction metrics directly into Linehan's Checkpoint Council sequence. The engine is now physically capable of forcing Radical Acceptance and halting the thread when burnout spirals out of control.
+- **Metabolic Clamping & Euler's Math (`phases/biological.py`):** Routed emergency `trigger_autophagy` yields through the standard `adjust_atp` pipe to ensure energy spikes are safely clamped. Replaced hardcoded `2.71828` float approximations with `math.exp()` for perfectly accurate runaway amplification taxation.
+
+#### **🧠 COGNITIVE ERGONOMICS (Pinker's Pass: Code as Language)**
+- **The Autoimmune Qualia Trap (`body/somatic.py`, `body/regulation.py`, `body/metabolism.py`):** Fixed a systemic misunderstanding of Python's `dict.get("KEY", "FALLBACK")` method. Eradicated a bug where missing configuration keys returned raw strings instead of empty dictionaries, causing fatal `AttributeError` cascades deep in the somatic nervous system.
+- **The Token Exhaustion Trap (`brain/cortex.py`):** Fixed an inverted clamp where `max(400, max_tokens)` inadvertently *increased* the context budget when the engine was attempting to rate-limit itself during severe fatigue. It now correctly uses `min(400, max_tokens)`.
+- **Syntactic Stutter (`main.py`):** Replaced redundant, stuttering `if hasattr(x) and x:` checks with elegant `getattr(x, None)` fetches throughout the core logic loop.
+
+#### **🛠️ FUNCTIONAL PRAGMATISM (Schur's Pass: Code as Humanity)**
+- **Defusing Live Grenades (`main.py`, `brain/cortex.py`, `phases/mechanical.py`):**
+  - Added missing `deque` imports to prevent the Cortex from crashing upon trauma buffer initialization.
+  - Initialized missing `has_comb` flags to prevent `UnboundLocalError` crashes when amputating Village archetypes (like Gordon) during testing.
+  - Added explicit null-checks to `self.eng.bio` before the Theremin executes a health-draining "Airstrike", preventing terminal tracebacks during lightweight or headless boot modes.
+- **Sweeping Dead Leaves (`body/system.py`, `phases/biological.py`):** Eliminated tautological ternary operators (`enzyme == "NONE"`), pruned dead zero-value trauma keys (`0.0`) from dictionaries instead of leaving them hanging, and stripped redundant mandate array initializations.
+- **The Getattr Fallback Trap (`main.py`):** Replaced `getattr(obj, "key", fallback)` with explicit `or` logic to prevent initialized `None` variables from blindly bypassing vital runaway toxicity calculations.
+
+---
+
 ### **BONEAMANITA 19.7.4 "The Tensegrity Purge"**
 
 *A surgical optimization of the central nervous system and macro-organism loops. This audit targeted bureaucratic rot, silent fail-states, memory leaks, and miswired cognitive checks, resulting in a cleaner, tighter, and more biologically sound architecture.*

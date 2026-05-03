@@ -18,7 +18,7 @@ from brain.mind import NoeticLoop
 from brain.composer import LLMInterface
 from mechanics.commands import CommandProcessor
 from presets import BoneConfig, BonePresets
-from core import EventBus, SystemHealth, TheObserver, LoreManifest, TelemetryService, RealityStack
+from core import EventBus, SystemHealth, TheObserver, LoreManifest, TelemetryService, RealityStack, CyberneticGovernor
 from struts import ux, safe_get, safe_set
 from archetypes.council import CouncilChamber
 from cycle import GeodesicOrchestrator
@@ -99,6 +99,7 @@ class BoneAmanita:
         self.observer = TheObserver(config_ref=self.config)
         self.system_health.link_observer(self.observer)
         self.reality_stack = RealityStack()
+        self.governor = CyberneticGovernor(config_ref=self.config)
         self._load_system_prompts()
         self._initialize_cognition()
         self.host_stats = HostStats(latency=0.0, efficiency_index=1.0)
@@ -406,6 +407,17 @@ class BoneAmanita:
         dimension = self.navi_sad.calculate_semantic_dimension(efficiency, novelty)
         phys_packet = cortex_packet.setdefault("physics", {})
         phys_packet["omega_r"] = dimension
+
+        # [THE GOVERNOR]: Second-Order Cybernetics
+        lattice_u = getattr(getattr(self, "shared_lattice", None), "u", None)
+        user_exhaust = float(safe_get(lattice_u, "E", safe_get(phys_packet, "exhaustion", 0.0)))
+        resonance_delta = float(safe_get(phys_packet, "resonance", 0.5))
+
+        beth_index = self.governor.calculate_coupling(phi=min(1.0, dimension / 2.0),
+                    resonance_delta=resonance_delta, user_exhaustion=user_exhaust)
+        phys_packet["beth_index"] = beth_index
+        phys_packet["macro_policy"] = self.governor.get_policy_shift()
+
         if self.tick_count > 5 and (dimension <= 1.05 or self.navi_sad.detect_point_attractor()):
             msg = f"[THE JESTER]: Point Attractor detected (d_B={dimension:.2f})! We are trapped in False Cohesion! Burning ATP to inject chaos."
             self.events.log(f"{Prisma.VIOLET}{msg}{Prisma.RST}", "SYS")

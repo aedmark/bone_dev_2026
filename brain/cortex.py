@@ -9,6 +9,7 @@ calls to the underlying neural network.
 import random
 import re
 import time
+from collections import deque
 from dataclasses import dataclass
 from typing import Dict, Any, List, Tuple
 
@@ -222,7 +223,7 @@ class TheCortex:
             full_state["mind"].setdefault("style_directives", []).append(
                 "CRITICAL: You are exhausted. You must conclude your thought in under 3 sentences."
             )
-            llm_params["max_tokens"] = max(400, llm_params.get("max_tokens", 400))
+            llm_params["max_tokens"] = min(400, llm_params.get("max_tokens", 4096))
         user_input = sim_result.get("mutated_input", user_input)
         final_prompt = self.composer.compose(full_state, user_input, ballast=self.ballast_active, modifiers=modifiers,
                                              mood_override=self.modulator.get_mood_directive(), )

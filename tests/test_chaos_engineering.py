@@ -129,7 +129,30 @@ class TestChaosEngineering(BoneTestCase):
             "Linehan's radical acceptance protocol was not fired."
         )
 
-    def test_vector_5_missing_village_resilience(self):
+    def test_vector_5_governor_macro_policy_shift(self):
+        """
+        THE CYBERNETIC GOVERNOR: High user exhaustion and resonance mismatch
+        must trigger a mathematically verified Macro-Policy Shift to CO_REGULATION.
+        """
+        from struts import safe_set
+        class MockLatticeU:
+            pass
+        class MockLattice:
+            u = MockLatticeU()
+
+        self.engine.shared_lattice = MockLattice()
+        safe_set(self.engine.shared_lattice.u, "E", 0.95)
+
+        snapshot = self.engine.process_turn("I am completely burned out and nothing is working.")
+
+        policy = snapshot.get("physics", {}).get("macro_policy", "UNKNOWN")
+
+        self.assertEqual(
+            policy, "CO_REGULATION",
+            f"Governor failed to shift policy during high user exhaustion! Policy stuck at {policy}."
+        )
+
+    def test_vector_6_missing_village_resilience(self):
         """
         The engine must not suffer an UnboundLocalError
         or fatal crash if a core village member (like Gordon) is missing.
