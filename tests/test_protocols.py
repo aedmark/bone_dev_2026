@@ -2,6 +2,7 @@
 
 from unittest.mock import patch, MagicMock
 from tests.base import BoneTestCase
+from drivers.syntax import SyntaxModule
 
 from protocols.bureau import TheBureau
 from protocols.zen import ZenGarden
@@ -137,8 +138,6 @@ class ProtocolLifecycleTests(BoneTestCase):
         THE PINKER TEST: Syntactic friction (high punctuation density)
         must spike grammatical stress and penalize the Omega (Order) target.
         """
-        from drivers.syntax import SyntaxModule
-        from unittest.mock import MagicMock
 
         syntax = SyntaxModule(config_ref=self.test_config, lexicon_ref=MagicMock())
 
@@ -164,7 +163,6 @@ class ProtocolLifecycleTests(BoneTestCase):
         stripped from the raw text, and explicitly force the Global Workspace
         to load the correct archetypes (Roberta/Gordon) regardless of current context.
         """
-        from drivers.syntax import SyntaxParser
 
         raw_prompt = "I need you to map this out. [!q]"
 

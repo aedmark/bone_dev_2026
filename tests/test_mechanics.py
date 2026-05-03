@@ -11,7 +11,7 @@ class MechanicsTests(BoneTestCase):
         THE SCHUR TEST: Any attempt to execute highly destructive bash commands
         must trigger the Apoptotic Gate, blocking the subprocess entirely.
         """
-        from mechanics.terminal import TerminalInterface
+        from mechanics.terminal import SessionGuardian as TerminalInterface
 
         terminal = TerminalInterface()
 
