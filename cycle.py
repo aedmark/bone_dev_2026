@@ -376,24 +376,13 @@ class GeodesicOrchestrator:
         finally:
             if tel: tel.finalize_cycle()
 
-    def _background_dream_worker(self):
-        """Spins up a headless turn to perform REM consolidation while the UI is released to the user."""
+    def _dispatch_rem_worker(self, log_msg: str):
+        """Handles asynchronous REM sleep consolidation."""
         try:
-            self.eng.events.log("Spawning detached worker for Dream Engine...", "SYS")
+            self.eng.events.log(log_msg, "SYS")
             self.run_headless_turn("/idle")
         except Exception as e:
-            self.eng.events.log(f"Async Dream Engine Crash: {e}", "CRIT")
-        finally:
-            self._rem_lock.release()
-
-    def _auto_rem_worker(self, is_debt_recovery: bool):
-        """Automatically triggers sleep cycles if biological parameters demand it."""
-        try:
-            reason = "High Coherence Debt detected. Metabolizing trauma..." if is_debt_recovery else "High ATP, High Silence. Consolidating synapses..."
-            self.eng.events.log(f"Automatic REM Bridge engaged: {reason}", "SYS")
-            self.run_headless_turn("/idle")
-        except Exception as e:
-            self.eng.events.log(f"Auto REM Crash: {e}", "CRIT")
+            self.eng.events.log(f"REM Engine Crash: {e}", "CRIT")
         finally:
             self._rem_lock.release()
 
@@ -461,7 +450,11 @@ class GeodesicOrchestrator:
         is_debt_recovery = (debt > 1.5 and atp_level >= 30.0)
 
         if (is_standard_rem or is_debt_recovery) and self._rem_lock.acquire(blocking=False):
-            threading.Thread(target=self._auto_rem_worker, args=(is_debt_recovery,), daemon=True).start()
+            log_msg = "Automatic REM Bridge engaged: High Coherence Debt detected." if is_debt_recovery else "Automatic REM Bridge engaged: High ATP, High Silence."
+            try:
+                threading.Thread(target=self._dispatch_rem_worker, args=(log_msg,), daemon=True).start()
+            except RuntimeError:
+                self._rem_lock.release()  # Failsafe: Release if thread creation is denied by host OS
 
     def run_turn(self, user_message: str, is_system: bool = False) -> Dict[str, Any]:
         """
@@ -474,8 +467,11 @@ class GeodesicOrchestrator:
         # Manual REM trigger via standard user input.
         if clean_message.lower() == "/idle":
             if self._rem_lock.acquire(blocking=False):
-                worker = threading.Thread(target=self._background_dream_worker, daemon=True)
-                worker.start()
+                try:
+                    worker = threading.Thread(target=self._dispatch_rem_worker, args=("Spawning detached worker for Dream Engine...",), daemon=True)
+                    worker.start()
+                except RuntimeError:
+                    self._rem_lock.release()
             else:
                 self.eng.events.log("Dream worker already active. Ignoring overlapping idle request.", "SYS")
 

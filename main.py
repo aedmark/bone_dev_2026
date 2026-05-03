@@ -269,44 +269,47 @@ class BoneAmanita:
                     self.cortex.ballast_active, self.cortex.gordon_shock = True, violation
 
             # Runaway Toxicity Math (Moog, Rhodes, Linehan Checkpoints)
-            last_phys = getattr(self.observer, "last_physics_packet", None) or getattr(self.cortex, "last_physics", None)
-            if last_phys:
-                m_a = self.navi_sad.calculate_malignancy_factor(user_message, float(safe_get(last_phys, "narrative_drag", 0.0)))
-                safe_set(last_phys, "m_a", m_a)
-                mu = float(safe_get(last_phys, "mu", 0.0))
-                i_c = float(safe_get(last_phys, "i_c", 1.0))
-                chi = float(safe_get(last_phys, "entropy", safe_get(last_phys, "chi", 0.2)))
-                base_exhaust = float(safe_get(last_phys, "exhaustion", 0.0))
-                lattice = getattr(self, "shared_lattice", None)
-                e_u = float(getattr(lattice.u, "E", base_exhaust)) if lattice and hasattr(lattice, "u") else base_exhaust
-                beta = float(safe_get(last_phys, "beta_index", 0.0))
+                last_phys = getattr(self.observer, "last_physics_packet", None) or getattr(self.cortex, "last_physics", None)
+                if last_phys:
+                    m_a = self.navi_sad.calculate_malignancy_factor(user_message, float(safe_get(last_phys, "narrative_drag", 0.0)))
+                    safe_set(last_phys, "m_a", m_a)
+
+                    # Extract checkpoint variables cleanly
+                    mu           = float(safe_get(last_phys, "mu", 0.0))
+                    i_c          = float(safe_get(last_phys, "i_c", 1.0))
+                    chi          = float(safe_get(last_phys, "entropy", safe_get(last_phys, "chi", 0.2)))
+                    base_exhaust = float(safe_get(last_phys, "exhaustion", 0.0))
+                    beta         = float(safe_get(last_phys, "beta_index", 0.0))
+
+                    lattice = getattr(self, "shared_lattice", None)
+                    e_u     = float(getattr(lattice.u, "E", base_exhaust)) if lattice and hasattr(lattice, "u") else base_exhaust
 
                 # [MOOG]: Terminal Hallucination Check
-                if (chi * m_a) > i_c:
-                    self.events.log("MOOG: Apoptotic Gate triggered. Runaway loop exceeds Immune Competence.", "CRIT")
-                    return self.trigger_death(last_phys)
+                    if (chi * m_a) > i_c:
+                        self.events.log("MOOG: Apoptotic Gate triggered. Runaway loop exceeds Immune Competence.", "CRIT")
+                        return self.trigger_death(last_phys)
 
-                # [RHODES]: Over-optimization Check
-                if m_a > 0.8 and mu < 0.2:
-                    safe_set(last_phys, "narrative_drag", 999.0)
-                    safe_set(last_phys, "m_a", m_a * 0.5)
+                    # [RHODES]: Over-optimization Check
+                    if m_a > 0.8 and mu < 0.2:
+                        safe_set(last_phys, "narrative_drag", 999.0)
+                        safe_set(last_phys, "m_a", m_a * 0.5)
 
-                    # The Amplification Tax. Burn ATP to penalize the runaway loop.
-                    if getattr(self, "bio", None) and hasattr(self.bio, "mito"):
-                        tax = max(10.0, m_a * 20.0)
-                        self.bio.mito.state.atp_pool = max(0.0, self.bio.mito.state.atp_pool - tax)
-                        self.events.log(f"[RHODES]: Amplification Tax applied. Drained {tax:.1f} ATP.", "SYS")
+                        # The Amplification Tax. Burn ATP to penalize the runaway loop.
+                        if getattr(self, "bio", None) and hasattr(self.bio, "mito"):
+                            tax = max(10.0, m_a * 20.0)
+                            self.bio.mito.state.atp_pool = max(0.0, self.bio.mito.state.atp_pool - tax)
+                            self.events.log(f"[RHODES]: Amplification Tax applied. Drained {tax:.1f} ATP.", "SYS")
 
-                    return _halt("[RHODES]: Optimization velocity unsafe. Applying absolute friction (F -> ∞).")
+                        return _halt("[RHODES]: Optimization velocity unsafe. Applying absolute friction (F -> ∞).")
 
-                # [LINEHAN]: Radical Acceptance Check
-                if e_u > 0.75 and beta > 0.6:
-                    safe_set(last_phys, "entropy", 0.1)
-                    safe_set(last_phys, "narrative_drag", 999.0)
-                    msg = "[LINEHAN]: High exhaustion and contradiction detected. The architecture is stable. We sit with the debris."
-                    self.events.log(msg, "SYS")
-                    return {"type": "SYSTEM_HALT", "ui": f"\n{Prisma.CYN}{msg}{Prisma.RST}", "logs": [msg],
-                            "metrics": self.get_metrics()}
+                    # [LINEHAN]: Radical Acceptance Check
+                    if e_u > 0.75 and beta > 0.6:
+                        safe_set(last_phys, "entropy", 0.1)
+                        safe_set(last_phys, "narrative_drag", 999.0)
+                        msg = "[LINEHAN]: High exhaustion and contradiction detected. The architecture is stable. We sit with the debris."
+                        self.events.log(msg, "SYS")
+                        return {"type": "SYSTEM_HALT", "ui": f"\n{Prisma.CYN}{msg}{Prisma.RST}", "logs": [msg],
+                                "metrics": self.get_metrics()}
 
         # Semantic Prion Disease Check (Vector 2)
         if not is_system and any(prion in clean_in for prion in self._SEMANTIC_PRIONS):

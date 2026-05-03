@@ -1,6 +1,35 @@
 # CHANGELOG.md
 -----------------------------------------------------------
 
+### **BONEAMANITA 19.8.0 "The Epigenetic Tensegrity Patch"**
+
+*A comprehensive stabilization of the hypervisor's memory, physics, and immune pathways. This audit repaired fatal memory leaks, established atomic write safety for the Akashic Record, sealed a lethal payload injection vector, and restored the Checkpoint Council's ability to halt runaway toxicity loops.*
+
+#### **🏛️ STRUCTURAL TENSEGRITY (Fuller's Pass: Architecture)**
+- **The Apoptotic Ghost (`brain/cortex.py`):** The `purge_context` function now explicitly clears `self.last_physics`, preventing the high tension/drag of a purged toxic loop from infecting the fresh conversational state.
+- **Atomic Epigenetics (`brain/akashic.py`):** Rewrote the long-term memory serialization to use atomic `.tmp` file swapping. This prevents catastrophic epigenetic corruption if the host OS terminates the process mid-write.
+- **Amnesic Crafting (`brain/akashic.py`):** The engine now correctly serializes `recipe_candidates`, preventing the user's partial crafting progress from evaporating upon system reboot.
+- **The Epigenetic Immune Response (`tests/test_akashic.py`):** Established a dedicated, isolated test suite for the Akashic Record utilizing temporary directories to catch serialization/deserialization boundaries before they reach production.
+
+#### **🧠 COGNITIVE ERGONOMICS (Pinker's Pass: Language)**
+- **Syntactic Checkpoint Purge (`main.py`):** Refactored the math variable extraction in `_pre_flight_checks` to dramatically reduce visual noise, isolating the exact algebraic logic of the immune system.
+- **The Interrogative Bypass (`brain/composer.py`):** Reinforced Gordon's High Voltage questioning boundary by checking the final 15 characters of a response rather than just `endswith("?")`, preventing roleplay tags from blinding the immune check.
+- **The Bureaucratic Catch (`brain/cortex.py`):** Encased the random 15% `bureau.audit` in a `try/except` block, ensuring that an error in the bureaucratic paperwork cannot crash the LLM generation loop.
+
+#### **⚖️ DYNAMIC EQUILIBRIUM (Meadows' Pass: Systems & Dynamics)**
+- **The CSF Trojan Horse (`physics/filters.py`):** Restructured the Gatekeeper pipeline to execute the `CerebrospinalFluidFilter.wash` *before* the security audit, permanently sealing a zero-width character injection loophole.
+- **Algorithmic Drag in the Cortex (`brain/ann.py`):** Replaced an $O(N \log N)$ full-array sort with an $O(N \log K)$ `heapq` extraction during Lateral OFC Retrieval, eliminating severe computational lag spikes when deep memory bloated under high chaos.
+- **Gazing into the Void (`brain/ann.py`):** Fixed `get_local_mass_radius` to actually query the FAISS dimensional space using the user's input vector rather than blindly mapping a zero-vector.
+- **The Context Drop Black Hole (`brain/cortex.py`):** Massive text ingestions now explicitly trigger an immediate `execute_writes` command on the Substrate queue, preventing the engine from holding massive contextual files in active RAM.
+
+#### **🛠️ FUNCTIONAL PRAGMATISM (Schur's Pass: Humanity)**
+- **The Stutter Loop (`brain/composer.py`):** Corrected the Response Validator's stutter logic. The system no longer punishes and forces a retry on the LLM when it perfectly and silently executes a hidden `<write_file>` or `<think>` tool.
+- **REM Worker Bureaucracy (`cycle.py`):** Merged redundant DreamEngine background workers into a single, pragmatic `_dispatch_rem_worker` method.
+- **REM OS Deadlock Failsafe (`cycle.py`):** The engine now securely wraps background thread spawning in a `try/except RuntimeError`, explicitly releasing `self._rem_lock` if the host OS refuses to allocate a thread.
+- **The Trauma Bias (`brain/akashic.py`):** Fixed the engine's brutal tendency to remember its failures (Scars) but forget its successes (Boons) upon a cold boot. It now loads both simultaneously.
+
+---
+
 ### **BONEAMANITA 19.7.5 "The Substrate Synapse Audit"**
 
 *A deep-tissue sweep of the engine's central nervous system, testing boundaries, and phase layers. This audit hunted down live grenades, wired up massive dormant modules, cured an autoimmune configuration disease, and restored the engine's ability to sleep, adapt, and peacefully die.*

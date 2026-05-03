@@ -127,6 +127,7 @@ class TheCortex:
     def purge_context(self):
         """Executes a hard flush of the active context window."""
         self.dialogue_buffer.clear()
+        self.last_physics.clear()  # Purge the physical ghost of the previous session.
         if hasattr(self.dreamer, "trauma_buffer"):
             self.dreamer.trauma_buffer.clear()
         if self.events:
@@ -156,6 +157,10 @@ class TheCortex:
             safe_content = user_input.replace("\n", "|||NEWLINE|||")
             filename = f"context_drop_{int(time.time())}.txt"
             self.svc.cycle_controller.eng.substrate.queue_write(f"memory_queue/{filename}", safe_content)
+
+            # Execute the pending write immediately so it doesn't bottleneck active RAM.
+            self.svc.cycle_controller.eng.substrate.execute_writes(stamina_override=100.0)
+
             msg = f"{Prisma.CYN}[Substrate Queue]: Massive context drop detected. Routed to silent indexing. Dialogue buffer bypassed.{Prisma.RST}"
             self.events.log(msg, "SYS")
             return {"ui": msg, "type": "SILENT_INGEST", "physics": self.last_physics, "logs": [msg]}
@@ -225,8 +230,8 @@ class TheCortex:
             )
             llm_params["max_tokens"] = min(400, llm_params.get("max_tokens", 4096))
         user_input = sim_result.get("mutated_input", user_input)
-        final_prompt = self.composer.compose(full_state, user_input, ballast=self.ballast_active, modifiers=modifiers,
-                                             mood_override=self.modulator.get_mood_directive(), )
+        final_prompt = self.composer.compose(full_state, user_input, ballast=self.ballast_active,
+                        modifiers=modifiers, mood_override=self.modulator.get_mood_directive(), )
         start_time = time.time()
         max_retries = 5
         final_output, inv_logs, extracted_logs = "", [], []
@@ -365,16 +370,23 @@ class TheCortex:
                 sim_result["ui"] += "\n\n" + "\n".join(s_logs)
             if s_cost > 0:
                 self.svc.bio.mito.adjust_atp(-s_cost, "Substrate File Forging")
-                sim_result["ui"] += f"\n{Prisma.OCHRE}METABOLIC: File forging consumed {s_cost:.1f} Stamina.{Prisma.RST}"
+                sim_result["ui"] += f"\n{Prisma.OCHRE}METABOLIC: File forging consumed {s_cost:.1f} ATP.{Prisma.RST}"
+
         if random.random() < 0.15 and not is_system:
             bureau = getattr(self.svc.village, "bureau", None)
             suppressed = getattr(self.svc.village, "suppressed_agents", [])
             if bureau and "BUREAU" not in suppressed:
-                phys = full_state.get("physics", {})
-                safe_set(phys, "raw_text", final_output)
-                audit = bureau.audit(phys, {"health": 100}, origin="SYSTEM")
-                if audit and "ui" in audit:
-                    sim_result["ui"] += f"\n\n{audit['ui']}"
+                try:
+                    phys = full_state.get("physics", {})
+                    safe_set(phys, "raw_text", final_output)
+                    audit = bureau.audit(phys, {"health": 100}, origin="SYSTEM")
+                    if audit and "ui" in audit:
+                        sim_result["ui"] += f"\n\n{audit['ui']}"
+                except Exception as e:
+                    # [S]chur: Do not let bureaucratic paperwork crash the entire generation loop.
+                    if self.events:
+                        self.events.log(f"{Prisma.RED}[BUREAU ERROR] Audit bypassed: {e}{Prisma.RST}", "SYS")
+
         return sim_result
 
     def _run_affective_audit(self, user_input: str, final_text: str, e_u: float, beta: float) -> Tuple[bool, str]:
@@ -546,8 +558,8 @@ class TheCortex:
         mind["lens"], mind["role"] = self.ROLE_MAP.get(self.active_mode, ("ARCHITECT", "The Architect"))
         full_state = {"bio": bio, "physics": phys, "mind": mind, "soul": soul_data, "world": world,
                       "village": village_data, "user_profile": {"name": "Traveler"},
-                      "vsl": self.consultant.state.__dict__ if self.consultant and hasattr(self.consultant,
-                                                                                           "state") else {}, "meta": {
+                      "vsl": self.consultant.state.__dict__ if self.consultant
+                        and hasattr(self.consultant, "state") else {}, "meta": {
                 "timestamp": time.time(),
                 "mode_settings": mode_settings,
                 "active_mode": self.active_mode,
