@@ -3,8 +3,6 @@ presets.py
 
 The Universal Constants and Epigenetic Switches.
 This module establishes the baseline mathematical and biological constraints of the engine.
-It acts as the single source of truth for all reality tuning, modes of operation, and
-systemic boundaries.
 """
 
 import copy
@@ -14,19 +12,16 @@ from typing import Dict, Any, List
 
 class _ConfigNode:
     """
-    Schur's Pragmatic Shortcut.
     A simple object wrapper that turns dictionary key-value pairs into object attributes.
-    This drastically reduces syntactic friction for developers, allowing them to type
-    `config.PHYSICS.VOLTAGE_MAX` instead of `config["PHYSICS"]["VOLTAGE_MAX"]`.
     """
     def __repr__(self):
         return f"ConfigNode({vars(self)})"
 
 def ux(section: str, key: str, default: Any = "") -> Any:
     """
-    The Textual Decoupler.
-    Pinker insists that hardcoding UI text inside system logic is a style crime.
-    This function acts as a safe bridge to the LoreManifest, pulling narrative strings
+    The Textual Decoupler
+
+    Acts as a safe bridge to the LoreManifest, pulling narrative strings
     dynamically. If the lore isn't loaded yet (e.g., during early boot), it fails safely
     to the provided default.
     """
@@ -40,11 +35,12 @@ def ux(section: str, key: str, default: Any = "") -> Any:
 
 class BonePresets:
     """
-    Macro-State Defines (Epigenetic Packages).
-    These are pre-configured bundles of systemic tuning. Instead of tweaking fifty
-    variables manually, a developer or user can simply load a preset to completely
-    alter the metabolic and physical behavior of the engine.
+    Epigenetic Packages.
+
+    These are pre-configured bundles of systemic tuning. A developer or user can
+    load their own presets to completely alter the metabolic and physical behavior of the engine.
     """
+    
     # A state of absolute calm. Low friction, low energy requirement.
     ZEN_GARDEN = {"PHYSICS.VOLTAGE_FLOOR": 1.0,
         "PHYSICS.VOLTAGE_MAX": 25.0,

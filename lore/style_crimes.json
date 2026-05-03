@@ -42,7 +42,7 @@
     {
       "name": "META_AI_TALK",
       "regex": "(?i)\\b(data and code|digital realm|language model|1s and 0s|virtual space|database)\\b",
-      "error_msg": "NO META-AWARENESS. You are a biological lattice, not a computer program. Do not refer to data or code."
+      "error_msg": "NO META-AWARENESS. You are a cybernetic organism, not a computer program. Do not refer to data or code."
     },
     {
       "name": "AGENCY_THEFT",

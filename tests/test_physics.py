@@ -48,16 +48,9 @@ class TopologicalPrimitivesTest(BoneTestCase):
             initial_atp = self.engine.bio.mito.state.atp_pool
             self.engine.host_stats.efficiency_index = 1.0
             self.engine.tick_count = 6
-            with patch.object(self.engine.cortex,
-                              'process',
-                              return_value={
-                                  "physics": {
-                                      "vector": {
-                                          "novelty": 0.0
-                                      }
-                                  },
-                                  "ui": "I agree completely."
-                              }):
+
+            # We mock the LLM text generation so the cortex pipeline actually runs
+            with patch.object(self.engine.cortex.llm, 'generate', return_value="I agree completely."):
                 result = self.engine.process_turn("Do you agree?")
             self.assertIn(
                 "FALSE COHESION BREAK", result.get("ui", ""),

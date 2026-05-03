@@ -204,6 +204,11 @@ class CycleSimulator:
         formatted_trace = traceback.format_exc()
         self.eng.events.log(f"{Prisma.RED}{msg_crash.format(phase_name=phase_name)}\n{formatted_trace}{Prisma.RST}", "CRIT")
 
+        # Explicitly log cortex collapses and critical failures for the UI/Test Suite
+        if phase_name == "COGNITION":
+            self.eng.events.log(f"CORTEX COLLAPSE: {error}\n{formatted_trace}", "CRIT")
+        ctx.logs.append("CRITICAL FAILURE")
+
         narrative = LoreManifest.get_instance().get("narrative_data") or {}
         cathedral_logs = narrative.get("CATHEDRAL_COLLAPSE_LOGS", ["System Failure."])
         eulogy = random.choice(cathedral_logs)
@@ -326,13 +331,18 @@ class GeodesicOrchestrator:
         if tel: tel.start_cycle(cycle_id)
 
         try:
+            # Advance the biological clock of the macro-organism
+            if not is_system:
+                self.eng.tick_count += 1
+
             ctx = CycleContext(input_text=user_message, is_system_event=is_system)
             ctx.trace_id = cycle_id
             ctx.time_delta = getattr(self.eng, "current_time_delta", 0.0)
 
             # Anchor to the external multiplex (if applicable)
-            ctx.user_state = self.eng.shared_lattice.u
-            ctx.shared_dyn = self.eng.shared_lattice.shared
+            lattice = getattr(self.eng, "shared_lattice", None)
+            ctx.user_state = getattr(lattice, "u", None) if lattice else None
+            ctx.shared_dyn = getattr(lattice, "shared", None) if lattice else None
 
             target_cfg = getattr(self.eng, "config", BoneConfig)
             ctx.limits = _safe_dict(getattr(target_cfg, "CYCLE", {}))
@@ -455,11 +465,11 @@ class GeodesicOrchestrator:
         is_debt_recovery = (debt > 1.5 and atp_level >= 30.0)
 
         if (is_standard_rem or is_debt_recovery) and self._rem_lock.acquire(blocking=False):
-            log_msg = "Automatic REM Bridge engaged: High Coherence Debt detected." if is_debt_recovery else "Automatic REM Bridge engaged: High ATP, High Silence."
-            try:
-                threading.Thread(target=self._dispatch_rem_worker, args=(log_msg,), daemon=True).start()
-            except RuntimeError:
-                self._rem_lock.release()  # Failsafe: Release if thread creation is denied by host OS
+                    log_msg = "Automatic REM Bridge engaged: High Coherence Debt detected." if is_debt_recovery else "Automatic REM Bridge engaged: High ATP, High Silence."
+                    try:
+                        self._async_pool.submit(self._dispatch_rem_worker, log_msg)
+                    except RuntimeError:
+                        self._rem_lock.release()  # Failsafe: Release if thread creation is denied by host OS
 
     def run_turn(self, user_message: str, is_system: bool = False) -> Dict[str, Any]:
         """

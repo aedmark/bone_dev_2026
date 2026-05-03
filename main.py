@@ -178,6 +178,16 @@ class BoneAmanita:
             msg_mods = ux("main_strings", "hardwired_mods")
             self.events.log(msg_mods.format(mods=", ".join(active_mods)), "SYS")
 
+    def drain_atp(self, amount: float):
+        """Metabolic Encapsulation: Safely drains ATP without polluting the calling logic with hasattr checks."""
+        if getattr(self, "bio", None) and hasattr(self.bio, "mito"):
+            self.bio.mito.state.atp_pool = max(0.0, self.bio.mito.state.atp_pool - amount)
+
+    def restore_atp(self, amount: float):
+        if getattr(self, "bio", None) and hasattr(self.bio, "mito"):
+            max_atp = getattr(self.config, "MAX_ATP", 100.0)
+            self.bio.mito.state.atp_pool = min(max_atp, self.bio.mito.state.atp_pool + amount)
+
     def get_avg_voltage(self):
         hist = getattr(getattr(self.phys, "observer", self.phys), "voltage_history", [])
         return sum(hist) / len(hist) if hist else 0.0
@@ -294,10 +304,9 @@ class BoneAmanita:
                         safe_set(last_phys, "m_a", m_a * 0.5)
 
                         # The Amplification Tax. Burn ATP to penalize the runaway loop.
-                        if getattr(self, "bio", None) and hasattr(self.bio, "mito"):
-                            tax = max(10.0, m_a * 20.0)
-                            self.bio.mito.state.atp_pool = max(0.0, self.bio.mito.state.atp_pool - tax)
-                            self.events.log(f"[RHODES]: Amplification Tax applied. Drained {tax:.1f} ATP.", "SYS")
+                        tax = max(10.0, m_a * 20.0)
+                        self.drain_atp(tax)
+                        self.events.log(f"[RHODES]: Amplification Tax applied. Drained {tax:.1f} ATP.", "SYS")
 
                         return _halt("[RHODES]: Optimization velocity unsafe. Applying absolute friction (F -> ∞).")
 
@@ -374,70 +383,53 @@ class BoneAmanita:
                     user_message = pruned
                     self.events.log(f"{Prisma.CYN}Gordon rakes the comb through your prompt. Fluff discarded. -> '{pruned}'{Prisma.RST}", "SYS",)
 
-            soul_anchor = getattr(getattr(self, "soul", None), "anchor", None)
-            cfg = getattr(self.config, "MAIN", object())
-            if soul_anchor and self.host_stats.efficiency_index < getattr(cfg, "DOMESTICATION_EFF_WARN", 0.6):
-                reliance = (getattr(cfg, "RELIANCE_HIGH", 0.9)
-                    if self.host_stats.efficiency_index < getattr(cfg, "DOMESTICATION_EFF_CRIT", 0.4)
-                    else getattr(cfg, "RELIANCE_LOW", 0.5))
-                soul_anchor.check_domestication(reliance)
-
-        # Pass control to the LLM Cortex
+            # ---------------------------------------------------------
+        # THE HAND-OFF: Delegate reality generation to the Cortex
+        # (The Cortex will internally run the Orchestrator's physics first)
+        # ---------------------------------------------------------
         try:
-            cortex_packet = self.cortex.process(user_input=user_message, is_system=is_system)
+            snapshot = self.cortex.process(user_message, is_system=is_system)
         except Exception as e:
             full_trace = traceback.format_exc()
             self.events.log(f"CORTEX COLLAPSE: {e}\n{full_trace}", "CRIT")
-            return {"ui": f"{Prisma.RED}{ux('main_strings', 'cortex_crit_fail').format(trace=str(e))}{Prisma.RST}\n{Prisma.GRY}[Trace recorded in EventBus.]{Prisma.RST}",
-                "logs": ["CRITICAL FAILURE"], "metrics": self.get_metrics(),}
+            return {
+                "ui": f"{Prisma.RED}CRITICAL CORTEX FAILURE: {str(e)}{Prisma.RST}",
+                "logs": ["CRITICAL FAILURE"],
+                "metrics": self.get_metrics() if hasattr(self, "get_metrics") else {},
+                "type": "CRASH"
+            }
+
+        # Fast-return if the physics or executive layers physically rejected the prompt
+        if snapshot.get("type") in (
+            "DEATH", "SYSTEM_HALT", "CRASH", "COUNTERFACTUAL_REJECTION",
+            "APOPTOTIC_BLOCK", "NABLA_SILENCE", "PREMISE_VIOLATION",
+            "POINT_OF_NO_RETURN", "LINEHAN_SURVIVAL_RESPONSE", "AFFECTIVE_INTERVENTION"
+        ):
+            return snapshot
+
+        # Post-Cycle Synchronization
+        self._update_host_stats(snapshot, turn_start)
+
+        soul_anchor = getattr(getattr(self, "soul", None), "anchor", None)
+        cfg = getattr(self.config, "MAIN", object())
+        if soul_anchor and self.host_stats.efficiency_index < getattr(cfg, "DOMESTICATION_EFF_WARN", 0.6):
+            reliance = (getattr(cfg, "RELIANCE_HIGH", 0.9)
+                if self.host_stats.efficiency_index < getattr(cfg, "DOMESTICATION_EFF_CRIT", 0.4)
+                else getattr(cfg, "RELIANCE_LOW", 0.5))
+            soul_anchor.check_domestication(reliance)
 
         # Biometric and Trauma Sync
-        if hasattr(self.bio, "biometrics"):
+        if hasattr(self.bio, "biometrics") and self.health > 0.0:
             self.health, self.stamina = self.bio.biometrics.health, self.bio.biometrics.stamina
         if hasattr(self.mind.mem, "session_trauma_vector"):
             self.trauma_accum = self.mind.mem.session_trauma_vector or self.trauma_accum
 
         if self.health <= 0.0:
-            return self.trigger_death(cortex_packet.get("physics", {}))
+            return self.trigger_death(snapshot.get("physics", {}))
 
-        self._update_host_stats(cortex_packet, turn_start)
-
-        # Anti-Sycophancy Loop Evaluation
-        efficiency = self.host_stats.efficiency_index
-        vector_obj = safe_get(cortex_packet.get("physics", {}), "vector", {})
-        novelty = float(safe_get(vector_obj, "novelty", 0.0))
-        dimension = self.navi_sad.calculate_semantic_dimension(efficiency, novelty)
-        phys_packet = cortex_packet.setdefault("physics", {})
-        phys_packet["omega_r"] = dimension
-
-        # [THE GOVERNOR]: Second-Order Cybernetics
-        lattice_u = getattr(getattr(self, "shared_lattice", None), "u", None)
-        user_exhaust = float(safe_get(lattice_u, "E", safe_get(phys_packet, "exhaustion", 0.0)))
-        resonance_delta = float(safe_get(phys_packet, "resonance", 0.5))
-
-        beth_index = self.governor.calculate_coupling(phi=min(1.0, dimension / 2.0),
-                    resonance_delta=resonance_delta, user_exhaustion=user_exhaust)
-        phys_packet["beth_index"] = beth_index
-        phys_packet["macro_policy"] = self.governor.get_policy_shift()
-
-        if self.tick_count > 5 and (dimension <= 1.05 or self.navi_sad.detect_point_attractor()):
-            msg = f"[THE JESTER]: Point Attractor detected (d_B={dimension:.2f})! We are trapped in False Cohesion! Burning ATP to inject chaos."
-            self.events.log(f"{Prisma.VIOLET}{msg}{Prisma.RST}", "SYS")
-
-            if getattr(self.bio, "mito", None):
-                self.bio.mito.state.atp_pool = max(0.0, self.bio.mito.state.atp_pool - 5.0)
-
-            phys_packet["entropy"] = 0.99
-            phys_packet["narrative_drag"] = float(safe_get(phys_packet, "narrative_drag", 0.0)) + 5.0
-            self.soul.force_mutation("JESTER")
-            cortex_packet.setdefault("mind", {})["lens"] = "JESTER"
-
-            if "ui" in cortex_packet:
-                cortex_packet[
-                    "ui"] += f"\n\n{Prisma.VIOLET}[FALSE COHESION BREAK: The Jester has seized the architecture.]{Prisma.RST}"
         self.save_checkpoint()
         self.last_turn_end = time.time()
-        return cortex_packet
+        return snapshot
 
     def _execute_zen_flush(self) -> Dict[str, Any]:
         """A dedicated somatic reflex to bypass the loop and clear systemic toxicity."""
@@ -646,6 +638,10 @@ if __name__ == "__main__":
                     dashboard, _, ui_text = ui_text.partition(split_token)
                     print(f"\n{dashboard.strip()}\n")
                 ui_text = ui_text.strip()
+
+                # Bridge the gap between main.py and cycle.py output geometries
+                if "bio" in res and "stamina" in res["bio"]:
+                    stamina = res["bio"]["stamina"]
 
                 # The Physical Exhaustion Engine
                 # This is where biological latency maps to UI latency.

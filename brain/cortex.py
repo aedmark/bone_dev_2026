@@ -383,9 +383,46 @@ class TheCortex:
                     if audit and "ui" in audit:
                         sim_result["ui"] += f"\n\n{audit['ui']}"
                 except Exception as e:
-                    # [S]chur: Do not let bureaucratic paperwork crash the entire generation loop.
+                    # Do not let bureaucratic paperwork crash the entire generation loop.
                     if self.events:
                         self.events.log(f"{Prisma.RED}[BUREAU ERROR] Audit bypassed: {e}{Prisma.RST}", "SYS")
+
+        # HE GOVERNOR & THE JESTER
+        if not is_system:
+            eng = self.svc.cycle_controller.eng
+            efficiency = getattr(self.svc.host_stats, "efficiency_index", 1.0) if self.svc.host_stats else 1.0
+            vector_obj = sim_result.get("physics", {}).get("vector", {})
+            novelty = float(vector_obj.get("novelty", 0.0)) if isinstance(vector_obj, dict) else 0.0
+
+            dimension = eng.navi_sad.calculate_semantic_dimension(efficiency, novelty)
+
+            phys_packet = sim_result.setdefault("physics", {})
+            phys_packet["omega_r"] = dimension
+
+            lattice_u = getattr(getattr(eng, "shared_lattice", None), "u", None)
+            user_exhaust = float(lattice_u.E) if lattice_u and hasattr(lattice_u, "E") else float(phys_packet.get("exhaustion", 0.0))
+            resonance_delta = float(phys_packet.get("resonance", 0.5))
+
+            if hasattr(eng.bio, "governor"):
+                beth_index = eng.bio.governor.calculate_coupling(phi=min(1.0, dimension / 2.0),
+                            resonance_delta=resonance_delta, user_exhaustion=user_exhaust)
+                phys_packet["beth_index"] = beth_index
+                phys_packet["macro_policy"] = eng.bio.governor.get_policy_shift()
+
+            if getattr(eng, "tick_count", 0) > 5 and (dimension <= 1.05 or eng.navi_sad.detect_point_attractor()):
+                msg = f"[THE JESTER]: Point Attractor detected (d_B={dimension:.2f})! We are trapped in False Cohesion! Burning ATP to inject chaos."
+                if self.events:
+                    self.events.log(f"{Prisma.VIOLET}{msg}{Prisma.RST}", "SYS")
+
+                eng.drain_atp(5.0)
+
+                phys_packet["entropy"] = 0.99
+                phys_packet["narrative_drag"] = float(phys_packet.get("narrative_drag", 0.0)) + 5.0
+                eng.soul.force_mutation("JESTER")
+                sim_result.setdefault("mind", {})["lens"] = "JESTER"
+
+                if "ui" in sim_result:
+                    sim_result["ui"] += f"\n\n{Prisma.VIOLET}[FALSE COHESION BREAK: The Jester has seized the architecture.]{Prisma.RST}"
 
         return sim_result
 
@@ -555,7 +592,14 @@ class TheCortex:
                 village_data["tinkerer"] = (tinkerer.to_dict() if hasattr(
                     tinkerer, "to_dict") else {})
         mode_settings = BonePresets.MODES.get(self.active_mode, BonePresets.MODES["ADVENTURE"])
-        mind["lens"], mind["role"] = self.ROLE_MAP.get(self.active_mode, ("ARCHITECT", "The Architect"))
+
+        # Protect dynamic lenses chosen by ArbitrationPhase
+        current_lens = mind.get("lens")
+        if not current_lens or current_lens in ("UNKNOWN", "NARRATOR"):
+            mind["lens"], mind["role"] = self.ROLE_MAP.get(self.active_mode, ("ARCHITECT", "The Architect"))
+        else:
+            mind["role"] = mind.get("role", f"The {current_lens.title().replace('_', ' ')}")
+
         full_state = {"bio": bio, "physics": phys, "mind": mind, "soul": soul_data, "world": world,
                       "village": village_data, "user_profile": {"name": "Traveler"},
                       "vsl": self.consultant.state.__dict__ if self.consultant

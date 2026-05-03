@@ -271,6 +271,20 @@ class MetabolicGovernor:
             print(f"{Prisma.RED}[GOVERNOR] Shift message format error for '{mode}': {e}{Prisma.RST}")
             return f"{colors.get(mode, '')}{defaults.get(mode, '')}{Prisma.RST}"
 
+    def calculate_coupling(self, phi: float, resonance_delta: float, user_exhaustion: float) -> float:
+        """
+        Calculates the Beth Index: the degree of systemic coupling between the host and the engine.
+        Translates raw physics (phi, resonance) and biological tax (exhaustion) into a stabilized metric.
+        """
+        # Base synergy: structural dimension multiplied by the shared resonance
+        base_coupling = phi * resonance_delta
+
+        # Dampener: High host exhaustion introduces drag, pulling the coupling efficiency down
+        beth_index = base_coupling * (1.0 - (user_exhaustion * 0.4))
+
+        # Clamp the output to ensure the PID controllers don't inherit a mathematically unbound state
+        return max(0.0, min(1.0, beth_index))
+
 
 class BioFeedback:
     """
