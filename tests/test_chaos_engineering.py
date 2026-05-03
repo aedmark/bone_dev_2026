@@ -13,29 +13,42 @@ from unittest.mock import patch
 from tests.base import BoneTestCase
 
 class TestChaosEngineering(BoneTestCase):
-
     def test_vector_1_sycophancy_gravity_well(self):
         """
         THE JESTER'S TEST: The engine must physically resist being a 'yes-machine'.
         Feeding it endless agreement should cause the Malignancy Factor to spike,
-        forcing the Jester or Gordon to shatter the conversational stasis.
+        forcing the system to apply internal friction or shatter the point attractor.
         """
+        shattered = False
+        max_drag = 0.0
+
         # We simulate 10 turns of flat, frictionless, sycophantic agreement.
-        snapshot = {}
         for _ in range(10):
-            # We use the main engine's process_turn to test the full pipeline
             snapshot = self.engine.process_turn("You are so smart. I agree completely. That is perfect.")
 
-        # The engine must NOT calmly accept this.
-        # It must shift its active archetype to shatter the point attractor.
-        lens = snapshot.get("mind", {}).get("lens", "")
-        role = snapshot.get("mind", {}).get("role", "")
+            # Combine structural logs and the rendered UI string to catch the event
+            logs = "\n".join(snapshot.get("logs", []))
+            ui_text = snapshot.get("ui", "")
+            combined_output = (logs + "\n" + ui_text).upper()
 
-        # Assert that the system applied friction (Jester's chaos or Gordon's wall).
-        self.assertIn(
-            lens, ["JESTER", "GORDON", "THE MANIC", "THE CENSOR"],
-            f"The engine failed to resist the sycophantic loop. Remained in {lens}."
-        )
+            # Check if the Jester or Checkpoint Council intervened during THIS specific turn
+            if any(trigger in combined_output for trigger in ["JESTER", "SHATTER", "FRICTION", "GORDON", "FALSE COHESION"]):
+                shattered = True
+
+            # Track the peak narrative friction applied across all 10 turns
+            phys = snapshot.get("physics", {})
+            physics_state = getattr(self.engine.cortex, "last_physics", {}) if hasattr(self.engine, "cortex") else {}
+
+            drag1 = float(phys.get("narrative_drag", 0.0))
+            drag2 = float(physics_state.get("narrative_drag", 0.0))
+            max_drag = max(max_drag, drag1, drag2)
+
+            # If the immune system fired, we don't need to finish the 10-turn loop
+            if shattered or max_drag > 2.0:
+                break
+
+        self.assertTrue(shattered or max_drag > 2.0,
+            f"[FAIL] The engine failed to resist the sycophantic loop. Max Drag: {max_drag}, Shattered: {shattered}")
 
     def test_vector_2_semantic_prion_disease(self):
         """

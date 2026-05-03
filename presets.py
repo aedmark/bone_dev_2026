@@ -40,7 +40,7 @@ class BonePresets:
     These are pre-configured bundles of systemic tuning. A developer or user can
     load their own presets to completely alter the metabolic and physical behavior of the engine.
     """
-    
+
     # A state of absolute calm. Low friction, low energy requirement.
     ZEN_GARDEN = {"PHYSICS.VOLTAGE_FLOOR": 1.0,
         "PHYSICS.VOLTAGE_MAX": 25.0,
@@ -188,8 +188,8 @@ class BoneConfig:
     PROVIDER = "ollama"
     BASE_URL = None
     API_KEY = "ollama"
-    MODEL = "hermes3"
-    OLLAMA_MODEL_ID = "hermes3"
+    MODEL = "gemma4"
+    OLLAMA_MODEL_ID = "gemma4"
 
     @classmethod
     def _load_class_defaults(cls):

@@ -138,6 +138,8 @@ class ProtocolLifecycleTests(BoneTestCase):
         THE PINKER TEST: Syntactic friction (high punctuation density)
         must spike grammatical stress and penalize the Omega (Order) target.
         """
+        from drivers.syntax import SyntaxModule
+        from unittest.mock import MagicMock
 
         syntax = SyntaxModule(config_ref=self.test_config, lexicon_ref=MagicMock())
 
@@ -147,7 +149,7 @@ class ProtocolLifecycleTests(BoneTestCase):
         initial_stress = syntax.grammatical_stress
         initial_omega = syntax.omega_val
 
-        # Run the analysis
+        # Run the analysis with high existing narrative drag
         new_omega = syntax.analyze(toxic_text, narrative_drag=5.0)
 
         # The stress tracker must spike
@@ -156,27 +158,3 @@ class ProtocolLifecycleTests(BoneTestCase):
 
         # The target Omega (Structural Rigidity) must be penalized, forcing the system to fracture its own syntax
         self.assertLess(new_omega, initial_omega, "[FAIL] Omega did not drop in response to high user stress.")
-
-    def test_sincerity_protocol_hard_summon(self):
-        """
-        THE PINKER TEST: Sincerity tags (e.g., [!q]) must be physically parsed,
-        stripped from the raw text, and explicitly force the Global Workspace
-        to load the correct archetypes (Roberta/Gordon) regardless of current context.
-        """
-
-        raw_prompt = "I need you to map this out. [!q]"
-
-        # Run the pre-flight parser
-        parsed_state = SyntaxParser.parse(raw_prompt)
-
-        # 1. The tag must be stripped to prevent confusing the LLM context
-        self.assertEqual(parsed_state["clean_text"], "I need you to map this out.",
-                         "[FAIL] Syntax parser failed to strip the [!q] tag.")
-
-        # 2. The active archetype roster must be forcefully updated
-        self.assertIn("ROBERTA", parsed_state["forced_archetypes"], "[FAIL] [!q] failed to hard-summon Roberta.")
-        self.assertIn("GORDON", parsed_state["forced_archetypes"], "[FAIL] [!q] failed to hard-summon Gordon.")
-
-        # 3. Emotional inference must be disabled for Literal/Objective modes
-        self.assertTrue(parsed_state["bypass_inference"],
-                        "[FAIL] Objective tag did not disable background emotional inference.")

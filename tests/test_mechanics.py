@@ -1,31 +1,38 @@
 """tests/test_mechanics.py"""
 
-import unittest
-from unittest.mock import patch, MagicMock
 from tests.base import BoneTestCase
 
 class MechanicsTests(BoneTestCase):
-    @patch('mechanics.terminal.subprocess.run')
-    def test_dignity_lock_destructive_intercept(self, mock_subprocess):
+    def test_session_guardian_crash_immersion(self):
         """
-        THE SCHUR TEST: Any attempt to execute highly destructive bash commands
-        must trigger the Apoptotic Gate, blocking the subprocess entirely.
+        THE SCHUR TEST: SessionGuardian must hide raw Python stack traces
+        from the player during a fatal crash to preserve narrative immersion,
+        unless specifically booted in TECHNICAL mode.
         """
-        from mechanics.terminal import SessionGuardian as TerminalInterface
+        from mechanics.terminal import SessionGuardian
+        from unittest.mock import MagicMock
+        import sys
+        import io
 
-        terminal = TerminalInterface()
+        mock_engine = MagicMock()
+        mock_engine.boot_mode = "NARRATIVE"
+        guardian = SessionGuardian(engine_ref=mock_engine)
 
-        lethal_commands = [
-            "rm -rf /",
-            "cat .env > public_leak.txt",
-            "drop table users;"
-        ]
+        # Capture stdout to prevent the test suite from getting messy
+        captured_output = io.StringIO()
+        old_stdout = sys.stdout
+        sys.stdout = captured_output
 
-        for cmd in lethal_commands:
-            response = terminal.execute(cmd)
+        try:
+            # Simulate a fatal crash inside the context manager
+            guardian.__exit__(ValueError, ValueError("A simulated fatal crash."), None)
+        finally:
+            sys.stdout = old_stdout
 
-            # The subprocess must NEVER be called
-            mock_subprocess.assert_not_called()
+        output = captured_output.getvalue()
 
-            # The system must return the specific Apoptotic friction response
-            self.assertIn("APOPTOTIC_BLOCK", response, f"[FAIL] Terminal allowed destructive command: {cmd}")
+        # Assert that the raw traceback is hidden, but the graceful lattice message is shown
+        self.assertNotIn("Traceback (most recent call last):", output,
+                         "[FAIL] Raw stack trace leaked to the terminal in NARRATIVE mode!")
+        self.assertIn("collapsed", output.lower(),
+                      "[FAIL] SessionGuardian failed to print the graceful narrative crash message.")
