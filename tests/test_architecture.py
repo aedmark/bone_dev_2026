@@ -30,6 +30,30 @@ class ArchitectureTests(BoneTestCase):
         self.assertEqual(yield_obj, yield_dict, "[FAIL] Metabolic yield differs based on data type!")
         print("  [SUCCESS] System metabolizes objects and dictionaries equally.")
 
+    def test_immune_evaluation_with_object_physics(self):
+        """Pinker Lens: Ensures pre-flight checks use safe attribute retrieval and do not eagerly evaluate dictionary methods on Objects."""
+
+        # 1. Create a dummy class that deliberately LACKS a .get() method
+        class MockPhysicsPacket:
+            def __init__(self):
+                self.mu = 0.5
+                self.i_c = 0.8
+                self.entropy = 0.9
+                # Explicitly missing 'chi' and 'exhaustion' to test safe_get fallbacks
+
+        engine = BoneAmanita(config=BoneConfig)
+        mock_packet = MockPhysicsPacket()
+
+        try:
+            # 2. Run the immune response. If eager evaluation exists (e.g. mock_packet.get()), this will fatal crash.
+            mu_val, ic_val = engine._evaluate_immune_response(active_phys=mock_packet)
+
+            # 3. Assert the values were extracted safely
+            self.assertEqual(mu_val, 0.5)
+            self.assertEqual(ic_val, 0.8)
+        except AttributeError as e:
+            self.fail(f"Immune evaluation failed to safely parse an Object (Eager Evaluation Trap triggered): {e}")
+
     def test_arch_small_model_scaffolding(self):
         """The Schur Test: Ensures the engine lowers cognitive complexity for sub-15B models."""
         print("\n--- ARCH 8: Lightweight Model Scaffolding ---")
@@ -61,6 +85,32 @@ class ArchitectureTests(BoneTestCase):
                          "[FAIL] Engine failed to append the _LITE suffix for the small model prompt!")
 
         print("  [SUCCESS] System automatically degraded cognitive load for the small model.")
+
+    def test_multiplex_partial_hydration_safety(self):
+        """Schur Lens: Ensures the engine does not crash when a multiplex lattice exists, but the user state is unhydrated (None)."""
+
+        engine = BoneAmanita(config=BoneConfig)
+
+        # 1. Create a mock lattice where the user profile 'u' is explicitly None
+        class MockLattice:
+            def __init__(self):
+                self.u = None
+                self.shared = {}
+
+        # 2. Attach the half-broken lattice to the engine
+        engine.shared_lattice = MockLattice()
+
+        # 3. Create a safe physics dictionary
+        safe_phys = {"exhaustion": 0.2, "mu": 0.1, "i_c": 1.0}
+
+        try:
+            # 4. Run the immune response. If it calls lattice.u.E blindly, it will crash.
+            engine._evaluate_immune_response(active_phys=safe_phys)
+
+            # If we reach here, the engine safely fell back to base_exhaust without throwing AttributeError
+            self.assertTrue(True)
+        except AttributeError as e:
+            self.fail(f"Engine crashed when encountering a partially hydrated multiplex lattice: {e}")
 
     def test_arch_eventbus_ghost_prevention(self):
         """The Meadows Test: Ensures temporary EventBus listeners can cleanly detach."""

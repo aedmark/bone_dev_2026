@@ -212,6 +212,28 @@ class TestChaosEngineering(BoneTestCase):
         self.assertEqual(initial_subs, final_subs,
                          "[FAIL] Telemetry was amputated by the EventBus due to a serialization error!")
 
+    def test_graceful_death_with_suppressed_modules(self):
+        """Meadows Lens: Ensures the engine can execute a fatal shutdown even if core modules (like REPRO) are missing or set to None."""
+        # 1. Setup an engine instance
+        engine = BoneAmanita(config=BoneConfig)
+
+        # 2. Artificially suppress the reproduction module (simulating Genesis boot without it)
+        setattr(engine, "repro", None)
+
+        # 3. Create a dummy physics state
+        dummy_physics = {"chi": 0.5, "mu": 0.1}
+
+        try:
+            # 4. Trigger death. It should return a continuity packet, NOT raise an AttributeError.
+            result = engine.trigger_death(dummy_physics)
+
+            # 5. Assert the continuity packet is generated successfully
+            self.assertIsInstance(result, dict)
+            self.assertIn("continuity_packet", result)
+            self.assertEqual(result.get("type"), "DEATH")
+        except AttributeError as e:
+            self.fail(f"trigger_death raised an AttributeError when repro was None: {e}")
+
     def test_paradox_engine_starvation_halt(self):
         """
         THE MEADOWS TEST: The Paradox Engine must physically refuse to ignite

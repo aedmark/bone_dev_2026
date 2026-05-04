@@ -28,6 +28,32 @@ class FractureEngineTest(BoneTestCase):
             "The system didn't burn any ATP while defending itself.",
         )
 
+    def test_native_freeze_graph_preserves_node_identities(self):
+        """Fuller Lens: Ensures that freezing the reality graph preserves the string identities of the nodes, not just anonymous tuples."""
+        from cycle import GeodesicOrchestrator
+
+        # 1. Create a mocked memory graph with explicit node names
+        mock_graph = {
+            "NODE_ALPHA": ["NODE_BETA", "NODE_GAMMA"],
+            "NODE_BETA": ["NODE_ALPHA"]
+        }
+
+        # 2. Freeze the graph using the static method
+        frozen_topology = GeodesicOrchestrator._native_freeze_graph(mock_graph)
+
+        # 3. Assert that it is a tuple of tuples, and the FIRST element of the inner tuple is the node name
+        self.assertTrue(isinstance(frozen_topology, tuple))
+
+        # Extract just the node names from the frozen structure
+        preserved_keys = [node[0] for node in frozen_topology]
+
+        self.assertIn("NODE_ALPHA", preserved_keys)
+        self.assertIn("NODE_BETA", preserved_keys)
+
+        # Ensure the neighbors are preserved in the second element
+        alpha_node = next(node for node in frozen_topology if node[0] == "NODE_ALPHA")
+        self.assertIn("NODE_BETA", alpha_node[1])
+
     def test_fracture_autophagic_marathon(self):
         print("\n--- FRACTURE 2: Autophagic Marathon ---")
         mem_graph = (self.engine.mind.mem.graph
