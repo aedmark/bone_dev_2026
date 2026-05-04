@@ -168,23 +168,34 @@ class BoneAmanita:
             msg_mods = ux("main_strings", "hardwired_mods")
             self.events.log(msg_mods.format(mods=", ".join(active_mods)), "SYS")
 
-    def drain_atp(self, amount: float):
-        """Metabolic Encapsulation: Safely drains ATP without polluting the calling logic with hasattr checks."""
+    @property
+    def _mito_state(self):
+        """Safe internal accessor for the mitochondrial state."""
         if getattr(self, "bio", None) and hasattr(self.bio, "mito"):
-            self.set_atp(self.bio.mito.state.atp_pool - amount)
+            return self.bio.mito.state
+        return None
+
+    def drain_atp(self, amount: float):
+        """Metabolic Encapsulation: Safely drains ATP."""
+        if state := self._mito_state:
+            self.set_atp(state.atp_pool - amount)
 
     def restore_atp(self, amount: float):
-        if getattr(self, "bio", None) and hasattr(self.bio, "mito"):
-            self.set_atp(self.bio.mito.state.atp_pool + amount)
+        """Metabolic Encapsulation: Safely restores ATP."""
+        if state := self._mito_state:
+            self.set_atp(state.atp_pool + amount)
 
     def set_atp(self, amount: float):
-        """Metabolic Encapsulation: Explicitly sets the ATP pool."""
-        if getattr(self, "bio", None) and hasattr(self.bio, "mito"):
+        """Metabolic Encapsulation: Explicitly clamps and sets the ATP pool."""
+        if state := self._mito_state:
             max_atp = getattr(self.config, "MAX_ATP", 100.0)
-            self.bio.mito.state.atp_pool = max(0.0, min(max_atp, float(amount)))
+            state.atp_pool = max(0.0, min(max_atp, float(amount)))
 
     def get_avg_voltage(self):
-        hist = getattr(getattr(self.phys, "observer", self.phys), "voltage_history", [])
+        """Calculates average voltage from the physics observer."""
+        # Prefer the dedicated observer, fallback to the base physics object if flattened
+        target = getattr(self.phys, "observer", self.phys)
+        hist = getattr(target, "voltage_history", [])
         return sum(hist) / len(hist) if hist else 0.0
 
     def _unpack_anatomy(self, anatomy):
@@ -221,8 +232,9 @@ class BoneAmanita:
         chi = float(safe_get(active_phys, "entropy", safe_get(active_phys, "chi", 0.2)))
         base_exhaust = float(safe_get(active_phys, "exhaustion", 0.0))
         beta = float(safe_get(active_phys, "beta_index", 0.0))
+        # Safely resolve user exhaustion from the shared lattice
         lattice = getattr(self, "shared_lattice", None)
-        e_u = float(getattr(lattice.u, "E", base_exhaust)) if getattr(lattice, "u", None) else base_exhaust
+        e_u = float(getattr(lattice.u, "E", base_exhaust)) if lattice and hasattr(lattice, "u") else base_exhaust
         if (chi * m_a) > i_c:
             self.events.log("MOOG: Apoptotic Gate triggered. Runaway loop exceeds Immune Competence.", "CRIT")
             return self.trigger_death(active_phys)
