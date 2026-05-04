@@ -49,8 +49,8 @@ class ThePragmatist:
                     f"{Prisma.VIOLET}[GRICE] Maxim of Manner violated. System is stable but language is obscure/hedging.{Prisma.RST}",
                     "SYS")
             # Use regex to physically strip the hedging regardless of capitalization
-            draft_text = re.sub(r"(?i)perhaps\s*", "", draft_text)
-            draft_text = re.sub(r"(?i)it could be said that\s*", "", draft_text)
+            draft_text = re.sub(r"(?i)\bperhaps\b\s*", "", draft_text)
+            draft_text = re.sub(r"(?i)it could be said(?: that)?\s*", "", draft_text)
             draft_text = draft_text.strip()
             lower_draft = draft_text.lower()  # Refresh for the next gate
 

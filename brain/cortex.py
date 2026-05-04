@@ -66,6 +66,7 @@ class TheCortex:
         # Instantiate the Modulator from mind.py
         self.modulator = NeurotransmitterModulator(bio_ref=self.svc.bio, events_ref=self.events, config_ref=self.cfg)
         self.last_physics = {}
+        self.last_shadow_nodes = []
         self.consultant = services.consultant
         self.llm = llm_client or LLMInterface(self.events, provider="mock")
         # Link the DreamEngine (from mind.py)
@@ -128,6 +129,7 @@ class TheCortex:
 
     def purge_context(self):
         """Executes a hard flush of the active context window."""
+        self.last_shadow_nodes = []
         self.dialogue_buffer.clear()
         self.last_physics.clear()  # Purge the physical ghost of the previous session.
         if hasattr(self.dreamer, "trauma_buffer"):
@@ -161,9 +163,11 @@ class TheCortex:
             self.svc.orchestrator.eng.substrate.queue_write(f"memory_queue/{filename}", safe_content)
 
             # Execute the pending write immediately so it doesn't bottleneck active RAM.
-            self.svc.orchestrator.eng.substrate.execute_writes(stamina_override=100.0)
+            s_logs, s_cost = self.svc.orchestrator.eng.substrate.execute_writes(stamina_override=100.0)
+            if self.svc.bio:
+                self.svc.bio.mito.adjust_atp(-s_cost, "Massive Context Ingestion")
 
-            msg = f"{Prisma.CYN}[Substrate Queue]: Massive context drop detected. Routed to silent indexing. Dialogue buffer bypassed.{Prisma.RST}"
+            msg = f"{Prisma.CYN}[Substrate Queue]: Massive context drop detected. Routed to silent indexing. Dialogue buffer bypassed. (-{s_cost:.1f} ATP){Prisma.RST}"
             self.events.log(msg, "SYS")
             return {"ui": msg, "type": "SILENT_INGEST", "physics": self.last_physics, "logs": [msg]}
         sim_result = self.svc.orchestrator.run_turn(user_input, is_system=is_system)
@@ -174,15 +178,16 @@ class TheCortex:
             self._update_history(user_input, sim_result.get("ui", "SYSTEM REJECTED PROMPT."))
             return sim_result
         # Check if the user engaged with a shadow concept from the previous turn
-        if self.last_physics and "shadow_nodes_offered" in self.last_physics:
-            engaged = [node for node in self.last_physics["shadow_nodes_offered"] if node.lower() in user_input.lower()]
+        if hasattr(self, "last_shadow_nodes") and self.last_shadow_nodes:
+            engaged = [node for node in self.last_shadow_nodes if node.lower() in user_input.lower()]
             for node in engaged:
                 if self.events:
                     self.events.publish("SHADOW_ENGAGED", {
-                        "source": self.last_physics.get("primary_node", "core"),
+                        "source": self.last_physics.get("primary_node", "core") if self.last_physics else "core",
                         "target": node,
                         "user_input": user_input
                     })
+            self.last_shadow_nodes = []
         full_state = self.gather_state(sim_result)
         phys_state = full_state.get("physics", {})
         f_drag = float(safe_get(phys_state, "narrative_drag", 0.0))
@@ -680,9 +685,9 @@ class TheCortex:
         if shadow_nodes:
             shadow_concepts = [n.get("id", "Unknown") for n in shadow_nodes]
             shadow_str = ", ".join(shadow_concepts)
-            # Explicitly store these in the physical state for next turn's engagement check
+            # Store directly on the Cortex instance; the physics packet will strip it on snapshot.
             phys["shadow_nodes_offered"] = shadow_concepts
-            self.last_physics["shadow_nodes_offered"] = shadow_concepts
+            self.last_shadow_nodes = shadow_concepts
 
             v_level = float(safe_get(phys, "voltage", 0.0))
             chi_level = float(safe_get(phys, "chi", safe_get(phys, "entropy", 0.0)))

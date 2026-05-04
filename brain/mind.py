@@ -178,8 +178,9 @@ class NoeticLoop:
         link_chance = safe_get(cfg, "LINK_CHANCE", 0.15)
         ignition = min(1.0, (avg_v / v_div) * (len(clean_words) / w_div))
         if voltage > link_v and random.random() < link_chance:
-            if len(clean_words) >= 2:
-                w1, w2 = random.sample(clean_words, 2)
+            unique_words = list(set(clean_words))
+            if len(unique_words) >= 2:
+                w1, w2 = random.sample(unique_words, 2)
                 self._force_link(self.mind.mem.graph, w1, w2, self.cfg)
         current_lens = soul_ref.archetype if soul_ref else "OBSERVER"
         current_role = f"The {current_lens.title().replace('_', ' ')}" if soul_ref else "Witness"

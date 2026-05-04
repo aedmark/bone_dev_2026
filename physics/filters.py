@@ -140,7 +140,7 @@ class TheGatekeeper:
         Pre-flight check. Evaluates if the system has the biological capacity (ATP)
         and structural safety to process the user's input before wasting compute on generation.
         """
-        from struts import ux, safe_set
+        from struts import ux
 
         def reject(type_str: str, msg_key: str, color: str = Prisma.RED) -> Tuple[bool, Dict]:
             """Helper to bundle a rejected state back to the UI."""
@@ -169,9 +169,6 @@ class TheGatekeeper:
             m_a_thresh = getattr(self.cfg.PHYSICS, "MALIGNANCY_STRIP_THRESHOLD", 5.0)
             if strip_rate > m_a_thresh:
                 return reject("MALIGNANCY_SPIKE", "gatekeeper_toxic", color=Prisma.RED)
-
-            if is_idempotent:
-                safe_set(ctx.physics, "idempotent_state", True)
 
         except Exception:
             return reject("FATAL_ENCODING", "gatekeeper_cursed")

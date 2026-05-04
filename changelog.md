@@ -1,6 +1,32 @@
 # CHANGELOG.md
 -----------------------------------------------------------
 
+### **BONEAMANITA 19.8.5 "The Tensegrity Audit"**
+
+#### **🏛️ SYNERGETIC ARCHITECTURE (Fuller's Pass: Structure & Tensegrity)**
+- **False Cohesion Purge (`struts.py`):** `safe_set` now raises a `ValueError` on `None` objects instead of silently swallowing the write, letting the engine crash loudly instead of rotting silently.
+- **Telemetry Re-Wired (`main.py`):** Hard-wired the `TelemetryService` directly to the `EventBus` (`self.events.telemetry`), restoring the system's blinded event loop.
+- **Shadow Decoupling (`brain/cortex.py`):** Fixed severe semantic data-loss by decoupling `shadow_nodes_offered` from the volatile `PhysicsPacket` snapshot. It is now persisted securely on the `Cortex` object, restoring `SHADOW_ENGAGED` telemetry.
+- **Phantom Data Purge (`physics/filters.py`):** Eliminated the ghost variable `ctx.physics.idempotent_state` which was bypassing strict typing and creating a structural fracture.
+
+#### **🧠 LINGUISTIC COGNITION (Pinker's Pass: Syntax & Logic)**
+- **Syntactic Friction Reduction (`core.py`):** Optimized `EventBus.flush()` from a clunky `try/except IndexError` loop to an atomic list cast and buffer clear.
+- **O(N) Optimization (`body/endocrine.py`):** Collapsed dual list comprehensions in the `SemanticEndocrinologist` into a single, unified traversal for novelty and resonance calculations.
+- **Mathematical Paranoia (`physics/geodesics.py`):** Removed redundant `max(1, volume)` math checks in sub-functions, correctly trusting upstream volume bounds.
+- **Gricean Regex Hardening (`mechanics/pragmatics.py`):** Fixed `ThePragmatist` regex to properly catch and strip non-standard hedging ("perhaps.", "it could be said.") regardless of casing, punctuation, or trailing clauses.
+
+#### **🌊 SYSTEM DYNAMICS (Meadows' Pass: Flows & Feedback)**
+- **Metabolic Loophole Closed (`brain/cortex.py`):** The system now accurately calculates and drains the biological ATP cost for massive context drops (`execute_writes`) instead of processing massive user pastes for free.
+- **Redundant String Operations (`physics/observer.py`):** Passed the native `word_volume` down the pipeline to `_calculate_metrics`, entirely eliminating redundant and expensive string splitting during the semantic translation phase.
+- **Background Worker Protection (`cycle.py`):** The async `_bg_wls_check` worker is now explicitly blocked from computing the fractal dimension of the `"(Waiting)"` placeholder string, preserving CPU cycles.
+
+#### **🛠️ FUNCTIONAL PRAGMATISM (Schur's & Gordon's Pass: Humanity & Boundaries)**
+- **The Terse Reply (`brain/composer.py`):** Dropped the `ResponseValidator` stutter threshold to 2 characters. The system can now give terse, human replies (e.g., "Yes.") without the immune system brutally rejecting it and burning ATP on forced rewrites.
+- **Self-Loop Prevention (`brain/mind.py`):** Prevented mnemonic graph corruption in `NoeticLoop.think()` by ensuring `random.sample` strictly pulls unique words, stopping the engine from forming recursive connections to the same concept.
+- **Paranoia Eradication (Global):** Ruthlessly stripped defensive `hasattr` checks, redundant `min(1.0, ...)` clamps, and manual dictionary extractions across `main.py`, `physics/maths.py`, `physics/models.py`, `physics/observer.py`, `body/metabolism.py`, `brain/composer.py`, and `soul/humanity.py`. The system now trusts its own aliases and unified biological loops.
+
+---
+
 ### **BONEAMANITA 19.8.4 "The Substrate Seal"**
 
 #### **🏛️ SYNERGETIC ARCHITECTURE (Fuller's Pass: Structure & Tensegrity)**
