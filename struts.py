@@ -76,10 +76,8 @@ def safe_get(obj: Any, key: str, default: Any = None) -> Any:
     if obj is None:
         return default
     if isinstance(obj, dict):
-        val = obj.get(key, default)
-    else:
-        val = getattr(obj, key, default)
-    return default if val is None else val
+        return obj.get(key, default)
+    return getattr(obj, key, default)
 
 
 def safe_set(obj: Any, key: str, value: Any) -> None:

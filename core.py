@@ -162,8 +162,11 @@ class EventBus:
 
     def unsubscribe(self, event_type, callback):
         """Prevents memory leaks from ghost listeners."""
-        if event_type in self.subscribers and callback in self.subscribers[event_type]:
-            self.subscribers[event_type].remove(callback)
+        if event_type in self.subscribers:
+            try:
+                self.subscribers[event_type].remove(callback)
+            except ValueError:
+                pass
 
     def publish(self, event_type, data=None):
         if event_type not in self.subscribers: return
@@ -343,7 +346,7 @@ class TheObserver:
             return random.choice(valid_msgs) if valid_msgs else ""
         if avg_cycle > self.CYCLE_WARNING:
             return ux("core_strings", "obs_sluggish")
-        if getattr(self, "is_coupled", False):
+        if self.is_coupled:
             return ux_format("core_strings", "obs_coupled", default="Harmonic Resonance: Presence Active.")
         return ux("core_strings", "obs_nominal")
 

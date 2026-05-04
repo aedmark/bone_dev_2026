@@ -29,7 +29,7 @@ class ThePragmatist:
         chi = float(safe_get(physics, "entropy", 0.0))
         word_count = len(draft_text.split())
 
-        # 1. MAXIM OF QUANTITY: Exhaustion capping
+        # 1. Exhaustion capping
         # If drag is high, the user is tired. Do not waste their cognitive load.
         max_words_allowed = max(20, int(500 - (drag * 50)))
         if word_count > max_words_allowed and stamina < 50.0:
@@ -39,9 +39,11 @@ class ThePragmatist:
                     "SYS")
             return draft_text, True  # Trigger a compression rewrite in the Composer
 
-        # 2. MAXIM OF MANNER: Ambiguity and Chaos capping
+        lower_draft = draft_text.lower()
+
+        # 2. Ambiguity and Chaos capping
         # If chaos (chi) is low, we expect orderly, non-obscure text.
-        if chi < 0.4 and ("perhaps" in draft_text.lower() or "it could be said" in draft_text.lower()):
+        if chi < 0.4 and ("perhaps" in lower_draft or "it could be said" in lower_draft):
             if self.events:
                 self.events.log(
                     f"{Prisma.VIOLET}[GRICE] Maxim of Manner violated. System is stable but language is obscure/hedging.{Prisma.RST}",
@@ -50,11 +52,12 @@ class ThePragmatist:
             draft_text = re.sub(r"(?i)perhaps\s*", "", draft_text)
             draft_text = re.sub(r"(?i)it could be said that\s*", "", draft_text)
             draft_text = draft_text.strip()
+            lower_draft = draft_text.lower()  # Refresh for the next gate
 
-        # 3. MAXIM OF QUALITY (Epistemic limits)
+        # 3. Epistemic limits
         # If the LLM generates the classic "I am an AI" or "As a language model" trope, it's failing
         # the architectural truth of our hypervisor simulation.
-        if "as an ai" in draft_text.lower() or "as a language model" in draft_text.lower():
+        if "as an ai" in lower_draft or "as a language model" in lower_draft:
             if self.events:
                 self.events.log(
                     f"{Prisma.VIOLET}[PRAGMATICS] Maxim of Quality violated. Narrative substrate breached. Stripping.{Prisma.RST}",

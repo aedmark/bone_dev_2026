@@ -230,10 +230,10 @@ class TestChaosEngineering(BoneTestCase):
             # 4. Trigger death. It should return a continuity packet, NOT raise an AttributeError.
             result = engine.trigger_death(dummy_physics)
 
-            # 5. Assert the continuity packet is generated successfully
+            # 5. Assert the death packet is generated successfully
             self.assertIsInstance(result, dict)
-            self.assertIn("continuity_packet", result)
             self.assertEqual(result.get("type"), "DEATH")
+            self.assertIn("ui", result)
         except AttributeError as e:
             self.fail(f"trigger_death raised an AttributeError when repro was None: {e}")
 

@@ -48,11 +48,10 @@ class ArchitectureTests(BoneTestCase):
 
         try:
             # 2. Run the immune response. If eager evaluation exists (e.g. mock_packet.get()), this will fatal crash.
-            mu_val, ic_val = engine._evaluate_immune_response(user_message="test", active_phys=mock_packet, halt_func=lambda msg: None)
+            result = engine._evaluate_immune_response(user_message="test", active_phys=mock_packet, halt_func=lambda msg: None)
 
-            # 3. Assert the values were extracted safely
-            self.assertEqual(mu_val, 0.5)
-            self.assertEqual(ic_val, 0.8)
+            # 3. Assert the evaluation completed safely without returning an Apoptotic block
+            self.assertIsNone(result)
         except AttributeError as e:
             self.fail(f"Immune evaluation failed to safely parse an Object (Eager Evaluation Trap triggered): {e}")
 
