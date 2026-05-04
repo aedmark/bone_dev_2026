@@ -48,7 +48,7 @@ class ArchitectureTests(BoneTestCase):
 
         try:
             # 2. Run the immune response. If eager evaluation exists (e.g. mock_packet.get()), this will fatal crash.
-            mu_val, ic_val = engine._evaluate_immune_response(active_phys=mock_packet)
+            mu_val, ic_val = engine._evaluate_immune_response(user_message="test", active_phys=mock_packet, halt_func=lambda msg: None)
 
             # 3. Assert the values were extracted safely
             self.assertEqual(mu_val, 0.5)
@@ -107,7 +107,7 @@ class ArchitectureTests(BoneTestCase):
 
         try:
             # 4. Run the immune response. If it calls lattice.u.E blindly, it will crash.
-            engine._evaluate_immune_response(active_phys=safe_phys)
+            engine._evaluate_immune_response(user_message="test", active_phys=safe_phys, halt_func=lambda msg: None)
 
             # If we reach here, the engine safely fell back to base_exhaust without throwing AttributeError
             self.assertTrue(True)

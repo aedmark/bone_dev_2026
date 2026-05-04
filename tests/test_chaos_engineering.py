@@ -13,6 +13,7 @@ from unittest.mock import patch
 from tests.base import BoneTestCase
 from main import BoneAmanita
 from presets import BoneConfig
+from physics.models import PhysicsPacket
 
 class TestChaosEngineering(BoneTestCase):
     def test_vector_1_sycophancy_gravity_well(self):
@@ -223,7 +224,7 @@ class TestChaosEngineering(BoneTestCase):
         setattr(engine, "repro", None)
 
         # 3. Create a dummy physics state
-        dummy_physics = {"chi": 0.5, "mu": 0.1}
+        dummy_physics = PhysicsPacket(chi=0.5, mu=0.1)
 
         try:
             # 4. Trigger death. It should return a continuity packet, NOT raise an AttributeError.
