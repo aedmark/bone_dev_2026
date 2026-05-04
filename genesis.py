@@ -12,7 +12,7 @@ from typing import Dict, Any, Set
 from brain.akashic import TheAkashicRecord
 from presets import BoneConfig
 from core import EventBus, LoreManifest
-from struts import ux
+from struts import ux, ux_format
 from drivers import DriverRegistry, BoneConsultant
 from mechanics.inventory import GordonKnot
 from machine import BoneArchitect, TheConsolidator
@@ -45,12 +45,12 @@ class BoneGenesis:
         Returns:
             A dictionary containing the fully awakened, interlinked core systems.
         """
+        target_cfg = config.get("config") or BoneConfig
+
         # 1. The Nervous System
-        events = events_ref or EventBus()
+        events = events_ref or EventBus(config_ref=target_cfg)
         log_msg = ux("genesis_strings", "ignite_log") or "Igniting lattice..."
         events.log(f"{Prisma.CYN}{log_msg}{Prisma.RST}", "GENESIS")
-
-        target_cfg = config.get("config") or BoneConfig
 
         # 2. Permanent Memory (The Substrate)
         # We must load the Akashic record early so that subsequent systems can verify their history.
@@ -100,14 +100,15 @@ class BoneGenesis:
 
             # If the Oroboros detects legacy consequences, we physically alter the fresh embryo.
             if logs := oroboros.apply_legacy(dummy_phys, bio_proxy):
-                msg = ux("genesis_strings", "legacy_scars") or "The lattice remembers. Inherited scars: {logs}"
-                events.log(f"{Prisma.MAG}{msg.format(logs=', '.join(logs))}{Prisma.RST}", "OROBOROS")
+                msg = ux_format("genesis_strings", "legacy_scars", default="The lattice remembers. Inherited scars: {logs}", logs=', '.join(logs))
+                events.log(f"{Prisma.MAG}{msg}{Prisma.RST}", "OROBOROS")
 
                 # Direct, native application of inherited physics.
                 applied_drag = dummy_phys.get("narrative_drag", base_drag) - base_drag
                 if applied_drag:
                     current_drag = float(getattr(embryo.physics, "narrative_drag", base_drag))
-                    embryo.physics.narrative_drag = current_drag + float(applied_drag)
+                    # Prevent mathematical underflow if a boon reduces drag below zero
+                    embryo.physics.narrative_drag = max(0.0, current_drag + float(applied_drag))
 
                 # Penalize starting energy (Voltage) if the last session was exhausted.
                 volt_penalty = base_voltage - dummy_phys.get("voltage", base_voltage)

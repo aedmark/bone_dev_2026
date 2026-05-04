@@ -98,13 +98,22 @@ def _native_rewire(adj_dict: dict, n_swaps: int) -> dict:
 
     return adj
 
+
 def _native_freeze_graph(adj_dict: dict) -> tuple:
     """
     Immutability enforcer. Converts a mutable adjacency dictionary into a deeply nested,
     hashed tuple. Used to permanently freeze a snapshot of the graph when the system crashes (The Gödel Scar).
     """
-    # Safely cast to list to prevent RuntimeError if a rogue thread mutates the dict during a crash
-    safe_items = list(adj_dict.items())
+    # Safely cast to list. A retry loop is required because list(dict.items())
+    # will still throw a RuntimeError if a background thread mutates it during the cast.
+    safe_items = []
+    for _ in range(3):
+        try:
+            safe_items = list(adj_dict.items())
+            break
+        except RuntimeError:
+            continue
+
     return tuple(tuple(sorted(neighbors, key=str)) for _, neighbors in sorted(safe_items, key=lambda x: str(x[0])))
 
 def _safe_dict(obj):
@@ -445,8 +454,9 @@ class GeodesicOrchestrator:
                         self.eng.events.log(
                             f"{Prisma.CYN}[MNEMONIC] High Right-Brain Coherence (\u03a9r={lattice.shared.omega_r:.2f}). Semantic topology is rich. Lowering lateral ATP costs.{Prisma.RST}",
                             "SYS")
-            except Exception:
-                pass  # Silent fail for background heuristic
+            except Exception as e:
+                # Do not silently swallow exceptions. Log the decay to telemetry.
+                self.eng.events.log(f"Async WLS Heuristic Error: {e}", "DEBUG")
 
         # Only run the fractal checks if the cortex is active and capable.
         if cortex and hasattr(cortex, "get_local_mass_radius"):
@@ -470,11 +480,11 @@ class GeodesicOrchestrator:
         is_debt_recovery = (debt > 1.5 and atp_level >= 30.0)
 
         if (is_standard_rem or is_debt_recovery) and self._rem_lock.acquire(blocking=False):
-                    log_msg = "Automatic REM Bridge engaged: High Coherence Debt detected." if is_debt_recovery else "Automatic REM Bridge engaged: High ATP, High Silence."
-                    try:
-                        self._async_pool.submit(self._dispatch_rem_worker, log_msg)
-                    except RuntimeError:
-                        self._rem_lock.release()  # Failsafe: Release if thread creation is denied by host OS
+            log_msg = "Automatic REM Bridge engaged: High Coherence Debt detected." if is_debt_recovery else "Automatic REM Bridge engaged: High ATP, High Silence."
+            try:
+                self._async_pool.submit(self._dispatch_rem_worker, log_msg)
+            except RuntimeError:
+                self._rem_lock.release()  # Failsafe: Release if thread creation is denied by host OS
 
     def run_turn(self, user_message: str, is_system: bool = False) -> Dict[str, Any]:
         """

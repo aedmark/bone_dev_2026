@@ -10,28 +10,14 @@ import json
 import os
 from typing import Dict, Any, List
 
+from struts import ux
+
 class _ConfigNode:
     """
     A simple object wrapper that turns dictionary key-value pairs into object attributes.
     """
     def __repr__(self):
         return f"ConfigNode({vars(self)})"
-
-def ux(section: str, key: str, default: Any = "") -> Any:
-    """
-    The Textual Decoupler
-
-    Acts as a safe bridge to the LoreManifest, pulling narrative strings
-    dynamically. If the lore isn't loaded yet (e.g., during early boot), it fails safely
-    to the provided default.
-    """
-    try:
-        from core import LoreManifest
-        manifest = LoreManifest.get_instance()
-        data = manifest.get("ux_strings", section) if manifest else {}
-        return data.get(key, default) if isinstance(data, dict) else default
-    except (ImportError, AttributeError):
-        return default
 
 class BonePresets:
     """
@@ -147,7 +133,7 @@ class BoneConfig:
         "THE OBSERVER": {"VOID": 0.5, "ABSTRACT": 0.2},}
 
     TRAUMA_VECTOR = {"THERMAL": 0.0, "CRYO": 0.0, "SEPTIC": 0.0, "BARIC": 0.0}
-    VERSION = "19.8.2"
+    VERSION = "19.8.3"
     VERBOSE_LOGGING = True
 
     # Biological Maximums
@@ -259,10 +245,13 @@ class BoneConfig:
             elif isinstance(value, dict):
                 # E.g., "PHYSICS": {"VOLTAGE_MAX": 25.0}
                 updates.extend((key, k, v) for k, v in value.items())
+            else:
+                # Catch root-level/metadata flat keys (e.g., "tuning": "ZEN")
+                updates.append(("ROOT", key, value))
 
         # Apply the mutations
         for sector_name, param_name, val in updates:
-            target_sector = getattr(self, sector_name, None)
+            target_sector = self if sector_name == "ROOT" else getattr(self, sector_name, None)
             if target_sector and hasattr(target_sector, param_name):
                 old_val = getattr(target_sector, param_name)
                 setattr(target_sector, param_name, val)
@@ -285,8 +274,9 @@ class BoneConfig:
                   ("DRAG_FLOOR", "DRAG_HALT", 0.0, self.MAX_DRAG_LIMIT, "repair_drag_halt")]
 
         for floor, ceil, def_floor, def_ceil, ux_key in bounds:
-            f_val = getattr(self.PHYSICS, floor, def_floor)
-            c_val = getattr(self.PHYSICS, ceil, def_ceil)
+            # Explicit float cast prevents fatal TypeErrors or lexical string comparisons from dirty JSON
+            f_val = float(getattr(self.PHYSICS, floor, def_floor))
+            c_val = float(getattr(self.PHYSICS, ceil, def_ceil))
 
             # Anchor missing nodes so downstream systems don't crash
             setattr(self.PHYSICS, floor, f_val)

@@ -20,6 +20,7 @@ from constants import Prisma
 from core import EventBus, TelemetryService, LoreManifest, DecisionCrystal
 from mechanics.projector import beautify_thoughts
 from mechanics.tools import RandomRetrievalNavigator, LibraryGraph
+from mechanics.pragmatics import ThePragmatist
 from presets import BoneConfig, BonePresets
 from struts import safe_get, safe_set, ux
 
@@ -80,6 +81,7 @@ class TheCortex:
         self.symbiosis = services.symbiosis
         self.composer = PromptComposer(self.svc.lore, config_ref=self.cfg)
         self.validator = ResponseValidator(self.svc.lore, config_ref=self.cfg)
+        self.pragmatist = ThePragmatist(events_ref=self.events)
         from mechanics.tools import DSPyCritic
         self.dspy_critic = DSPyCritic(config_ref=self.cfg)
 
@@ -259,8 +261,19 @@ class TheCortex:
                     raw_resp, user_input)
             else:
                 final_text, inv_logs = raw_resp, []
+
+                # THE GRICEAN FILTER
+            stamina_val = float(safe_get(phys_state, "p", 100.0))
+            final_text, needs_rewrite = self.pragmatist.enforce_maxims(final_text, user_input, phys_state, stamina_val)
+
             is_faithful, judge_reason = True, ""
-            if self.dspy_critic.enabled:
+
+            if needs_rewrite:
+                is_faithful = False
+                judge_reason = "Maxim of Quantity violated. Your response was too long. Compress your output drastically."
+                if self.svc.bio:
+                    self.svc.bio.mito.adjust_atp(-3.0, "Gricean Rewrite Tax")
+            elif self.dspy_critic.enabled:
                 valid_mode = self.active_mode in ["ADVENTURE", "CONVERSATION"]
                 if valid_mode and not is_boot_sequence:
                     mem_core = getattr(self.svc.mind_memory, "memory_core", None)

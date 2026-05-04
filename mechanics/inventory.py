@@ -16,7 +16,7 @@ from typing import List, Dict, Tuple, Optional, Any
 
 from presets import BoneConfig
 from core import LoreManifest
-from struts import ux, safe_get, safe_set
+from struts import ux, ux_format, safe_get, safe_set
 from constants import Prisma
 
 @dataclass
@@ -115,9 +115,7 @@ class GordonKnot:
             if action in tokens and re.search(
                 rf"\b(?:i\s+(?:will\s+)?{action}|to\s+{action}|{action}\s+(?:the|a|an|my|some|it|this|that)|{action}ing)\b|^{action}\b", text,
             ):
-                if not any(
-                    obj.upper() in self.inventory or re.search(rf"\b{re.escape(obj)}\b", text) for obj in req_objs
-                ):
+                if not any(obj.upper() in self.inventory for obj in req_objs):
                     return f"{Prisma.SLATE}{(ux('gordon_strings', 'premise_req') or '').format(action=action, req_str=', '.join(req_objs))}{Prisma.RST}"
 
         # 3. Explicit Interaction Without Item Check
@@ -370,11 +368,10 @@ class GordonKnot:
 
         full_name = f"{prefix} {base} {suffix}"
         clean_id = full_name.upper().replace(" ", "_")
-        desc_template = ux("gordon_strings", "synthesis_desc") or "A {base} forged of {archetype} energy."
         clamped_value = min(100.0, round(physics_vector.get(dom_dim, 0.0) * 10, 1))
 
         item_data = {
-            "description": desc_template.format(base=base.lower(), archetype=archetype),
+            "description": ux_format("gordon_strings", "synthesis_desc", default="A {base} forged of {archetype} energy.", base=base.lower(), archetype=archetype),
             "function": "ARTIFACT",
             "passive_traits": ["DYNAMIC"],
             "value": clamped_value,

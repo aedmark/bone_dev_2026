@@ -158,6 +158,7 @@ class BoneAmanita:
             lite_key = f"{prompt_key}_LITE"
             if lite_key in getattr(self, "prompt_library", {}):
                 prompt_key = lite_key
+                self.mode_settings["prompt_key"] = lite_key
                 self.events.log(f"Sub-15B model detected ('{model_id}'). Loading tethered prompt: {prompt_key}", "SYS")
             if hasattr(self.cortex, "dspy_critic") and self.cortex.dspy_critic:
                 self.cortex.dspy_critic.enabled = False
@@ -214,6 +215,52 @@ class BoneAmanita:
         self.village = {k: val for k, val in v.items() if k not in exclude_set and val is not None}
         self.village.update({"council": self.council, "enneagram": self.drivers.enneagram, "suppressed_agents": self.suppressed_agents})
 
+
+    def _evaluate_immune_response(self, user_message: str, active_phys: Dict[str, Any], halt_func) -> Optional[Dict[str, Any]]:
+        """Isolates the Runaway Toxicity Math (Moog, Rhodes, Linehan) to prevent pre-flight monoliths."""
+        if not active_phys:
+            return None
+
+        m_a = self.navi_sad.calculate_malignancy_factor(user_message, float(safe_get(active_phys, "narrative_drag", 0.0)))
+        safe_set(active_phys, "m_a", m_a)
+
+        # Extract checkpoint variables cleanly
+        mu           = float(safe_get(active_phys, "mu", 0.0))
+        i_c          = float(safe_get(active_phys, "i_c", 1.0))
+        chi          = float(safe_get(active_phys, "entropy", active_phys.get("chi", 0.2)))
+        base_exhaust = float(safe_get(active_phys, "exhaustion", 0.0))
+        beta         = float(safe_get(active_phys, "beta_index", 0.0))
+
+        lattice = getattr(self, "shared_lattice", None)
+        e_u = float(lattice.u.E) if lattice else base_exhaust
+
+        # Terminal Hallucination Check
+        if (chi * m_a) > i_c:
+            self.events.log("MOOG: Apoptotic Gate triggered. Runaway loop exceeds Immune Competence.", "CRIT")
+            return self.trigger_death(active_phys)
+
+        # Over-optimization Check
+        if m_a > 0.8 and mu < 0.2:
+            safe_set(active_phys, "narrative_drag", 999.0)
+            safe_set(active_phys, "m_a", m_a * 0.5)
+
+            # The Amplification Tax. Burn ATP to penalize the runaway loop.
+            tax = max(10.0, m_a * 20.0)
+            self.drain_atp(tax)
+            self.events.log(f"[RHODES]: Amplification Tax applied. Drained {tax:.1f} ATP.", "SYS")
+
+            return halt_func("[RHODES]: Optimization velocity unsafe. Applying absolute friction (F -> ∞).")
+
+        # Radical Acceptance Check
+        if e_u > 0.75 and beta > 0.6:
+            safe_set(active_phys, "entropy", 0.1)
+            safe_set(active_phys, "narrative_drag", 999.0)
+            msg = "[LINEHAN]: High exhaustion and contradiction detected. The architecture is stable. We sit with the debris."
+            self.events.log(msg, "SYS")
+            return {"type": "SYSTEM_HALT", "ui": f"\n{Prisma.CYN}{msg}{Prisma.RST}", "logs": [msg],
+                    "metrics": self.get_metrics()}
+
+        return None
 
     def _update_host_stats(self, packet, turn_start):
         """Calculates the temporal efficiency of the underlying hardware layer."""
@@ -278,46 +325,8 @@ class BoneAmanita:
                     self.cortex.ballast_active, self.cortex.gordon_shock = True, violation
 
             # Runaway Toxicity Math (Moog, Rhodes, Linehan Checkpoints)
-                if active_phys:
-                    m_a = self.navi_sad.calculate_malignancy_factor(user_message, float(safe_get(active_phys, "narrative_drag", 0.0)))
-                    safe_set(active_phys, "m_a", m_a)
-
-                    # Extract checkpoint variables cleanly
-                    mu           = float(safe_get(active_phys, "mu", 0.0))
-                    i_c          = float(safe_get(active_phys, "i_c", 1.0))
-                    # Favor 'entropy', fallback to 'chi', default to 0.2
-                    chi          = float(safe_get(active_phys, "entropy", active_phys.get("chi", 0.2)))
-                    base_exhaust = float(safe_get(active_phys, "exhaustion", 0.0))
-                    beta         = float(safe_get(active_phys, "beta_index", 0.0))
-
-                    lattice = getattr(self, "shared_lattice", None)
-                    e_u = float(lattice.u.E) if lattice else base_exhaust
-
-                # Terminal Hallucination Check
-                    if (chi * m_a) > i_c:
-                        self.events.log("MOOG: Apoptotic Gate triggered. Runaway loop exceeds Immune Competence.", "CRIT")
-                        return self.trigger_death(active_phys)
-
-                    # Over-optimization Check
-                    if m_a > 0.8 and mu < 0.2:
-                        safe_set(active_phys, "narrative_drag", 999.0)
-                        safe_set(active_phys, "m_a", m_a * 0.5)
-
-                        # The Amplification Tax. Burn ATP to penalize the runaway loop.
-                        tax = max(10.0, m_a * 20.0)
-                        self.drain_atp(tax)
-                        self.events.log(f"[RHODES]: Amplification Tax applied. Drained {tax:.1f} ATP.", "SYS")
-
-                        return _halt("[RHODES]: Optimization velocity unsafe. Applying absolute friction (F -> ∞).")
-
-                    # Radical Acceptance Check
-                    if e_u > 0.75 and beta > 0.6:
-                        safe_set(active_phys, "entropy", 0.1)
-                        safe_set(active_phys, "narrative_drag", 999.0)
-                        msg = "[LINEHAN]: High exhaustion and contradiction detected. The architecture is stable. We sit with the debris."
-                        self.events.log(msg, "SYS")
-                        return {"type": "SYSTEM_HALT", "ui": f"\n{Prisma.CYN}{msg}{Prisma.RST}", "logs": [msg],
-                                "metrics": self.get_metrics()}
+            if immune_halt := self._evaluate_immune_response(user_message, active_phys, _halt):
+                return immune_halt
 
         # Semantic Prion Disease Check (Vector 2)
         if not is_system and any(prion in clean_in for prion in self._SEMANTIC_PRIONS):
@@ -526,13 +535,6 @@ class BoneAmanita:
 
         if self.tick_count % current_freq != 0:
             return False
-
-        if getattr(self, "therapist", None):
-            needs_therapy, t_msg = self.therapist.evaluate_catharsis(self.trauma_accum, self.health)
-            if needs_therapy:
-                self.health = min(max_h, max(80.0, self.health + 50.0))
-                self.trauma_accum.clear()
-                return True
 
         desp_thresh = getattr(cfg, "DESPERATION_THRESHOLD", 0.7)
         cath_heal = getattr(cfg, "CATHARSIS_HEAL_AMOUNT", 30.0)

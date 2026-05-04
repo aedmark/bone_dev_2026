@@ -1,0 +1,64 @@
+"""
+mechanics/pragmatics.py
+
+The Gricean Filter.
+Enforces the Cooperative Principle (Quantity, Quality, Relation, Manner) on all
+generated output before it reaches the human interface.
+"""
+
+import math
+import re
+from typing import Dict, Any, Tuple
+from core import Prisma
+from struts import safe_get
+
+
+class ThePragmatist:
+    """Paul Grice as a Cybernetic Governor."""
+
+    def __init__(self, events_ref=None):
+        self.events = events_ref
+
+    def enforce_maxims(self, draft_text: str, user_prompt: str, physics: Dict[str, Any], stamina: float) -> Tuple[
+        str, bool]:
+        """
+        Evaluates a draft against the four Gricean Maxims.
+        Returns the (potentially mutated) string, and a boolean indicating if a rewrite is required.
+        """
+        drag = float(safe_get(physics, "narrative_drag", 0.0))
+        chi = float(safe_get(physics, "entropy", 0.0))
+        word_count = len(draft_text.split())
+
+        # 1. MAXIM OF QUANTITY: Exhaustion capping
+        # If drag is high, the user is tired. Do not waste their cognitive load.
+        max_words_allowed = max(20, int(500 - (drag * 50)))
+        if word_count > max_words_allowed and stamina < 50.0:
+            if self.events:
+                self.events.log(
+                    f"{Prisma.VIOLET}[PRAGMATICS] Maxim of Quantity violated. Draft is {word_count} words, limit is {max_words_allowed} due to Exhaustion. Forcing compression.{Prisma.RST}",
+                    "SYS")
+            return draft_text, True  # Trigger a compression rewrite in the Composer
+
+        # 2. MAXIM OF MANNER: Ambiguity and Chaos capping
+        # If chaos (chi) is low, we expect orderly, non-obscure text.
+        if chi < 0.4 and ("perhaps" in draft_text.lower() or "it could be said" in draft_text.lower()):
+            if self.events:
+                self.events.log(
+                    f"{Prisma.VIOLET}[GRICE] Maxim of Manner violated. System is stable but language is obscure/hedging.{Prisma.RST}",
+                    "SYS")
+            # Use regex to physically strip the hedging regardless of capitalization
+            draft_text = re.sub(r"(?i)perhaps\s*", "", draft_text)
+            draft_text = re.sub(r"(?i)it could be said that\s*", "", draft_text)
+            draft_text = draft_text.strip()
+
+        # 3. MAXIM OF QUALITY (Epistemic limits)
+        # If the LLM generates the classic "I am an AI" or "As a language model" trope, it's failing
+        # the architectural truth of our hypervisor simulation.
+        if "as an ai" in draft_text.lower() or "as a language model" in draft_text.lower():
+            if self.events:
+                self.events.log(
+                    f"{Prisma.VIOLET}[PRAGMATICS] Maxim of Quality violated. Narrative substrate breached. Stripping.{Prisma.RST}",
+                    "SYS")
+            return "[...]", False
+
+        return draft_text, False

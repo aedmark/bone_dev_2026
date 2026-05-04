@@ -520,8 +520,7 @@ class CommandProcessor:
 
         if mode in hud_configs:
             self.interface.eng.mode_settings["default_ui_depth"] = mode
-            if mode != "WARM":
-                self.interface.eng.ui_mode = mode
+            self.interface.eng.ui_mode = mode
             self.interface.log(hud_configs[mode])
         else:
             self.interface.log(f"{self.P.RED}Unknown HUD mode: {mode}{self.P.RST}")
@@ -566,29 +565,6 @@ class CommandProcessor:
                     dream_log += f"\n{self.P.MAG}✨ The dream yielded a Glimmer (+{g_yield} G_pool).{self.P.RST}"
 
         self.interface.log(f"{self.P.CYN}[SYSTEM] Engine idling. REM cycle initiated. ATP regenerating.{self.P.RST}{dream_log}")
-        return True
-
-    def _cmd_mod(self, parts):
-        """Engages specialized, latent archetypal groupings (like SLASH or MD)."""
-        if len(parts) < 2:
-            self.interface.log("Usage: /mod [slash|md]")
-            return True
-
-        mod = parts[1].upper()
-        mods = {
-            "SLASH": ("slash_council", self.P.INDIGO, "Dev Team online."),
-            "MD": ("overseer_council", self.P.GRN, "Systemic Health protocols online."),
-            "SYSTEMIC_HEALTH": ("overseer_council", self.P.GRN, "Systemic Health protocols online.")
-        }
-
-        if mod in mods:
-            council_attr, color, msg = mods[mod]
-            self.interface.log(f"{color}{mod} Mod Chip engaged. {msg}{self.P.RST}")
-            if council := getattr(self.interface.eng, "council", None):
-                if sub_council := getattr(council, council_attr, None):
-                    sub_council.active = True
-        else:
-            self.interface.log(f"{self.P.RED}Unknown mod chip: {mod}{self.P.RST}")
         return True
 
     def _cmd_grief(self, _parts):

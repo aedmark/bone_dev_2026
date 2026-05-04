@@ -1,6 +1,42 @@
 # CHANGELOG.md
 -----------------------------------------------------------
 
+
+### **BONEAMANITA 19.8.3 "The Gricean Membrane"**
+
+#### **🏛️ SYNERGETIC ARCHITECTURE (Fuller's Pass: Structure & Tensegrity)**
+
+- **The Gricean Membrane (`mechanics/pragmatics.py`, `brain/cortex.py`):** Forged Paul Grice's Cooperative Principle (Quantity, Quality, Relation, Manner) into the executive layer. The system now physically intercepts sycophantic tropes, truncates bloated output when the user is exhausted (charging ATP for rewrites), and strips ambiguous hedging based on chaotic tension.
+- **The Structural Eclipse (`main.py`):** Rescued the Moog, Rhodes, and Linehan Checkpoint Council from Gordon's shadow. The Runaway Toxicity Math is now properly un-indented and physically decoupled from the Object-Action module, ensuring terminal hallucinations are caught even if Gordon is disabled.
+- **The Substrate Breach (`mechanics/tools.py`):** Blocked a critical path traversal vulnerability (`../../`) in `TheSubstrate`. Enforced absolute directory boundaries, preventing the LLM from overwriting foundational system configurations via hallucinatory output.
+- **The Division Trap (`mechanics/projector.py`):** Clamped the `DIGNITY_BAR_RATIO` denominator to a minimum of 1, preventing a lethal `ZeroDivisionError` terminal crash if a developer introduces dirty JSON.
+- **Configuration Desync (`genesis.py`):** Fixed the boot sequence order of operations. The `EventBus` now reliably loads the correct `target_cfg` rather than hallucinating the default fallback mode.
+
+#### **🧠 LANGUAGE & COGNITION (Pinker's Pass: Syntax & Ergonomics)**
+
+- **The Exception Mask (`mechanics/terminal.py`):** Added strict string fallbacks to the teardown sequence. A missing localization string will no longer throw a `NoneType` AttributeError that masks the true stack trace of a fatal engine crash.
+- **Syntactical Fragility (`mechanics/inventory.py`, `genesis.py`):** Purged unsafe `.format()` calls and replaced them with `ux_format()` to ensure the system gracefully degrades instead of throwing apocalyptic stack traces on missing JSON brackets.
+- **The Redundant Decoupler (`presets.py`):** Eliminated the DRY violation of the shadow `ux()` function, routing all localization safely through `struts.py`.
+- **Cyclic Hallucinations (`mechanics/tools.py`):** Added cyclic loop detection to `RandomRetrievalNavigator._get_lineage`. If the LLM hallucinates a circular memory graph, the topological walker breaks the loop instead of freezing the engine forever.
+- **The Hedging Excision (`mechanics/pragmatics.py`):** Replaced exact string replacements with case-insensitive RegEx `(?i)` to ensure Grice successfully captures and destroys cowardly language regardless of capitalization.
+
+#### **⚖️ DYNAMIC EQUILIBRIUM (Meadows' Pass: Systems & Dynamics)**
+
+- **The Starvation Black Hole (`mechanics/tools.py`):** Addressed an unbounded memory leak in file I/O. If `TheSubstrate` fails to write a file due to ATP exhaustion, it now correctly increments the retry counter and eventually drops the file, preventing terminal spam and memory bloat.
+- **The Oroboros Underflow (`genesis.py`):** Enforced a hard mathematical floor of `0.0` on `narrative_drag`. Massive inherited boons from previous lives can no longer plunge drag into negative numbers and break downstream immune logic.
+- **Data Loss Void (`presets.py`):** Added an `else` block to `load_preset` to successfully capture and route flat root-keys (like `"tuning": "ZEN"`). The engine now respects metadata during epigenetic loading.
+- **Memory Leak in Health Logs (`core.py`):** Converted `SystemHealth.errors` from an unbounded `List` to a bounded `deque(maxlen=50)` to prevent the engine from collapsing under the weight of recurring background thread snags.
+- **Ghost Listeners (`core.py`):** Added an `unsubscribe` method to the `EventBus` to give temporary architectural listeners a vital outflow valve.
+
+#### **🛠️ FUNCTIONAL PRAGMATISM (Schur's Pass: Humanity & Logic)**
+
+- **The Monolith Sliced (`main.py`):** Excised the dense immune math from `_pre_flight_checks` and isolated it into `_evaluate_immune_response`, restoring top-down human readability to the pre-flight checklist.
+- **The Hallucination Bypass (`mechanics/inventory.py`):** Closed a massive logical loophole in Gordon's wall. Users can no longer bypass locked doors by simply mentioning an item's name (`re.search`); Gordon now enforces absolute physical possession.
+- **UI Desync Trap (`mechanics/commands.py`):** Fixed the `/hud` command logic. Warm and Deep UI modes now correctly synchronize the `default_ui_depth` configuration with the active session `ui_mode`.
+- **The Blind Crash (`mechanics/reporter.py`):** Handled the aggressive traceback swallowing in `render_snapshot`. Explicitly imported `traceback.format_exc()` to expose HUD errors to developers instead of printing useless 'NoneType' mysteries.
+- **The False-Safe (`cycle.py`):** Replaced the brittle `list(dict.items())` concurrency protection in `_native_freeze_graph` with a robust multi-attempt retry loop to survive violent background thread mutations.
+
+
 ### **BONEAMANITA 19.8.2 "The S.L.A.S.H. Audit"**
 
 #### **🏛️ SYNERGETIC ARCHITECTURE (Fuller's Pass: Structure & Tensegrity)**

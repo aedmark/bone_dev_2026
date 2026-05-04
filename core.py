@@ -160,6 +160,11 @@ class EventBus:
         if callback not in subs:
             subs.append(callback)
 
+    def unsubscribe(self, event_type, callback):
+        """Prevents memory leaks from ghost listeners."""
+        if event_type in self.subscribers and callback in self.subscribers[event_type]:
+            self.subscribers[event_type].remove(callback)
+
     def publish(self, event_type, data=None):
         if event_type not in self.subscribers: return
 
@@ -207,12 +212,9 @@ class EventBus:
         return list(self.buffer)[-count:]
 
 # THE HIPPOCAMPUS
-
 class LoreManifest:
     """
-    The lazy-loaded, singleton data cache.
-    We only load files from the disk when requested, preserving O(1)
-    memory footprint during idle states.
+    The lazy-loaded, singleton data cache. We only load files from the disk when requested.
     """
     _instance = None
 
@@ -360,7 +362,8 @@ class SystemHealth:
     bio_online: bool = True
     mind_online: bool = True
     cortex_online: bool = True
-    errors: List[ErrorLog] = field(default_factory=list)
+    # Bounded queue prevents infinite memory bloat from recurring systemic failures
+    errors: deque = field(default_factory=lambda: deque(maxlen=50))
     warnings: List[str] = field(default_factory=list)
     hints: List[str] = field(default_factory=list)
     observer: Optional["TheObserver"] = None
@@ -466,9 +469,10 @@ class ArchetypeArbiter:
         if any(m.get("type") == "FORCE_MODE" for m in mandates):
             return "THE MACHINE", "COUNCIL", ux("core_strings", "arb_bureaucratic")
 
-    # Hybrid states and Gestalt resonance mappings
+            # Hybrid states and Gestalt resonance mappings
         if soul_archetype and "/" in soul_archetype:
-            msg = ux_format("core_strings", "arb_diamond", soul_archetype=soul_archetype, default=f"Gestalt Resonance: {soul_archetype}")
+            msg = ux_format("core_strings", "arb_diamond", soul_archetype=soul_archetype,
+                            default=f"Gestalt Resonance: {soul_archetype}")
             return soul_archetype, "SOUL", msg
         if trigram:
             meta_resonance = LoreManifest.get_instance().get("NARRATIVE_DATA", "_META_RESONANCE_") or []
@@ -521,7 +525,12 @@ class TelemetryService:
     def record_event(self, event_dict: dict):
         if self.disabled or not self.current_trace_file:
             return
-        self._buffer_line(json.dumps(event_dict, cls=BoneJSONEncoder))
+        try:
+            serialized = json.dumps(event_dict, cls=BoneJSONEncoder)
+            self._buffer_line(serialized)
+        except (TypeError, ValueError) as e:
+            # Prevent Apoptotic pruning by the EventBus if an object fails to serialize
+            print(f"{Prisma.YEL}[TELEMETRY] Dropped un-serializable event: {e}{Prisma.RST}")
 
     @classmethod
     def get_instance(cls, config_ref=None):

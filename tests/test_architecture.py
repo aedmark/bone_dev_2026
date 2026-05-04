@@ -30,6 +30,63 @@ class ArchitectureTests(BoneTestCase):
         self.assertEqual(yield_obj, yield_dict, "[FAIL] Metabolic yield differs based on data type!")
         print("  [SUCCESS] System metabolizes objects and dictionaries equally.")
 
+    def test_arch_small_model_scaffolding(self):
+        """The Schur Test: Ensures the engine lowers cognitive complexity for sub-15B models."""
+        print("\n--- ARCH 8: Lightweight Model Scaffolding ---")
+        from main import BoneAmanita
+        from unittest.mock import MagicMock
+
+        # Boot an engine specifically configured with an 8b model
+        config = {
+            "model": "llama3-8b-instruct",
+            "boot_mode": "CREATIVE",
+            "provider": "mock"
+        }
+
+        test_engine = BoneAmanita(config)
+        test_engine._load_system_prompts = MagicMock()  # Skip disk I/O
+        test_engine.prompt_library = {"CREATIVE_LITE": "Lightweight Prompt Data"}
+
+        # Force the mode application
+        test_engine._apply_boot_mode()
+
+        # Check if the DSPy critic was successfully disabled
+        if hasattr(test_engine.cortex, "dspy_critic"):
+            self.assertFalse(test_engine.cortex.dspy_critic.enabled,
+                             "[FAIL] Engine failed to disable the DSPy Affective Critic for an 8B model!")
+
+        # Verify the prompt key fallback logic worked
+        expected_key = test_engine.mode_settings.get("prompt_key")
+        self.assertEqual(expected_key, "CREATIVE_LITE",
+                         "[FAIL] Engine failed to append the _LITE suffix for the small model prompt!")
+
+        print("  [SUCCESS] System automatically degraded cognitive load for the small model.")
+
+    def test_arch_eventbus_ghost_prevention(self):
+        """The Meadows Test: Ensures temporary EventBus listeners can cleanly detach."""
+        print("\n--- ARCH 7: EventBus Outflow (Memory Leak Check) ---")
+
+        # A dummy callback tracker
+        execution_count = {"hits": 0}
+
+        def dummy_listener(data):
+            execution_count["hits"] += 1
+
+        # Subscribe and test
+        self.engine.events.subscribe("TEMP_EVENT", dummy_listener)
+        self.engine.events.publish("TEMP_EVENT", {"data": "test"})
+        self.assertEqual(execution_count["hits"], 1, "[FAIL] Listener failed to attach.")
+
+        # Unsubscribe and test ghost execution
+        self.engine.events.unsubscribe("TEMP_EVENT", dummy_listener)
+        self.engine.events.publish("TEMP_EVENT", {"data": "ghost"})
+
+        # The count MUST remain 1. If it hits 2, the unsubscribe failed.
+        self.assertEqual(execution_count["hits"], 1,
+                         "[FAIL] Ghost listener detected! Unsubscribe failed to detach the callback.")
+        print("  [SUCCESS] EventBus cleanly severed the connection. No memory leaks detected.")
+
+
     def test_arch_unqualified_imports(self):
         """The Pinker Test: Scans the AST to physically block unqualified local imports (e.g., 'from tools')."""
         print("\n--- ARCH 2: Syntactic Import Scanner ---")

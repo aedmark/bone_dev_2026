@@ -132,7 +132,7 @@
     "driver_prefix": "DRIVER:",
     "muse_prefix": "MUSE:",
     "default_muse": "Void",
-    "pet_icon": "🐕",
+    "pet_icon": ":(",
     "obsession_strip": "--- Obsession: {obs} ---"
   },
   "cycle_reporter": {

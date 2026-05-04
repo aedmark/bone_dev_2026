@@ -25,6 +25,39 @@ class PresetsBoundaryTests(BoneTestCase):
 
         print("  [SUCCESS] Engine successfully rested at absolute zero.")
 
+    def test_oroboros_negative_drag_clamp(self):
+        """
+        The Linehan Test: Ensures a massive legacy boon applied during Genesis
+        does not cause Narrative Drag to underflow below 0.0.
+        """
+        print("\n--- PRESETS 4: Oroboros Drag Underflow Clamping ---")
+        from genesis import BoneGenesis
+        from unittest.mock import patch, MagicMock
+
+        # We mock Oroboros to return a massive drag REDUCTION (a boon of -5.0 drag)
+        with patch('soul.TheOroboros.apply_legacy') as mock_oroboros:
+            # Modify the dummy physics object passed to it in genesis.py
+            def side_effect(dummy_phys, bio_proxy):
+                dummy_phys["narrative_drag"] = -5.0
+                return ["Massive Boon"]
+
+            mock_oroboros.side_effect = side_effect
+
+            config_dict = {"config": self.engine.config}
+
+            # Ignite the engine
+            anatomy = BoneGenesis.ignite(config_dict, lexicon_ref=MagicMock(), events_ref=MagicMock())
+
+            # Check the awakened embryo's physics
+            final_drag = getattr(anatomy["embryo"].physics, "narrative_drag", 99.0)
+
+            self.assertGreaterEqual(final_drag, 0.0,
+                                    f"[FAIL] Oroboros boon caused a mathematical underflow! Drag: {final_drag}")
+            self.assertEqual(final_drag, 0.0,
+                             "[FAIL] Drag did not clamp exactly to the 0.0 floor.")
+
+        print("  [SUCCESS] Genesis smoothly clamped the legacy boon at absolute zero.")
+
     def test_missing_json_keys(self):
         """
         The Schur Test: Simulates a developer deleting a load-bearing key like DRAG_HALT

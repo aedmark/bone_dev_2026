@@ -180,6 +180,38 @@ class TestChaosEngineering(BoneTestCase):
         except Exception as e:
             self.fail(f"[CRITICAL] Engine crashed unexpectedly when a village member was suppressed: {e}")
 
+    def test_vector_7_telemetry_serialization_survival(self):
+        """
+        THE APOPTOTIC BYPASS: The Telemetry service must gracefully handle
+        un-serializable objects without crashing the EventBus or getting amputated.
+        """
+        from core import TelemetryService
+        import threading
+
+        # Ensure telemetry is active
+        telemetry = TelemetryService.get_instance()
+        telemetry.disabled = False
+        telemetry.current_trace_file = "dummy.jsonl"
+
+        # Verify Telemetry is subscribed to the event bus
+        self.engine.events.subscribe("DIRTY_TEST", telemetry.record_event)
+        initial_subs = len(self.engine.events.subscribers.get("DIRTY_TEST", []))
+
+        # Create a fundamentally un-serializable object (a thread lock)
+        toxic_object = {"safe_string": "hello", "fatal_lock": threading.Lock()}
+
+        try:
+            # Publish the toxic object. If the patch failed, this will crash json.dumps,
+            # bubble up, and the EventBus will permanently delete the Telemetry subscriber.
+            self.engine.events.publish("DIRTY_TEST", toxic_object)
+        except Exception as e:
+            self.fail(f"[CRITICAL] EventBus crashed when handling dirty telemetry data: {e}")
+
+        # Assert the Telemetry service was NOT amputated by the EventBus
+        final_subs = len(self.engine.events.subscribers.get("DIRTY_TEST", []))
+        self.assertEqual(initial_subs, final_subs,
+                         "[FAIL] Telemetry was amputated by the EventBus due to a serialization error!")
+
     def test_paradox_engine_starvation_halt(self):
         """
         THE MEADOWS TEST: The Paradox Engine must physically refuse to ignite
