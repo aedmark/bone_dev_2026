@@ -114,7 +114,7 @@ def _native_freeze_graph(adj_dict: dict) -> tuple:
         except RuntimeError:
             continue
 
-    return tuple(tuple(sorted(neighbors, key=str)) for _, neighbors in sorted(safe_items, key=lambda x: str(x[0])))
+    return tuple((k, tuple(sorted(neighbors, key=str))) for k, neighbors in sorted(safe_items, key=lambda x: str(x[0])))
 
 def _safe_dict(obj):
     """Schur's Pragmatism: Don't crash the UI just because an object forgot to implement to_dict()."""
@@ -128,14 +128,14 @@ class PhaseExecutor:
     The Assembly Line.
     Takes a CycleContext and runs it sequentially through the active pipeline of Reality Phases.
     """
+
     def execute_phases(self, simulator, ctx):
         # Background system events run a truncated pipeline to save ATP.
-        active_pipeline = (simulator.system_pipeline if getattr(
-            ctx, "is_system_event", False) else simulator.full_pipeline)
+        active_pipeline = simulator.system_pipeline if ctx.is_system_event else simulator.full_pipeline
 
         for phase in active_pipeline:
             # If a phase triggers a hard refusal (e.g., Gatekeeper catches a toxic prompt), abort the line.
-            if getattr(ctx, "refusal_triggered", False):
+            if ctx.refusal_triggered:
                 break
 
             # If the specific biological subsystem is dead, skip its phase to prevent a crash loop.
@@ -355,8 +355,9 @@ class GeodesicOrchestrator:
 
             # Anchor to the external multiplex (if applicable)
             lattice = getattr(self.eng, "shared_lattice", None)
-            ctx.user_state = getattr(lattice, "u", None) if lattice else None
-            ctx.shared_dyn = getattr(lattice, "shared", None) if lattice else None
+            if lattice:
+                ctx.user_state = getattr(lattice, "u", None)
+                ctx.shared_dyn = getattr(lattice, "shared", None)
 
             target_cfg = getattr(self.eng, "config", BoneConfig)
             ctx.limits = _safe_dict(getattr(target_cfg, "CYCLE", {}))
@@ -422,7 +423,7 @@ class GeodesicOrchestrator:
                 return self._generate_crash_report(ctx.crash_error)
             return self.eng.trigger_death(ctx.physics)
 
-        if getattr(ctx, "refusal_triggered", False) and getattr(ctx, "refusal_packet", None):
+        if ctx.refusal_triggered and ctx.refusal_packet:
             return ctx.refusal_packet
 
         return None
@@ -574,7 +575,7 @@ class GeodesicOrchestrator:
     def _generate_crash_report(e: Exception) -> Dict[str, Any]:
         """The absolute final safety net to ensure the UI layer never receives a NoneType on crash."""
         if e is not None:
-            full_trace = "".join(traceback.format_exception(type(e), e, e.__traceback__))
+            full_trace = "".join(traceback.format_exception(e))
         else:
             full_trace = "Biological execution halted. No standard Python exception provided."
         safe_phys = PanicRoom.get_safe_physics()

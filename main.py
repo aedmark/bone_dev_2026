@@ -136,8 +136,8 @@ class BoneAmanita:
             self.health = mem.session_health
             self.stamina = mem.session_stamina
             self.trauma_accum = getattr(mem, "session_trauma_vector", {}) or {}
-        if self.tick_count == 0 and hasattr(self.bio, "mito"):
-            self.bio.mito.state.atp_pool = self.config.BIO.STARTING_ATP
+        if self.tick_count == 0:
+            self.set_atp(getattr(self.config.BIO, "STARTING_ATP", 100.0))
 
     def _apply_boot_mode(self):
         msg = ux("main_strings", "engaging_mode")
@@ -156,7 +156,7 @@ class BoneAmanita:
         model_id = self.sys_config.get("model", "").lower()
         if any(ind in model_id for ind in self._SMALL_MODEL_INDICATORS):
             lite_key = f"{prompt_key}_LITE"
-            if lite_key in getattr(self, "prompt_library", {}):
+            if lite_key in self.prompt_library:
                 prompt_key = lite_key
                 self.mode_settings["prompt_key"] = lite_key
                 self.events.log(f"Sub-15B model detected ('{model_id}'). Loading tethered prompt: {prompt_key}", "SYS")
@@ -182,12 +182,17 @@ class BoneAmanita:
     def drain_atp(self, amount: float):
         """Metabolic Encapsulation: Safely drains ATP without polluting the calling logic with hasattr checks."""
         if getattr(self, "bio", None) and hasattr(self.bio, "mito"):
-            self.bio.mito.state.atp_pool = max(0.0, self.bio.mito.state.atp_pool - amount)
+            self.set_atp(self.bio.mito.state.atp_pool - amount)
 
     def restore_atp(self, amount: float):
         if getattr(self, "bio", None) and hasattr(self.bio, "mito"):
+            self.set_atp(self.bio.mito.state.atp_pool + amount)
+
+    def set_atp(self, amount: float):
+        """Metabolic Encapsulation: Explicitly sets the ATP pool."""
+        if getattr(self, "bio", None) and hasattr(self.bio, "mito"):
             max_atp = getattr(self.config, "MAX_ATP", 100.0)
-            self.bio.mito.state.atp_pool = min(max_atp, self.bio.mito.state.atp_pool + amount)
+            self.bio.mito.state.atp_pool = max(0.0, min(max_atp, float(amount)))
 
     def get_avg_voltage(self):
         hist = getattr(getattr(self.phys, "observer", self.phys), "voltage_history", [])
@@ -225,14 +230,14 @@ class BoneAmanita:
         safe_set(active_phys, "m_a", m_a)
 
         # Extract checkpoint variables cleanly
-        mu           = float(safe_get(active_phys, "mu", 0.0))
-        i_c          = float(safe_get(active_phys, "i_c", 1.0))
-        chi          = float(safe_get(active_phys, "entropy", active_phys.get("chi", 0.2)))
+        mu = float(safe_get(active_phys, "mu", 0.0))
+        i_c = float(safe_get(active_phys, "i_c", 1.0))
+        chi = float(safe_get(active_phys, "entropy", safe_get(active_phys, "chi", 0.2)))
         base_exhaust = float(safe_get(active_phys, "exhaustion", 0.0))
-        beta         = float(safe_get(active_phys, "beta_index", 0.0))
+        beta = float(safe_get(active_phys, "beta_index", 0.0))
 
         lattice = getattr(self, "shared_lattice", None)
-        e_u = float(lattice.u.E) if lattice else base_exhaust
+        e_u = float(getattr(lattice.u, "E", base_exhaust)) if getattr(lattice, "u", None) else base_exhaust
 
         # Terminal Hallucination Check
         if (chi * m_a) > i_c:
@@ -403,7 +408,7 @@ class BoneAmanita:
             return {
                 "ui": f"{Prisma.RED}CRITICAL CORTEX FAILURE: {str(e)}{Prisma.RST}",
                 "logs": ["CRITICAL FAILURE"],
-                "metrics": self.get_metrics() if hasattr(self, "get_metrics") else {},
+                "metrics": self.get_metrics(),
                 "type": "CRASH"
             }
 
@@ -449,11 +454,11 @@ class BoneAmanita:
             safe_set(active_phys, "narrative_drag", 0.0)
 
         self.stamina = getattr(self.config, "MAX_STAMINA", 100.0)
-        if hasattr(self.bio, "mito"):
-            self.bio.mito.state.atp_pool = getattr(self.config, "MAX_ATP", 100.0)
+        self.set_atp(getattr(self.config, "MAX_ATP", 100.0))
+        if getattr(self, "bio", None) and hasattr(self.bio, "mito"):
             self.bio.mito.state.ros_buildup = 0.0
 
-        msg = "[ZEN FLUSH] Context severed. Narrative Drag (F) dropped to 0. Stamina restored. The mind is clear."
+        msg = "Context severed. Friction Dropped. Stamina restored. The mind is clear."
         self.events.log(msg, "SYS")
         return {"type": "COMMAND", "ui": f"\n{Prisma.CYN}{msg}{Prisma.RST}", "logs": [msg],
                 "metrics": self.get_metrics()}
@@ -489,11 +494,11 @@ class BoneAmanita:
 
             last_out = self.cortex.dialogue_buffer[-1] if getattr(self.cortex, "dialogue_buffer", None) else "Silence."
 
-        gordon_inv = getattr(self.gordon, "inventory", []) if getattr(self, "gordon", False) else []
+        gordon_inv = getattr(getattr(self, "gordon", None), "inventory", [])
         continuity_packet = {"location": loc, "last_output": last_out, "inventory": gordon_inv}
 
         try:
-            mutations_data = self.repro.attempt_reproduction(self, "MITOSIS")[1] if hasattr(self, "repro") else {}
+            mutations_data = self.repro.attempt_reproduction(self, "MITOSIS")[1] if getattr(self, "repro", None) else {}
             path = self.mind.mem.save(health=0, stamina=self.stamina, mutations=mutations_data,
                 trauma_accum=self.trauma_accum, joy_history=[], mitochondria_traits=mito_state_dict,
                 antibodies=immune_data, soul_data=self.soul.to_dict(), continuity=continuity_packet, )
