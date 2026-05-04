@@ -20,7 +20,6 @@ class RandomTest(BoneTestCase):
             self.assertTrue(cost > 0, "Rummaging cost no stamina.")
 
     def test_cortex_collapse_graceful_handling(self):
-            # S.L.A.S.H. Refactor: We test the Orchestrator's true Cathedral Collapse (utter catastrophe) layer
             with patch.object(self.engine.orchestrator.simulator, "run_simulation",
      side_effect=Exception("Simulated Core Simulator Collapse"),
             ):

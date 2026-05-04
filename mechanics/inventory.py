@@ -198,8 +198,8 @@ class GordonKnot:
         logs = []
 
         if new_loot:
-            clean_input = user_input.lower()
-            has_intent = any(verb in clean_input for verb in self.acquisition_verbs)
+            tokens = set(re.findall(r'\b\w+\b', user_input.lower()))
+            has_intent = any(verb in tokens for verb in self.acquisition_verbs)
 
             # If the user explicitly asked to take it, grant it immediately.
             if has_intent:
@@ -268,11 +268,11 @@ class GordonKnot:
 
     def safe_remove_item(self, item_name: str) -> bool:
         """Attempts to remove an item, failing gracefully if it does not exist."""
-        item_name = item_name.upper()
-        if item_name in self.inventory:
-            self.inventory.remove(item_name)
+        try:
+            self.inventory.remove(item_name.upper())
             return True
-        return False
+        except ValueError:
+            return False
 
     def rummage(self, physics_ref: Any, stamina_pool: float) -> Tuple[bool, str, float]:
         """
@@ -404,8 +404,8 @@ class GordonKnot:
         for name in self.registry.keys():
             if name.upper() not in self.inventory:
                 clean = name.lower().replace("_", " ")
-                # Enforce word boundaries to prevent 'key' firing on 'turkey'
-                if re.search(rf"\b{re.escape(clean)}\b", combined_text):
+                # Enforce word boundaries to prevent 'key' firing on 'turkey' (but only run Regex if sub-string exists)
+                if clean in combined_text and re.search(rf"\b{re.escape(clean)}\b", combined_text):
                     present_candidates.append((name, clean))
 
         if not present_candidates:

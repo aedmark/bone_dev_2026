@@ -9,7 +9,6 @@ import copy
 import json
 import os
 from typing import Dict, Any, List
-
 from struts import ux
 
 class _ConfigNode:
@@ -21,8 +20,6 @@ class _ConfigNode:
 
 class BonePresets:
     """
-    Epigenetic Packages.
-
     These are pre-configured bundles of systemic tuning. A developer or user can
     load their own presets to completely alter the metabolic and physical behavior of the engine.
     """
@@ -311,7 +308,6 @@ class BoneConfig:
 
     def reconcile_state(self, physics_packet: Any):
         """
-        The Rubber Band.
         Ensures physics values have not drifted outside the established boundaries,
         expressly allowing for absolute zero (0.0) states.
         """
@@ -323,7 +319,6 @@ class BoneConfig:
         v_val = safe_get(physics_packet, "voltage")
         v_val = safe_get(e_obj, "voltage") if v_val is None else v_val
         raw_v = float(v_val if v_val is not None else 5.0)
-
         v_floor = getattr(self.PHYSICS, "VOLTAGE_FLOOR", 0.0)
         v_max = getattr(self.PHYSICS, "VOLTAGE_MAX", 100.0)
         new_v = max(v_floor, min(raw_v, v_max))
@@ -332,11 +327,9 @@ class BoneConfig:
         d_val = safe_get(physics_packet, "narrative_drag")
         d_val = safe_get(s_obj, "narrative_drag") if d_val is None else d_val
         raw_d = float(d_val if d_val is not None else 1.0)
-
         d_floor = getattr(self.PHYSICS, "DRAG_FLOOR", 0.0)
         d_halt = getattr(self.PHYSICS, "DRAG_HALT", self.MAX_DRAG_LIMIT)
         new_d = max(d_floor, min(raw_d, d_halt))
-
         safe_set(physics_packet, "voltage", new_v)
         safe_set(physics_packet, "narrative_drag", new_d)
 
@@ -350,11 +343,9 @@ class BoneConfig:
         target_sector = getattr(self, sector, None)
         if not target_sector:
             return (ux("config_strings", "tune_sector_err") or "Sector {sector} not found.").format(sector=sector)
-
         if not hasattr(target_sector, parameter):
             return (ux("config_strings", "tune_param_err") or "Param {parameter} missing in {sector}.").format(
                 parameter=parameter, sector=sector)
-
         current_val = getattr(target_sector, parameter)
 
         # Strict Type Enforcement (with float/int leniency)
@@ -362,17 +353,12 @@ class BoneConfig:
                 isinstance(current_val, (int, float)) and isinstance(value, (int, float))):
             return (ux("config_strings", "tune_type_err") or "Type mismatch: {curr_type} vs {new_type}.").format(
                 curr_type=type(current_val).__name__, new_type=type(value).__name__)
-
         setattr(target_sector, parameter, value)
 
         # Ensure the manual tweak didn't break the rules of reality
         if errors := self.validate_integrity():
             return " | ".join(errors)
-
         return (ux("config_strings", "tune_success") or "Tuned {sector}.{parameter} to {value}.").format(
             sector=sector, parameter=parameter, value=value)
 
-
-# Immediately execute the load sequence when the module is imported, locking the
-# JSON configurations into the global class namespace.
 BoneConfig._load_class_defaults()

@@ -1,5 +1,4 @@
 """tests/test_architecture.py"""
-
 import os
 import ast
 from unittest.mock import patch
@@ -8,151 +7,106 @@ from tests.base import BoneTestCase
 from main import BoneAmanita
 from presets import BoneConfig
 
+
 class ArchitectureTests(BoneTestCase):
-
     def test_arch_type_agnostic_physics(self):
-        """The Meadows Test: Ensures biological functions don't starve or crash when physics changes types."""
+        """Ensures biological functions don't starve or crash when physics changes types."""
         print("\n--- ARCH 1: Type-Agnostic Physics ---")
-
-        # Scenario A: Physics loaded natively from the engine
         phys_obj = PhysicsPacket(chi=0.85, voltage=45.0)
         phys_obj.clean_words = ["structured", "prose", "kinetic", "heavy"]
-
-        # Scenario B: Physics loaded from a JSON stasis checkpoint
         phys_dict = {"chi": 0.85, "voltage": 45.0, "clean_words": ["structured", "prose", "kinetic", "heavy"]}
-
-        # We test DigestiveTrack.harvest to ensure it yields > 0 ATP for both
         track = self.engine.soma.digestive
-
         _, yield_obj, _ = track.harvest(phys_obj, [])
         _, yield_dict, _ = track.harvest(phys_dict, [])
-
         self.assertGreater(yield_obj, 0.0, "[FAIL] Digestive track starved when fed a PhysicsPacket object.")
         self.assertGreater(yield_dict, 0.0, "[FAIL] Digestive track starved when fed a serialized dictionary.")
         self.assertEqual(yield_obj, yield_dict, "[FAIL] Metabolic yield differs based on data type!")
         print("  [SUCCESS] System metabolizes objects and dictionaries equally.")
 
     def test_immune_evaluation_with_object_physics(self):
-        """Pinker Lens: Ensures pre-flight checks use safe attribute retrieval and do not eagerly evaluate dictionary methods on Objects."""
+        """Ensures pre-flight checks use safe attribute retrieval and do not eagerly evaluate dictionary methods on Objects."""
 
-        # 1. Create a dummy class that deliberately LACKS a .get() method
         class MockPhysicsPacket:
             def __init__(self):
                 self.mu = 0.5
                 self.i_c = 0.8
                 self.entropy = 0.9
-                # Explicitly missing 'chi' and 'exhaustion' to test safe_get fallbacks
 
         engine = BoneAmanita({})
         mock_packet = MockPhysicsPacket()
-
         try:
-            # 2. Run the immune response. If eager evaluation exists (e.g. mock_packet.get()), this will fatal crash.
-            result = engine._evaluate_immune_response(user_message="test", active_phys=mock_packet, halt_func=lambda msg: None)
-
-            # 3. Assert the evaluation completed safely without returning an Apoptotic block
+            result = engine._evaluate_immune_response(user_message="test", active_phys=mock_packet,
+                                                      halt_func=lambda msg: None)
             self.assertIsNone(result)
         except AttributeError as e:
             self.fail(f"Immune evaluation failed to safely parse an Object (Eager Evaluation Trap triggered): {e}")
 
     def test_arch_small_model_scaffolding(self):
-        """The Schur Test: Ensures the engine lowers cognitive complexity for sub-15B models."""
+        """Ensures the engine lowers cognitive complexity for sub-15B models."""
         print("\n--- ARCH 8: Lightweight Model Scaffolding ---")
         from main import BoneAmanita
         from unittest.mock import MagicMock
-
-        # Boot an engine specifically configured with an 8b model
         config = {
             "model": "llama3-8b-instruct",
             "boot_mode": "CREATIVE",
             "provider": "mock"
         }
-
         test_engine = BoneAmanita(config)
-        test_engine._load_system_prompts = MagicMock()  # Skip disk I/O
+        test_engine._load_system_prompts = MagicMock()
         test_engine.prompt_library = {"CREATIVE_LITE": "Lightweight Prompt Data"}
-
-        # Force the mode application
         test_engine._apply_boot_mode()
-
-        # Check if the DSPy critic was successfully disabled
         if hasattr(test_engine.cortex, "dspy_critic"):
             self.assertFalse(test_engine.cortex.dspy_critic.enabled,
                              "[FAIL] Engine failed to disable the DSPy Affective Critic for an 8B model!")
-
-        # Verify the prompt key fallback logic worked
         expected_key = test_engine.mode_settings.get("prompt_key")
         self.assertEqual(expected_key, "CREATIVE_LITE",
                          "[FAIL] Engine failed to append the _LITE suffix for the small model prompt!")
-
         print("  [SUCCESS] System automatically degraded cognitive load for the small model.")
 
     def test_multiplex_partial_hydration_safety(self):
-        """Schur Lens: Ensures the engine does not crash when a multiplex lattice exists, but the user state is unhydrated (None)."""
-
+        """Ensures the engine does not crash when a multiplex lattice exists, but the user state is unhydrated (None)."""
         engine = BoneAmanita({})
 
-        # 1. Create a mock lattice where the user profile 'u' is explicitly None
         class MockLattice:
             def __init__(self):
                 self.u = None
                 self.shared = {}
 
-        # 2. Attach the half-broken lattice to the engine
         engine.shared_lattice = MockLattice()
-
-        # 3. Create a safe physics dictionary
         safe_phys = {"exhaustion": 0.2, "mu": 0.1, "i_c": 1.0}
-
         try:
-            # 4. Run the immune response. If it calls lattice.u.E blindly, it will crash.
             engine._evaluate_immune_response(user_message="test", active_phys=safe_phys, halt_func=lambda msg: None)
-
-            # If we reach here, the engine safely fell back to base_exhaust without throwing AttributeError
             self.assertTrue(True)
         except AttributeError as e:
             self.fail(f"Engine crashed when encountering a partially hydrated multiplex lattice: {e}")
 
     def test_arch_eventbus_ghost_prevention(self):
-        """The Meadows Test: Ensures temporary EventBus listeners can cleanly detach."""
+        """Ensures temporary EventBus listeners can cleanly detach."""
         print("\n--- ARCH 7: EventBus Outflow (Memory Leak Check) ---")
-
-        # A dummy callback tracker
         execution_count = {"hits": 0}
 
         def dummy_listener(data):
             execution_count["hits"] += 1
 
-        # Subscribe and test
         self.engine.events.subscribe("TEMP_EVENT", dummy_listener)
         self.engine.events.publish("TEMP_EVENT", {"data": "test"})
         self.assertEqual(execution_count["hits"], 1, "[FAIL] Listener failed to attach.")
-
-        # Unsubscribe and test ghost execution
         self.engine.events.unsubscribe("TEMP_EVENT", dummy_listener)
         self.engine.events.publish("TEMP_EVENT", {"data": "ghost"})
-
-        # The count MUST remain 1. If it hits 2, the unsubscribe failed.
         self.assertEqual(execution_count["hits"], 1,
                          "[FAIL] Ghost listener detected! Unsubscribe failed to detach the callback.")
         print("  [SUCCESS] EventBus cleanly severed the connection. No memory leaks detected.")
 
-
     def test_arch_unqualified_imports(self):
-        """The Pinker Test: Scans the AST to physically block unqualified local imports (e.g., 'from tools')."""
+        """Scans the AST to physically block unqualified local imports (e.g., 'from tools')."""
         print("\n--- ARCH 2: Syntactic Import Scanner ---")
-
         restricted_modules = {"tools", "gui", "lexicon", "commands", "inventory"}
         violations = []
-
-        # Walk the core directories
         target_dirs = ["body", "brain", "archetypes", "mechanics", "physics"]
-        base_path = os.path.dirname(os.path.dirname(__file__)) # Go up from tests/
-
+        base_path = os.path.dirname(os.path.dirname(__file__))
         for d in target_dirs:
             dir_path = os.path.join(base_path, d)
             if not os.path.exists(dir_path): continue
-
             for root, _, files in os.walk(dir_path):
                 for file in files:
                     if file.endswith(".py"):
@@ -163,40 +117,34 @@ class ArchitectureTests(BoneTestCase):
                                 for node in ast.walk(tree):
                                     if isinstance(node, ast.ImportFrom):
                                         if node.module in restricted_modules:
-                                            violations.append(f"{file}: 'from {node.module}' (Should be 'from mechanics.{node.module}')")
+                                            violations.append(
+                                                f"{file}: 'from {node.module}' (Should be 'from mechanics.{node.module}')")
                                     elif isinstance(node, ast.Import):
                                         for alias in node.names:
                                             if alias.name in restricted_modules:
                                                 violations.append(f"{file}: 'import {alias.name}' (Unqualified)")
                             except Exception:
-                                pass # Skip files with syntax errors for this test
-
+                                pass
         if violations:
-            self.fail(f"[FAIL] Found {len(violations)} unqualified local imports. This causes fatal ModuleNotFoundErrors:\n" + "\n".join(violations))
-
+            self.fail(
+                f"[FAIL] Found {len(violations)} unqualified local imports. This causes fatal ModuleNotFoundErrors:\n" + "\n".join(
+                    violations))
         print("  [SUCCESS] All local imports are strictly anchored to their parent modules.")
 
     def test_arch_narrative_bleed(self):
-        """The Schur Test: Ensures the system prompt doesn't inject 'None' if a localization string is missing."""
+        """Ensures the system prompt doesn't inject 'None' if a localization string is missing."""
         print("\n--- ARCH 3: Narrative Bleed (The Lexical Fallback) ---")
-
-        # We forcefully mock ux() to simulate a broken or missing localization file
         with patch('brain.mind.ux', return_value=None):
-            # If fallbacks are missing, this will return "None"
             directive = self.engine.cortex.modulator.get_mood_directive()
-
-            # We assert that the literal string "None" did not bleed into the output
             self.assertNotEqual(str(directive).strip().lower(), "none",
                                 "[FAIL] Narrative bleed detected! Missing ux() string resulted in 'None' being injected into the system.")
             self.assertIsInstance(directive, str, "[FAIL] Directive must strictly return a string.")
-
         print("  [SUCCESS] Structural fallbacks successfully prevented 'None' from bleeding into the LLM context.")
 
     def test_arch_lexical_firewall_cliche_tax(self):
-        """The Pinker Test: Ensures Semantic Antigens yield 0 ATP and spike Cortisol."""
+        """Ensures Semantic Antigens yield 0 ATP and spike Cortisol."""
         print("\n--- ARCH 4: The Lexical Firewall (Cliché Tax) ---")
         from unittest.mock import MagicMock, patch
-
         track = self.engine.soma.digestive
         track.lex = MagicMock()
         mock_data = {
@@ -205,73 +153,48 @@ class ArchitectureTests(BoneTestCase):
         }
         track.lex.get.side_effect = lambda k: mock_data.get(k)
         track.lex.get_current_category.return_value = "NONE"
-
         phys_slop = PhysicsPacket(
             clean_words=["delve", "into", "the", "rich", "tapestry", "of", "myriad", "testament", "and", "nuance"])
-
         initial_cortisol = self.engine.bio.endo.cortisol
         logs = []
-
-        # We explicitly mock ux() to ensure the log message is written regardless of localization files
         with patch('body.metabolism.ux', return_value="cliche tax applied: {tax}"):
             dominant_enzyme, yield_atp, hits = track.harvest(phys_slop, logs)
-
         self.assertEqual(yield_atp, 0.0,
                          f"[FAIL] Lexical Firewall breached! System gained {yield_atp} ATP from reading sycophantic slop.")
         self.assertGreater(self.engine.bio.endo.cortisol, initial_cortisol,
                            "[FAIL] Cortisol did not spike after digesting Semantic Antigens.")
         self.assertTrue(any("cliche" in log.lower() for log in logs),
                         "[FAIL] Cliché Tax was not recorded in the systemic logs.")
-
         print("  [SUCCESS] Lexical Firewall successfully rejected semantic antigens and levied the Cliché Tax.")
 
     def test_arch_panic_room_serotonin_retention(self):
-        """The Meadows Test: Ensures the Panic Room preserves baseline Serotonin while dropping all other chemistry."""
+        """Ensures the Panic Room preserves baseline Serotonin while dropping all other chemistry."""
         print("\n--- ARCH 5: Panic Room State Retention ---")
         from machine.panic import PanicRoom
-
-        # Simulate a highly toxic, stressed out previous state
         toxic_prev_state = {
             "chem": {"SER": 0.85, "COR": 1.0, "DOP": 0.9, "ADR": 1.0}
         }
-
         safe_bio = PanicRoom.get_safe_bio(previous_state=toxic_prev_state)
-
-        # Assert Cortisol and Adrenaline were successfully purged
         self.assertEqual(safe_bio["chem"]["COR"], 0.0, "[FAIL] Panic Room failed to purge Cortisol.")
         self.assertEqual(safe_bio["chem"]["ADR"], 0.0, "[FAIL] Panic Room failed to purge Adrenaline.")
-
-        # Assert Serotonin was retained for systemic stabilization
         self.assertEqual(safe_bio["chem"]["SER"], 0.85, "[FAIL] Panic Room incorrectly wiped retained Serotonin.")
-
-        # Test the baseline floor (should clamp to 0.2 if previous was lower)
         low_ser_state = {"chem": {"SER": 0.05, "COR": 1.0}}
         clamped_bio = PanicRoom.get_safe_bio(previous_state=low_ser_state)
         self.assertEqual(clamped_bio["chem"]["SER"], 0.2,
                          "[FAIL] Panic Room failed to apply the 0.2 Serotonin survival floor.")
-
         print("  [SUCCESS] Panic Room cleanly purged stress chemistry while retaining necessary structural Serotonin.")
 
     @patch("cycle.CongruenceValidator.__init__", return_value=None)
     def test_arch_hot_loop_validator_singleton(self, mock_validator_init):
-        """The Synergetic Test: Ensures the CongruenceValidator is not instantiated during the hot loop."""
+        """Ensures the CongruenceValidator is not instantiated during the hot loop."""
         print("\n--- ARCH 6: Hot-Loop Instantiation Leak Check ---")
-
-        # The orchestrator was already instantiated during engine boot,
-        # so the init call count should be exactly 0 during a standard turn.
-
-        # Run a headless turn to trigger the cycle without UI overhead
         self.engine.orchestrator.run_headless_turn("Testing the loop.")
-
         self.assertEqual(
             mock_validator_init.call_count, 0,
             "[FAIL] CongruenceValidator was instantiated during the cycle hot-loop! This causes a memory leak."
         )
-
-        # Verify the single instance actually exists on the orchestrator
         self.assertTrue(
             hasattr(self.engine.orchestrator, "congruence_validator"),
             "[FAIL] GeodesicOrchestrator is missing the single-instance congruence_validator."
         )
-
         print("  [SUCCESS] CongruenceValidator is safely anchored as a singleton outside the hot loop.")

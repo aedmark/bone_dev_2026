@@ -10,20 +10,13 @@ from constants import Prisma
 class BoneTestCase(unittest.TestCase):
     def setUp(self):
         warnings.filterwarnings("ignore", category=DeprecationWarning)
-
-        # Prevent LoreManifest from writing to disk
         self.lore_patcher = patch('core.LoreManifest.save')
         self.mock_lore_save = self.lore_patcher.start()
-
-        # The Shield: Prevent Telemetry from spanning threads and writing to disk
         self.telemetry_patcher = patch('core.TelemetryService.get_instance')
         self.mock_telemetry = self.telemetry_patcher.start()
-
-        # Hydrate the engine with a harmless dummy Telemetry instance
         dummy_telemetry = MagicMock()
         dummy_telemetry.disabled = True
         self.mock_telemetry.return_value = dummy_telemetry
-
         self.test_config = {"PROVIDER": "ollama", "boot_mode": "DEEP", "MAX_STAMINA": 100.0, "MAX_HEALTH": 100.0, }
         print(f"\n{Prisma.CYN}>>> STARTING TEST: {self.id()}{Prisma.RST}")
         self.engine = BoneAmanita(config=self.test_config)

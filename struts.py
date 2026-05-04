@@ -1,8 +1,6 @@
 """
 struts.py
 
-The Structural Primitives Module.
-
 This file provides the low-level struts that bind the deterministic execution layer
 to the narrative and data layers.
 """
@@ -11,7 +9,6 @@ from typing import Any
 
 from constants import Prisma
 
-# LINGUISTIC & STRUCTURAL UTILITIES
 
 def ux(section: str, key: str, default: Any = "") -> Any:
     """
