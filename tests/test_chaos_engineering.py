@@ -11,6 +11,8 @@ prevents systemic death.
 import unittest
 from unittest.mock import patch
 from tests.base import BoneTestCase
+from main import BoneAmanita
+from presets import BoneConfig
 
 class TestChaosEngineering(BoneTestCase):
     def test_vector_1_sycophancy_gravity_well(self):
@@ -215,7 +217,7 @@ class TestChaosEngineering(BoneTestCase):
     def test_graceful_death_with_suppressed_modules(self):
         """Meadows Lens: Ensures the engine can execute a fatal shutdown even if core modules (like REPRO) are missing or set to None."""
         # 1. Setup an engine instance
-        engine = BoneAmanita(config=BoneConfig)
+        engine = BoneAmanita({})
 
         # 2. Artificially suppress the reproduction module (simulating Genesis boot without it)
         setattr(engine, "repro", None)

@@ -5,6 +5,8 @@ import ast
 from unittest.mock import patch
 from physics.models import PhysicsPacket
 from tests.base import BoneTestCase
+from main import BoneAmanita
+from presets import BoneConfig
 
 class ArchitectureTests(BoneTestCase):
 
@@ -41,7 +43,7 @@ class ArchitectureTests(BoneTestCase):
                 self.entropy = 0.9
                 # Explicitly missing 'chi' and 'exhaustion' to test safe_get fallbacks
 
-        engine = BoneAmanita(config=BoneConfig)
+        engine = BoneAmanita({})
         mock_packet = MockPhysicsPacket()
 
         try:
@@ -89,7 +91,7 @@ class ArchitectureTests(BoneTestCase):
     def test_multiplex_partial_hydration_safety(self):
         """Schur Lens: Ensures the engine does not crash when a multiplex lattice exists, but the user state is unhydrated (None)."""
 
-        engine = BoneAmanita(config=BoneConfig)
+        engine = BoneAmanita({})
 
         # 1. Create a mock lattice where the user profile 'u' is explicitly None
         class MockLattice:
