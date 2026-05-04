@@ -81,6 +81,7 @@ class BoneAmanita:
         self.cosmic = self.phys.dynamics
         self.stabilizer = ZoneInertia(config_ref=self.config)
         self.telemetry = TelemetryService.get_instance(config_ref=self.config)
+        self.events.telemetry = self.telemetry
         self.system_health = SystemHealth()
         self.observer = TheObserver(config_ref=self.config)
         self.system_health.link_observer(self.observer)
@@ -121,11 +122,12 @@ class BoneAmanita:
         tuning_key = self.mode_settings.get("tuning", "STANDARD")
         if hasattr(BonePresets, tuning_key):
             self.config.load_preset(getattr(BonePresets, tuning_key))
-        mem = getattr(self.mind, "mem", None)
-        if mem and getattr(mem, "session_health", None) is not None:
-            self.health = mem.session_health
-            self.stamina = mem.session_stamina
-            self.trauma_accum = getattr(mem, "session_trauma_vector", {}) or {}
+
+        if getattr(self.mind.mem, "session_health", None) is not None:
+            self.health = self.mind.mem.session_health
+            self.stamina = self.mind.mem.session_stamina
+            self.trauma_accum = getattr(self.mind.mem, "session_trauma_vector", {}) or {}
+
         if self.tick_count == 0:
             self.set_atp(getattr(self.config.BIO, "STARTING_ATP", 100.0))
 
@@ -224,8 +226,7 @@ class BoneAmanita:
         """Isolates the Runaway Toxicity Math (Moog, Rhodes, Linehan) to prevent pre-flight monoliths."""
         if not active_phys:
             return None
-        m_a = self.navi_sad.calculate_malignancy_factor(user_message,
-                                                        float(safe_get(active_phys, "narrative_drag", 0.0)))
+        m_a = self.navi_sad.calculate_malignancy_factor(user_message, float(safe_get(active_phys, "narrative_drag", 0.0)))
         safe_set(active_phys, "m_a", m_a)
         mu = float(safe_get(active_phys, "mu", 0.0))
         i_c = float(safe_get(active_phys, "i_c", 1.0))

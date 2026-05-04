@@ -187,7 +187,7 @@ class CycleSimulator:
         self.eng.events.log(f"{Prisma.RED}{msg_crash.format(phase_name=phase_name)}\n{formatted_trace}{Prisma.RST}",
                             "CRIT")
         if phase_name == "COGNITION":
-            self.eng.events.log(f"CORTEX COLLAPSE: {error}\n{formatted_trace}", "CRIT")
+            self.eng.events.log(f"CORTEX COLLAPSE: {error} (See trace above)", "CRIT")
         ctx.logs.append("CRITICAL FAILURE")
         narrative = LoreManifest.get_instance().get("narrative_data") or {}
         cathedral_logs = narrative.get("CATHEDRAL_COLLAPSE_LOGS", ["System Failure."])
@@ -372,8 +372,9 @@ class GeodesicOrchestrator:
                 self.eng.events.log(f"Async WLS Heuristic Error: {e}", "DEBUG")
 
         if cortex and hasattr(cortex, "get_local_mass_radius"):
-            if getattr(self.eng, "tick_count", 0) % 3 == 0:
+            if clean_message != "(Waiting)" and getattr(self.eng, "tick_count", 0) % 3 == 0:
                 self._async_pool.submit(_bg_wls_check, clean_message)
+
         if clean_message != "(Waiting)":
             return
         atp_level = float(self.eng.bio.mito.state.atp_pool)

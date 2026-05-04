@@ -79,9 +79,9 @@ def safe_get(obj: Any, key: str, default: Any = None) -> Any:
 
 def safe_set(obj: Any, key: str, value: Any) -> None:
     """
-    Agnostic setter for nested data structures, equipped with structural alarms.
-    Acts as a systemic smoke detector, explicitly warning the developer
-    that the architecture is rotting.
+    Agnostic setter for nested data structures.
+    If this fails, it indicates a foundational architectural fracture.
+    We do not swallow the error; we let the engine crash so the rot can be excised.
 
     Args:
         obj (Any): The target object to modify.
@@ -89,12 +89,9 @@ def safe_set(obj: Any, key: str, value: Any) -> None:
         value (Any): The new value to assign.
     """
     if obj is None:
-        print(f"{Prisma.RED}[STRUCTURAL ROT] safe_set swallowed a write to '{key}'. Target object is None.{Prisma.RST}")
-        return
-    try:
-        if isinstance(obj, dict):
-            obj[key] = value
-        else:
-            setattr(obj, key, value)
-    except (TypeError, AttributeError) as e:
-        print(f"{Prisma.RED}[STRUCTURAL ROT] safe_set failed on '{key}'. Target is immutable or rejects assignment: {e}{Prisma.RST}")
+        raise ValueError(f"[STRUCTURAL ROT] Attempted to safe_set '{key}', but the target object is None.")
+
+    if isinstance(obj, dict):
+        obj[key] = value
+    else:
+        setattr(obj, key, value)

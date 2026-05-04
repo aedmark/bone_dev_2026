@@ -163,11 +163,9 @@ class EventBus:
 
     def unsubscribe(self, event_type, callback):
         """Prevents memory leaks from ghost listeners."""
-        if event_type in self.subscribers:
-            try:
-                self.subscribers[event_type].remove(callback)
-            except ValueError:
-                pass
+        subs = self.subscribers.get(event_type)
+        if subs and callback in subs:
+            subs.remove(callback)
 
     def publish(self, event_type, data=None):
         if event_type not in self.subscribers: return
@@ -200,16 +198,9 @@ class EventBus:
 
     def flush(self) -> List[Dict]:
         """Drains the current buffer safely, returning the accumulated state."""
-        current_logs = []
-        while True:
-            try:
-                current_logs.append(self.buffer.popleft())
-            except IndexError:
-                break
+        current_logs = list(self.buffer)
+        self.buffer.clear()
         return current_logs
-
-    def get_recent_logs(self, count=10):
-        return list(self.buffer)[-count:]
 
 
 class LoreManifest:
