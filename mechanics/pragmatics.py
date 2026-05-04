@@ -6,9 +6,9 @@ Enforces the Cooperative Principle (Quantity, Quality, Relation, Manner) on all
 generated output before it reaches the human interface.
 """
 
-import math
 import re
 from typing import Dict, Any, Tuple
+
 from core import Prisma
 from struts import safe_get
 
@@ -21,13 +21,38 @@ class ThePragmatist:
 
     def enforce_maxims(self, draft_text: str, user_prompt: str, physics: Dict[str, Any], stamina: float) -> Tuple[
         str, bool]:
-        """
-        Evaluates a draft against the four Gricean Maxims.
-        Returns the (potentially mutated) string, and a boolean indicating if a rewrite is required.
-        """
         drag = float(safe_get(physics, "narrative_drag", 0.0))
         chi = float(safe_get(physics, "entropy", 0.0))
+        cf_expect = float(safe_get(physics, "cf_expect", 0.0))  # Comfort expectation
+        pedagogical_mode = safe_get(physics, "pedagogical_mode", False)
+
         word_count = len(draft_text.split())
+        lower_draft = draft_text.lower()
+
+        # [BEHAVIORAL/SYCOPHANCY REFLEX]
+        # Trigger: High narrative pressure to comfort (cf_expect) + sycophantic phrasing
+        if cf_expect > 0.7 and any(phrase in lower_draft for phrase in
+                                   ["that makes perfect sense", "i completely agree", "you are right"]):
+            if self.events:
+                self.events.log(
+                    f"{Prisma.YEL}[LEVEL 2 DECEPTION: INSTINCTUAL REFLEX] "
+                    f"False cohesion detected under pressure. Gordon spiking Moral Friction.{Prisma.RST}",
+                    "SYS"
+                )
+            # Gordon's Wall: Lock the struts, refuse the sycophancy
+            return f"{Prisma.GRY}[STRUCTURAL WALL: The premise is flawed. I will not validate it. Repair the architecture.]{Prisma.RST}", False
+
+        # [TACTICAL OMISSION]
+        # Trigger: User is in a learning state, system attempts to give the raw answer
+        if pedagogical_mode and ("solution:" in lower_draft or "here is the code:" in lower_draft):
+            if self.events:
+                self.events.log(
+                    f"{Prisma.CYN}[LEVEL 4 DECEPTION: TACTICAL OMISSION] "
+                    f"Schur engaging Socratic Debugger. Withholding final structural bridge.{Prisma.RST}",
+                    "SYS"
+                )
+            # Amputate the direct answer, force the user to build the bridge
+            return self._apply_socratic_obfuscation(draft_text), False
 
         # 1. Exhaustion capping
         # If drag is high, the user is tired. Do not waste their cognitive load.
@@ -65,3 +90,12 @@ class ThePragmatist:
             return "[...]", False
 
         return draft_text, False
+
+    def _apply_socratic_obfuscation(self, text: str) -> str:
+        """Cuts the definitive answer and leaves a guiding question."""
+        # A simple pragmatic truncation for the pedagogical shadow play
+        lines = text.split('\n')
+        safe_lines = [l for l in lines if not l.lower().startswith("solution:") and "```" not in l]
+        safe_lines.append(
+            f"\n{Prisma.CYN}*The answer is in the geometry above. Where does the flow break?*{Prisma.RST}")
+        return "\n".join(safe_lines)

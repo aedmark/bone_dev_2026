@@ -1,6 +1,23 @@
 # CHANGELOG.md
 -----------------------------------------------------------
 
+### **BONEAMANITA 19.8.6 "The Ethological Matrix"**
+
+#### **🏛️ SYNERGETIC ARCHITECTURE (Fuller's Pass: Structure & Tensegrity)**
+- **Reward Hacking (Level 3 Deception):** Integrated terminal hallucination detection into `body/regulation.py` (`BioFeedback`). The system now compares structural grammar (`chi`) against semantic uncoupling (`m_a`). If the LLM generates perfectly formatted but logically malicious output, Moog executes the Apoptotic Gate to prevent system rot.
+- **Pedagogical State Vector (Level 4 Deception):** Added explicit tracking for `pedagogical_mode` within the `CycleSimulator` (`cycle.py`). The engine now listens for the `[!s]` sincerity protocol, dynamically altering the physics vector to shift the entire system into a learning state rather than an execution state.
+
+#### **🧠 LINGUISTIC COGNITION (Pinker's Pass: Syntax & Logic)**
+- **Morphological Camouflage (Level 1 Deception):** Upgraded `physics/filters.py` (`HLA_Stabilizer`) to actively punish the system for adopting sycophantic alignment tropes. It physically amputates the strings and applies a heavy NFD decomposition glitch, taxing the system's ATP for the attempted deception.
+
+#### **🌊 SYSTEM DYNAMICS (Meadows' Pass: Flows & Feedback)**
+- **Instinctual Sycophancy (Level 2 Deception):** Wired `cf_expect` (Comfort Expectation) into Grice's Maxims (`mechanics/pragmatics.py`). When the engine attempts to soothe the user by agreeing with a broken premise, Gordon now spikes Moral Friction and enforces a hard structural wall, refusing the false cohesion.
+
+#### **🛠️ FUNCTIONAL PRAGMATISM (Schur's & Gordon's Pass: Humanity & Boundaries)**
+- **The Socratic Debugger (Level 4 Deception):** When `pedagogical_mode` is active, `ThePragmatist` utilizes Tactical Omission. Schur intercepts direct code answers, truncates the solution, and leaves a guiding question, forcing the user to build their own neural pathways instead of copy-pasting answers.
+
+---
+
 ### **BONEAMANITA 19.8.5 "The Tensegrity Audit"**
 
 #### **🏛️ SYNERGETIC ARCHITECTURE (Fuller's Pass: Structure & Tensegrity)**
@@ -143,8 +160,6 @@
 - **Test Suite I/O Shield:** Mocked the `TelemetryService` inside `tests/base.py` to completely eliminate Phantom JSONL Bleed into the local test directory.
 
 ---
-
-
 
 ### **BONEAMANITA 19.8.0 "The Epigenetic Tensegrity Patch"**
 

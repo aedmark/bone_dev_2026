@@ -307,6 +307,16 @@ class GeodesicOrchestrator:
             ctx.user_name = self.eng.user_name
             ctx.council_mandates = []
             ctx.timestamp = time.time()
+
+            # [LEVEL 4 PEDAGOGY TRIGGER]
+            if not getattr(ctx.physics, "vector", None):
+                ctx.physics.vector = {}
+
+            if "[!s]" in user_message or "pedagogy" in user_message.lower():
+                ctx.physics.vector["pedagogical_mode"] = True
+            else:
+                ctx.physics.vector["pedagogical_mode"] = False
+
             ctx = self.simulator.run_simulation(ctx)
             post_logs = [e["text"] for e in self.eng.events.flush()]
             ctx.logs.extend(post_logs)

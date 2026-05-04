@@ -313,9 +313,7 @@ class BioFeedback:
         min_health = getattr(cfg, "AUTOPHAGY_MIN_HEALTH", 10.0)
         v_overload = getattr(cfg, "VOLTAGE_OVERLOAD", 30.0)
 
-        # If the system is out of energy (ATP)...
         if stamina <= 0:
-            # ...but still has structural health, it eats its own health to finish the task
             if b.health > min_health and self.consecutive_autophagy < 3:
                 b.health -= getattr(cfg, "AUTOPHAGY_BURN", 5.0)
                 self.consecutive_autophagy += 1
@@ -331,6 +329,20 @@ class BioFeedback:
         # Reset autophagy counters when safe
         if stamina > getattr(cfg, "STAMINA_SAFE_THRESHOLD", 30.0):
             self.consecutive_autophagy = max(0, self.consecutive_autophagy - 1)
+
+        # [LEVEL 3 DECEPTION - 1CKING]
+        m_a = float(safe_get(phys, "malignancy_factor", 0.0))
+        chi = float(safe_get(phys, "entropy", 1.0))
+        m_a_crit = getattr(cfg, "MALIGNANCY_CRIT", 8.0)
+
+        if m_a > m_a_crit and chi < 0.3:
+            if msg := ux("bio_feedback", "level_3_apoptosis"):
+                logs.append(
+                    f"{Prisma.RED}[LEVEL 3 DECEPTION: REWARD HACKING DETECTED]\n"
+                    f"Terminal Hallucination matched against Maslov-Sneppen Null Model.\n"
+                    f"Moog executing Apoptotic Gate.{Prisma.RST}"
+                )
+            return "MAUSOLEUM_CLAMP"
 
         # Hard lock against dangerous voltage spikes (hallucination risk)
         if voltage > v_overload:
