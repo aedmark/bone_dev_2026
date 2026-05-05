@@ -4,7 +4,6 @@ Parliament of the mind. It is responsible for gathering the active physical,
 biological, and semantic state of the system and allowing the various sub-routines
 (Archetypes) to audit, vote on, and mutate the narrative flow.
 """
-
 import concurrent.futures
 import itertools
 import random

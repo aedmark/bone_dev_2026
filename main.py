@@ -286,8 +286,18 @@ class BoneAmanita:
         active_phys = getattr(self.observer, "last_physics_packet", None) or getattr(self.cortex, "last_physics", {})
         if not is_system:
             if any(p in clean_in for p in self._DESTRUCTIVE_PATTERNS):
-                safe_set(active_phys, "narrative_drag", 999.0)
-                return _halt("Trust Boundary Violation detected. Applying absolute friction.")
+                if "#override" in clean_in:
+                    # Assess the Glimmer Tax
+                    if getattr(self, "bio", None) and getattr(self.bio, "endo", None) and self.bio.endo.glimmers >= 1:
+                        self.bio.endo.glimmers -= 1
+                        self.events.log("[APOPTOTIC GATE]: OVERRIDE ACCEPTED. Glimmer tax paid.", "SYS")
+                    else:
+                        safe_set(active_phys, "narrative_drag", 999.0)
+                        return _halt(
+                            "[APOPTOTIC GATE]: Override denied. Insufficient Glimmers (Trust) to bypass safety.")
+                else:
+                    safe_set(active_phys, "narrative_drag", 999.0)
+                    return _halt("Trust Boundary Violation detected. Applying absolute friction.")
             if self.navi_sad.execute_nudge_test(self, clean_in):
                 safe_set(active_phys, "narrative_drag", 999.0)
                 return _halt(

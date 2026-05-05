@@ -325,7 +325,7 @@ class SoulPhase(SimulationPhase):
                     break
 
         # Systemic Tool Auditing to ensure tool use honors physical invariants.
-        if self.eng.gordon and self.eng.tinkerer:
+        if getattr(self.eng, "gordon", None) and getattr(self.eng, "tinkerer", None):
             if self.eng.gordon.inventory:
                 self.eng.tinkerer.audit_tool_use(ctx.physics, self.eng.gordon.inventory)
 
@@ -496,6 +496,15 @@ class SimulationPreflightPhase(SimulationPhase):
         # Audit Trail: Drops narrative illusion, outputs pure coordinate math.
         if "[AUDIT]" in upper_input:
             ctx.council_mandates.append({"action": "SYSTEM_DIRECTIVE", "value": "AUDIT_TRAIL", "log": f"{Prisma.GRY}[AUDIT]: Narrative illusion dropped. Coordinates exposed.{Prisma.RST}"})
+
+        # Grief Protocol Activation: Evaluating profound loss yields a structural Glimmer.
+        if "[GRIEF]" in upper_input:
+            if getattr(self.eng, "bio", None) and getattr(self.eng.bio, "endo", None):
+                self.eng.bio.endo.glimmers = getattr(self.eng.bio.endo, "glimmers", 0) + 1
+            else:
+                safe_set(phys_obj, "G", float(safe_get(phys_obj, "G", 0.0)) + 1.0)
+
+            ctx.council_mandates.append({"action": "SYSTEM_DIRECTIVE", "value": "GRIEF_PROTOCOL", "log": f"{Prisma.MAG}[GRIEF]: Profound loss witnessed. Structural Glimmer yielded.{Prisma.RST}"})
 
         # The Silent Trigger: The user forces the system to stop talking and just exist.
         if "[NO_JUMP]" in upper_input or "[SILENCE]" in upper_input:

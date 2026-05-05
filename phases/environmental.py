@@ -1,11 +1,9 @@
 """
 phases/environmental.py
-
 The Environmental and Observational execution phases.
 These phases handle how the system navigates topological space (Gravity, Zones),
 how it perceives user input (The Observer), and how it recovers during downtime (Sanctuary).
 """
-
 from constants import Prisma
 import random
 from presets import BoneConfig, BonePresets
@@ -15,12 +13,14 @@ from struts import ux, safe_get, safe_set
 from mechanics.tools import TheTclWeaver
 from phases.base import SimulationPhase, _safe_dict, _deep_update
 
+
 class NavigationPhase(SimulationPhase):
     """
     Handles spatial movement and cosmic gravity.
     Calculates the topological drag, evaluates orbital states (e.g., Lagrange points),
     and manages transitions between semantic zones based on inertia.
     """
+
     def __init__(self, engine_ref):
         super().__init__(engine_ref)
         self.name = "NAVIGATION"
@@ -31,7 +31,8 @@ class NavigationPhase(SimulationPhase):
         is_fresh_boot = (len(self.eng.cortex.dialogue_buffer) == 0 if hasattr(
             self.eng, "cortex") else False)
         if is_fresh_boot:
-            ctx.log(f"{Prisma.MAG}[NAVIGATION]: Fresh boot detected. Bypassing Orthogonal Attention Loss. Orienting to JSON bedrock.{Prisma.RST}")
+            ctx.log(
+                f"{Prisma.MAG}[NAVIGATION]: Fresh boot detected. Bypassing Orthogonal Attention Loss. Orienting to JSON bedrock.{Prisma.RST}")
             physics.narrative_drag = max(0.1, physics.narrative_drag * 0.1)
         v_floor = mode_settings.get("voltage_floor_override")
         if v_floor is not None:
@@ -73,7 +74,8 @@ class NavigationPhase(SimulationPhase):
                     elif delta.operator == "MULT":
                         physics.narrative_drag *= delta.value
                     msg = ux("cycle_strings", "nav_gear_drag")
-                    ctx.log(f"{Prisma.GRY}{msg.format(source=delta.source, operator=delta.operator, value=delta.value)}{Prisma.RST}")
+                    ctx.log(
+                        f"{Prisma.GRY}{msg.format(source=delta.source, operator=delta.operator, value=delta.value)}{Prisma.RST}")
         clean_words_safe = ctx.clean_words if ctx.clean_words else ["boot_sequence"]
         orbit_state, drag_pen, orbit_msg = self.eng.cosmic.analyze_orbit(self.eng.mind.mem, clean_words_safe)
         if orbit_msg:
@@ -86,7 +88,8 @@ class NavigationPhase(SimulationPhase):
         elif orbit_state == "WATERSHED_FLOW":
             physics.voltage += ctx.limits.get("NAV_WATERSHED_BOOST", 0.5)
         raw_zone = getattr(physics, "zone", "COURTYARD")
-        stabilization_result = self.eng.stabilizer.stabilize(proposed_zone=raw_zone, physics=phys_dict, cosmic_state=(orbit_state, drag_pen), )
+        stabilization_result = self.eng.stabilizer.stabilize(proposed_zone=raw_zone, physics=phys_dict,
+                                                             cosmic_state=(orbit_state, drag_pen), )
         if isinstance(stabilization_result, tuple):
             stabilized_zone = stabilization_result[0]
             if len(stabilization_result) > 1 and stabilization_result[1]:
@@ -101,6 +104,7 @@ class NavigationPhase(SimulationPhase):
         ctx.world_state["orbit"] = orbit_state
         return ctx
 
+
 class RealityFilterPhase(SimulationPhase):
     """
     The presentation layer modifier.
@@ -108,6 +112,7 @@ class RealityFilterPhase(SimulationPhase):
     applying corresponding UI colors to the terminal output to visually
     represent the current state of mind.
     """
+
     def __init__(self, engine_ref):
         super().__init__(engine_ref)
         self.name = "REALITY_FILTER"
@@ -128,6 +133,7 @@ class RealityFilterPhase(SimulationPhase):
                 msg = ux("cycle_strings", "filter_iching")
                 ctx.log(f"{color}{msg.format(sym=sym, name=name)}{Prisma.RST}")
         return ctx
+
 
 class ObservationPhase(SimulationPhase):
     """
@@ -159,16 +165,17 @@ class ObservationPhase(SimulationPhase):
                 bio.mito.state.atp_pool = min(
                     getattr(target_cfg, "MAX_ATP", 100.0),
                     bio.mito.state.atp_pool + (hours_passed * 25.0))
-                ctx.log(f"{Prisma.GRN}[BIO]: Retroactive metabolism applied for {hours_passed:.1f} hours of absence. ATP and Health restored.{Prisma.RST}")
+                ctx.log(
+                    f"{Prisma.GRN}[BIO]: Retroactive metabolism applied for {hours_passed:.1f} hours of absence. ATP and Health restored.{Prisma.RST}")
                 mind = getattr(self.eng, "mind", None)
                 cortex = getattr(self.eng, "cortex", None)
                 dream_engine = getattr(mind, "dreamer", None) or getattr(cortex, "dreamer", None)
                 if dream_engine:
                     soul_snap = _safe_dict(getattr(self.eng, "soul", {}))
                     bio_packet = {"chem": (self.eng.bio.endo.get_state() if hasattr(
-                            self.eng.bio, "endo") else {}), "mito": {
-                            "atp": self.eng.bio.mito.state.atp_pool,
-                            "ros": self.eng.bio.mito.state.ros_buildup,},}
+                        self.eng.bio, "endo") else {}), "mito": {
+                        "atp": self.eng.bio.mito.state.atp_pool,
+                        "ros": self.eng.bio.mito.state.ros_buildup, }, }
                     dream_text, shift = dream_engine.enter_rem_cycle(
                         soul_snap, bio_state=bio_packet)
                     if dream_text:
@@ -214,7 +221,9 @@ class ObservationPhase(SimulationPhase):
                 ctx.log(f"{Prisma.OCHRE}{msg.format(diag=diag)}{Prisma.RST}")
         if getattr(self.eng, "shared_lattice", None) and not ctx.is_system_event:
             shared_logs, atp_cost = self.eng.shared_lattice.infer_and_couple(text=ctx.input_text,
-                sys_phys=ctx.physics,input_phys=input_phys,atp_pool=current_atp,)
+                                                                             sys_phys=ctx.physics,
+                                                                             input_phys=input_phys,
+                                                                             atp_pool=current_atp, )
             for s_log in shared_logs:
                 ctx.log(s_log)
             if atp_cost > 0 and self.eng.bio and self.eng.bio.mito:
@@ -224,12 +233,14 @@ class ObservationPhase(SimulationPhase):
         self.eng.tick_count += 1
         return ctx
 
+
 class SanctuaryPhase(SimulationPhase):
     """
     The Recovery layer.
     If the system reaches a safe topological zone with low trauma, this phase
     triggers rapid ATP restoration, trauma decay, and spontaneous REM sleep.
     """
+
     def __init__(self, engine_ref, governor_ref):
         super().__init__(engine_ref)
         self.name = "SANCTUARY"
@@ -275,11 +286,11 @@ class SanctuaryPhase(SimulationPhase):
                 ctx.log(f"{Prisma.VIOLET}{dream_log}{Prisma.RST}")
         current_trauma_load = sum(getattr(self.eng, "trauma_accum", {}).values())
         bio_packet = {"chem":
-            self.eng.bio.endo.get_state(),
-            "mito": {"atp": self.eng.bio.mito.state.atp_pool,
-                "ros": self.eng.bio.mito.state.ros_buildup,},
-            "physics": _safe_dict(ctx.physics),
-            "trauma_vector": current_trauma_load,}
+                          self.eng.bio.endo.get_state(),
+                      "mito": {"atp": self.eng.bio.mito.state.atp_pool,
+                               "ros": self.eng.bio.mito.state.ros_buildup, },
+                      "physics": _safe_dict(ctx.physics),
+                      "trauma_vector": current_trauma_load, }
         soul_snapshot = _safe_dict(getattr(self.eng, "soul", {}))
         dream_packet = self.eng.mind.dreamer.enter_rem_cycle(soul_snapshot, bio_state=bio_packet)
         if isinstance(dream_packet, dict):

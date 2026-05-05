@@ -31,20 +31,9 @@
   },
   "renderer": {
     "noise_patterns": [
-      "stabilizer:",
-      "pid_",
-      "flux",
-      "phase execution",
-      "vector collapse",
-      "manifold",
-      "orbit:",
-      "update_coordinates",
-      "active correction",
-      "drag reduced",
-      "voltage spiked",
-      "live state mirror",
-      "auto_trace",
-      "wayfinder"
+      "stabilizer:", "pid_", "flux", "phase execution", "vector collapse", "manifold",
+      "orbit:", "update_coordinates", "active correction", "drag reduced", "voltage spiked",
+      "live state mirror", "auto_trace", "wayfinder"
     ],
     "ignore_msg": "The system is listening.",
     "mode_labels_conversation": {

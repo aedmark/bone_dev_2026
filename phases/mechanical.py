@@ -100,9 +100,10 @@ class GatekeeperPhase(SimulationPhase):
 
         # Object-Action Coupling Enforcer (Gordon's Wall).
         # You cannot execute a logical action on an object that does not exist in the space.
-        if self.eng.gordon:
+        gordon = getattr(self.eng.village, "gordon", None)
+        if gordon:
             current_zone = getattr(ctx.physics, "zone", "UNKNOWN")
-            coupling_error = self.eng.gordon.enforce_object_action_coupling(
+            coupling_error = gordon.enforce_object_action_coupling(
                 ctx.input_text, current_zone)
 
             if coupling_error:
@@ -127,9 +128,10 @@ class GatekeeperPhase(SimulationPhase):
 
         # The Bureaucracy Audit. Evaluates if the prompt is overly complex, corporatized,
         # or bogged down in unnecessary "red tape".
-        if self.eng.bureau:
+        bureau = getattr(self.eng.village, "bureau", None)
+        if bureau:
             current_bio = self.eng.get_metrics()
-            audit_result = self.eng.bureau.audit(_safe_dict(ctx.physics), current_bio, origin="USER")
+            audit_result = bureau.audit(_safe_dict(ctx.physics), current_bio, origin="USER")
             if audit_result:
                 # The Bureau can outright block a prompt if it violates internal compliance rules.
                 if audit_result.get("block", False):
@@ -190,15 +192,17 @@ class MachineryPhase(SimulationPhase):
                 self.eng.bio.mito.state.membrane_potential = min(2.0, self.eng.bio.mito.state.efficiency_mod + (boost * 0.1))
 
         # The Forge: Attempt to combine inventory items based on current contextual physics.
-        if self.eng.gordon and self.eng.gordon.inventory:
+        gordon = getattr(self.eng.village, "gordon", None)
+        if gordon and gordon.inventory:
             self._process_crafting(ctx, phys_dict)
 
         if t_msg := self.eng.phys.forge.transmute(phys_dict): ctx.log(t_msg)
 
         _, f_msg, new_item = self.eng.phys.forge.hammer_alloy(phys_dict)
         if f_msg: ctx.log(f_msg)
-        if new_item and self.eng.gordon:
-            ctx.log(self.eng.gordon.acquire(new_item))
+
+        if new_item and gordon:
+            ctx.log(gordon.acquire(new_item))
 
         # The Theremin: Monitors the ambient 'noise' (entropy) of the logic stream.
         # If the noise becomes chaotic and destructive, it triggers an 'Airstrike'.
@@ -224,17 +228,20 @@ class MachineryPhase(SimulationPhase):
         Calculates if the current environment and semantic vector match the recipe
         requirements to fuse items in the user's inventory into a new tool.
         """
+        gordon = getattr(self.eng.village, "gordon", None)
+        if not gordon:
+            return
         is_craft, craft_msg, old_item, new_item = self.eng.phys.forge.attempt_crafting(
-            phys_dict, self.eng.gordon.inventory)
+            phys_dict, gordon.inventory)
         if is_craft:
             ctx.log(craft_msg)
             vec = ctx.physics.vector
             catalyst_cat = max(vec, key=vec.get) if vec else "void"
             self.eng.events.publish("FORGE_SUCCESS",
                 {"ingredient": old_item, "catalyst": catalyst_cat, "result": new_item},)
-            if old_item in self.eng.gordon.inventory:
-                self.eng.gordon.inventory.remove(old_item)
-            ctx.log(self.eng.gordon.acquire(new_item))
+            if old_item in gordon.inventory:
+                gordon.inventory.remove(old_item)
+            ctx.log(gordon.acquire(new_item))
 
     def _handle_theremin_discharge(self, ctx):
         """
