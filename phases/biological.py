@@ -203,30 +203,33 @@ class MetabolismPhase(SimulationPhase):
         if getattr(self.eng, "bio", None) and self.eng.bio.biometrics:
             current_stamina = self.eng.bio.biometrics.stamina
 
-        # Check for structural fractures requiring Kintsugi repair.
-        cracked, koan = self.eng.kintsugi.check_integrity(current_stamina)
-        if cracked:
-            msg = ux("cycle_strings", "metabolism_kintsugi")
-            ctx.log(f"{Prisma.YEL}{msg.format(koan=koan)}{Prisma.RST}")
+        kintsugi_ref = getattr(self.eng.village, "kintsugi", None)
+        if kintsugi_ref:
+            # Check for structural fractures requiring Kintsugi repair.
+            cracked, koan = kintsugi_ref.check_integrity(current_stamina)
+            if cracked:
+                msg = ux("cycle_strings", "metabolism_kintsugi")
+                ctx.log(f"{Prisma.YEL}{msg.format(koan=koan)}{Prisma.RST}")
 
-        if self.eng.kintsugi.active_koan:
-            repair = self.eng.kintsugi.attempt_repair(ctx.physics, self.eng.trauma_accum,
-                        self.eng.soul, qualia, lexicon_ref=self.eng.lex, )
-            if repair and repair["success"]:
-                ctx.log(repair["msg"])
-                # Leave a permanent structural 'scar' (marker of resilience) where the fracture was.
-                if hasattr(self.eng.mind.mem, "record_scar"):
-                    self.eng.mind.mem.record_scar(
-                        self.eng.kintsugi.active_koan or "Healed Rupture", ctx.physics)
+            if kintsugi_ref.active_koan:
+                repair = kintsugi_ref.attempt_repair(ctx.physics, self.eng.trauma_accum,
+                                                     self.eng.soul, qualia, lexicon_ref=self.eng.lex, )
+                if repair and repair["success"]:
+                    ctx.log(repair["msg"])
+                    # Leave a permanent structural 'scar' (marker of resilience) where the fracture was.
+                    if hasattr(self.eng.mind.mem, "record_scar"):
+                        self.eng.mind.mem.record_scar(
+                            kintsugi_ref.active_koan or "Healed Rupture", ctx.physics)
                 target_cfg = getattr(self.eng, "config", BoneConfig)
                 if self.eng.bio.biometrics:
                     self.eng.bio.biometrics.stamina = min(
                         target_cfg.MAX_STAMINA, self.eng.bio.biometrics.stamina + ctx.limits.get("KINTSUGI_HEAL_AMT", 20.0))
 
         # Standard baseline therapeutic healing (slow regeneration over time).
-        if hasattr(self.eng, "therapy") and self.eng.therapy:
+        therapy_ref = getattr(self.eng.village, "therapy", None)
+        if therapy_ref:
             target_cfg = getattr(self.eng, "config", BoneConfig)
-            if self.eng.therapy.check_progress(ctx.physics, current_stamina, self.eng.trauma_accum, qualia):
+            if therapy_ref.check_progress(ctx.physics, current_stamina, self.eng.trauma_accum, qualia):
                 ctx.log(f"{Prisma.GRN}{ux('cycle_strings', 'metabolism_therapy')}{Prisma.RST}")
                 if self.eng.bio and self.eng.bio.biometrics:
                     self.eng.bio.biometrics.health = min(getattr(target_cfg, "MAX_HEALTH", 100.0),
@@ -321,12 +324,13 @@ class IntrusionPhase(SimulationPhase):
             ctx.log(p_log)
 
         # Ghost haunting: Limbo entities alter the most recent system log if active.
-        if self.eng.limbo.ghosts:
+        limbo_ref = getattr(self.eng.village, "limbo", None)
+        if limbo_ref and limbo_ref.ghosts:
             if ctx.logs:
-                ctx.logs[-1] = self.eng.limbo.haunt(ctx.logs[-1])
+                ctx.logs[-1] = limbo_ref.haunt(ctx.logs[-1])
             else:
                 msg = ux("cycle_strings", "intrusion_heavy")
-                ctx.log(self.eng.limbo.haunt(msg))
+                ctx.log(limbo_ref.haunt(msg))
 
         drag = getattr(ctx.physics, "narrative_drag", 0.0)
         kappa = getattr(ctx.physics, "kappa", 1.0)

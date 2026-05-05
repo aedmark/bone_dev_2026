@@ -108,11 +108,15 @@ class TheCortex:
     def from_engine(cls, engine_ref, llm_client=None):
         target_cfg = getattr(engine_ref, "config", BoneConfig)
         symbiosis_mgr = getattr(engine_ref, "symbiosis", None) or SymbiosisManager(engine_ref.events)
+        village_ref = getattr(engine_ref, "village", None)
         services = CortexServices(events=engine_ref.events, lore=LoreManifest.get_instance(config_ref=target_cfg),
-            lexicon=engine_ref.lex, inventory=engine_ref.gordon, consultant=getattr(engine_ref, "consultant", None),
-            orchestrator=engine_ref.orchestrator, symbiosis=symbiosis_mgr, mind_memory=engine_ref.mind.mem,
-            bio=getattr(engine_ref, "bio", None), host_stats=getattr(engine_ref, "host_stats", None),
-            village=getattr(engine_ref, "village", None), config_ref=target_cfg, )
+                                  lexicon=engine_ref.lex, inventory=getattr(village_ref, "gordon", None),
+                                  consultant=getattr(engine_ref, "consultant", None),
+                                  orchestrator=engine_ref.orchestrator, symbiosis=symbiosis_mgr,
+                                  mind_memory=engine_ref.mind.mem,
+                                  bio=getattr(engine_ref, "bio", None),
+                                  host_stats=getattr(engine_ref, "host_stats", None),
+                                  village=village_ref, config_ref=target_cfg, )
         instance = cls(services, llm_client)
         instance.active_mode = getattr(engine_ref, "boot_mode", "ADVENTURE").upper()
         if instance.active_mode not in BonePresets.MODES:

@@ -91,7 +91,8 @@ class CommandStateInterface:
             "inventory": self.get_inventory()
         }
 
-        nav = getattr(self.eng, "navigator", None)
+        village = getattr(self.eng, "village", None)
+        nav = getattr(village, "navigator", None)
         atlas_data = nav.export_atlas() if nav else None
 
         payload = {
@@ -129,11 +130,13 @@ class CommandStateInterface:
 
     def get_inventory(self) -> List[str]:
         """Reaches into Gordon's backpack to see what the user is carrying."""
-        return getattr(getattr(self.eng, "gordon", None), "inventory", [])
+        village = getattr(self.eng, "village", None)
+        return getattr(getattr(village, "gordon", None), "inventory", [])
 
     def get_navigation_report(self) -> str:
         """Asks the navigator to translate abstract physics coordinates into human-readable locations."""
-        nav = getattr(self.eng, "navigator", None)
+        village = getattr(self.eng, "village", None)
+        nav = getattr(village, "navigator", None)
         observer = getattr(getattr(self.eng, "phys", None), "observer", None)
         packet = getattr(observer, "last_physics_packet", None)
         if nav and packet:
@@ -489,7 +492,8 @@ class CommandProcessor:
             return True
 
         item_name = " ".join(parts[1:]).upper()
-        gordon = getattr(self.interface.eng, "gordon", None)
+        village = getattr(self.interface.eng, "village", None)
+        gordon = getattr(village, "gordon", None)
 
         if not gordon:
             msg = ux("command_alerts", "use_no_inv")
@@ -659,7 +663,8 @@ class CommandProcessor:
 
         cortex = getattr(self.interface.eng, "cortex", None)
         llm = getattr(cortex, "llm", None)
-        council = getattr(self.interface.eng, "council", None)
+        village = getattr(self.interface.eng, "village", None)
+        council = getattr(village, "council", None)
 
         if not llm or not council or not hasattr(council, "host_podcast"):
             self.interface.log(f"{self.P.RED}Error: Cortex LLM or Council 'host_podcast' method unavailable.{self.P.RST}")

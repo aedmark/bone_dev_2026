@@ -14,7 +14,7 @@ from tests.base import BoneTestCase
 class RandomTest(BoneTestCase):
     def test_gordon_rummage_stamina_tax(self):
             self.engine.stamina = 50.0
-            success, msg, cost = self.engine.gordon.rummage(
+            success, msg, cost = self.engine.village.gordon.rummage(
                 physics_ref={}, stamina_pool=self.engine.stamina)
             self.engine.stamina -= cost
             self.assertTrue(cost > 0, "Rummaging cost no stamina.")
@@ -36,7 +36,7 @@ class RandomTest(BoneTestCase):
 
     def test_decoupled_json_configs(self):
             manifest = LoreManifest.get_instance()
-            gordon = self.engine.gordon
+            gordon = getattr(self.engine.village, "gordon", None)
             self.assertTrue(
                 hasattr(gordon, "interaction_verbs"),
                 "Gordon is missing the interaction_verbs attribute.",

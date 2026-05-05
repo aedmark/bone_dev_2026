@@ -43,9 +43,10 @@ class NavigationPhase(SimulationPhase):
         physics.narrative_drag = new_drag
         for log in grav_logs:
             ctx.log(log)
-        if self.eng.gordon:
+        gordon_ref = getattr(self.eng.village, "gordon", None)
+        if gordon_ref:
             phys_snapshot = _safe_dict(physics)
-            reflex_triggered, reflex_msg = self.eng.gordon.emergency_reflex(
+            reflex_triggered, reflex_msg = gordon_ref.emergency_reflex(
                 phys_snapshot)
             if reflex_triggered:
                 _deep_update(physics, phys_snapshot)
@@ -53,16 +54,18 @@ class NavigationPhase(SimulationPhase):
                     ctx.log(reflex_msg)
                 ctx.record_flux("NAVIGATION", "REFLEX", 1.0, 0.0, "ITEM_TRIGGERED")
         phys_dict = _safe_dict(physics)
-        if self.eng.navigator:
-            current_loc, entry_msg = self.eng.navigator.locate(packet=ctx.physics, )
+        navigator_ref = getattr(self.eng.village, "navigator", None)
+        if navigator_ref:
+            current_loc, entry_msg = navigator_ref.locate(packet=ctx.physics, )
             if entry_msg:
                 ctx.log(entry_msg)
-            env_logs = self.eng.navigator.apply_environment(physics)
+            env_logs = navigator_ref.apply_environment(physics)
             for e_log in env_logs:
                 ctx.log(e_log)
-        if self.eng.gordon and self.eng.tinkerer:
-            inv_data = self.eng.gordon.get_inventory_data()
-            deltas = self.eng.tinkerer.calculate_passive_deltas(inv_data)
+        tinkerer_ref = getattr(self.eng.village, "tinkerer", None)
+        if gordon_ref and tinkerer_ref:
+            inv_data = gordon_ref.get_inventory_data()
+            deltas = tinkerer_ref.calculate_passive_deltas(inv_data)
             for delta in deltas:
                 if delta.field == "narrative_drag":
                     if delta.operator == "ADD":
@@ -175,16 +178,17 @@ class ObservationPhase(SimulationPhase):
                         defrag_msg = dream_engine.run_defragmentation(self.eng.mind.mem)
                         if defrag_msg:
                             ctx.log(f"{Prisma.CYN}🧹 {defrag_msg}{Prisma.RST}")
-        if self.eng.gordon and "GORDON" not in self.eng.suppressed_agents:
-            if "TCL9_QUANTUM_COMB" in self.eng.gordon.inventory:
+        gordon_ref = getattr(self.eng.village, "gordon", None)
+        if gordon_ref and "GORDON" not in self.eng.suppressed_agents:
+            if "TCL9_QUANTUM_COMB" in gordon_ref.inventory:
                 weaver = TheTclWeaver.get_instance()
                 original_text = ctx.input_text
                 ctx.input_text = weaver.quantum_comb(ctx.input_text)
                 if original_text != ctx.input_text:
                     ctx.log(f"{Prisma.CYN}🪮 QUANTUM COMB: Fluff stripped -> '{ctx.input_text}'{Prisma.RST}")
-            loot_candidate = self.eng.gordon.parse_loot(ctx.input_text, "")
+            loot_candidate = gordon_ref.parse_loot(ctx.input_text, "")
             if loot_candidate:
-                acquire_msg = self.eng.gordon.acquire(loot_candidate)
+                acquire_msg = gordon_ref.acquire(loot_candidate)
                 ctx.log(acquire_msg)
         gaze_result = self.eng.phys.observer.gaze(ctx.input_text, self.eng.mind.mem.graph)
         input_phys = gaze_result["physics"]
