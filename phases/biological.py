@@ -86,8 +86,8 @@ class MetabolismPhase(SimulationPhase):
         amplification_penalty = mu * math.exp(m_a)
         total_tax = base_cost + amplification_penalty
         if total_tax > 0:
-            self.eng.bio.mito.state.atp_pool = max(
-                0.0, self.eng.bio.mito.state.atp_pool - total_tax)
+            if hasattr(self.eng, "drain_atp"):
+                self.eng.drain_atp(total_tax)
             msg = ux("cycle_strings", "metabolism_tax")
             log_msg = (
                 f"{Prisma.OCHRE}{msg.format(tax_burn=round(total_tax, 2))}{Prisma.RST}")

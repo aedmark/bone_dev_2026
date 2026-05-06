@@ -187,7 +187,7 @@ class CycleSimulator:
         ctx.log(f"{Prisma.RED}{msg_eulogy.format(eulogy=eulogy)}{Prisma.RST}")
         comp = _CRASH_COMPONENT_MAP.get(phase_name, "SIMULATION")
         self.eng.system_health.report_failure(comp, error)
-        """Native deterministic graph freezing based on Nelson Spence (Project Navi)."""
+        # Native deterministic graph freezing based on Nelson Spence (Project Navi).
         last_packet = getattr(self.eng.observer, "last_physics_packet", None)
         if comp == "PHYSICS" or not getattr(ctx, "physics", None):
             ctx.physics = PanicRoom.get_safe_physics()
@@ -346,14 +346,12 @@ class GeodesicOrchestrator:
         return None
 
     def _evaluate_systemic_feedback(self, clean_message: str, ctx: CycleContext):
-        """
-        Meadows' Dynamics: This observes the state *after* the cycle and triggers autonomous
-        reactions (like falling asleep) based on the resultant stocks and flows.
-        """
-        if not hasattr(self.eng.bio, "mito"):
+        mito_state = self.eng._mito_state
+        if not mito_state:
             return
+
         lattice = getattr(self.eng, "shared_lattice", None)
-        """Native WLS fractal dimension calculation (Project Navi). Offloaded to prevent UI drag."""
+        # Native WLS fractal dimension calculation (Project Navi). Offloaded to prevent UI drag.
         mem = self.eng.mind.mem
         cortex = mem.cortex
 
@@ -376,7 +374,7 @@ class GeodesicOrchestrator:
 
         if clean_message != "(Waiting)":
             return
-        atp_level = float(self.eng.bio.mito.state.atp_pool)
+        atp_level = float(getattr(mito_state, "atp_pool", 0.0))
         delta_level = float(getattr(lattice.shared, "delta", 0.0)) if lattice else 0.0
         phys_dict = safe_dict(ctx.physics)
         energy_node = phys_dict.get("energy", phys_dict)

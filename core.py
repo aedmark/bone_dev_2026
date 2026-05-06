@@ -171,7 +171,10 @@ class EventBus:
         """Prevents memory leaks from ghost listeners."""
         subs = self.subscribers.get(event_type)
         if subs and callback in subs:
-            subs.remove(callback)
+            try:
+                subs.remove(callback)
+            except ValueError:
+                pass  # Another thread pruned it simultaneously
 
     def publish(self, event_type, data=None):
         if event_type not in self.subscribers: return
@@ -185,11 +188,14 @@ class EventBus:
                     self.log(f"EVENT_FAILURE: Error in '{cb_name}': {e}\n{tb_str}", source="EVENT_FAILURE",
                              level="CRIT")
                 if callback in self.subscribers[event_type]:
-                    self.subscribers[event_type].remove(callback)
-                    msg = ux_format("core_strings", "bus_error",
-                                    default="[IMMUNE] Apoptotic pruning applied to toxic callback: {cb_name}",
-                                    cb_name=cb_name)
-                    print(f"{Prisma.RED}{msg}{Prisma.RST}")
+                    try:
+                        self.subscribers[event_type].remove(callback)
+                        msg = ux_format("core_strings", "bus_error",
+                                        default="[IMMUNE] Apoptotic pruning applied to toxic callback: {cb_name}",
+                                        cb_name=cb_name)
+                        print(f"{Prisma.RED}{msg}{Prisma.RST}")
+                    except ValueError:
+                        pass  # Handled concurrently
 
     def log(self, message: str, source: str = "SYSTEM", level: str = "INFO"):
         """Creates an immutable, timestamped record of an event and pushes it downstream."""
@@ -333,8 +339,8 @@ class TheObserver:
         if avg_cycle < self.C_EFF and avg_llm < self.L_EFF:
             return ux("core_strings", "obs_efficient")
         if avg_llm > self.LATENCY_WARNING:
-            valid_msgs = [msg for k in ("obs_fog", "obs_degraded", "obs_ponderous") if (msg := ux("core_strings", k))]
-            return random.choice(valid_msgs) if valid_msgs else ""
+            target_key = random.choice(["obs_fog", "obs_degraded", "obs_ponderous"])
+            return ux("core_strings", target_key) or ""
         if avg_cycle > self.CYCLE_WARNING:
             return ux("core_strings", "obs_sluggish")
         if self.is_coupled:
@@ -576,7 +582,7 @@ class TelemetryService:
     def _yield_historical_records(self, file_limit=5, lines_per_file=10):
         """Generates a stream of past telemetry records, reading backwards from the most recent."""
         if not os.path.exists(self.log_dir): return
-        files = sorted(glob.glob(os.path.join(self.log_dir, "trace_*.jsonl")), key=os.path.getmtime, reverse=True)
+        files = sorted(glob.glob(os.path.join(self.log_dir, "trace_*.jsonl")), reverse=True)
         for fpath in files[:file_limit]:
             try:
                 with open(fpath, "r", encoding="utf-8") as f:

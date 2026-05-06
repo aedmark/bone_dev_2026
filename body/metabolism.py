@@ -321,12 +321,14 @@ class DigestiveTrack:
         cfg = getattr(self.cfg, "BIO", None)
         min_len = safe_get(cfg, "MIN_WORD_LENGTH", 4)
         comp_len = safe_get(cfg, "COMPLEX_WORD_LENGTH", 7)
-        valid_words = {w: c for w, c in word_counts.items() if len(w) >= min_len}
-        hits = sum(valid_words.values())
+        antigen_set = self.lex.get("antigen") or set() if self.lex else set()
+        valid_words = {w: c for w, c in word_counts.items() if len(w) >= min_len or w in antigen_set}
+        hits = sum(c for w, c in valid_words.items() if w not in antigen_set)
+
         if not valid_words or not self.lex:
             return sum(c * self.BASE_WORD_VALUE for c in valid_words.values()), [], 0.0, hits
+
         user_set = set(valid_words.keys())
-        antigen_set = self.lex.get("antigen") or set()
         kinetic_set = (self.lex.get("kinetic") or set()) | (self.lex.get("explosive") or set())
         atp_yield = 0.0
         enzymes = []

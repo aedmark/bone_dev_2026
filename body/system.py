@@ -204,8 +204,8 @@ class SomaticLoop:
         if delta_silence > 0.6:
             drag_relief = delta_silence * 2.0
             stamina_recovery = delta_silence * 5.0
-            current_drag = float(safe_get(phys, "narrative_drag", 1.0))
-            safe_set(phys, "narrative_drag", max(1.0, current_drag - drag_relief))
+            current_drag = float(safe_get(phys, "narrative_drag", 0.0))
+            safe_set(phys, "narrative_drag", max(0.0, current_drag - drag_relief))
             b.stamina = min(max_stamina, b.stamina + stamina_recovery)
             if msg := ux("somatic_loop", "silence_heals"):
                 logs.append(f"{Prisma.CYN}{msg.format(recovery=stamina_recovery)}{Prisma.RST}")

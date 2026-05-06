@@ -138,9 +138,6 @@ class BoneAmanita:
         mutations = {"CONVERSATION": "THE CONVERSATIONALIST", "ADVENTURE": "THE ARCHITECT",
                      "TECHNICAL": "THE SYSTEM_KERNEL", "CREATIVE": "THE CATALYST", }
         self.soul.force_mutation(mutations.get(self.boot_mode, "THE ARCHITECT"))
-        if self.boot_mode == "CONVERSATION":
-            self.soul.traits.hope = 0.85
-            self.soul.traits.cynicism = 0.15
         self.reality_stack.stabilize_at(layer)
         prompt_key = self.mode_settings.get("prompt_key", "ADVENTURE")
         model_id = self.sys_config.get("model", "").lower()
@@ -229,11 +226,20 @@ class BoneAmanita:
 
     def _unpack_anatomy(self, anatomy):
         from types import SimpleNamespace
-        for k in ["akashic", "embryo", "soul", "oroboros", "drivers", "symbiosis", "consolidator"]:
-            setattr(self, k, anatomy.get(k))
+        self.akashic = anatomy.get("akashic")
+        self.embryo = anatomy.get("embryo")
+        self.soul = anatomy.get("soul")
+        self.oroboros = anatomy.get("oroboros")
+        self.drivers = anatomy.get("drivers")
+        self.symbiosis = anatomy.get("symbiosis")
+        self.consolidator = anatomy.get("consolidator")
         self.consultant = anatomy.get("consultant", None)
-        self.phys, self.mind, self.bio, self.shimmer = (self.embryo.physics, self.embryo.mind, self.embryo.bio,
-                                                        self.embryo.shimmer)
+
+        # Safe extraction in case Embryo fails to hydrate fully
+        self.phys = getattr(self.embryo, "physics", None)
+        self.mind = getattr(self.embryo, "mind", None)
+        self.bio = getattr(self.embryo, "bio", None)
+        self.shimmer = getattr(self.embryo, "shimmer", None)
         self.bio.setup_listeners()
 
         v = anatomy.get("village", {})
@@ -348,7 +354,8 @@ class BoneAmanita:
                 return immune_halt
         if not is_system and any(prion in clean_in for prion in self._SEMANTIC_PRIONS):
             return _halt("[GATEKEEPER]: Apoptotic refusal triggered by semantic prion.")
-        if not self.reality_stack.get_grammar_rules()["allow_narrative"] and self.boot_mode != "TECHNICAL":
+        grammar_rules = self.reality_stack.get_grammar_rules()
+        if not grammar_rules.get("allow_narrative", True) and self.boot_mode != "TECHNICAL":
             return {"ui": f"{Prisma.RED}{ux('main_strings', 'narrative_halt')}{Prisma.RST}", "logs": [],
                     "metrics": self.get_metrics(), }
         if self._ethical_audit():
@@ -439,8 +446,8 @@ class BoneAmanita:
             safe_set(active_phys, "narrative_drag", 0.0)
         self.stamina = getattr(self.config, "MAX_STAMINA", 100.0)
         self.set_atp(getattr(self.config, "MAX_ATP", 100.0))
-        if getattr(self, "bio", None) and hasattr(self.bio, "mito"):
-            self.bio.mito.state.ros_buildup = 0.0
+        if state := self._mito_state:
+            state.ros_buildup = 0.0
         msg = "Context severed. Friction Dropped. Stamina restored. The mind is clear."
         self.events.log(msg, "SYS")
         return {"type": "COMMAND", "ui": f"\n{Prisma.CYN}{msg}{Prisma.RST}", "logs": [msg],
@@ -456,8 +463,9 @@ class BoneAmanita:
                 mito_state_dict = getattr(self.bio.mito.state, "__dict__", {})
             if hasattr(self.bio, "immune"):
                 immune_data = list(self.bio.immune.active_antibodies)
-        if getattr(self.village, "death_gen", None) is not None:
-            eulogy_text, cause_code = self.village.death_gen.eulogy(last_phys, mito_state_dict, self.trauma_accum)
+        village_layer = getattr(self, "village", None)
+        if getattr(village_layer, "death_gen", None) is not None:
+            eulogy_text, cause_code = village_layer.death_gen.eulogy(last_phys, mito_state_dict, self.trauma_accum)
         else:
             eulogy_text = ux("main_strings", "death_no_proto") or "Critical systemic collapse. Eulogy missing."
             cause_code = "UNKNOWN_FATAL_ERROR"
@@ -474,10 +482,10 @@ class BoneAmanita:
                 self.events.log(f"Cortex harvest failed during death sequence: {e}", "WARN")
             buf = getattr(self.cortex, "dialogue_buffer", [])
             last_out = buf[-1] if buf else "Silence."
-        gordon_inv = getattr(getattr(self.village, "gordon", None), "inventory", [])
+        gordon_inv = getattr(getattr(village_layer, "gordon", None), "inventory", [])
         continuity_packet = {"location": loc, "last_output": last_out, "inventory": gordon_inv}
         try:
-            mutations_data = self.village.repro.attempt_reproduction(self, "MITOSIS")[1] if getattr(self.village, "repro", None) else {}
+            mutations_data = village_layer.repro.attempt_reproduction(self, "MITOSIS")[1] if getattr(village_layer, "repro", None) else {}
             path = self.mind.mem.save(health=0, stamina=self.stamina, mutations=mutations_data,
                                       trauma_accum=self.trauma_accum, joy_history=[],
                                       mitochondria_traits=mito_state_dict,
@@ -493,8 +501,8 @@ class BoneAmanita:
         return {"type": "DEATH", "ui": "\n".join(death_log), "logs": death_log, "metrics": self.get_metrics()}
 
     def get_metrics(self, atp=0.0):
-        if atp <= 0.0 and getattr(self.bio, "mito", None):
-            atp = getattr(self.bio.mito.state, "atp_pool", 0.0)
+        if atp <= 0.0 and (state := self._mito_state):
+            atp = getattr(state, "atp_pool", 0.0)
         return {"health": max(0.0, float(self.health)), "stamina": max(0.0, float(self.stamina)),
                 "atp": max(0.0, float(atp)), "tick": self.tick_count,
                 "efficiency": getattr(self.host_stats, "efficiency_index", 1.0), }
