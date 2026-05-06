@@ -659,6 +659,7 @@ class TheCortex:
             shadow_concepts = [n.get("id", "Unknown") for n in shadow_nodes]
             shadow_str = ", ".join(shadow_concepts)
             phys["shadow_nodes_offered"] = shadow_concepts
+            phys["shadow_cast"] = shadow_str
             self.last_shadow_nodes = shadow_concepts
             v_level = float(safe_get(phys, "voltage", 0.0))
             chi_level = float(safe_get(phys, "chi", safe_get(phys, "entropy", 0.0)))

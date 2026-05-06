@@ -38,8 +38,8 @@ class SynestheticCortex:
         cortex_cfg = getattr(self.cfg, "CORTEX", None)
         base_sens = safe_get(cortex_cfg, "BASE_SENSITIVITY", 1.0)
         if traits:
-            curiosity = getattr(traits, "curiosity", 0.5)
-            discipline = getattr(traits, "discipline", 0.5)
+            curiosity = float(safe_get(traits, "curiosity", 0.5))
+            discipline = float(safe_get(traits, "discipline", 0.5))
             base_sens *= 1.0 + curiosity - discipline
         sens = max(0.0, base_sens)
         valence = safe_get(physics, "valence", 0.0)

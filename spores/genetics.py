@@ -19,6 +19,7 @@ from struts import ux, safe_get
 from presets import BoneConfig
 from spores.spore_utils import _access_config_path
 
+
 class LiteraryReproduction:
     """
     Handles the genetic algorithms of the conversational engine.
@@ -27,7 +28,6 @@ class LiteraryReproduction:
     are passed down to the next instance of the engine.
     """
 
-    # Class-level genetic traits loaded from the LoreManifest
     MUTATIONS = {}
     JOY_CLADE = {}
 
@@ -35,17 +35,16 @@ class LiteraryReproduction:
     # can genetically drift during reproduction.
     # Format: ("Config_Key", Absolute_Min, Absolute_Max, Mutation_Chance)
     MUTATION_TABLE = [
-        ("MAX_DRAG_LIMIT", 1.0, 20.0, 0.3),                 # Tolerance for conversational friction
-        ("TOXIN_WEIGHT", 0.1, 5.0, 0.3),                    # Sensitivity to phonetic or semantic toxicity
-        ("MAX_HEALTH", 50.0, 500.0, 0.1),                   # Overall systemic stamina capacity
-        ("PHYSICS.VOLTAGE_MAX", 10.0, 100.0, 0.2),          # The upper limit of semantic chaos allowed
-        ("BIO.REWARD_MEDIUM", 0.01, 1.0, 0.2),              # Baseline dopamine/sugar reward for good outputs
-        ("COUNCIL.MANIC_VOLTAGE_TRIGGER", 10.0, 50.0, 0.1), # Threshold for manic/lateral thinking modes
-        ("PRIORITY_LEARNING_RATE", 0.5, 5.0, 0.15)          # How quickly the child engine adapts to new input
+        ("MAX_DRAG_LIMIT", 1.0, 20.0, 0.3),  # Tolerance for conversational friction
+        ("TOXIN_WEIGHT", 0.1, 5.0, 0.3),  # Sensitivity to phonetic or semantic toxicity
+        ("MAX_HEALTH", 50.0, 500.0, 0.1),  # Overall systemic stamina capacity
+        ("PHYSICS.VOLTAGE_MAX", 10.0, 100.0, 0.2),  # The upper limit of semantic chaos allowed
+        ("BIO.REWARD_MEDIUM", 0.01, 1.0, 0.2),  # Baseline dopamine/sugar reward for good outputs
+        ("COUNCIL.MANIC_VOLTAGE_TRIGGER", 10.0, 50.0, 0.1),  # Threshold for manic/lateral thinking modes
+        ("PRIORITY_LEARNING_RATE", 0.5, 5.0, 0.15)  # How quickly the child engine adapts to new input
     ]
 
     def __init__(self, config_ref=None):
-        # Reference to the base DNA (configuration) before mutations are applied
         self.cfg = config_ref or BoneConfig
 
     @classmethod
@@ -61,7 +60,6 @@ class LiteraryReproduction:
             cls.MUTATIONS = genetics.get("MUTATIONS", {})
             cls.JOY_CLADE = genetics.get("JOY_CLADE", {})
         except Exception:
-            # Fallback to sterile genetics if the manifest fails to load
             cls.MUTATIONS = {}
             cls.JOY_CLADE = {}
 
@@ -77,9 +75,7 @@ class LiteraryReproduction:
             if random.random() < chance:
                 current_val = _access_config_path(current_config, key)
                 if current_val is not None:
-                    # Apply a +/- 10% drift to the current value
                     mutated_val = current_val * random.uniform(0.9, 1.1)
-                    # Clamp the mutation to ensure the engine remains viable (survives)
                     clamped_val = max(min_v, min(max_v, mutated_val))
                     mutated_config[key] = clamped_val
 
@@ -91,26 +87,20 @@ class LiteraryReproduction:
         The child's "flavor" (trait) is heavily influenced by whatever semantic archetype
         was dominant at the exact moment of reproduction.
         """
-        # Determine the dominant semantic flavor of the parent's current thought process
         counts = safe_get(physics, "counts", {})
         dominant = max(counts, key=counts.get) if counts else "VOID"
 
-        # Pull specific hardcoded mutations mapped to that dominant flavor
-        mutation_data = LiteraryReproduction.MUTATIONS.get(dominant.upper(), {"trait": "NEUTRAL", "mod": {}, "lexicon": []})
+        mutation_data = LiteraryReproduction.MUTATIONS.get(dominant.upper(),
+                                                           {"trait": "NEUTRAL", "mod": {}, "lexicon": []})
 
-        # Name the child based on the parent and the adopted trait
         child_trait = mutation_data.get("trait", "NEUTRAL")
         child_id = f"{parent_id}_({child_trait})"
 
-        # Apply random genetic drift to the baseline config
         config_mutations = LiteraryReproduction.mutate_config(self.cfg)
-        # Apply the dominant flavor's specific forced mutations safely
         config_mutations.update(mutation_data.get("mod", {}))
 
-        # Inherit specific vocabulary mutations
         lexicon_mutations = {dominant.lower(): mutation_data.get("lexicon", [])}
 
-        # Epigenetics: The child strictly inherits the exact trauma the parent experienced
         trauma_vec = bio_state.get("trauma_vector", {})
 
         child_genome = {
@@ -131,7 +121,6 @@ class LiteraryReproduction:
         Merges the current session (Parent A) with a saved spore file (Parent B).
         Traits, trauma, and metabolic enzymes are averaged or combined.
         """
-        # Attempt to read the DNA (JSON) of the second parent
         try:
             with open(parent_b_path, "r", encoding="utf-8") as f:
                 parent_b_data = json.load(f)
@@ -140,18 +129,15 @@ class LiteraryReproduction:
 
         parent_b_id = parent_b_data.get("session_id", "UNKNOWN")
 
-        # Extract both parents' trauma histories safely (accounting for explicit nulls in JSON)
         trauma_a = parent_a_bio.get("trauma_vector") or {}
         trauma_b = parent_b_data.get("trauma_vector") or {}
         all_keys = trauma_a.keys() | trauma_b.keys()
 
-        # The child's trauma is the mathematical average of both parents' scars
         child_trauma = {
             k: (trauma_a.get(k, 0) + trauma_b.get(k, 0)) / 2.0
             for k in all_keys
         }
 
-        # Extract and combine metabolic enzymes (learned biological coping mechanisms)
         mito = parent_a_bio.get("mito") or {}
         enzymes_a = set(mito.get("enzymes", [])) if isinstance(mito, dict) else set(
             getattr(getattr(mito, "state", mito), "enzymes", []))
@@ -159,13 +145,10 @@ class LiteraryReproduction:
         mito_b = parent_b_data.get("mitochondria") or {}
         enzymes_b = set(mito_b.get("enzymes", []))
 
-        # The child inherits the union of all survival enzymes
         child_enzymes = list(enzymes_a | enzymes_b)
 
-        # Apply base genetic drift
         config_mutations = LiteraryReproduction.mutate_config(self.cfg)
 
-        # Construct the hybrid identity
         short_a = parent_a_id[-4:]
         short_b = parent_b_id[-4:]
         child_id = f"HYBRID_{short_a}x{short_b}"
@@ -177,7 +160,7 @@ class LiteraryReproduction:
             "trauma_inheritance": child_trauma,
             "config_mutations": config_mutations,
             "inherited_enzymes": child_enzymes,
-            "lexicon_mutations": {}, # Lexicon crossover is handled post-birth in the Lexicon manager
+            "lexicon_mutations": {},
         }
 
         return child_id, child_genome
@@ -191,21 +174,17 @@ class LiteraryReproduction:
         mem = engine_ref.mind.mem
         mito_data = {}
 
-        # Extract the live metabolic state (Mitochondria)
         if getattr(engine_ref, "bio", None) and hasattr(engine_ref.bio, "mito"):
             mito_data = getattr(engine_ref.bio.mito.state, "__dict__", {})
 
-        # Bundle the somatic and epigenetic state
         bio_state = {
             "trauma_vector": engine_ref.trauma_accum,
             "mito": mito_data,
         }
 
-        # Extract the semantic state (what was the engine "thinking" about right now?)
         cortex = getattr(engine_ref, "cortex", None)
         phys_packet = getattr(cortex, "last_physics", None) if cortex else None
 
-        # Fallback to observer if cortex lacks the physics packet
         if not phys_packet:
             obs = getattr(engine_ref, "observer", None)
             phys_packet = getattr(obs, "last_physics_packet", {}) or {}
@@ -213,15 +192,12 @@ class LiteraryReproduction:
         genome = {}
         child_id = "UNKNOWN"
 
-        # Execute the chosen reproductive mode
         if mode == "MITOSIS":
             child_id, genome = self.mitosis(mem.session_id, bio_state, phys_packet)
         elif mode == "CROSSOVER":
             if target_spore:
                 res = self.crossover(mem.session_id, bio_state, target_spore)
-                if res[0]: # If crossover was successful and not corrupted
+                if res[0]:
                     child_id, genome = res
 
-        # Return the ENTIRE genome dictionary, not just the lexicon mutations,
-        # so the resulting child actually inherits its config mutations and trauma.
         return child_id, genome

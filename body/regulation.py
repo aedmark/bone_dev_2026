@@ -338,8 +338,8 @@ class EndocrineRegulator:
                 logs.append(f"{Prisma.YEL}{msg}{Prisma.RST}")
         if chem.dopamine > 0.7:
             modifier *= 0.8
-        energy = getattr(phys, "energy", phys)
-        if (voltage := getattr(energy, "voltage", 0.0)) > 15.0:
+        energy = safe_get(phys, "energy", phys)
+        if (voltage := float(safe_get(energy, "voltage", 0.0))) > 15.0:
             modifier *= 1.2
             if msg := ux("endocrine_regulator", "voltage_gap"):
                 logs.append(f"{Prisma.MAG}{msg.format(voltage=voltage)}{Prisma.RST}")

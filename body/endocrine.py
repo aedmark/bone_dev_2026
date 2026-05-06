@@ -56,6 +56,8 @@ class EndocrineSystem:
             "MEL": 0.3,
             "COR": -0.1
         }, "LUNAR", ""])
+        if not isinstance(self._CIRCADIAN_NIGHT, list) or len(self._CIRCADIAN_NIGHT) < 3:
+            self._CIRCADIAN_NIGHT = [{"MEL": 0.3, "COR": -0.1}, "LUNAR", ""]
 
     @staticmethod
     def _clamp(val: float) -> float:

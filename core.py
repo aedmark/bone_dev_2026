@@ -22,7 +22,7 @@ from struts import ux, ux_format, safe_get
 
 
 def safe_dict(obj):
-    """Schur's Pragmatism: Safe object-to-dict conversion without enforcing strict interfaces."""
+    """Safe object-to-dict conversion without enforcing strict interfaces."""
     if isinstance(obj, (set, deque)): return list(obj)
     if hasattr(obj, "to_dict"): return obj.to_dict()
     if hasattr(obj, "__dict__"): return vars(obj)

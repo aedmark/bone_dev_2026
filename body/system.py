@@ -108,7 +108,8 @@ class BioSystem:
         Forces the endocrine system into extreme states based on narrative commands.
         """
         state = payload.get("state", "NEUTRAL")
-        shifts = getattr((self.config_ref or BoneConfig).BIO, "NEURAL_SHIFTS", {})
+        bio_cfg = getattr(self.config_ref or BoneConfig, "BIO", None)
+        shifts = getattr(bio_cfg, "NEURAL_SHIFTS", {}) if bio_cfg else {}
         if state == "PANIC":
             cfg = shifts.get("PANIC", {"adr": 0.3, "cor": 0.2})
             self.endo.adrenaline = min(1.0, self.endo.adrenaline + cfg.get("adr", 0.3))

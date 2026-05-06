@@ -195,10 +195,11 @@ class BoneAmanita:
 
     def get_avg_voltage(self):
         """Calculates average voltage from the physics observer."""
-        # Prefer the dedicated observer, fallback to the base physics object if flattened
         target = getattr(self.phys, "observer", self.phys)
         hist = getattr(target, "voltage_history", [])
-        return sum(hist) / len(hist) if hist else 0.0
+        # Fuller: Enforce structural integrity by filtering out non-numeric rot before calculation.
+        valid_hist = [v for v in hist if isinstance(v, (int, float))] if hist else []
+        return sum(valid_hist) / len(valid_hist) if valid_hist else 0.0
 
     def _unpack_anatomy(self, anatomy):
         from types import SimpleNamespace
@@ -221,7 +222,7 @@ class BoneAmanita:
         self.council = CouncilChamber(self)
         self.village.council = self.council
         self.village.enneagram = self.drivers.enneagram
-        self.village.suppressed_agents = getattr(self, "suppressed_agents", [])
+        self.village.suppressed_agents = self.suppressed_agents
 
     def _evaluate_immune_response(self, user_message: str, active_phys: Dict[str, Any], halt_func) -> Optional[
         Dict[str, Any]]:
@@ -302,10 +303,6 @@ class BoneAmanita:
                 safe_set(active_phys, "narrative_drag", 999.0)
                 return _halt(
                     "Dual-Path divergence detected. The architecture is mathematically brittle. Applying absolute friction")
-            if "[grief]" in clean_in and getattr(self, "grief", None):
-                grief_msg = self.grief.attend_wake(getattr(self, "shared_lattice", None), self.phys)
-                self.events.log(grief_msg, "SYS")
-                return {"type": "COMMAND", "ui": f"\n{grief_msg}", "logs": [grief_msg], "metrics": self.get_metrics()}
             symbiosis_layer = getattr(self, "symbiosis", None)
             if symbiosis_layer:
                 physics_state = getattr(self, "phys", {})
@@ -450,7 +447,8 @@ class BoneAmanita:
                 loc = orbit_data[0] if isinstance(orbit_data, list) and orbit_data else orbit_data
             except Exception as e:
                 self.events.log(f"Cortex harvest failed during death sequence: {e}", "WARN")
-            last_out = self.cortex.dialogue_buffer[-1] if getattr(self.cortex, "dialogue_buffer", None) else "Silence."
+            buf = getattr(self.cortex, "dialogue_buffer", [])
+            last_out = buf[-1] if buf else "Silence."
         gordon_inv = getattr(getattr(self.village, "gordon", None), "inventory", [])
         continuity_packet = {"location": loc, "last_output": last_out, "inventory": gordon_inv}
         try:
@@ -559,6 +557,8 @@ class BoneAmanita:
             self.telemetry.shutdown()
         if hasattr(self, "cortex") and self.cortex:
             self.cortex.shutdown()
+        if hasattr(self, "orchestrator") and self.orchestrator:
+            self.orchestrator.shutdown()
         self.chronos.perform_shutdown()
 
 

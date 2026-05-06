@@ -438,6 +438,11 @@ class GeodesicOrchestrator:
         self.symbiosis.monitor_host(latency, "HEADLESS_MODE", len(user_message))
         return snapshot
 
+    def shutdown(self):
+        """Meadows: Closes the async flow to prevent zombie thread accumulation."""
+        if getattr(self, "_async_pool", None) is not None:
+            self._async_pool.shutdown(wait=False)
+
     def _hydrate_snapshot_metadata(self, snapshot: Dict, ctx: CycleContext):
         """Ensures the UI layer receives all necessary telemetry and background state info."""
         snapshot.update({
