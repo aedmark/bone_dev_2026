@@ -1,16 +1,13 @@
 """spores/genetics.py
-
 This module defines the evolutionary and reproductive systems of the engine.
 Instead of loading static configurations every time, the system can "reproduce"
 by saving its current state as a Spore. These spores carry genetic mutations,
 inherited trauma, and adapted vocabulary, allowing the system to evolve
 new conversational metabolisms over successive generations.
-
 Classes:
     - LiteraryReproduction: The biological controller for spawning offspring states
       (Mitosis) or merging two distinct session states (Crossover).
 """
-
 import json
 import random
 from typing import Tuple, Dict
@@ -27,21 +24,16 @@ class LiteraryReproduction:
     experiential data (like trauma vectors or specific lexicon adaptations)
     are passed down to the next instance of the engine.
     """
-
     MUTATIONS = {}
     JOY_CLADE = {}
-
-    # The Mutable Alleles: A table defining which configuration parameters
-    # can genetically drift during reproduction.
-    # Format: ("Config_Key", Absolute_Min, Absolute_Max, Mutation_Chance)
     MUTATION_TABLE = [
-        ("MAX_DRAG_LIMIT", 1.0, 20.0, 0.3),  # Tolerance for conversational friction
-        ("TOXIN_WEIGHT", 0.1, 5.0, 0.3),  # Sensitivity to phonetic or semantic toxicity
-        ("MAX_HEALTH", 50.0, 500.0, 0.1),  # Overall systemic stamina capacity
-        ("PHYSICS.VOLTAGE_MAX", 10.0, 100.0, 0.2),  # The upper limit of semantic chaos allowed
-        ("BIO.REWARD_MEDIUM", 0.01, 1.0, 0.2),  # Baseline dopamine/sugar reward for good outputs
-        ("COUNCIL.MANIC_VOLTAGE_TRIGGER", 10.0, 50.0, 0.1),  # Threshold for manic/lateral thinking modes
-        ("PRIORITY_LEARNING_RATE", 0.5, 5.0, 0.15)  # How quickly the child engine adapts to new input
+        ("MAX_DRAG_LIMIT", 1.0, 20.0, 0.3),
+        ("TOXIN_WEIGHT", 0.1, 5.0, 0.3),
+        ("MAX_HEALTH", 50.0, 500.0, 0.1),
+        ("PHYSICS.VOLTAGE_MAX", 10.0, 100.0, 0.2),
+        ("BIO.REWARD_MEDIUM", 0.01, 1.0, 0.2),
+        ("COUNCIL.MANIC_VOLTAGE_TRIGGER", 10.0, 50.0, 0.1),
+        ("PRIORITY_LEARNING_RATE", 0.5, 5.0, 0.15)
     ]
 
     def __init__(self, config_ref=None):
@@ -78,7 +70,6 @@ class LiteraryReproduction:
                     mutated_val = current_val * random.uniform(0.9, 1.1)
                     clamped_val = max(min_v, min(max_v, mutated_val))
                     mutated_config[key] = clamped_val
-
         return mutated_config
 
     def mitosis(self, parent_id, bio_state, physics):
@@ -89,20 +80,14 @@ class LiteraryReproduction:
         """
         counts = safe_get(physics, "counts", {})
         dominant = max(counts, key=counts.get) if counts else "VOID"
-
         mutation_data = LiteraryReproduction.MUTATIONS.get(dominant.upper(),
                                                            {"trait": "NEUTRAL", "mod": {}, "lexicon": []})
-
         child_trait = mutation_data.get("trait", "NEUTRAL")
         child_id = f"{parent_id}_({child_trait})"
-
         config_mutations = LiteraryReproduction.mutate_config(self.cfg)
         config_mutations.update(mutation_data.get("mod", {}))
-
         lexicon_mutations = {dominant.lower(): mutation_data.get("lexicon", [])}
-
         trauma_vec = bio_state.get("trauma_vector", {})
-
         child_genome = {
             "source": "MITOSIS",
             "parent_a": parent_id,
@@ -112,7 +97,6 @@ class LiteraryReproduction:
             "dominant_flavor": dominant,
             "trauma_inheritance": trauma_vec,
         }
-
         return child_id, child_genome
 
     def crossover(self, parent_a_id, parent_a_bio, parent_b_path):
@@ -126,43 +110,33 @@ class LiteraryReproduction:
                 parent_b_data = json.load(f)
         except Exception:
             return None, ux("spore_strings", "repro_corrupt_spore")
-
         parent_b_id = parent_b_data.get("session_id", "UNKNOWN")
-
         trauma_a = parent_a_bio.get("trauma_vector") or {}
         trauma_b = parent_b_data.get("trauma_vector") or {}
         all_keys = trauma_a.keys() | trauma_b.keys()
-
         child_trauma = {
             k: (trauma_a.get(k, 0) + trauma_b.get(k, 0)) / 2.0
             for k in all_keys
         }
-
         mito = parent_a_bio.get("mito") or {}
-        enzymes_a = set(mito.get("enzymes", [])) if isinstance(mito, dict) else set(
-            getattr(getattr(mito, "state", mito), "enzymes", []))
-
+        hash_a = str(mito.get("mother_hash", "EVE")) if isinstance(mito, dict) else str(
+            getattr(mito, "mother_hash", "EVE"))
         mito_b = parent_b_data.get("mitochondria") or {}
-        enzymes_b = set(mito_b.get("enzymes", []))
-
-        child_enzymes = list(enzymes_a | enzymes_b)
-
+        hash_b = str(mito_b.get("mother_hash", "EVE"))
+        child_lineage = f"{hash_a[:4]}_{hash_b[:4]}"
         config_mutations = LiteraryReproduction.mutate_config(self.cfg)
-
         short_a = parent_a_id[-4:]
         short_b = parent_b_id[-4:]
         child_id = f"HYBRID_{short_a}x{short_b}"
-
         child_genome = {
             "source": "CROSSOVER",
             "parent_a": parent_a_id,
             "parent_b": parent_b_id,
             "trauma_inheritance": child_trauma,
             "config_mutations": config_mutations,
-            "inherited_enzymes": child_enzymes,
+            "inherited_lineage": child_lineage,
             "lexicon_mutations": {},
         }
-
         return child_id, child_genome
 
     def attempt_reproduction(self, engine_ref, mode="MITOSIS", target_spore=None) -> Tuple[str, Dict]:
@@ -173,25 +147,19 @@ class LiteraryReproduction:
         """
         mem = engine_ref.mind.mem
         mito_data = {}
-
         if getattr(engine_ref, "bio", None) and hasattr(engine_ref.bio, "mito"):
             mito_data = getattr(engine_ref.bio.mito.state, "__dict__", {})
-
         bio_state = {
             "trauma_vector": engine_ref.trauma_accum,
             "mito": mito_data,
         }
-
         cortex = getattr(engine_ref, "cortex", None)
         phys_packet = getattr(cortex, "last_physics", None) if cortex else None
-
         if not phys_packet:
             obs = getattr(engine_ref, "observer", None)
             phys_packet = getattr(obs, "last_physics_packet", {}) or {}
-
         genome = {}
         child_id = "UNKNOWN"
-
         if mode == "MITOSIS":
             child_id, genome = self.mitosis(mem.session_id, bio_state, phys_packet)
         elif mode == "CROSSOVER":
@@ -199,5 +167,4 @@ class LiteraryReproduction:
                 res = self.crossover(mem.session_id, bio_state, target_spore)
                 if res[0]:
                     child_id, genome = res
-
         return child_id, genome

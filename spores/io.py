@@ -31,16 +31,16 @@ class LocalFileSporeLoader:
     def save_spore(self, filename, data):
         """
         Preserves the active memory state to disk using an atomic write pattern.
-        [S]ynergetic Heuristic: We NEVER write directly over an existing memory file.
+        We NEVER write directly over an existing memory file.
         If the process dies halfway through a direct write, the JSON is corrupted,
         and the spore is dead. Instead, we write to a temporary file, flush the buffer,
         and then execute an atomic OS-level replacement.
         """
         temp_path = None
-        if os.path.isabs(filename) or filename.startswith(self.directory):
+        if os.path.isabs(filename) or os.path.dirname(filename) == self.directory:
             final_path = filename
         else:
-            final_path = os.path.join(self.directory, filename)
+            final_path = os.path.join(self.directory, os.path.basename(filename))
         os.makedirs(os.path.dirname(final_path), exist_ok=True)
         try:
             fd, temp_path = tempfile.mkstemp(dir=os.path.dirname(final_path), text=True)

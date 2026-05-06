@@ -174,13 +174,16 @@ class LLMInterface:
             return auth_fail.format(e=e)
         except Exception as e:
             if self.provider != "ollama":
-                fallback = self._local_fallback(payload)
-                if fallback is not None:
-                    if self.events:
-                        self.events.log(
-                            f"{Prisma.OCHRE}[SYSTEM FLICKER]: Primary synapse failed. Substrate routed to local fallback.{Prisma.RST}",
-                            "SYS")
-                    return fallback
+                try:
+                    fallback = self._local_fallback(payload)
+                    if fallback is not None:
+                        if self.events:
+                            self.events.log(
+                                f"{Prisma.OCHRE}[SYSTEM FLICKER]: Primary synapse failed. Substrate routed to local fallback.{Prisma.RST}",
+                                "SYS")
+                        return fallback
+                except Exception:
+                    pass
             self.failure_count += 1
             self.last_failure_time = time.time()
             if self.failure_count >= self.failure_threshold:

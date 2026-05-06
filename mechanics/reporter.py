@@ -92,12 +92,9 @@ class GeodesicRenderer:
         ignore_msg = ux("renderer", "ignore_msg") or "The system is listening."
         clean_ui = clean_ui.replace(ignore_msg, "")
         structured_logs = self.compose_logs(ctx.logs, current_events, tick)
-        return {
-            "type": "GEODESIC_FRAME",
-            "ui": clean_ui,
-            "logs": structured_logs,
-            "metrics": self.eng.get_metrics(bio.get("atp", 0.0)),
-        }
+        atp_val = bio.get("atp", 0.0) if isinstance(bio, dict) else 0.0
+        return {"type": "GEODESIC_FRAME", "ui": clean_ui, "logs": structured_logs,
+                "metrics": self.eng.get_metrics(atp_val), }
 
     def render_dashboard(self, ctx) -> str:
         """Collects the nested variables required by the Projector to paint the HUD."""
@@ -112,23 +109,15 @@ class GeodesicRenderer:
             nav = getattr(self.eng, "navigator", None)
             world_loc = getattr(nav.world_graph.get(nav.current_node_id) if nav else None, "name", "UNKNOWN")
         cfg = getattr(self.eng, "config", {})
-        default_depth = cfg.get("default_ui_depth") if isinstance(cfg, dict) else getattr(cfg, "default_ui_depth",
-                                                                                          "WARM")
+        default_depth = cfg.get("default_ui_depth")  if isinstance(cfg, dict) else getattr(cfg, "default_ui_depth",  "WARM")
         current_ui_depth = getattr(self.eng, "ui_mode", default_depth or mode_settings.get("default_ui_depth", "WARM"))
         soul = getattr(self.eng, "soul", None)
         anchor = getattr(soul, "anchor", None)
         dignity_val = getattr(anchor, "dignity_reserve", 100.0)
-        data_ctx = {
-            "health": self.eng.health,
-            "stamina": self.eng.stamina,
-            "bio": bio_data,
-            "dignity": dignity_val,
-            "vectors": physics.get("vector", {}),
-            "ui_depth": current_ui_depth,
-            "world_loc": world_loc,
-            "show_vitals": mode_settings.get("show_vitals", True),
-            "show_location": mode_settings.get("show_location", True),
-        }
+        data_ctx = {"health": self.eng.health, "stamina": self.eng.stamina, "bio": bio_data, "dignity": dignity_val,
+                    "vectors": physics.get("vector", {}), "ui_depth": current_ui_depth, "world_loc": world_loc,
+                    "show_vitals": mode_settings.get("show_vitals", True),
+                    "show_location": mode_settings.get("show_location", True), }
         if hasattr(ctx, "shared_dyn"):
             data_ctx.update({"shared_dyn": ctx.shared_dyn, "user_state": ctx.user_state})
         if pe := getattr(self.eng, "paradox_engine", None):
@@ -142,8 +131,7 @@ class GeodesicRenderer:
                 "O": getattr(c_state, "O", 1.0),
             }
         data_ctx["lattice_strain"] = self._calculate_lattice_strain(physics)
-        mode = cfg.get("boot_mode", "ADVENTURE").upper() if isinstance(cfg, dict) else getattr(cfg, "boot_mode",
-                                                                                               "ADVENTURE").upper()
+        mode = cfg.get("boot_mode", "ADVENTURE").upper() if isinstance(cfg, dict) else getattr(cfg, "boot_mode", "ADVENTURE").upper()
         stack = getattr(ctx, "reality_stack", None)
         current_depth = getattr(stack, "current_depth", 1) if stack else 1
         if mode == "TECHNICAL":

@@ -77,7 +77,9 @@ class TheTinkerer:
             return
         cfg = getattr(self.cfg, "VILLAGE", None)
         v_chance = float(safe_get(cfg, "TINKER_TOOL_USE_VOLT_CHANCE", 0.1))
-        if packet.voltage < self.cfg.PHYSICS.VOLTAGE_LOW and random.random() > v_chance:
+        # Avoid brittle dot-notation access. Use the existing safe getter.
+        v_low = _cfg_val(self.cfg, "PHYSICS", "VOLTAGE_LOW", 5.0)
+        if packet.voltage < v_low and random.random() > v_chance:
             return
         focus_item = random.choice(inventory_list)
         ent_val = packet.vector.get("ENT", 0.0) if packet.vector else 0.0
@@ -213,7 +215,7 @@ class TheCartographer:
         node.entropy_buildup += ce
         if node.entropy_buildup > _cfg_val(self.cfg, "VILLAGE", "CARTO_ENTROPY_CAP", 5.0):
             if packet.vector is not None:
-                packet.vector["ENT"] = packet.vector.get("ENT", 0.0) + node.entropy_buildup
+                packet.vector["ENT"] = min(1.0, packet.vector.get("ENT", 0.0) + node.entropy_buildup)
             node.entropy_buildup = 0.0
         return logs
 

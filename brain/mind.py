@@ -176,8 +176,8 @@ class NoeticLoop:
             if len(unique_words) >= 2:
                 w1, w2 = random.sample(unique_words, 2)
                 self._force_link(self.mind.mem.graph, w1, w2, self.cfg)
-        current_lens = soul_ref.archetype if soul_ref else "OBSERVER"
-        current_role = f"The {current_lens.title().replace('_', ' ')}" if soul_ref else "Witness"
+        current_lens = (getattr(soul_ref, "archetype", "OBSERVER") or "OBSERVER") if soul_ref else "OBSERVER"
+        current_role = f"The {current_lens.title().replace('_', ' ')}"
         msg_cog = ux("brain_strings",
                      "noetic_ignition") or "Cognition active. Ignition: {ignition:.2f}"
         return {"mode": "COGNITIVE", "lens": current_lens, "context_msg": msg_cog.format(ignition=ignition),
@@ -416,7 +416,7 @@ class DreamEngine:
         pruned = [n for n, _ in sorted(weak_nodes, key=lambda x: x[1])[:limit]]
         for node in pruned:
             del graph[node]
-            for remaining_node in graph.values():
+            for remaining_node in list(graph.values()):
                 if "edges" in remaining_node and node in remaining_node["edges"]:
                     del remaining_node["edges"][node]
         if pruned:

@@ -250,7 +250,8 @@ class MycelialNetwork:
         max_cap = getattr(self.cfg, "MAX_MEMORY_CAPACITY", 100)
         victims = []
         log_msg = None
-        excess_mass = (len(self.graph) + len(valuable)) - max_cap
+        new_nodes_count = sum(1 for w in valuable if w not in self.graph)
+        excess_mass = (len(self.graph) + new_nodes_count) - max_cap
         if excess_mass > 0:
             cfg = getattr(self.cfg, "SPORES", object())
             desp_thresh = getattr(cfg, "DESPERATION_SATURATION_THRESH", 0.6)
@@ -474,8 +475,9 @@ class MycelialNetwork:
                 core_graph[k] = {"edges": valid_edges, "last_tick": 0}
         future_seed_q = self._generate_future_seed(temp_health=health, trauma_vec=final_vector)
         seed_list = [{"q": s.question, "m": s.maturity, "b": s.bloomed} for s in self.seeds if not s.bloomed]
-        seed_list.append({"q": future_seed_q, "m": 0.0, "b": False})
-        data = {"genome": "BA_01983", "session_id": self.session_id, "parent_id": self.session_id,
+        if not any(s["q"] == future_seed_q for s in seed_list):
+            seed_list.append({"q": future_seed_q, "m": 0.0, "b": False})
+        data = {"genome": "BA_01987", "session_id": self.session_id, "parent_id": self.session_id,
                 "meta": {"timestamp": time.time(), "final_health": health, "final_stamina": stamina, },
                 "trauma_vector": final_vector, "joy_vectors": top_joy or [], "joy_legacy": joy_legacy_data,
                 "core_graph": core_graph, "mutations": mutations or {},

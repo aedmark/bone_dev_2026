@@ -112,6 +112,8 @@ class LexiconStore:
         if len(cat_dict) >= 1000:
             oldest_word = min(cat_dict, key=cat_dict.get)
             del cat_dict[oldest_word]
+            if oldest_word in self.REVERSE_INDEX and category in self.REVERSE_INDEX[oldest_word]:
+                self.REVERSE_INDEX[oldest_word].remove(category)
         cat_dict[w] = tick
         self._index_word(w, category)
         return True

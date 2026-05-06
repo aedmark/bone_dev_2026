@@ -140,7 +140,10 @@ class CerebralIndex:
             f_cost = payload.get("narrative_drag", 1.0)
             return (omega ** 2) + (2 * omega_r) + f_cost
 
-        return heapq.nlargest(k, self._payloads, key=_score)
+        import random
+        sample_size = min(len(self._payloads), 100)
+        candidates = random.sample(self._payloads, sample_size)
+        return heapq.nlargest(k, candidates, key=_score)
 
     def query_neighborhood(self, query_vector: List[float], k: int = 5, resonance_threshold: float = 0.5,
                            physics_state: Optional[Dict[str, float]] = None) -> List[Dict]:

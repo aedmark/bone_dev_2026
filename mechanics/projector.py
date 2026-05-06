@@ -185,9 +185,10 @@ class Projector:
         label_health = labels.get("HP", "HP")
         label_stamina = labels.get("STM", "STM")
         icon_role = self.symbols.get("role", "")
-        role_block = f"{Prisma.WHT}{icon_role} {active_role}{Prisma.RST}"
+        raw_role = f"{icon_role} {active_role}"[:35].ljust(35)
+        role_block = f"{Prisma.WHT}{raw_role}{Prisma.RST}"
         return (
-            f"  {role_block:<35} "
+            f"  {role_block} "
             f"{label_health} {health_bar}  "
             f"{label_stamina} {stamina_bar}  "
             f"{dignity_color}{dignity_icon}{int(current_dignity)}%{Prisma.RST} "
