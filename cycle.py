@@ -261,8 +261,8 @@ class GeodesicOrchestrator:
         try:
             safe_adj = {k: set(v) for k, v in list(actual_adj.items())}
             self._async_pool.submit(_bg_topology_check, safe_adj)
-        except RuntimeError:
-            pass
+        except RuntimeError as e:
+            self.eng.events.log(f"Async pool rejected topology check. Engine may be shutting down: {e}", "DEBUG")
 
     def _execute_core_cycle(self, user_message: str, is_system: bool = False) -> CycleContext:
         """
@@ -299,11 +299,13 @@ class GeodesicOrchestrator:
             ctx.council_mandates = []
             ctx.timestamp = time.time()
 
-            # [LEVEL 4 PEDAGOGY TRIGGER]
+            # [LEVEL 4 PROTOCOL TRIGGER]
             if not getattr(ctx.physics, "vector", None):
                 ctx.physics.vector = {}
 
-            ctx.physics.vector["pedagogical_mode"] = ("[!s]" in user_message or "pedagogy" in user_message.lower())
+            # Correctly map the Sincerity Protocols to their structural vectors
+            ctx.physics.vector["pedagogical_mode"] = ("pedagogy" in user_message.lower())
+            ctx.physics.vector["lateral_shuffle"] = ("[!" + "s]" in user_message)  # The Shuffle
             ctx = self.simulator.run_simulation(ctx)
             post_logs = [e["text"] for e in self.eng.events.flush()]
             ctx.logs.extend(post_logs)
@@ -385,8 +387,9 @@ class GeodesicOrchestrator:
             log_msg = "Automatic REM Bridge engaged: High Coherence Debt detected." if is_debt_recovery else "Automatic REM Bridge engaged: High ATP, High Silence."
             try:
                 self._async_pool.submit(self._dispatch_rem_worker, log_msg)
-            except RuntimeError:
+            except RuntimeError as e:
                 self._rem_lock.release()
+                self.eng.events.log(f"REM worker rejected by async pool: {e}", "DEBUG")
 
     def run_turn(self, user_message: str, is_system: bool = False) -> Dict[str, Any]:
         """
@@ -398,8 +401,9 @@ class GeodesicOrchestrator:
             if self._rem_lock.acquire(blocking=False):
                 try:
                     self._async_pool.submit(self._dispatch_rem_worker, "Spawning detached worker for Dream Engine...")
-                except RuntimeError:
+                except RuntimeError as e:
                     self._rem_lock.release()
+                    self.eng.events.log(f"Dream worker rejected by async pool: {e}", "WARN")
             else:
                 self.eng.events.log("Dream worker already active. Ignoring overlapping idle request.", "SYS")
             packet = getattr(self.eng.observer, "last_physics_packet", None)

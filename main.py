@@ -65,8 +65,8 @@ class BoneAmanita:
         self.suppressed_agents = self.mode_settings.get("village_suppression", [])
         self.sys_config["mode_settings"] = self.mode_settings
         self.sys_config["config"] = self.config
-        self.health = self.config.MAX_HEALTH
-        self.stamina = self.config.MAX_STAMINA
+        self._health_fallback = self.config.MAX_HEALTH
+        self._stamina_fallback = self.config.MAX_STAMINA
         self.trauma_accum = {}
         self.tick_count = 0
         boot_msg = ux("main_strings", "boot_core")
@@ -171,6 +171,32 @@ class BoneAmanita:
             self.events.log(msg_mods.format(mods=", ".join(active_mods)), "SYS")
 
     @property
+    def health(self) -> float:
+        """Dynamic router to Biological biometrics. Prevents state duplication."""
+        if getattr(self, "bio", None) and hasattr(self.bio, "biometrics"):
+            return self.bio.biometrics.health
+        return getattr(self, "_health_fallback", 100.0)
+
+    @health.setter
+    def health(self, value: float):
+        if getattr(self, "bio", None) and hasattr(self.bio, "biometrics"):
+            self.bio.biometrics.health = float(value)
+        self._health_fallback = float(value)
+
+    @property
+    def stamina(self) -> float:
+        """Dynamic router to Biological biometrics. Prevents state duplication."""
+        if getattr(self, "bio", None) and hasattr(self.bio, "biometrics"):
+            return self.bio.biometrics.stamina
+        return getattr(self, "_stamina_fallback", 100.0)
+
+    @stamina.setter
+    def stamina(self, value: float):
+        if getattr(self, "bio", None) and hasattr(self.bio, "biometrics"):
+            self.bio.biometrics.stamina = float(value)
+        self._stamina_fallback = float(value)
+
+    @property
     def _mito_state(self):
         """Safe internal accessor for the mitochondrial state."""
         if getattr(self, "bio", None) and hasattr(self.bio, "mito"):
@@ -224,19 +250,20 @@ class BoneAmanita:
         self.village.enneagram = self.drivers.enneagram
         self.village.suppressed_agents = self.suppressed_agents
 
-    def _evaluate_immune_response(self, user_message: str, active_phys: Dict[str, Any], halt_func) -> Optional[
-        Dict[str, Any]]:
+    def _evaluate_immune_response(self, user_message: str, active_phys: Any, halt_func) -> Optional[Dict[str, Any]]:
         """Isolates the Runaway Toxicity Math (Moog, Rhodes, Linehan) to prevent pre-flight monoliths."""
         if not active_phys:
             return None
-        m_a = self.navi_sad.calculate_malignancy_factor(user_message, float(safe_get(active_phys, "narrative_drag", 0.0)))
+
+        nav_drag = float(safe_get(active_phys, "narrative_drag", 0.0))
+        m_a = self.navi_sad.calculate_malignancy_factor(user_message, nav_drag)
         safe_set(active_phys, "m_a", m_a)
+
         mu = float(safe_get(active_phys, "mu", 0.0))
         i_c = float(safe_get(active_phys, "i_c", 1.0))
         chi = float(safe_get(active_phys, "entropy", safe_get(active_phys, "chi", 0.2)))
         base_exhaust = float(safe_get(active_phys, "exhaustion", 0.0))
         beta = float(safe_get(active_phys, "beta_index", 0.0))
-        # Safely resolve user exhaustion from the shared lattice
         lattice = getattr(self, "shared_lattice", None)
         e_u = float(getattr(lattice.u, "E", base_exhaust)) if lattice and hasattr(lattice, "u") else base_exhaust
         if (chi * m_a) > i_c:
@@ -396,8 +423,6 @@ class BoneAmanita:
                         if self.host_stats.efficiency_index < getattr(cfg, "DOMESTICATION_EFF_CRIT", 0.4)
                         else getattr(cfg, "RELIANCE_LOW", 0.5))
             soul_anchor.check_domestication(reliance)
-        if hasattr(self.bio, "biometrics") and self.health > 0.0:
-            self.health, self.stamina = self.bio.biometrics.health, self.bio.biometrics.stamina
         if hasattr(self.mind.mem, "session_trauma_vector"):
             self.trauma_accum = self.mind.mem.session_trauma_vector or self.trauma_accum
         if self.health <= 0.0:

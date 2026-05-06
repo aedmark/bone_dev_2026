@@ -47,7 +47,7 @@ class SessionGuardian:
     """
     _HEADERS = (
         ("term_header_top", "┌──────────────────────────────────────────┐"),
-        ("term_header_mid", "│ BONEAMANITA TERMINAL // VERSION 19.8.7   │"),
+        ("term_header_mid", "│ BONEAMANITA TERMINAL // VERSION 19.8.8   │"),
         ("term_header_bot", "└──────────────────────────────────────────┘"),
     )
 

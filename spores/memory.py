@@ -285,7 +285,8 @@ class MemoryCore:
         for k, v in self.graph.items():
             if k not in protected and not v.get("is_diamond", False):
                 mass = sum(v.get("edges", {}).values())
-                score = mass + (100.0 / max(1, current_tick - v.get("last_tick", 0)))
+                age = max(1, current_tick - v.get("last_tick", 0))
+                score = (mass + 1.0) * (1.0 + (10.0 / age))
                 candidates.append((k, v, score))
         if not candidates:
             return None, ux("spore_strings", "core_lock") or ""

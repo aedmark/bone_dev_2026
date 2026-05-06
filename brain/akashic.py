@@ -49,6 +49,9 @@ class TheAkashicRecord:
         event_bus.subscribe("FORGE_SUCCESS", self._on_forge_event)
         event_bus.subscribe("GHOST_SIGNAL", self._on_ghost_signal)
         event_bus.subscribe("SYSTEM_STARVING", self._on_system_starving)
+        event_bus.subscribe("TRAUMA_EVENT", self._on_trauma_event)
+        event_bus.subscribe("GLIMMER_FORMED", self._on_glimmer_event)
+
         if msg := ux("akashic_strings", "listening"):
             print(f"{Prisma.GRY}{msg}{Prisma.RST}")
 
@@ -57,6 +60,16 @@ class TheAkashicRecord:
         yield_val, msg = self.trigger_autophagy()
         if msg:
             print(f"{Prisma.CYN}{msg}{Prisma.RST}")
+
+    def _on_trauma_event(self, payload):
+        if payload:
+            concept = payload.get("concept", "Systemic Trauma")
+            physics = payload.get("physics", {})
+            self.record_scar(concept, physics)
+
+    def _on_glimmer_event(self, payload):
+        if payload and "concept" in payload and "paradigm" in payload:
+            self.record_glimmer(payload["concept"], payload["paradigm"])
 
     def trigger_autophagy(self) -> Tuple[float, str]:
         """
@@ -130,6 +143,9 @@ class TheAkashicRecord:
         try:
             prompts = self.lore.get("SYSTEM_PROMPTS") or {}
             epigenetic_list = prompts.setdefault("GLOBAL_BASELINE", {}).setdefault("EPIGENETIC_BOONS", [])
+            if not isinstance(epigenetic_list, list):
+                epigenetic_list = []
+                prompts["GLOBAL_BASELINE"]["EPIGENETIC_BOONS"] = epigenetic_list
             axiom = f"STRUCTURAL SUCCESS [{concept.upper()}]: The system achieved deep resonance using this paradigm: '{paradigm}'. Prioritize this geometry in future calculations."
             if axiom not in epigenetic_list:
                 epigenetic_list.append(axiom)
@@ -150,6 +166,11 @@ class TheAkashicRecord:
         try:
             prompts = self.lore.get("SYSTEM_PROMPTS") or {}
             epigenetic_list = prompts.setdefault("GLOBAL_BASELINE", {}).setdefault("EPIGENETIC_SCARS", [])
+        
+            if not isinstance(epigenetic_list, list):
+                epigenetic_list = []
+                prompts["GLOBAL_BASELINE"]["EPIGENETIC_SCARS"] = epigenetic_list
+
             axiom = f"SCAR TISSUE [{concept.upper()}]: The system previously collapsed here (Tension: {coords.get('beta', 0.0)}). You must structurally avoid repeating the failure that caused this."
             if axiom not in epigenetic_list:
                 epigenetic_list.append(axiom)
@@ -288,8 +309,10 @@ class TheAkashicRecord:
         self.save_to_disk("state", state)
 
     def save_to_disk(self, category: str, data: Any):
-        filepath = os.path.join(self.save_dir, f"akashic_{category}.json")
+        target_dir = self.data_dir if category in ["discovered_words", "scars", "boons"] else self.save_dir
+        filepath = os.path.join(target_dir, f"akashic_{category}.json")
         try:
+            os.makedirs(target_dir, exist_ok=True)
             os.makedirs(self.save_dir, exist_ok=True)
             temp_path = f"{filepath}.tmp"
             with open(temp_path, "w", encoding="utf-8") as f:
@@ -325,7 +348,7 @@ class TheAkashicRecord:
             if recipes := gordon_data.get("RECIPES", []):
                 self.known_recipes.update((r.get("ingredient"), r.get("catalyst_category")) for r in recipes if
                                           r.get("ingredient") and r.get("catalyst_category"))
-        words_path = os.path.join(self.save_dir, "akashic_discovered_words.json")
+        words_path = os.path.join(self.data_dir, "akashic_discovered_words.json")
         if os.path.exists(words_path):
             try:
                 with open(words_path, "r", encoding="utf-8") as f:
@@ -338,19 +361,21 @@ class TheAkashicRecord:
                     self.lore.inject("LEXICON", lexicon_data)
             except Exception as e:
                 print(f"{Prisma.RED}[AKASHIC] Failed to load discovered words: {e}. Keeping current state.{Prisma.RST}")
-        scars_path = os.path.join(self.save_dir, "akashic_scars.json")
-        boons_path = os.path.join(self.save_dir, "akashic_boons.json")
+        scars_path = os.path.join(self.data_dir, "akashic_scars.json")
+        boons_path = os.path.join(self.data_dir, "akashic_boons.json")
         prompts = self.lore.get("SYSTEM_PROMPTS") or {}
         if os.path.exists(scars_path):
             try:
                 with open(scars_path, "r", encoding="utf-8") as f:
-                    prompts.setdefault("GLOBAL_BASELINE", {})["EPIGENETIC_SCARS"] = json.load(f)
+                    data = json.load(f)
+                    prompts.setdefault("GLOBAL_BASELINE", {})["EPIGENETIC_SCARS"] = data if isinstance(data, list) else []
             except Exception as e:
                 print(f"{Prisma.RED}[AKASHIC] Failed to load scars: {e}.{Prisma.RST}")
         if os.path.exists(boons_path):
             try:
                 with open(boons_path, "r", encoding="utf-8") as f:
-                    prompts.setdefault("GLOBAL_BASELINE", {})["EPIGENETIC_BOONS"] = json.load(f)
+                    data = json.load(f)
+                    prompts.setdefault("GLOBAL_BASELINE", {})["EPIGENETIC_BOONS"] = data if isinstance(data, list) else []
             except Exception as e:
                 print(f"{Prisma.RED}[AKASHIC] Failed to load boons: {e}.{Prisma.RST}")
         self.lore.inject("SYSTEM_PROMPTS", prompts)

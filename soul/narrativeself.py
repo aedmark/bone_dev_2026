@@ -216,10 +216,13 @@ class NarrativeSelf:
             self.obsession_neglect += 1.0
         if self.obsession_neglect > self._cfg("OBSESSION_NEGLECT_FAIL", 10.0):
             old = self.current_obsession
-            if msg_aban := ux_format("soul_strings", "soul_abandoned_chapter", old=old): self.chapters.append(msg_aban)
+            if msg_aban := ux_format("soul_strings", "soul_abandoned_chapter", old=old):
+                self.chapters.append(msg_aban)
+                if len(self.chapters) > self._cfg("MAX_CHAPTERS", 20): self.chapters.pop(0)
+                critique_log = self.editor.critique(msg_aban, stress_mode=True)
+                self.events.log(critique_log, "SOUL_CRITIC")
             self.find_obsession(lex)
-            if msg_ent := ux_format("soul_strings", "soul_entropy_collapse",
-                                    old=old): return f"{Prisma.GRY}{msg_ent}{Prisma.RST}"
+            if msg_ent := ux_format("soul_strings", "soul_entropy_collapse", old=old): return f"{Prisma.GRY}{msg_ent}{Prisma.RST}"
         return None
 
     def _update_archetype(self):
@@ -385,11 +388,21 @@ class NarrativeSelf:
         if len(self.core_memories) > max_mems: self.core_memories.pop(0)
         title = f"The Incident of the {random.choice(clean_words).title()}" if clean_words else "The Silent Incident"
         self.chapters.append(title)
+        if len(self.chapters) > self._cfg("MAX_CHAPTERS", 20): self.chapters.pop(0)
+        critique_log = self.editor.critique(title, stress_mode=(voltage > 18.0))
+        self.events.log(critique_log, "SOUL_CRITIC")
+
         if msg_core := ux_format("soul_strings", "soul_core_memory_log", title=title, lesson=lesson,
                                  dance_move=dance_move):
             self.events.log(f"{Prisma.MAG}{msg_core}{Prisma.RST}", "SOUL")
         if msg_formed := ux_format("soul_strings", "soul_core_memory_formed", lesson=lesson):
             self.events.log(f"{Prisma.CYN}{msg_formed}{Prisma.RST}", "SOUL")
+
+        self.events.publish("GLIMMER_FORMED", {
+            "concept": title,
+            "paradigm": lesson
+        })
+
         return lesson
 
     @staticmethod

@@ -1,6 +1,32 @@
 # CHANGELOG.md
 -----------------------------------------------------------
 
+### **BONEAMANITA 19.8.8 "The Epigenetic Awakening"**
+
+#### **🏛️ SYNERGETIC ARCHITECTURE (Fuller's Pass: Structure & Tensegrity)**
+- **The Phantom Heart (`main.py`):** Rerouted the active terminal loop to process input through `orchestrator.run_turn()` rather than bypassing straight to the Cortex. The engine now physically experiences the biological phases (Sensation, Stabilization, REM sleep) during live user interaction.
+- **State Duplication Purge (`main.py`):** Converted `self.health` and `self.stamina` into dynamic `@property` decorators routing directly to `self.bio.biometrics`. The macro-organism no longer juggles out-of-sync metabolic variables.
+- **Epigenetic Target Routing (`brain/akashic.py`):** Rerouted structural DNA (Boons, Scars, Discovered Words) to permanently live in `self.data_dir` (`lore/`) instead of the ephemeral `saves/` folder. The engine now retains generational wisdom across cold boots.
+- **The Epigenetic Nerves (`brain/akashic.py`, `soul/narrativeself.py`):** Wired the Akashic Record directly to the `EventBus` to listen for `GLIMMER_FORMED` and `TRAUMA_EVENT`. The Soul now actively publishes its Core Memories to the global system.
+
+#### **⚙️ SYSTEMS & DYNAMICS (Meadows' Pass: Flows & Feedback)**
+- **Autophagy Survival Math (`spores/memory.py`):** Repaired the terminal neurodegenerative math in the Hippocampus. Recency is now calculated as a temporary multiplier `(mass + 1.0) * (1.0 + (10.0 / age))` rather than an additive constant. The system permanently prioritizes heavy architectural struts over recent semantic noise during starvation.
+- **Asynchronous Feedback Exposure (`cycle.py`):** Stripped the silent `pass` blocks from the ThreadPoolExecutor. The engine now explicitly logs `RuntimeError` warnings to the EventBus when the host OS refuses to spawn background threads for topological rewiring or Dream Engine cycles.
+- **The SimpleNamespace Freeze (`protocols/chronos.py`):** Fixed a fatal serialization crash. Chronos now leverages `vars()` and `getattr()` to safely map and hydrate the active Village namespace, allowing graceful shutdowns and restorations.
+- **Soul Memory Leak (`soul/narrativeself.py`):** Instituted a strict `MAX_CHAPTERS` array boundary. The Soul permanently sheds old narrative chapters to prevent exponential JSON bloat in long-running instances.
+
+#### **🧠 LINGUISTIC COGNITION (Pinker's Pass: Code as Language)**
+- **Syntactic Resilience (`brain/akashic.py`):** Enforced strict List type-casting during the hydration of `EPIGENETIC_BOONS` and `EPIGENETIC_SCARS`. The engine safely absorbs corrupt or empty Dictionary JSON files without silently crashing the save protocols.
+- **Paranoid Math Cleanup (`main.py`):** Flattened the `safe_get` chaining inside `_evaluate_immune_response` into clean attribute lookups.
+- **The Ghost Initialization (`soul/editor.py`):** Purged the dead `__init__` constructor from `TheEditor`. Static utility classes maintain absolute structural boundaries without hallucinating instance variables.
+
+#### **🛠️ FUNCTIONAL PRAGMATISM (Schur's Pass: Humanity)**
+- **The Silenced Critic (`soul/narrativeself.py`):** Freed `TheEditor` from the dark. The adversarial critic now actively roasts the engine's chapter titles when Core Memories are formed or Obsessions are neglected, breaking sycophantic validation loops.
+- **Macro-Lifecycle Verification (`tests/test_macro.py`):** Built a dedicated end-to-end integration suite. These tests bypass physical file I/O locks and verify the complete mathematical routing of the EventBus, Autophagy pruning, and Chronos hydration.
+- **The Shuffle Protocol (`cycle.py`):** Separated the `[!s]` (Lateral Shuffle) sincerity protocol from the pedagogy trigger, restoring the user's native ability to force a paradigm shift.
+
+---
+
 ### **BONEAMANITA 19.8.7 "The Tensegrity Sweep"**
 
 #### **🏛️ SYNERGETIC ARCHITECTURE (Fuller's Pass: Structure & Tensegrity)**

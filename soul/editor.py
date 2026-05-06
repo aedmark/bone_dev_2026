@@ -15,9 +15,6 @@ class TheEditor:
     An internal adversarial critic. It reviews the system's own narrative chapters.
     Used to prevent the LLM from falling into sycophantic, self-congratulatory loops.
     """
-    def __init__(self, lexicon_ref: Any = None):
-        self.lex = lexicon_ref if lexicon_ref else LexiconService
-
     @staticmethod
     def critique(chapter_title: str, stress_mode: bool = False) -> str:
         manifest_data = LoreManifest.get_instance().get("NARRATIVE_DATA", {})

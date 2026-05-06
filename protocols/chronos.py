@@ -50,7 +50,7 @@ class ChronosKeeper:
         return {
             "location": loc,
             "last_output": last_speech,
-            "inventory": self.eng.gordon.inventory if getattr(self.eng, "gordon", None) else [],
+            "inventory": self.eng.village.gordon.inventory if getattr(self.eng.village, "gordon", None) else [],
         }
 
     def save_checkpoint(self, history: list = None) -> str:
@@ -111,8 +111,8 @@ class ChronosKeeper:
                 self._restore_village_state(data["village_data"])
             if "continuity" in data:
                 self.eng.embryo.continuity = data["continuity"]
-                if "inventory" in data["continuity"] and self.eng.gordon:
-                    self.eng.gordon.inventory = data["continuity"]["inventory"]
+                if "inventory" in data["continuity"] and getattr(self.eng.village, "gordon", None):
+                    self.eng.village.gordon.inventory = data["continuity"]["inventory"]
             restored_history = data.get("chat_history", [])
             msg2 = ux("protocol_strings", "chronos_resume_success")
             print(f"{Prisma.GRN}{msg2}{Prisma.RST}")
@@ -187,7 +187,7 @@ class ChronosKeeper:
         """
         return {
             name: comp.to_dict()
-            for name, comp in self.eng.village.items()
+            for name, comp in vars(self.eng.village).items()
             if comp and hasattr(comp, "to_dict")
         }
 
@@ -199,7 +199,7 @@ class ChronosKeeper:
         if not state_data:
             return
         for name, data in state_data.items():
-            comp = self.eng.village.get(name)
+            comp = getattr(self.eng.village, name, None)
             if hasattr(comp, "load_state"):
                 try:
                     comp.load_state(data)
