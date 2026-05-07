@@ -179,7 +179,8 @@ class BoneAmanita:
     def health(self, value: float):
         if getattr(self, "bio", None) and hasattr(self.bio, "biometrics"):
             self.bio.biometrics.health = float(value)
-        self._health_fallback = float(value)
+        else:
+            self._health_fallback = float(value)
 
     @property
     def stamina(self) -> float:
@@ -192,7 +193,8 @@ class BoneAmanita:
     def stamina(self, value: float):
         if getattr(self, "bio", None) and hasattr(self.bio, "biometrics"):
             self.bio.biometrics.stamina = float(value)
-        self._stamina_fallback = float(value)
+        else:
+            self._stamina_fallback = float(value)
 
     @property
     def _mito_state(self):

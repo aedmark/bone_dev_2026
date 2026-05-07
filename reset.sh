@@ -18,5 +18,6 @@ rm -rf logs
 rm -rf memories
 rm -rf saves
 rm -f ./lore/lenses.json
+rm -f ./lore/akashic*
 rm -f ./legacy.json
 rm -rf ./output

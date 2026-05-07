@@ -286,6 +286,10 @@ class TheCartographer:
     def to_dict(self) -> Dict[str, Any]:
         return {"nodes": {k: v.to_dict() for k, v in self.world_graph.items()}, "current_id": self.current_node_id}
 
+    def export_atlas(self) -> Dict[str, Any]:
+        """Legacy alias for Chronos continuity."""
+        return self.to_dict()
+
     def load_state(self, data: Dict[str, Any]):
         if not data:
             return

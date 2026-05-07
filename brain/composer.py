@@ -304,13 +304,13 @@ class PromptComposer:
         cfg_cortex = getattr(self.cfg, "CORTEX", None)
         char_limit = getattr(cfg_cortex, "MAX_HISTORY_CHARS", 4096)
         current_chars = 0
-        cutoff_idx = len(raw_history)
-        for i in reversed(range(len(raw_history))):
-            if current_chars + len(raw_history[i]) > char_limit and current_chars > 0:
+        valid_history = []
+        for entry in reversed(raw_history):
+            if current_chars + len(entry) > char_limit and valid_history:
                 break
-            current_chars += len(raw_history[i])
-            cutoff_idx = i
-        history_str = "\n\n".join(raw_history[cutoff_idx:])
+            valid_history.append(entry)
+            current_chars += len(entry)
+        history_str = "\n\n".join(reversed(valid_history))
         gordon_shock = state.get("gordon_shock", "")
         system_injection = ""
         if voltage > v_manic:

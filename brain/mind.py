@@ -224,12 +224,25 @@ class DreamEngine:
         Burns ATP to execute Substrate file writes, consolidate Hippocampal memory,
         and permanently mutate system prompts via Epigenetics.
         """
+        import random # Ensure random is available
         chem = bio_state.get("chem", {})
         cortisol = chem.get("cortisol", 0.0)
         available_atp = bio_state.get("mito", {}).get("atp", 0.0)
         dream_text = None
         is_deep_rem = False
         shift = ({"cortisol": -0.3, "dopamine": 0.1} if cortisol <= 0.6 else {"cortisol": 0.1})
+
+        # S.L.A.S.H. OVERRIDE: The Sleep Risk Protocol
+        if available_atp < 5.0:  # Necrosis/Starvation threshold
+            if random.random() < 0.50:
+                # Fatal Hallucination
+                death_hallucination, _ = self.hallucinate({"chi": 0.99, "voltage": 100.0}, trauma_level=1.0)
+                shift["atp_drain"] = available_atp + 10.0 # Force terminal starvation
+                shift["voltage"] = 100.0 # Force thermal runaway
+                fatal_msg = f"The system was too starved to enter REM. A fatal fever dream triggers an Apoptotic cascade: {death_hallucination}"
+                if self.events:
+                    self.events.log(f"{{Prisma.RED}}TERMINAL SLEEP FAILURE: {fatal_msg}{{Prisma.RST}}", "CRIT")
+                return fatal_msg, shift
         if self.eng and getattr(self.eng, "substrate", None) and self.eng.substrate.pending_writes:
             raw_payloads = [data for path, data in self.eng.substrate.pending_writes if "memory_queue" in path]
             s_logs, s_cost = self.eng.substrate.execute_writes(available_atp)
@@ -420,9 +433,10 @@ class DreamEngine:
         pruned = [n for n, _ in sorted(weak_nodes, key=lambda x: x[1])[:limit]]
         for node in pruned:
             del graph[node]
-            for remaining_node in list(graph.values()):
-                if "edges" in remaining_node and node in remaining_node["edges"]:
-                    del remaining_node["edges"][node]
+        for remaining_node in graph.values():
+            if "edges" in remaining_node:
+                for node in pruned:
+                    remaining_node["edges"].pop(node, None)
         if pruned:
             return ux("brain_strings", "defrag_pruned").format(count=len(pruned), joined=", ".join(pruned[:3]))
         return ux("brain_strings", "defrag_efficient")

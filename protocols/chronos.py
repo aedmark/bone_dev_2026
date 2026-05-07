@@ -135,13 +135,14 @@ class ChronosKeeper:
         try:
             msg2 = ux("protocol_strings", "chronos_freezing")
             print(f"{Prisma.GRY}{msg2}{Prisma.RST}")
-
             bio = getattr(self.eng, "bio", None)
             phys = getattr(self.eng, "phys", None)
-
             mito_traits = bio.mito.state.__dict__ if bio and getattr(bio, "mito", None) else {}
             immune_data = list(bio.immune.active_antibodies) if bio and getattr(bio, "immune", None) else []
-            atlas = phys.nav.export_atlas() if phys and getattr(phys, "nav", None) else {}
+            atlas = {}
+            if phys and getattr(phys, "nav", None):
+                nav_sys = phys.nav
+                atlas = nav_sys.to_dict() if hasattr(nav_sys, "to_dict") else {}
 
             soul_data = self.eng.soul.to_dict() if getattr(self.eng, "soul", None) else {}
             if getattr(self.eng, "mind", None) and getattr(self.eng.mind, "mem", None):

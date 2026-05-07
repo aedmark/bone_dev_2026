@@ -611,7 +611,7 @@ class TelemetryService:
 
     def get_last_fatal_error(self) -> Optional[str]:
         """Navigates the graveyard of past trace files to resurrect the last critical failure."""
-        for data in self._yield_historical_records(file_limit=5, lines_per_file=5):
+        for data in self._yield_historical_records(file_limit=5, lines_per_file=50):
             if "CRITICAL" in str(data.get("outcome", "")):
                 return ux_format("core_strings", "tel_prev_crash", default="Crash: {reason}",
                                  reason=data.get("reasoning", "Unknown"))

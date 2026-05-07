@@ -262,8 +262,6 @@ class TheCortex:
             if needs_rewrite:
                 is_faithful = False
                 judge_reason = "Maxim of Quantity violated. Your response was too long. Compress your output drastically."
-                if self.svc.bio:
-                    self.svc.bio.mito.adjust_atp(-3.0, "Pragmatist Rewrite Tax")
             elif self.dspy_critic.enabled:
                 valid_mode = self.active_mode in ["ADVENTURE", "CONVERSATION"]
                 if valid_mode and not is_boot_sequence:

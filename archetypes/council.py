@@ -205,13 +205,6 @@ class CouncilChamber:
                 transcript.extend(self.footnote.commentary(log) for log in a_logs)
                 adjustments.update(a_corr)
                 mandates.extend(a_man)
-                if auditor == self.slash_council:
-                    adjustments["stamina_cost"] = getattr(BoneConfig.COUNCIL, "SLASH_STAMINA_COST", 10.0)
-                elif auditor == self.overseer_council:
-                    if any(m.get("value") == "RADICAL_ACCEPTANCE" for m in a_man if isinstance(m, dict)):
-                        adjustments["stamina_cost"] = -stamina
-                    if any(m.get("action") == "TIPP_PROTOCOL" for m in a_man if isinstance(m, dict)):
-                        adjustments["freeze_background_tasks"] = True
         village_logs = self.village.audit(physics_packet, _bio_result)
         c_data = LoreManifest.get_instance().get("COUNCIL_DATA") or {}
         synergy_map = c_data.get("SYNERGY_MAP", {})
@@ -308,9 +301,8 @@ class CouncilChamber:
         with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
             configs = [{"temperature": 0.4, "max_tokens": 1024}, {"temperature": 0.8, "max_tokens": 1024},
                        {"temperature": 0.7, "max_tokens": 1024}]
-            # Prevent indefinite thread locking. If the LLM hangs, the timeout breaks the block.
-            thesis, antithesis, lateral = [f.result(timeout=15.0) for f in
-                                           [executor.submit(llm.generate, p, c) for p, c in zip([p1, p2, p3], configs)]]
+            futures = [executor.submit(llm.generate, p, c) for p, c in zip([p1, p2, p3], configs)]
+            thesis, antithesis, lateral = [f.result(timeout=15.0) for f in futures]
         p4 = (
             "SYSTEM_INSTRUCTION: You are The Stage Manager. You are the exhausted orchestrator holding the system together.\n"
             f"TASK: Review this chaotic debate:\n1. {v1_name}: {Prisma.strip(thesis)}\n2. {v2_name}: {Prisma.strip(antithesis)}\n3. {v3_name}: {Prisma.strip(lateral)}\n"
@@ -433,6 +425,7 @@ class TheSlashCouncil:
             if cond:
                 logs.append(f"{color}{msg}{Prisma.RST}")
                 corrections.update(corr)
+        corrections["stamina_cost"] = getattr(BoneConfig.COUNCIL, "SLASH_STAMINA_COST", 10.0)
         return True, logs, corrections, mandates
 
 
@@ -489,13 +482,15 @@ class TheOverseerCouncil:
         if any(p in text_lower for p in self._PANIC_KEYWORDS) and voltage > 75.0 and i_c < 0.5:
             logs.append(
                 f"{Prisma.RED}[LINEHAN - DEAR MAN Lock]: (Describe) System Voltage spikes and Immune Competence drops. (Express) Panic-coding will fracture the lattice. (Assert) Applying absolute friction. (Reinforce) I am holding the boundary so you do not bleed on the machine. T.I.P.P. engaged.{Prisma.RST}")
-            corrections.update({"voltage": -50.0, "narrative_drag": 100.0, "silence": 0.9})
+            corrections.update(
+                {"voltage": -50.0, "narrative_drag": 100.0, "silence": 0.9, "freeze_background_tasks": True})
             mandates.append({"action": "TIPP_PROTOCOL", "value": "ISOLATE_VARIABLES"})
             return True, logs, corrections, mandates
         if chi > 0.7 and e_u > 0.7 and beta > 0.6:
             logs.append(
                 f"{Prisma.SLATE}[LINEHAN - The Synthesis]: The architecture is fundamentally broken. Stop fighting the current. We sit with the debris.{Prisma.RST}")
-            corrections.update({"ros": -100.0, "r_a": 1.0, "narrative_drag": -(f_sys * 0.5)})
+            corrections.update({"ros": -100.0, "r_a": 1.0, "narrative_drag": -(f_sys * 0.5),
+                                "stamina_cost": -float(safe_get(physics, "stamina", 100.0))})
             mandates.append({"action": "FORCE_MODE", "value": "RADICAL_ACCEPTANCE"})
             return True, logs, corrections, mandates
         if m_a > 0.6 or f_sys > 5.0:

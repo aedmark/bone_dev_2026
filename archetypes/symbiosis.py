@@ -210,9 +210,10 @@ class SymbiosisManager:
         sys_f = float(safe_get(physics, "narrative_drag", 0.0))
         f_diff = abs(sys_f - self.u.F_u)
         self.shared.phi = max(0.0, min(1.0, 1.0 - (f_diff / 4.0)))
-        # Prevent runaway accumulation.
         if self.shared.phi > 0.8 and sys_f > 3.0:
-            self.shared.g_pool = min(10, self.shared.g_pool + 1)
+            if self.shared.g_pool < 10:
+                self.shared.g_pool += 1
+                self._log_event(f"{Prisma.GRY}Trust deepens through friction. (+1 G_pool){Prisma.RST}", "SYS")
         beth = (self.shared.phi * 0.6) + (self.u.E_u * 0.4)
         safe_set(physics, "beth", beth)
         setattr(self.shared, "beth", beth)

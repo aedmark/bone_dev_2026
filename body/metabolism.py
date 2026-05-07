@@ -319,33 +319,26 @@ class DigestiveTrack:
         """
         if not self.lex:
             return 0.0, [], 0.0, 0
-
         word_counts = Counter(words)
         cfg = getattr(self.cfg, "BIO", None)
         min_len = safe_get(cfg, "MIN_WORD_LENGTH", 4)
         comp_len = safe_get(cfg, "COMPLEX_WORD_LENGTH", 7)
         antigen_set = self.lex.get("antigen") or set()
-
         valid_words = {w: c for w, c in word_counts.items() if len(w) >= min_len or w in antigen_set}
         hits = sum(c for w, c in valid_words.items() if w not in antigen_set)
-
         if not valid_words:
             return 0.0, [], 0.0, hits
-
-        user_set = set(valid_words.keys())
-        kinetic_set = (self.lex.get("kinetic") or set()) | (self.lex.get("explosive") or set())
+        kinetic_set = frozenset((self.lex.get("kinetic") or set()) | (self.lex.get("explosive") or set()))
         atp_yield = 0.0
         enzymes = []
         cliche_tax = 0.0
-        antigens_found = user_set.intersection(antigen_set)
-        kinetics_found = user_set.intersection(kinetic_set)
         for word, count in valid_words.items():
-            if word in antigens_found:
+            if word in antigen_set:
                 cliche_tax += self.CLICHE_TAX_RATE * count
                 continue
             val = self.COMPLEX_WORD_BONUS if len(word) > comp_len else self.BASE_WORD_VALUE
             log_mult = 1.0 + math.log(count)
-            if word in kinetics_found:
+            if word in kinetic_set:
                 atp_yield += (val * 1.5) * log_mult
             else:
                 cat = self.lex.get_current_category(word)

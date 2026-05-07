@@ -42,9 +42,8 @@ class HumanityAnchor:
         if atp >= self._cfg("AUDIT_ATP_MIN", 5.0) or float(safe_get(physics, "voltage", 0.0)) >= self._cfg(
                 "AUDIT_VOLTAGE_MIN", 5.0):
             return 0.0
-        matter = safe_get(physics, "matter", {})
-        vector = safe_get(physics, "vector", safe_get(matter, "vector", {}))
-        counts = safe_get(physics, "counts", safe_get(matter, "counts", {}))
+        vector = getattr(physics, "vector", {})
+        counts = getattr(physics, "counts", {})
         vec_sum = sum(vector.get(k, 0.0) for k in self._VECTOR_ANCHORS)
         lex_sum = sum(counts.get(k, 0) for k in self._LEXICAL_ANCHORS) * self._cfg("AUDIT_LEXICAL_MULT", 0.5)
         if (vec_sum + lex_sum) > self._cfg("AUDIT_RESONANCE_THRESH", 0.3):

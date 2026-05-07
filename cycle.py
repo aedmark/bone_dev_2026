@@ -88,13 +88,10 @@ def _native_freeze_graph(adj_dict: dict) -> tuple:
     Immutability enforcer. Converts a mutable adjacency dictionary into a deeply nested,
     hashed tuple. Used to permanently freeze a snapshot of the graph when the system crashes (The Gödel Scar).
     """
-    safe_items = []
-    for _ in range(3):
-        try:
-            safe_items = list(adj_dict.items())
-            break
-        except RuntimeError:
-            continue
+    try:
+        safe_items = list(adj_dict.items())
+    except RuntimeError:
+        safe_items = list(adj_dict.copy().items())
     return tuple((k, tuple(sorted(neighbors, key=str))) for k, neighbors in sorted(safe_items, key=lambda x: str(x[0])))
 
 class PhaseExecutor:
@@ -102,7 +99,6 @@ class PhaseExecutor:
     The Assembly Line.
     Takes a CycleContext and runs it sequentially through the active pipeline of Reality Phases.
     """
-
     def execute_phases(self, simulator, ctx):
         active_pipeline = simulator.system_pipeline if ctx.is_system_event else simulator.full_pipeline
         for phase in active_pipeline:
@@ -262,7 +258,11 @@ class GeodesicOrchestrator:
             safe_adj = {k: set(v) for k, v in list(actual_adj.items())}
             self._async_pool.submit(_bg_topology_check, safe_adj)
         except RuntimeError as e:
-            self.eng.events.log(f"Async pool rejected topology check. Engine may be shutting down: {e}", "DEBUG")
+            if "dictionary changed size" in str(e):
+                self.eng.events.log("Topology mutation detected during snapshot. Deferring check to next cycle.",
+                                    "DEBUG")
+            else:
+                self.eng.events.log(f"Async pool rejected topology check. Engine may be shutting down: {e}", "DEBUG")
 
     def _execute_core_cycle(self, user_message: str, is_system: bool = False) -> CycleContext:
         """

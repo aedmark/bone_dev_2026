@@ -97,16 +97,13 @@ class ZoneInertia:
         pressure = min(1.0, math.dist(current_vec, self.last_vector) / self.grav_tolerance) if self.last_vector else 0.0
         if self.is_anchored:
             result = self._handle_anchored_state(proposed_zone, pressure)
-            self.last_vector = current_vec
-            return result
-        if proposed_zone == self.current_zone:
+        elif proposed_zone == self.current_zone:
             self.dwell_counter = 0
-            self.last_vector = current_vec
-            return proposed_zone, None
-        if self.dwell_counter < self.min_dwell:
-            self.last_vector = current_vec
-            return self.current_zone, None
-        result = self._attempt_migration(proposed_zone, pressure)
+            result = proposed_zone, None
+        elif self.dwell_counter < self.min_dwell:
+            result = self.current_zone, None
+        else:
+            result = self._attempt_migration(proposed_zone, pressure)
         self.last_vector = current_vec
         return result
 
@@ -137,9 +134,11 @@ class ZoneInertia:
         return self.current_zone, None
 
     @staticmethod
-    def override_cosmic_drag(cosmic_drag_penalty: float, current_zone: str) -> float:
-        """Special environmental rule: Being high up in the AERIE mitigates cosmic drag."""
-        if current_zone == "AERIE" and cosmic_drag_penalty > 0:
+    def override_cosmic_drag(cosmic_drag_penalty: float, current_zone: str, config_ref=None) -> float:
+        """Special environmental rule: Low-drag zones mitigate cosmic drag."""
+        cfg = getattr(config_ref or BoneConfig, "PHYSICS", BoneConfig.PHYSICS)
+        low_drag_zones = getattr(cfg, "LOW_DRAG_ZONES", ["AERIE"])
+        if current_zone in low_drag_zones and cosmic_drag_penalty > 0:
             return cosmic_drag_penalty * 0.3
         return cosmic_drag_penalty
 
@@ -238,7 +237,7 @@ class CosmicDynamics:
             if direct_hits := word_counts.get(well, 0):
                 basin_pulls[well] += (well_mass * 2.0) * direct_hits
                 active_filaments += direct_hits
-            if overlaps := unique_words & set(network.graph.get(well, {}).get("edges", {})):
+            if overlaps := unique_words & network.graph.get(well, {}).get("edges", {}).keys():
                 overlap_count = sum(word_counts[w] for w in overlaps)
                 basin_pulls[well] += (well_mass * 0.5) * overlap_count
                 active_filaments += overlap_count
@@ -248,8 +247,7 @@ class CosmicDynamics:
         """Determines if we are totally lost (VOID) or approaching something new (NEBULA)."""
         if hubs_in_void := set(words).intersection(geodesic_hubs.keys()):
             best_hub = max(hubs_in_void, key=lambda w: geodesic_hubs[w])
-            msg = (self.logs.get("NEBULA") or "Approaching {node} ({mass})").format(node=best_hub.upper(),
-                                                                                    mass=int(geodesic_hubs[best_hub]))
+            msg = (self.logs.get("NEBULA") or "Approaching {node} ({mass})").format(node=best_hub.upper(), mass=int(geodesic_hubs[best_hub]))
             return "PROTO_COSMOS", 1.0, msg
         return "VOID_DRIFT", 3.0, self.logs.get("VOID") or "Drifting in the Void."
 

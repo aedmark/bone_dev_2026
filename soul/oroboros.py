@@ -75,9 +75,9 @@ class TheOroboros:
             if total_trauma > 10.0:
                 scar_val = min(20.0, total_trauma * 0.1)
                 new_scars.append(Scar(name="Existential Dread", stat_affected="trauma_baseline", value=scar_val,
-                                      description=f"The lattice remembers a heavy collapse (Trauma: {round(total_trauma, 1)})."))
+                    description=f"The lattice remembers a heavy collapse (Trauma: {round(total_trauma, 1)})."))
         if entry := death_data.get(cause_of_death):
-            verdict_map = {"TOXICITY": "TOXIC", "BOREDOM": "BORING", "STARVATION": "LIGHT"}
+            verdict_map = {"TOXICITY": "TOXIC", "BOREDOM": "BORING", "STARVATION": "LIGHT", "APOPTOSIS": "TOXIC"}
             v_key = verdict_map.get(cause_of_death, "HEAVY")
             v_list = death_data.get("VERDICTS", {}).get(v_key)
             desc = random.choice(v_list) if isinstance(v_list, list) and v_list else entry[3]

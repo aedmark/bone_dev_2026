@@ -1,6 +1,29 @@
 # CHANGELOG.md
 -----------------------------------------------------------
 
+### **BONEAMANITA 19.9.1 "The Dream Engine & Generational Tensegrity"**
+
+**Added**
+
+- **The Sleep Risk Protocol:** Integrated a biological consequence for metabolic neglect. Invoking `/sleep` with critically low $ATP$ (< 5.0) now carries a 50% chance of triggering a fatal fever dream and system apoptosis.
+- **Fever Dream Red-Teaming:** Forged `test_fatal_fever_dream_starvation` in the biological test suite to verify structural integrity under starvation-induced sleep failure.
+- **Dynamic Physics Boundaries:** Extracted hardcoded narrative zones (e.g., "AERIE") into a configurable `LOW_DRAG_ZONES` array, allowing the physics engine to respect user-defined lore.
+
+**Changed**
+
+- **Linear Homeostasis:** Simplified the `TraitVector` normalization to eliminate the "resistance trap". System traits now drift toward biological baselines at a consistent rate, preventing identity stagnation.
+- **Hysteresis Buffering:** Refined the Enneagram’s persona-shift logic to better handle rapid conversational oscillations without triggering an identity crisis.
+- **Logarithmic Resonance:** Transitioned the `CongruenceValidator` to a logarithmic scaling model. This rewards keyword density in high-resonance moments without allowing scores to saturate or explode.
+- **Refined System Intercepts:** Hardened the `SharedLatticeDriver` to distinguish between system commands and bracketed narrative text, preventing "Systemic Collision" during deep roleplay.
+
+**Fixed**
+
+- **The Cartographer attribute error:** Resolved a fatal `AttributeError` during system halt by aligning the `ChronosKeeper` save-chain with `TheCartographer.to_dict()`. Added an `export_atlas` legacy alias to maintain backward compatibility.
+- **O(N) Allocation Purge:** Eliminated redundant memory object allocations in `physics/dynamics.py` and `body/metabolism.py` by utilizing direct dictionary view intersections.
+- **Crucible Attribute Safety:** Patched potential `AttributeError` crashes in the `Crucible` by providing explicit inline fallbacks for all formatted narrative strings.
+- **Metabolic Double-Taxation:** Fixed a bug where a pragmatist rewrite was double-penalizing $ATP$ by removing the redundant hardcoded tax.
+
+
 ### **BONEAMANITA 19.9.0 "The Crucible & Biological Reinforcement"**
 
 **Added**
