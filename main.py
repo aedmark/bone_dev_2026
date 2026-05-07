@@ -32,8 +32,7 @@ from mechanics.setup import ConfigWizard
 
 @dataclass
 class HostStats:
-    """Tracks the latency and metabolic efficiency of the local hardware."""
-    latency: float
+    """Tracks the temporal efficiency of the underlying hardware against the cognitive load."""
     efficiency_index: float
 
 
@@ -89,7 +88,7 @@ class BoneAmanita:
         self.governor = CyberneticGovernor(config_ref=self.config)
         self._load_system_prompts()
         self._initialize_cognition()
-        self.host_stats = HostStats(latency=0.0, efficiency_index=1.0)
+        self.host_stats = HostStats(efficiency_index=1.0)
         self.last_turn_end = time.time()
         self.current_time_delta = 0.0
         self._validate_state()
@@ -129,7 +128,9 @@ class BoneAmanita:
             self.trauma_accum = getattr(self.mind.mem, "session_trauma_vector", {}) or {}
 
         if self.tick_count == 0:
-            self.set_atp(getattr(self.config.BIO, "STARTING_ATP", 100.0))
+            bio_cfg = getattr(self.config, "BIO", None)
+            start_atp = getattr(bio_cfg, "STARTING_ATP", 100.0) if bio_cfg else 100.0
+            self.set_atp(start_atp)
 
     def _apply_boot_mode(self):
         msg = ux("main_strings", "engaging_mode")
@@ -172,7 +173,7 @@ class BoneAmanita:
         """Dynamic router to Biological biometrics. Prevents state duplication."""
         if getattr(self, "bio", None) and hasattr(self.bio, "biometrics"):
             return self.bio.biometrics.health
-        return getattr(self, "_health_fallback", 100.0)
+        return self._health_fallback
 
     @health.setter
     def health(self, value: float):
@@ -185,7 +186,7 @@ class BoneAmanita:
         """Dynamic router to Biological biometrics. Prevents state duplication."""
         if getattr(self, "bio", None) and hasattr(self.bio, "biometrics"):
             return self.bio.biometrics.stamina
-        return getattr(self, "_stamina_fallback", 100.0)
+        return self._stamina_fallback
 
     @stamina.setter
     def stamina(self, value: float):
@@ -201,17 +202,17 @@ class BoneAmanita:
         return None
 
     def drain_atp(self, amount: float):
-        """Metabolic Encapsulation: Safely drains ATP."""
+        """Routes subtractions through the absolute boundary clamp."""
         if state := self._mito_state:
             self.set_atp(state.atp_pool - amount)
 
     def restore_atp(self, amount: float):
-        """Metabolic Encapsulation: Safely restores ATP."""
+        """Routes additions through the absolute boundary clamp."""
         if state := self._mito_state:
             self.set_atp(state.atp_pool + amount)
 
     def set_atp(self, amount: float):
-        """Metabolic Encapsulation: Explicitly clamps and sets the ATP pool."""
+        """The strict boundary layer. Prevents negative balances and ensures UI components cannot force mathematically impossible biological states."""
         if state := self._mito_state:
             max_atp = getattr(self.config, "MAX_ATP", 100.0)
             state.atp_pool = max(0.0, min(max_atp, float(amount)))
@@ -240,7 +241,8 @@ class BoneAmanita:
         self.mind = getattr(self.embryo, "mind", None)
         self.bio = getattr(self.embryo, "bio", None)
         self.shimmer = getattr(self.embryo, "shimmer", None)
-        self.bio.setup_listeners()
+        if self.bio:
+            self.bio.setup_listeners()
 
         v = anatomy.get("village", {})
         self.village = SimpleNamespace(**{k: val for k, val in v.items() if val is not None})
@@ -253,7 +255,7 @@ class BoneAmanita:
 
         self.council = CouncilChamber(self)
         self.village.council = self.council
-        self.village.enneagram = self.drivers.enneagram
+        self.village.enneagram = self.drivers.enneagram if self.drivers else None
         self.village.suppressed_agents = self.suppressed_agents
 
     def _evaluate_immune_response(self, user_message: str, active_phys: Any, halt_func) -> Optional[Dict[str, Any]]:
@@ -302,7 +304,6 @@ class BoneAmanita:
         burn_proxy = max(1.0, self.observer.last_cycle_duration * burn_mult)
         efficiency = (novelty * nov_mult) / burn_proxy
         self.host_stats.efficiency_index = min(1.0, efficiency)
-        self.host_stats.latency = self.observer.last_cycle_duration
 
     def _pre_flight_checks(self, user_message: str, is_system: bool) -> Optional[Dict[str, Any]]:
         """
@@ -331,7 +332,8 @@ class BoneAmanita:
                             "[APOPTOTIC GATE]: Override denied. Insufficient Glimmers (Trust) to bypass safety.")
                 else:
                     safe_set(active_phys, "narrative_drag", 999.0)
-                    return _halt("Trust Boundary Violation detected. Applying absolute friction.")
+                    matched_pattern = next((p for p in self._DESTRUCTIVE_PATTERNS if p in clean_in), "unknown")
+                    return _halt(f"Trust Boundary Violation detected ['{matched_pattern}']. Use #override and expend a Glimmer to bypass. Applying absolute friction.")
             if self.navi_sad.execute_nudge_test(self, clean_in):
                 safe_set(active_phys, "narrative_drag", 999.0)
                 return _halt(
@@ -344,7 +346,7 @@ class BoneAmanita:
                     return {"type": "SYSTEM_HALT", "ui": f"\n{Prisma.VIOLET}{lock}{Prisma.RST}", "logs": [lock],
                             "metrics": self.get_metrics(), }
             if getattr(self.village, "gordon", None):
-                self.village.gordon.mode = "ADVENTURE"
+                self.village.gordon.mode = self.boot_mode
                 if violation := self.village.gordon.enforce_object_action_coupling(
                         user_message, safe_get(self.cortex.last_physics, "zone", "Unknown")
                 ):
@@ -356,8 +358,8 @@ class BoneAmanita:
             return _halt("[GATEKEEPER]: Apoptotic refusal triggered by semantic prion.")
         grammar_rules = self.reality_stack.get_grammar_rules()
         if not grammar_rules.get("allow_narrative", True) and self.boot_mode != "TECHNICAL":
-            return {"ui": f"{Prisma.RED}{ux('main_strings', 'narrative_halt')}{Prisma.RST}", "logs": [],
-                    "metrics": self.get_metrics(), }
+            msg = ux("main_strings", "narrative_halt") or "Narrative generation disabled at this Reality Layer."
+            return _halt(msg)
         if self._ethical_audit():
             flushed_logs = self.events.flush()
             ui_text = "\n".join([e["text"] for e in flushed_logs])
@@ -381,7 +383,7 @@ class BoneAmanita:
             clean_in = user_message.lower().strip()
             if clean_in in ("/flush", "/zen", "[zen]"):
                 zen_packet = self._execute_zen_flush()
-                self._update_host_stats(zen_packet, turn_start)
+                self.observer.clock_out(turn_start)
                 return zen_packet
         if pre_flight_halt := self._pre_flight_checks(user_message, is_system):
             return pre_flight_halt
@@ -448,7 +450,8 @@ class BoneAmanita:
         self.set_atp(getattr(self.config, "MAX_ATP", 100.0))
         if state := self._mito_state:
             state.ros_buildup = 0.0
-        msg = "Context severed. Friction Dropped. Stamina restored. The mind is clear."
+        self.trauma_accum.clear()
+        msg = "Context severed. Friction Dropped. Stamina restored. Trauma purged. The mind is clear."
         self.events.log(msg, "SYS")
         return {"type": "COMMAND", "ui": f"\n{Prisma.CYN}{msg}{Prisma.RST}", "logs": [msg],
                 "metrics": self.get_metrics()}

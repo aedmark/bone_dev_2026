@@ -233,8 +233,11 @@ class SensationPhase(SimulationPhase):
     def run(self, ctx: Any):
         phys_data = _safe_dict(ctx.physics)
         current_latency = 0.0
-        if hasattr(self.eng, "host_stats"):
-            current_latency = self.eng.host_stats.latency
+
+        # Pull latency directly from TheObserver to prevent duplicate data tracking
+        if hasattr(self.eng, "observer") and hasattr(self.eng.observer, "last_cycle_duration"):
+            current_latency = self.eng.observer.last_cycle_duration
+
         safe_traits = self.eng.soul.traits if getattr(self.eng, "soul", None) else None
         impulse = self.synesthesia.perceive(phys_data, traits=safe_traits, latency=current_latency)
         ctx.last_impulse = impulse

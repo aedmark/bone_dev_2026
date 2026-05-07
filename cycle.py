@@ -303,9 +303,17 @@ class GeodesicOrchestrator:
             if not getattr(ctx.physics, "vector", None):
                 ctx.physics.vector = {}
 
-            # Correctly map the Sincerity Protocols to their structural vectors
-            ctx.physics.vector["pedagogical_mode"] = ("pedagogy" in user_message.lower())
-            ctx.physics.vector["lateral_shuffle"] = ("[!" + "s]" in user_message)  # The Shuffle
+            # Natively bind the Sincerity Protocols from the structural prompt into systemic vectors
+            usr_msg = user_message.lower()
+            ctx.physics.vector.update({
+                "critique_mode": "[!r]" in usr_msg,
+                "objective_mode": "[!q]" in usr_msg,
+                "healing_mode": "[!h]" in usr_msg,
+                "void_mode": "[!v]" in usr_msg,
+                "lateral_shuffle": "[!s]" in usr_msg,
+                "literal_mode": "[!l]" in usr_msg,
+                "yeetinator_mode": "[!y]" in usr_msg
+            })
             ctx = self.simulator.run_simulation(ctx)
             post_logs = [e["text"] for e in self.eng.events.flush()]
             ctx.logs.extend(post_logs)
