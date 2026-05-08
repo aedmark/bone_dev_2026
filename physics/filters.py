@@ -138,7 +138,11 @@ class TheGatekeeper:
             formatted_msg = f"{color}{msg}{Prisma.RST}" if color else msg
             return False, self._pack_refusal(ctx, type_str, formatted_msg)
 
-        if current_atp < (getattr(self.cfg.BIO, "ATP_STARVATION", 5.0) * 0.5):
+        from struts import safe_get
+        bio_cfg = safe_get(self.cfg, "BIO", {})
+        phys_cfg = safe_get(self.cfg, "PHYSICS", {})
+
+        if current_atp < (float(safe_get(bio_cfg, "ATP_STARVATION", 5.0)) * 0.5):
             return reject("DARK_SYSTEM", "gatekeeper_starved", color="")
         if ctx.physics.matter.counts.get("antigen", 0) > 2:
             return reject("TOXICITY", "gatekeeper_toxic")
@@ -148,7 +152,7 @@ class TheGatekeeper:
             is_idempotent = text == ctx.input_text
             strip_rate = raw_len - len(text)
             ctx.input_text = text
-            m_a_thresh = getattr(self.cfg.PHYSICS, "MALIGNANCY_STRIP_THRESHOLD", 5.0)
+            m_a_thresh = float(safe_get(phys_cfg, "MALIGNANCY_STRIP_THRESHOLD", 5.0))
             if strip_rate > m_a_thresh:
                 return reject("MALIGNANCY_SPIKE", "gatekeeper_toxic", color=Prisma.RED)
         except Exception:

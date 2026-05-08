@@ -23,14 +23,18 @@ class SurfaceTension:
         Returns:
             Tuple[bool, str, str]: (Is_Triggered, Message, State_Flag)
         """
-        cfg = getattr(config_ref or BoneConfig, "PHYSICS", BoneConfig.PHYSICS)
+        cfg = safe_get(config_ref or BoneConfig, "PHYSICS", {})
         energy_state = safe_get(physics, "energy", physics)
         current_voltage = float(safe_get(energy_state, "voltage", 0.0))
         current_kappa = float(safe_get(energy_state, "kappa", 0.0))
-        if current_voltage >= getattr(cfg, "VOLTAGE_CRITICAL", 15.0) and current_kappa < 0.4:
+
+        v_crit = float(safe_get(cfg, "VOLTAGE_CRITICAL", 15.0))
+        v_high = float(safe_get(cfg, "VOLTAGE_HIGH", 12.0))
+
+        if current_voltage >= v_crit and current_kappa < 0.4:
             return True, (ux("physics_strings", "hubris_detected") or "").format(
                 voltage=current_voltage), "ICARUS_CRASH"
-        if current_voltage > getattr(cfg, "VOLTAGE_HIGH", 12.0) and current_kappa > 0.8:
+        if current_voltage > v_high and current_kappa > 0.8:
             return True, ux("physics_strings", "hubris_flow") or "", "FLOW_BOOST"
         return False, "", ""
 
@@ -66,10 +70,10 @@ class ZoneInertia:
     def __init__(self, inertia=0.7, config_ref=None):
         self.inertia = inertia
         self.cfg = config_ref or BoneConfig
-        cfg = getattr(self.cfg, "PHYSICS", None)
-        self.min_dwell = getattr(cfg, "ZONE_MIN_DWELL", 2)
-        self.strain_limit = getattr(cfg, "ZONE_STRAIN_LIMIT", 2.5)
-        self.grav_tolerance = getattr(cfg, "ZONE_GRAV_PULL_TOLERANCE", 2.0)
+        cfg = safe_get(self.cfg, "PHYSICS", {})
+        self.min_dwell = int(safe_get(cfg, "ZONE_MIN_DWELL", 2))
+        self.strain_limit = float(safe_get(cfg, "ZONE_STRAIN_LIMIT", 2.5))
+        self.grav_tolerance = float(safe_get(cfg, "ZONE_GRAV_PULL_TOLERANCE", 2.0))
         self.current_zone = "COURTYARD"
         self.dwell_counter = 0
         self.last_vector: Optional[Tuple[float, float, float]] = None
@@ -136,8 +140,8 @@ class ZoneInertia:
     @staticmethod
     def override_cosmic_drag(cosmic_drag_penalty: float, current_zone: str, config_ref=None) -> float:
         """Special environmental rule: Low-drag zones mitigate cosmic drag."""
-        cfg = getattr(config_ref or BoneConfig, "PHYSICS", BoneConfig.PHYSICS)
-        low_drag_zones = getattr(cfg, "LOW_DRAG_ZONES", ["AERIE"])
+        cfg = safe_get(config_ref or BoneConfig, "PHYSICS", {})
+        low_drag_zones = safe_get(cfg, "LOW_DRAG_ZONES", ["AERIE"])
         if current_zone in low_drag_zones and cosmic_drag_penalty > 0:
             return cosmic_drag_penalty * 0.3
         return cosmic_drag_penalty
@@ -176,8 +180,9 @@ class CosmicDynamics:
         """
         logs = []
         new_drag = current_drift
-        drag_floor = getattr(self.cfg.PHYSICS, "DRAG_FLOOR", 1.0)
-        CRITICAL_DRIFT = getattr(self.cfg.PHYSICS, "DRAG_CRITICAL", 8.0)
+        phys_cfg = safe_get(self.cfg, "PHYSICS", {})
+        drag_floor = float(safe_get(phys_cfg, "DRAG_FLOOR", 1.0))
+        CRITICAL_DRIFT = float(safe_get(phys_cfg, "DRAG_CRITICAL", 8.0))
         if psi > 0.5:
             reduction = (psi - 0.5) * 0.2
             new_drag -= reduction
@@ -212,8 +217,8 @@ class CosmicDynamics:
         target_cfg = config_ref or BoneConfig
         gravity_wells = {}
         geodesic_hubs = {}
-        well_threshold = getattr(target_cfg, "GRAVITY_WELL_THRESHOLD", 15.0)
-        geo_strength = getattr(target_cfg, "GEODESIC_STRENGTH", 10.0)
+        well_threshold = float(safe_get(target_cfg, "GRAVITY_WELL_THRESHOLD", 15.0))
+        geo_strength = float(safe_get(target_cfg, "GEODESIC_STRENGTH", 10.0))
         for node in network.graph:
             mass = network.calculate_mass(node)
             if mass >= well_threshold:
@@ -259,7 +264,7 @@ class CosmicDynamics:
         target_cfg = config_ref or BoneConfig
         sorted_basins = sorted(basin_pulls.items(), key=lambda x: x[1], reverse=True)
         primary_node, primary_str = sorted_basins[0]
-        lagrange_tol = getattr(target_cfg, "LAGRANGE_TOLERANCE", 2.0)
+        lagrange_tol = float(safe_get(target_cfg, "LAGRANGE_TOLERANCE", 2.0))
         if len(sorted_basins) > 1:
             secondary_node, secondary_str = sorted_basins[1]
             if secondary_str > 0 and (primary_str - secondary_str) < lagrange_tol:
@@ -267,10 +272,9 @@ class CosmicDynamics:
                     p=primary_node.upper(), s=secondary_node.upper())
                 return "LAGRANGE_POINT", 0.0, msg
         flow_ratio = active_filaments / max(1, word_count)
-        well_threshold = getattr(target_cfg, "GRAVITY_WELL_THRESHOLD", 15.0)
+        well_threshold = float(safe_get(target_cfg, "GRAVITY_WELL_THRESHOLD", 15.0))
         if flow_ratio > 0.5 and primary_str < (well_threshold * 2):
             msg = (self.logs.get("FLOW") or "Caught in the flow of {node}").format(node=primary_node.upper())
             return "WATERSHED_FLOW", 0.0, msg
-        msg = (self.logs.get("ORBIT") or "Orbiting {node} ({mass})").format(node=primary_node.upper(),
-                                                                            mass=int(gravity_wells[primary_node]))
+        msg = (self.logs.get("ORBIT") or "Orbiting {node} ({mass})").format(node=primary_node.upper(), mass=int(gravity_wells[primary_node]))
         return "ORBITAL", 0.0, msg

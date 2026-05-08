@@ -29,10 +29,10 @@ class ChemicalState:
     def homeostasis(self, rate: float = 0.1):
         safe_rate = max(0.0, min(1.0, rate))
         cfg = safe_get(self.config_ref or BoneConfig, "CORTEX", {})
-        self.dopamine += (safe_get(cfg, "RESTING_DOPAMINE", 0.2) - self.dopamine) * safe_rate
-        self.cortisol += (safe_get(cfg, "RESTING_CORTISOL", 0.1) - self.cortisol) * safe_rate
-        self.adrenaline += (safe_get(cfg, "RESTING_ADRENALINE", 0.1) - self.adrenaline) * safe_rate
-        self.serotonin += (safe_get(cfg, "RESTING_SEROTONIN", 0.2) - self.serotonin) * safe_rate
+        self.dopamine += (float(safe_get(cfg, "RESTING_DOPAMINE", 0.2)) - self.dopamine) * safe_rate
+        self.cortisol += (float(safe_get(cfg, "RESTING_CORTISOL", 0.1)) - self.cortisol) * safe_rate
+        self.adrenaline += (float(safe_get(cfg, "RESTING_ADRENALINE", 0.1)) - self.adrenaline) * safe_rate
+        self.serotonin += (float(safe_get(cfg, "RESTING_SEROTONIN", 0.2)) - self.serotonin) * safe_rate
 
     def mix(self, new_state: Dict[str, float], weight: float = 0.5):
         inv_w = 1.0 - weight
@@ -58,10 +58,10 @@ class NeurotransmitterModulator:
         self.cfg = config_ref or BoneConfig
         self.current_chem = ChemicalState(config_ref=self.cfg)
         self.last_mood = "NEUTRAL"
-        cfg = getattr(self.cfg, "CORTEX", None)
-        self.BASE_TOKENS = getattr(cfg, "BASE_TOKENS", 720)
-        self.MAX_TOKENS = getattr(cfg, "MAX_TOKENS", 4096)
-        self.SELF_CARE_THRESHOLD = getattr(cfg, "SELF_CARE_THRESHOLD", 10)
+        cfg = safe_get(self.cfg, "CORTEX", {})
+        self.BASE_TOKENS = int(safe_get(cfg, "BASE_TOKENS", 720))
+        self.MAX_TOKENS = int(safe_get(cfg, "MAX_TOKENS", 4096))
+        self.SELF_CARE_THRESHOLD = int(safe_get(cfg, "SELF_CARE_THRESHOLD", 10))
         self.starvation_ticks = 0
 
     def modulate(self, base_voltage: float, latency_penalty: float = 0.0, physics_state: Dict[str, float] = None,
@@ -180,7 +180,7 @@ class NoeticLoop:
             if len(unique_words) >= 2:
                 w1, w2 = random.sample(unique_words, 2)
                 self._force_link(self.mind.mem.graph, w1, w2, self.cfg)
-        current_lens = (getattr(soul_ref, "archetype", "OBSERVER") or "OBSERVER") if soul_ref else "OBSERVER"
+        current_lens = str(safe_get(soul_ref, "archetype", "OBSERVER")).upper() if soul_ref else "OBSERVER"
         current_role = f"The {current_lens.title().replace('_', ' ')}"
         msg_cog = ux("brain_strings",
                      "noetic_ignition") or "Cognition active. Ignition: {ignition:.2f}"
@@ -224,7 +224,6 @@ class DreamEngine:
         Burns ATP to execute Substrate file writes, consolidate Hippocampal memory,
         and permanently mutate system prompts via Epigenetics.
         """
-        import random # Ensure random is available
         chem = bio_state.get("chem", {})
         cortisol = chem.get("cortisol", 0.0)
         available_atp = bio_state.get("mito", {}).get("atp", 0.0)
@@ -286,12 +285,10 @@ class DreamEngine:
                 current_state_str = f"Archetype: {soul_snapshot.get('archetype', 'UNKNOWN')}"
                 new_axiom = self.dspy_critic.evolve_prompt(current_state_str, trauma_str)
                 if new_axiom:
-                    active_mode = "CONVERSATION"
-                    if hasattr(self.eng, "boot_mode"):
-                        active_mode = getattr(self.eng, "boot_mode", "CONVERSATION").upper()
+                    active_mode = str(safe_get(self.eng, "boot_mode", "CONVERSATION")).upper() if self.eng else "CONVERSATION"
                     try:
-                        disk_prompts = getattr(self.eng, "prompt_library", None) or self.lore.get("SYSTEM_PROMPTS",
-                                                                                                  {})
+                        disk_prompts = safe_get(self.eng, "prompt_library", None) if self.eng else None
+                        disk_prompts = disk_prompts or self.lore.get("SYSTEM_PROMPTS", {})
                         mode_data = disk_prompts.setdefault(active_mode, {})
                         dirs = mode_data.setdefault("directives", [])
                         if new_axiom not in dirs:

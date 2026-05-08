@@ -9,7 +9,7 @@ It also dynamically evolves the system's vocabulary and archetypal voices across
 import json, os, uuid
 from typing import Any, Dict, List, Optional, Set, Tuple, cast
 from core import BoneJSONEncoder, LoreManifest
-from struts import ux, safe_get
+from struts import ux, safe_get, safe_set
 from presets import BoneConfig
 from constants import Prisma
 
