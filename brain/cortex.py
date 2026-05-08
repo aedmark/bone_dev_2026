@@ -198,11 +198,9 @@ class TheCortex:
             novelty = float(safe_get(phys_state, "novelty", 0.0))
             dimension = eng.navi_sad.calculate_semantic_dimension(efficiency, novelty)
             phys_state["omega_r"] = dimension
-
             lattice_u = getattr(getattr(eng, "shared_lattice", None), "u", None)
             user_exhaust = float(lattice_u.E) if lattice_u and hasattr(lattice_u, "E") else float(phys_state.get("exhaustion", 0.0))
             resonance_delta = float(phys_state.get("resonance", 0.5))
-
             if hasattr(eng, "governor"):
                 beth_index = eng.governor.calculate_coupling(phi=min(1.0, dimension / 2.0), resonance_delta=resonance_delta, user_exhaustion=user_exhaust)
                 phys_state["beth_index"] = beth_index
@@ -230,8 +228,7 @@ class TheCortex:
                     self.svc.mind_memory.record_scar("Cortex Counterfactual Toxicity", phys_state)
                 self.svc.bio.mito.state.ros_buildup += simulated_ros
                 self.svc.bio.mito.state.atp_pool -= 10.0
-                sim_result["ui"] = (sim_result.get("ui", "") +
-                                    f"\n\n{Prisma.RED}{reject_msg}{Prisma.RST}\n{Prisma.VIOLET}{scar_msg}{Prisma.RST}").strip()
+                sim_result["ui"] = (sim_result.get("ui", "") + f"\n\n{Prisma.RED}{reject_msg}{Prisma.RST}\n{Prisma.VIOLET}{scar_msg}{Prisma.RST}").strip()
                 sim_result["type"] = "COUNTERFACTUAL_REJECTION"
                 return sim_result
         modifiers = self.svc.symbiosis.get_prompt_modifiers(phys_state)
@@ -250,13 +247,11 @@ class TheCortex:
         if is_boot_sequence:
             llm_params.update({"temperature": 0.7, "top_p": 0.95})
         if llm_params.get("max_tokens", 4096) < 300 or float(phys.get("p", 100.0)) < 20.0:
-            full_state["mind"].setdefault("style_directives", []).append(
-                "CRITICAL: You are exhausted. You must conclude your thought in under 3 sentences."
-            )
+            full_state["mind"].setdefault("style_directives", []).append("CRITICAL: You are exhausted. You must conclude your thought in under 3 sentences.")
             llm_params["max_tokens"] = min(400, llm_params.get("max_tokens", 4096))
         user_input = sim_result.get("mutated_input", user_input)
         final_prompt = self.composer.compose(full_state, user_input, ballast=self.ballast_active,
-                                             modifiers=modifiers, mood_override=self.modulator.get_mood_directive(), )
+                        modifiers=modifiers, mood_override=self.modulator.get_mood_directive(), )
         start_time = time.time()
         max_retries = 5
         final_output, inv_logs, extracted_logs = "", [], []
@@ -419,7 +414,6 @@ class TheCortex:
             dimension = float(phys_state.get("omega_r", 1.0))
             phys_packet = sim_result.setdefault("physics", {})
             repetition = float(sim_result.get("physics", {}).get("repetition", 0.0))
-
             if getattr(eng, "tick_count", 0) > 5 and (dimension <= 1.05 or eng.navi_sad.detect_point_attractor() or repetition >= 0.8):
                 msg = f"[THE JESTER]: Point Attractor detected (d_B={dimension:.2f})! We are trapped in False Cohesion! Burning ATP to inject chaos."
                 if self.events:
@@ -431,7 +425,6 @@ class TheCortex:
                 sim_result.setdefault("mind", {})["lens"] = "JESTER"
                 if "ui" in sim_result:
                     sim_result["ui"] += f"\n\n{Prisma.VIOLET}[FALSE COHESION BREAK: The Jester has seized the architecture.]{Prisma.RST}"
-
         return sim_result
 
     def _run_affective_audit(self, user_input: str, final_text: str, e_u: float, beta: float) -> Tuple[bool, str]:
@@ -470,10 +463,8 @@ class TheCortex:
             topic = "The nature of our shared existence."
         self.events.log(f"{Prisma.VIOLET}🎙️ SPINNING UP COUNCIL STUDIO...{Prisma.RST}", "SYS")
         eng = self.svc.orchestrator.eng
-
         if not getattr(eng, "council", None):
             return "The studio is empty. The Council is offline.", ["[SYSTEM ERROR] Council module missing."]
-
         script = eng.council.host_podcast(topic, self.llm)
         extracted_logs = []
         filename = f"podcast_script_{int(time.time())}.txt"
@@ -569,8 +560,7 @@ class TheCortex:
             clean_mandates = [Prisma.strip(m.get("log", m.get("type", "UNKNOWN"))) if isinstance(
                 m, dict) else str(m)
                               for m in sim_result.get("council_mandates", [])]
-            physics_payload = {"voltage": phys.get("voltage", 0),
-                               "narrative_drag": phys.get("narrative_drag", 0)}
+            physics_payload = {"voltage": phys.get("voltage", 0), "narrative_drag": phys.get("narrative_drag", 0)}
             if tel.active_crystal:
                 tel.active_crystal.prompt_snapshot = prompt[:500]
                 tel.active_crystal.physics_state = physics_payload
@@ -579,9 +569,8 @@ class TheCortex:
                 tel.active_crystal.final_response = response
             else:
                 crystal = DecisionCrystal(decision_id=sim_result.get("trace_id", "UNKNOWN"),
-                                          prompt_snapshot=prompt[:500], physics_state=physics_payload,
-                                          active_archetype=state["mind"].get("lens", "UNKNOWN"),
-                                          council_mandates=clean_mandates, final_response=response, )
+                prompt_snapshot=prompt[:500], physics_state=physics_payload,active_archetype=state["mind"].get("lens", "UNKNOWN"),
+                council_mandates=clean_mandates, final_response=response, )
                 tel.log_crystal(crystal)
         except Exception as e:
             print(f"\n{Prisma.RED}[TELEMETRY CRASH]: {e}{Prisma.RST}")
@@ -612,7 +601,7 @@ class TheCortex:
         full_state = {"bio": bio, "physics": phys, "mind": mind, "soul": soul_data, "world": world,
                       "village": village_data, "user_profile": {"name": "Traveler"},
                       "vsl": self.consultant.state.__dict__ if self.consultant
-                                                               and hasattr(self.consultant, "state") else {}, "meta": {
+                        and hasattr(self.consultant, "state") else {}, "meta": {
                 "timestamp": time.time(),
                 "mode_settings": mode_settings,
                 "active_mode": self.active_mode,
@@ -698,7 +687,7 @@ class TheCortex:
         if not history:
             return
         self.dialogue_buffer = [(line.replace("User: ", "Traveler: ").replace(" | System: ",
-                                                                              "\nSystem: ") if " | System: " in line else line)
+                                "\nSystem: ") if " | System: " in line else line)
                                 for line in history[-self.MAX_HISTORY:]]
         if self.events:
             msg = ux("brain_strings", "cortex_resequenced")
