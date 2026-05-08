@@ -287,14 +287,8 @@ class EndocrineSystem:
 
     def get_state(self) -> Dict[str, Any]:
         """Returns a rounded, easily parseable dictionary of the current state."""
-        return {
-            "DOP": round(self.dopamine, 2),
-            "OXY": round(self.oxytocin, 2),
-            "COR": round(self.cortisol, 2),
-            "SER": round(self.serotonin, 2),
-            "ADR": round(self.adrenaline, 2),
-            "MEL": round(self.melatonin, 2)
-        }
+        return {"DOP": round(self.dopamine, 2), "OXY": round(self.oxytocin, 2), "COR": round(self.cortisol, 2),
+                "SER": round(self.serotonin, 2), "ADR": round(self.adrenaline, 2), "MEL": round(self.melatonin, 2)}
 
 
 class SemanticEndocrinologist:
@@ -316,29 +310,25 @@ class SemanticEndocrinologist:
         """
         if not clean_words:
             return SemanticSignal()
-        cortical_set = set()
-        graph_ref = {}
-        # Pull the existing memory graph to check for connections
-        if self.mem:
-            cortical_set = set(getattr(self.mem, "cortical_stack", []))
-            graph_ref = getattr(self.mem, "graph", {})
+        graph_ref = getattr(self.mem, "graph", {}) if self.mem else {}
+        cortical_stack = getattr(self.mem, "cortical_stack", []) if self.mem else []
+        cortical_set = None
         safe_len = max(1, len(clean_words))
-        # Calculate novelty and resonance in a single, unified pass to save compute
         novel_count = 0
         hits = 0
         for w in clean_words:
             if graph_ref and w in graph_ref:
                 hits += 1
-            elif len(w) > 4 and w not in cortical_set:
-                novel_count += 1
-        # Calculate percentages
+            elif len(w) > 4:
+                if cortical_set is None:
+                    cortical_set = set(cortical_stack)
+                if w not in cortical_set:
+                    novel_count += 1
         novelty_score = min(1.0, novel_count / safe_len)
         resonance_score = min(1.0, hits / safe_len) if graph_ref else 0.0
-        # Check the emotional weight of the words against the global Lexicon
         valence_score = 0.0
         if self.lex and hasattr(self.lex, "get_valence"):
             valence_score = self.lex.get_valence(clean_words)
-        # Coherence is pulled from the physics engine (kappa value)
         coherence_score = getattr(physics, "kappa", 0.5)
         return SemanticSignal(
             novelty=novelty_score,

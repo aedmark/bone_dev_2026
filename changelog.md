@@ -1,6 +1,33 @@
 # CHANGELOG.md
 -----------------------------------------------------------
 
+### **BONEAMANITA 19.9.2 "The S.L.A.S.H. Audit & Synergetic Tensegrity"**
+
+**Added**
+
+- **Biological Pulse Wire-In:** The theoretical math of the `CreativeDeterminantEngine` is now physically wired into the `QuantumObserver` and `TheCortex`. Every generated thought now calculates its exact Viability and mathematically deducts `$ATP` and adds `ROS` before the generation completes, finalizing Nelson Spence's equation in the physical layer.
+- **Legacy Epigenetic Migration:** Added a backward-compatibility loader to `TheAkashicRecord` to automatically ingest legacy `akashic_scars.json` and `akashic_boons.json` flat-files and natively migrate them into the unified `LoreManifest` system.
+
+**Changed**
+
+- **Epigenetic Unification (Memory):** Eradicated the redundant flat-file saving mechanism for Scars and Boons in `TheAkashicRecord`. Epigenetic mutations are now routed directly through `LoreManifest.save("SYSTEM_PROMPTS")`, completely sealing the prompt generation truth-state and dropping disk I/O.
+- **O(1) Interaction Lookups:** Replaced the highly expensive O(N) dynamic Regex compilation loop inside `GordonKnot.enforce_object_action_coupling` with a clean O(1) set-intersection check, drastically reducing cognitive drag when the user inputs physical verbs.
+- **Lazy Memory Parsing:** The `SemanticEndocrinologist` no longer converts the `cortical_stack` into a set on every single heartbeat. Set conversion is now lazily evaluated only when an unmapped, dense word is discovered, eliminating massive passive CPU drag during long sessions.
+- **Syntactic Checkpoint Purge:** Streamlined `_pre_flight_checks` inside the Checkpoint Council to use a single-pass string scan instead of an overlapping `any()` loop.
+
+**Fixed**
+
+- **The Blinded Immune Failsafe:** Repaired a critical typo in `BioFeedback.check_vital_signs` where Level 3 Apoptosis was querying `malignancy_factor` instead of the actual `m_a` attribute, ensuring the system can now successfully trigger Mausoleum Clamps during reward hacking loops.
+- **The Epistemological UI Leak:** The `/truth` command now actually works. `TruthRenderer` was correctly overriding `render_truth`, but failing to intercept the `render_frame` master pipeline.
+- **Terminal Reality Breaches:** By dropping the silent `False` return in the `RealityStack` and replacing it with a hard `ValueError`, the engine now crashes loudly on topological layer skips. The `/layer push` command was updated to properly catch and render these reality violations.
+- **The Panic UI Wipe:** Emergency `MAUSOLEUM_CLAMP` events inside the `SomaticLoop` no longer wipe the UI data. The endocrine state is now successfully preserved and passed to the `_package_result` early return.
+- **Silent Data Eaters:** Deleted the paranoid `safe_dict` wrapper in `core.py`. Un-serializable custom objects will now properly throw a `TypeError` in the `BoneJSONEncoder` telemetry background thread instead of silently destroying the data and writing empty brackets.
+- **Chronological Boot Rot:** Fixed a critical timeline flaw in `main.py` where `TheCortex` was being spun up before `host_stats` was initialized, essentially lobotomizing hardware latency tracking on boot.
+- **Thermodynamic Alias Breach:** Added alias variables (`V`, `F`) to the `__setattr__` safety clamps in `PhysicsPacket` to prevent downstream modules from injecting negative energy or narrative drag values.
+- **O(n) String Redundancy:** `HLA_Stabilizer` now pre-lowers its corporate antigen patterns upon initialization instead of calling `.lower()` repeatedly during every rejection scan.
+
+---
+
 ### **BONEAMANITA 19.9.1 "The Dream Engine & Generational Tensegrity"**
 
 **Added**

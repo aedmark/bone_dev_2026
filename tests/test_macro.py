@@ -4,15 +4,12 @@ S.L.A.S.H. Integration Suite.
 These tests do not mock internal engine routing. They boot the full Cathedral,
 push data through the front door, and verify the physical reality of the output.
 """
-import unittest
 import os
-import json
+import unittest
 from unittest.mock import patch
+
 from main import BoneAmanita
 from presets import BoneConfig
-from genesis import BoneGenesis
-from struts import safe_set
-from constants import Prisma
 
 
 class MacroLifecycleTests(unittest.TestCase):
@@ -58,7 +55,7 @@ class MacroLifecycleTests(unittest.TestCase):
         self.assertEqual(self.engine.health, 42.0, "State variable (Health) failed to re-hydrate.")
         self.assertEqual(self.engine.village.bureau.stamp_count, 99, "Village SimpleNamespace failed to re-hydrate.")
 
-    @patch('brain.akashic.TheAkashicRecord.save_to_disk')
+    @patch("core.LoreManifest.save")
     def test_akashic_glimmer_pipeline(self, mock_save):
         """
         THE SCHUR SHORTCUT: We bypass physical disk I/O entirely.
@@ -76,10 +73,10 @@ class MacroLifecycleTests(unittest.TestCase):
         self.assertTrue(mock_save.called, "Akashic Record failed to intercept the GLIMMER_FORMED event.")
         args, _ = mock_save.call_args
         category = args[0]
-        payload = args[1]
-        self.assertEqual(category, "boons", "Event routed to the wrong save category.")
-        self.assertTrue(any(test_concept in item for item in payload),
-                        "The trigger word was missing from the Akashic payload.")
+        self.assertEqual(category, "SYSTEM_PROMPTS", "Event routed to the wrong save category.")
+        prompts = self.engine.akashic.lore.get("SYSTEM_PROMPTS") or {}
+        boons = prompts.get("GLOBAL_BASELINE", {}).get("EPIGENETIC_BOONS", [])
+        self.assertTrue(any(test_concept in item for item in boons), "The trigger word was missing from the Akashic payload.")
 
     def test_autophagy_structural_survival(self):
         """

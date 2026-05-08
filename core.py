@@ -19,25 +19,19 @@ from typing import List, Dict, Any, Optional, Tuple
 from constants import Prisma, RealityLayer
 from presets import BoneConfig
 from struts import ux, ux_format, safe_get
+from physics.models import PhysicsPacket, UserInferredState, SharedDynamics
 
-
-def safe_dict(obj):
-    """Safe object-to-dict conversion without enforcing strict interfaces."""
-    if isinstance(obj, (set, deque)): return list(obj)
-    if hasattr(obj, "to_dict"): return obj.to_dict()
-    if hasattr(obj, "__dict__"): return vars(obj)
-    return obj if isinstance(obj, dict) else {}
 
 class BoneJSONEncoder(json.JSONEncoder):
-    """Ensures complex biological data structures serialize safely."""
+    """Ensures complex biological data structures serialize safely without silent data loss."""
     def default(self, obj):
-        try:
-            return safe_dict(obj)
-        except Exception:
-            return super().default(obj)
-
-
-from physics.models import PhysicsPacket, UserInferredState, SharedDynamics
+        if isinstance(obj, (set, deque)):
+            return list(obj)
+        if hasattr(obj, "to_dict") and callable(obj.to_dict):
+            return obj.to_dict()
+        if hasattr(obj, "__dict__"):
+            return vars(obj)
+        return super().default(obj)
 
 
 @dataclass
@@ -169,10 +163,11 @@ class EventBus:
 
     def unsubscribe(self, event_type, callback):
         """Removes listeners safely. The try-except block avoids race conditions without double-scanning arrays."""
-        try:
-            self.subscribers.get(event_type, []).remove(callback)
-        except ValueError:
-            pass  # Already pruned or never existed.
+        if event_type in self.subscribers:
+            try:
+                self.subscribers[event_type].remove(callback)
+            except ValueError:
+                pass  # Already pruned or never existed.
 
     def publish(self, event_type, data=None):
         if event_type not in self.subscribers: return
@@ -345,12 +340,18 @@ class TheObserver:
             return ux_format("core_strings", "obs_coupled", default="Harmonic Resonance: Presence Active.")
         return ux("core_strings", "obs_nominal") or "Nominal."
 
+    @property
+    def avg_cycle(self) -> float:
+        return sum(self.cycle_times) / max(1, len(self.cycle_times))
+
+    @property
+    def avg_llm(self) -> float:
+        return sum(self.llm_latencies) / max(1, len(self.llm_latencies))
+
     def get_report(self):
-        avg_cycle = sum(self.cycle_times) / max(1, len(self.cycle_times))
-        avg_llm = sum(self.llm_latencies) / max(1, len(self.llm_latencies))
-        status_msg = self.pass_judgment(avg_cycle, avg_llm)
-        return {"uptime_sec": int(self.uptime), "turns": self.user_turns, "avg_cycle_sec": round(avg_cycle, 2),
-                "avg_llm_sec": round(avg_llm, 2), "status": status_msg, "errors": dict(self.error_counts),
+        status_msg = self.pass_judgment(self.avg_cycle, self.avg_llm)
+        return {"uptime_sec": int(self.uptime), "turns": self.user_turns, "avg_cycle_sec": round(self.avg_cycle, 2),
+                "avg_llm_sec": round(self.avg_llm, 2), "status": status_msg, "errors": dict(self.error_counts),
                 "graph_size": self.memory_snapshots[-1] if self.memory_snapshots else 0}
 
 
@@ -411,7 +412,7 @@ class RealityStack:
         if layer == RealityLayer.DEBUG or layer == self.current_depth + 1:
             self._stack.append(layer)
             return True
-        return False
+        raise ValueError(f"Reality Layer Violation: Cannot topologically shift from layer {self.current_depth} to {layer}.")
 
     def pop_layer(self) -> int:
         if len(self._stack) > 1:
@@ -460,10 +461,10 @@ class ArchetypeArbiter:
     @staticmethod
     def arbitrate(physics_lens: str, soul_archetype: str, council_mandates: List[Dict],
                   trigram: Dict = None) -> Tuple[str, str, str]:
-        mandates = council_mandates or []
-        if any(m.get("type") == "LOCKDOWN" for m in mandates):
+        mandate_types = {m.get("type") for m in (council_mandates or [])}
+        if "LOCKDOWN" in mandate_types:
             return "THE CENSOR", "COUNCIL", ux("core_strings", "arb_martial_law")
-        if any(m.get("type") == "FORCE_MODE" for m in mandates):
+        if "FORCE_MODE" in mandate_types:
             return "THE MACHINE", "COUNCIL", ux("core_strings", "arb_bureaucratic")
         if soul_archetype and "/" in soul_archetype:
             msg = ux_format("core_strings", "arb_diamond", soul_archetype=soul_archetype,
@@ -474,8 +475,7 @@ class ArchetypeArbiter:
             for r in meta_resonance:
                 if r.get("trigram") == trigram.get("name") and r.get("lens", physics_lens) == physics_lens and r.get(
                         "soul", soul_archetype) == soul_archetype:
-                    return r["result"], r.get("source", "COSMIC"), r.get("msg") or ux("core_strings",
-                                                                                      "arb_resonance") or "Cosmic Resonance."
+                    return r["result"], r.get("source", "COSMIC"), r.get("msg") or ux("core_strings", "arb_resonance") or "Cosmic Resonance."
         loud_lenses = LoreManifest.get_instance().get("COUNCIL_DATA", "LOUD_LENSES") or ["THE MANIC", "THE VOID"]
         if physics_lens in loud_lenses:
             msg = ux_format("core_strings", "arb_loud", physics_lens=physics_lens,
@@ -580,9 +580,8 @@ class TelemetryService:
     def _yield_historical_records(self, file_limit=5, lines_per_file=10):
         """Generates a stream of past telemetry records, reading backwards from the most recent."""
         if not os.path.exists(self.log_dir): return
-        # Limit memory footprint by avoiding full directory array loads
-        iterator = glob.iglob(os.path.join(self.log_dir, "trace_*.jsonl"))
-        files = sorted(list(iterator)[-50:], reverse=True)  # Cap the sorting pool
+        # Sort all files descending by timestamp in filename to guarantee accurate retrieval
+        files = sorted(glob.glob(os.path.join(self.log_dir, "trace_*.jsonl")), reverse=True)
         for fpath in files[:file_limit]:
             try:
                 with open(fpath, "r", encoding="utf-8") as f:

@@ -112,7 +112,8 @@ class GordonKnot:
             for i in self.registry:
                 if i.upper() not in self.inventory:
                     i_low = i.lower().replace('_', ' ')
-                    if i_low in text and re.search(rf"\b{re.escape(i_low)}\b", text):
+                    i_words = i_low.split()
+                    if all(w in tokens for w in i_words) and i_low in text:
                         return f"{Prisma.SLATE}{(ux('gordon_strings', 'premise_inv') or '').format(item=i_low)}{Prisma.RST}"
         return None
 

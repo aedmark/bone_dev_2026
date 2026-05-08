@@ -273,7 +273,7 @@ class BioFeedback:
             return "MAUSOLEUM_CLAMP"
         if stamina > getattr(cfg, "STAMINA_SAFE_THRESHOLD", 30.0):
             self.consecutive_autophagy = max(0, self.consecutive_autophagy - 1)
-        m_a = float(safe_get(phys, "malignancy_factor", 0.0))
+        m_a = float(safe_get(phys, "m_a", 0.0))
         chi = float(safe_get(phys, "entropy", 1.0))
         m_a_crit = getattr(cfg, "MALIGNANCY_CRIT", 8.0)
         if m_a > m_a_crit and chi < 0.3:

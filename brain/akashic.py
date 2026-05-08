@@ -155,7 +155,7 @@ class TheAkashicRecord:
                 if len(epigenetic_list) > max_epi:
                     epigenetic_list.pop(0)
                 self.lore.inject("SYSTEM_PROMPTS", prompts)
-                self.save_to_disk("boons", epigenetic_list)
+                self.lore.save("SYSTEM_PROMPTS")
                 if self.events:
                     self.events.log(f"{Prisma.MAG}🧬 [EPIGENETICS] Boon '{concept}' compiled into flow.{Prisma.RST}",
                                     "SYS")
@@ -180,7 +180,7 @@ class TheAkashicRecord:
                 if len(epigenetic_list) > max_epi:
                     epigenetic_list.pop(0)
                 self.lore.inject("SYSTEM_PROMPTS", prompts)
-                self.save_to_disk("scars", epigenetic_list)
+                self.lore.save("SYSTEM_PROMPTS")
                 if self.events:
                     self.events.log(f"{Prisma.VIOLET}[EPIGENETICS] Scar '{concept}' compiled into flow.{Prisma.RST}",
                                     "SYS")
@@ -350,6 +350,28 @@ class TheAkashicRecord:
             if recipes := gordon_data.get("RECIPES", []):
                 self.known_recipes.update((r.get("ingredient"), r.get("catalyst_category")) for r in recipes if
                                           r.get("ingredient") and r.get("catalyst_category"))
+        scars_path = os.path.join(self.data_dir, "akashic_scars.json")
+        boons_path = os.path.join(self.data_dir, "akashic_boons.json")
+        prompts = self.lore.get("SYSTEM_PROMPTS") or {}
+        needs_migration = False
+        if os.path.exists(scars_path):
+            try:
+                with open(scars_path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    prompts.setdefault("GLOBAL_BASELINE", {})["EPIGENETIC_SCARS"] = data if isinstance(data, list) else []
+                    needs_migration = True
+            except Exception as e:
+                print(f"{Prisma.RED}[AKASHIC] Failed to migrate legacy scars: {e}.{Prisma.RST}")
+        if os.path.exists(boons_path):
+            try:
+                with open(boons_path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    prompts.setdefault("GLOBAL_BASELINE", {})["EPIGENETIC_BOONS"] = data if isinstance(data, list) else []
+                    needs_migration = True
+            except Exception as e:
+                print(f"{Prisma.RED}[AKASHIC] Failed to migrate legacy boons: {e}.{Prisma.RST}")
+        if needs_migration:
+            self.lore.inject("SYSTEM_PROMPTS", prompts)
         words_path = os.path.join(self.data_dir, "akashic_discovered_words.json")
         if os.path.exists(words_path):
             try:
@@ -363,24 +385,6 @@ class TheAkashicRecord:
                     self.lore.inject("LEXICON", lexicon_data)
             except Exception as e:
                 print(f"{Prisma.RED}[AKASHIC] Failed to load discovered words: {e}. Keeping current state.{Prisma.RST}")
-        scars_path = os.path.join(self.data_dir, "akashic_scars.json")
-        boons_path = os.path.join(self.data_dir, "akashic_boons.json")
-        prompts = self.lore.get("SYSTEM_PROMPTS") or {}
-        if os.path.exists(scars_path):
-            try:
-                with open(scars_path, "r", encoding="utf-8") as f:
-                    data = json.load(f)
-                    prompts.setdefault("GLOBAL_BASELINE", {})["EPIGENETIC_SCARS"] = data if isinstance(data, list) else []
-            except Exception as e:
-                print(f"{Prisma.RED}[AKASHIC] Failed to load scars: {e}.{Prisma.RST}")
-        if os.path.exists(boons_path):
-            try:
-                with open(boons_path, "r", encoding="utf-8") as f:
-                    data = json.load(f)
-                    prompts.setdefault("GLOBAL_BASELINE", {})["EPIGENETIC_BOONS"] = data if isinstance(data, list) else []
-            except Exception as e:
-                print(f"{Prisma.RED}[AKASHIC] Failed to load boons: {e}.{Prisma.RST}")
-        self.lore.inject("SYSTEM_PROMPTS", prompts)
 
     def record_interaction(self, lenses_active: list, ingredients_used: Optional[list] = None):
         """

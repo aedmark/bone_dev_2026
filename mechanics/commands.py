@@ -536,10 +536,14 @@ class CommandProcessor:
         if sub == "push" and len(parts) > 2:
             try:
                 layer_val = int(parts[2])
-                if stack.push_layer(layer_val):
-                    self.interface.log(ux("main_strings", "layer_pushed").format(layer=layer_val))
             except ValueError:
-                self.interface.log(f"{self.P.RED}Invalid layer index.{self.P.RST}")
+                self.interface.log(f"{self.P.RED}Invalid layer index. Must be an integer.{self.P.RST}")
+                return True
+            try:
+                stack.push_layer(layer_val)
+                self.interface.log(ux("main_strings", "layer_pushed").format(layer=layer_val))
+            except ValueError as e:
+                self.interface.log(f"{self.P.RED}{str(e)}{self.P.RST}")
         elif sub == "pop":
             stack.pop_layer()
             self.interface.log(ux("main_strings", "layer_popped"))

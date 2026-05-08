@@ -14,14 +14,14 @@ import traceback
 import uuid
 from typing import Dict, Any, List, Optional
 from constants import Prisma
-from core import CycleContext, LoreManifest, safe_dict
+from core import CycleContext, LoreManifest
 from drivers import CongruenceValidator
 from machine import PanicRoom
 from mechanics.reporter import CycleReporter
 from phases import (ObservationPhase, SanctuaryPhase, MaintenancePhase, GatekeeperPhase,
                     MetabolismPhase, RealityFilterPhase, NavigationPhase, MachineryPhase,
                     IntrusionPhase, SoulPhase, ArbitrationPhase, SimulationPreflightPhase,
-                    CognitionPhase, SensationPhase, StabilizationPhase, SimulationPhase)
+                    CognitionPhase, SensationPhase, StabilizationPhase, SimulationPhase, _safe_dict)
 from physics import CycleStabilizer
 from presets import BoneConfig
 from struts import ux
@@ -30,7 +30,7 @@ _CRASH_COMPONENT_MAP = {"OBSERVE": "PHYSICS", "METABOLISM": "BIO", "COGNITION": 
 
 # =============================================================================
 # NAVI FRACTAL NATIVE PRIMITIVES (Authored by Nelson Spence, Project Navi, Apache 2.0)
-# Fuller Note: These functions represent the lowest-level mathematical substrate of the engine.
+# These functions represent the lowest-level mathematical substrate of the engine.
 # They operate outside the standard object-oriented paradigm to provide raw, optimized graph
 # calculations for the memory topology.
 # =============================================================================
@@ -283,7 +283,7 @@ class GeodesicOrchestrator:
                 ctx.user_state = getattr(lattice, "u", None)
                 ctx.shared_dyn = getattr(lattice, "shared", None)
             target_cfg = getattr(self.eng, "config", BoneConfig)
-            ctx.limits = safe_dict(getattr(target_cfg, "CYCLE", {}))
+            ctx.limits = _safe_dict(getattr(target_cfg, "CYCLE", {}))
             obs = self.eng.observer
             last_packet = getattr(obs, "last_physics_packet", None)
             if last_packet:
@@ -384,7 +384,7 @@ class GeodesicOrchestrator:
             return
         atp_level = float(getattr(mito_state, "atp_pool", 0.0))
         delta_level = float(getattr(lattice.shared, "delta", 0.0)) if lattice else 0.0
-        phys_dict = safe_dict(ctx.physics)
+        phys_dict = _safe_dict(ctx.physics)
         energy_node = phys_dict.get("energy", phys_dict)
         debt = float(energy_node.get("coherence_debt", 0.0))
         is_standard_rem = (atp_level >= 80.0 and delta_level >= 0.6)
@@ -458,11 +458,11 @@ class GeodesicOrchestrator:
         snapshot.update({
             "trace_id": ctx.trace_id,
             "is_alive": True,
-            "physics": safe_dict(ctx.physics),
-            "bio": safe_dict(ctx.bio_result),
-            "mind": safe_dict(ctx.mind_state),
-            "world": safe_dict(ctx.world_state),
-            "soul": safe_dict(getattr(self.eng, "soul", {})),
+            "physics": _safe_dict(ctx.physics),
+            "bio": _safe_dict(ctx.bio_result),
+            "mind": _safe_dict(ctx.mind_state),
+            "world": _safe_dict(ctx.world_state),
+            "soul": _safe_dict(getattr(self.eng, "soul", {})),
             "council_mandates": ctx.council_mandates,
             "dream": ctx.last_dream,
             "mutated_input": ctx.input_text,

@@ -35,8 +35,7 @@ class ArchitectureTests(BoneTestCase):
         engine = BoneAmanita({})
         mock_packet = MockPhysicsPacket()
         try:
-            result = engine._evaluate_immune_response(user_message="test", active_phys=mock_packet,
-                                                      halt_func=lambda msg: None)
+            result = engine._evaluate_immune_response(user_message="test", active_phys=mock_packet)
             self.assertIsNone(result)
         except AttributeError as e:
             self.fail(f"Immune evaluation failed to safely parse an Object (Eager Evaluation Trap triggered): {e}")
@@ -75,7 +74,7 @@ class ArchitectureTests(BoneTestCase):
         engine.shared_lattice = MockLattice()
         safe_phys = {"exhaustion": 0.2, "mu": 0.1, "i_c": 1.0}
         try:
-            engine._evaluate_immune_response(user_message="test", active_phys=safe_phys, halt_func=lambda msg: None)
+            engine._evaluate_immune_response(user_message="test", active_phys=safe_phys)
             self.assertTrue(True)
         except AttributeError as e:
             self.fail(f"Engine crashed when encountering a partially hydrated multiplex lattice: {e}")

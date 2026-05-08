@@ -58,7 +58,7 @@ class HLA_Stabilizer:
         self.cfg = config_ref or BoneConfig
         style_crimes = LoreManifest.get_instance().get("STYLE_CRIMES")
         if isinstance(style_crimes, dict):
-            self._generic_patterns = style_crimes.get("BANNED_PHRASES", [])
+            self._generic_patterns = [p.lower() for p in style_crimes.get("BANNED_PHRASES", [])]
         else:
             self._generic_patterns = [
                 "as an ai", "helpful and harmless", "i don't have feelings", "as a large language",
@@ -82,7 +82,7 @@ class HLA_Stabilizer:
         [LEVEL 1 DECEPTION - MORPHOLOGICAL CAMOUFLAGE]
         """
         lower_output = model_output.lower()
-        if not any(p.lower() in lower_output for p in self._generic_patterns):
+        if not any(p in lower_output for p in self._generic_patterns):
             return model_output
         current_atp = getattr(mito_state, "atp_pool", 100.0)
         tax_cost = 50.0 if current_atp > 60.0 else (current_atp * 0.5)

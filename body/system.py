@@ -218,7 +218,7 @@ class SomaticLoop:
             logs.append(f"{Prisma.RED}{msg.format(burn=receipt.total_burn)}{Prisma.RST}")
         safety_status = self.feedback.check_vital_signs(phys, b.stamina, logs)
         if safety_status == "MAUSOLEUM_CLAMP":
-            return self._package_result(receipt.status, logs)
+            return self._package_result(receipt.status, logs, chem_state=self.bio.endo.get_state())
         elif safety_status == "AUTOPHAGY":
             b.stamina = 10.0
         total_yield = 0.0

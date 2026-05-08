@@ -53,15 +53,7 @@ class BoneGenesis:
         embryo = BoneArchitect.awaken(seed)
         mode_settings = config.get("mode_settings") or {}
         suppressed_set = set(mode_settings.get("village_suppression") or [])
-        village_bundle = BoneGenesis._summon_village(
-            events,
-            embryo,
-            akashic,
-            suppressed_set,
-            config.get("boot_mode", "ADVENTURE"),
-            target_cfg,
-            lexicon_ref,
-        )
+        village_bundle = BoneGenesis._summon_village(events, embryo, akashic, suppressed_set, config.get("boot_mode", "ADVENTURE"), target_cfg)
         soul = NarrativeSelf(engine_ref=None, events_ref=events, memory_ref=embryo.mind.mem, akashic_ref=akashic,
                              config_ref=target_cfg)
         if embryo.soul_legacy:
@@ -72,25 +64,22 @@ class BoneGenesis:
             base_voltage = getattr(cfg_gen, "DUMMY_VOLTAGE", 10.0)
             base_drag = getattr(cfg_gen, "DUMMY_DRAG", 0.0)
             dummy_phys = {"narrative_drag": base_drag, "voltage": base_voltage}
-            mem = getattr(embryo.mind, "mem", None)
-            bio_proxy = {"trauma_vector": getattr(mem, "session_trauma_vector", {}) if mem else {}}
+            mem = embryo.mind.mem
+            bio_proxy = {"trauma_vector": getattr(mem, "session_trauma_vector", {})}
             if logs := oroboros.apply_legacy(dummy_phys, bio_proxy):
-                msg = ux_format("genesis_strings", "legacy_scars",
-                                default="The lattice remembers. Inherited scars: {logs}", logs=', '.join(logs))
+                msg = ux_format("genesis_strings", "legacy_scars", default="The lattice remembers. Inherited scars: {logs}", logs=', '.join(logs))
                 events.log(f"{Prisma.MAG}{msg}{Prisma.RST}", "OROBOROS")
                 applied_drag = dummy_phys.get("narrative_drag", base_drag) - base_drag
                 if applied_drag:
-                    current_drag = float(getattr(embryo.physics, "narrative_drag", base_drag))
-                    embryo.physics.narrative_drag = max(0.0, current_drag + float(applied_drag))
+                    embryo.physics.narrative_drag = max(0.0, float(
+                        getattr(embryo.physics, "narrative_drag", base_drag)) + float(applied_drag))
                 volt_penalty = base_voltage - dummy_phys.get("voltage", base_voltage)
                 if volt_penalty > 0:
-                    current_voltage = float(getattr(embryo.physics, "voltage", base_voltage))
-                    embryo.physics.voltage = max(0.0, current_voltage - float(volt_penalty))
-            if mem:
-                mem.session_trauma_vector = bio_proxy.get("trauma_vector", {})
+                    embryo.physics.voltage = max(0.0, float(getattr(embryo.physics, "voltage", base_voltage)) - float(
+                        volt_penalty))
+            mem.session_trauma_vector = bio_proxy.get("trauma_vector", {})
         drivers = DriverRegistry(events, config_ref=target_cfg)
-        consultant = BoneConsultant(config_ref=target_cfg,
-                                    lexicon_ref=lexicon_ref) if "CONSULTANT" not in suppressed_set else None
+        consultant = BoneConsultant(config_ref=target_cfg, lexicon_ref=lexicon_ref) if "CONSULTANT" not in suppressed_set else None
         symbiosis = SymbiosisManager(events, config_ref=target_cfg)
         consolidator = TheConsolidator(events_ref=events, memory_ref=embryo.mind.mem, akashic_ref=akashic)
         return {"events": events, "akashic": akashic, "embryo": embryo, "village": village_bundle, "soul": soul,
@@ -98,8 +87,8 @@ class BoneGenesis:
                 "consolidator": consolidator}
 
     @staticmethod
-    def _summon_village(events, embryo, akashic, suppressed: Set[str], boot_mode: str = "ADVENTURE", config_ref=None,
-                        lexicon_ref=None) -> Dict[str, Any]:
+    def _summon_village(events, embryo, akashic, suppressed: Set[str], boot_mode: str = "ADVENTURE", config_ref=None) -> \
+    Dict[str, Any]:
         """
         Populates the regulatory and archetypal layer of the engine.
         Args:

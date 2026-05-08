@@ -142,7 +142,6 @@ class ZoneInertia:
             return cosmic_drag_penalty * 0.3
         return cosmic_drag_penalty
 
-
 class CosmicDynamics:
     """
     The macro-level semantic gravity engine.

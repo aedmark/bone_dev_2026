@@ -268,6 +268,17 @@ class TruthRenderer(GeodesicRenderer):
     def dial_setting(self):
         return getattr(self.engine, "ambiguity_dial", AmbiguityDial.BOARDROOM)
 
+    def render_frame(self, ctx, tick: int, current_events: List[Dict]) -> Dict[str, Any]:
+        """Intercepts the standard frame to apply epistemological formatting."""
+        frame = super().render_frame(ctx, tick, current_events)
+        council_log = getattr(ctx, "council_log", [])
+        trauma = getattr(self.engine, "trauma_accum", {})
+        trauma_cost = sum(trauma.values()) if trauma else 0.0
+        new_ui = self.render_truth(frame, council_log, trauma_cost)
+        if new_ui:
+            frame["ui"] = new_ui
+        return frame
+
     def render_truth(self, cortex_packet, council_log, trauma_cost):
         """Morphs the final output based on the user's requested level of systemic transparency."""
         ui_text = cortex_packet.get("ui", "")

@@ -99,15 +99,20 @@ class TheCortex:
     def from_engine(cls, engine_ref, llm_client=None):
         target_cfg = getattr(engine_ref, "config", BoneConfig)
         symbiosis_mgr = getattr(engine_ref, "symbiosis", None) or SymbiosisManager(engine_ref.events)
-        village_ref = getattr(engine_ref, "village", None)
-        services = CortexServices(events=engine_ref.events, lore=LoreManifest.get_instance(config_ref=target_cfg),
-                                  lexicon=engine_ref.lex, inventory=getattr(village_ref, "gordon", None),
-                                  consultant=getattr(engine_ref, "consultant", None),
-                                  orchestrator=engine_ref.orchestrator, symbiosis=symbiosis_mgr,
-                                  mind_memory=engine_ref.mind.mem,
-                                  bio=getattr(engine_ref, "bio", None),
-                                  host_stats=getattr(engine_ref, "host_stats", None),
-                                  village=village_ref, config_ref=target_cfg, )
+        services = CortexServices(
+            events=engine_ref.events,
+            lore=LoreManifest.get_instance(config_ref=target_cfg),
+            lexicon=engine_ref.lex,
+            inventory=getattr(engine_ref.village, "gordon", None) if hasattr(engine_ref, "village") else None,
+            consultant=engine_ref.consultant,
+            orchestrator=engine_ref.orchestrator,
+            symbiosis=symbiosis_mgr,
+            mind_memory=engine_ref.mind.mem,
+            bio=engine_ref.bio,
+            host_stats=engine_ref.host_stats,
+            village=engine_ref.village,
+            config_ref=target_cfg
+        )
         instance = cls(services, llm_client)
         instance.active_mode = getattr(engine_ref, "boot_mode", "ADVENTURE").upper()
         if instance.active_mode not in BonePresets.MODES:
@@ -180,12 +185,18 @@ class TheCortex:
             self.last_shadow_nodes = []
         full_state = self.gather_state(sim_result)
         phys_state = full_state.get("physics", {})
+        if self.svc.bio and hasattr(self.svc.bio, "mito"):
+            tick_atp = float(safe_get(phys_state, "delta_atp", 0.0))
+            tick_ros = float(safe_get(phys_state, "delta_ros", 0.0))
+            if tick_atp != 0.0:
+                self.svc.bio.mito.adjust_atp(tick_atp, "Creative Determinant Tick")
+            if tick_ros != 0.0:
+                self.svc.bio.mito.state.ros_buildup = max(0.0, min(100.0, self.svc.bio.mito.state.ros_buildup + tick_ros))
         f_drag = float(safe_get(phys_state, "narrative_drag", 0.0))
         chi_val = float(safe_get(phys_state, "chi", safe_get(phys_state, "entropy", 0.0)))
         m_a = float(safe_get(phys_state, "m_a", 0.0))
         if f_drag > 1.5 or chi_val > 0.8:
-            reject_msg = ux("cortex_strings", "gordon_anchor_lock",
-                            default="[GORDON - The Anchor]: Frequency too high. Tensegrity Anchor engaged. I am locking the architecture. Take a breath and lower your narrative friction before we proceed.")
+            reject_msg = ux("cortex_strings", "gordon_anchor_lock", default="[GORDON - The Anchor]: Frequency too high. Tensegrity Anchor engaged. I am locking the architecture. Take a breath and lower your narrative friction before we proceed.")
             if self.events:
                 self.events.log(f"{Prisma.RED}{reject_msg}{Prisma.RST}", "SYS_LOCK")
             sim_result["ui"] = (sim_result.get("ui", "") + f"\n\n{Prisma.RED}{reject_msg}{Prisma.RST}").strip()

@@ -161,6 +161,7 @@ class QuantumObserver:
         sustainable_capacity = max(0.1, 1.0 - (avg_voltage / 150.0) * entropy)
         current_debt = self.cd_engine.update_coherence_debt(actual_coherence, sustainable_capacity)
         viability = self.cd_engine.calculate_viability(kappa=resonance, gamma=gamma_idx, mu=beta)
+        delta_atp, delta_ros = self.cd_engine.execute_metabolic_tick(viability)
         strong_coherence_ideal = resonance * gamma_idx * beta
         generative_gap = abs(strong_coherence_ideal - actual_coherence)
         cd_drag = (geo.compression * 0.5) + (generative_gap * getattr(self.cfg.PHYSICS, "DRAG_HALT", 10.0) * 0.5)
@@ -174,6 +175,8 @@ class QuantumObserver:
         )
         safe_set(energy, "viability_potential", viability)
         safe_set(energy, "coherence_debt", current_debt)
+        safe_set(energy, "delta_atp", delta_atp)
+        safe_set(energy, "delta_ros", delta_ros)
         matter = MaterialState(clean_words=clean_words, raw_text=text, counts=counts, antigens=counts.get("antigen", 0),
                                vector=geo.dimensions, truth_ratio=0.5)
         space = SpatialState(narrative_drag=cd_drag, zone=self._determine_zone(geo.dimensions),
