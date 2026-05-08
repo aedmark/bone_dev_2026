@@ -275,7 +275,7 @@ class BoneAmanita:
         base_exhaust = float(safe_get(active_phys, "exhaustion", 0.0))
         beta = float(safe_get(active_phys, "beta_index", 0.0))
         lattice = getattr(self, "shared_lattice", None)
-        e_u = float(getattr(lattice.u, "E", base_exhaust)) if lattice and hasattr(lattice, "u") else base_exhaust
+        e_u = float(lattice.u.E) if lattice and hasattr(lattice, "u") else base_exhaust
         if (chi * m_a) > i_c:
             self.events.log("Apoptotic Gate triggered. Runaway loop exceeds Immune Competence.", "CRIT")
             return self.trigger_death(active_phys)
@@ -446,17 +446,11 @@ class BoneAmanita:
 
     def trigger_death(self, last_phys) -> Dict:
         """Handles structural failure by mutating trauma into legacy variables and halting."""
-        mito_state_dict = {}
-        immune_data = []
-        if getattr(self, "bio", None):
-            if hasattr(self.bio, "mito"):
-                self.bio.mito.adapt(0)
-                mito_state_dict = getattr(self.bio.mito.state, "__dict__", {})
-            if hasattr(self.bio, "immune"):
-                immune_data = list(self.bio.immune.active_antibodies)
-        village_layer = getattr(self, "village", None)
-        if getattr(village_layer, "death_gen", None) is not None:
-            eulogy_text, cause_code = village_layer.death_gen.eulogy(last_phys, mito_state_dict, self.trauma_accum)
+        self.bio.mito.adapt(0)
+        mito_state_dict = vars(self.bio.mito.state)
+        immune_data = list(self.bio.immune.active_antibodies)
+        if hasattr(self.village, "death_gen") and self.village.death_gen:
+            eulogy_text, cause_code = self.village.death_gen.eulogy(last_phys, mito_state_dict, self.trauma_accum)
         else:
             eulogy_text = ux("main_strings", "death_no_proto") or "Critical systemic collapse. Eulogy missing."
             cause_code = "UNKNOWN_FATAL_ERROR"
@@ -473,10 +467,10 @@ class BoneAmanita:
                 self.events.log(f"Cortex harvest failed during death sequence: {e}", "WARN")
             buf = getattr(self.cortex, "dialogue_buffer", [])
             last_out = buf[-1] if buf else "Silence."
-        gordon_inv = getattr(getattr(village_layer, "gordon", None), "inventory", [])
+        gordon_inv = self.village.gordon.inventory if hasattr(self.village, "gordon") else []
         continuity_packet = {"location": loc, "last_output": last_out, "inventory": gordon_inv}
         try:
-            mutations_data = village_layer.repro.attempt_reproduction(self, "MITOSIS")[1] if getattr(village_layer, "repro", None) else {}
+            mutations_data = self.village.repro.attempt_reproduction(self, "MITOSIS")[1] if hasattr(self.village, "repro") else {}
             path = self.mind.mem.save(health=0, stamina=self.stamina, mutations=mutations_data, trauma_accum=self.trauma_accum, joy_history=[],
                 mitochondria_traits=mito_state_dict,antibodies=immune_data, soul_data=self.soul.to_dict(),
                 continuity=continuity_packet, )

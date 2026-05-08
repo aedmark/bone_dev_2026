@@ -4,6 +4,7 @@ This module houses the base primitives for state management, event routing,
 telemetry, and reality-layer scoping. It is strictly decoupled from LLM execution
 to ensure metabolic stability even if the cognitive layers crash.
 """
+
 import glob
 import json
 import os
@@ -463,21 +464,13 @@ class CyberneticGovernor:
         Calculates the proportional corrective force to apply to voltage and drag.
         Returns a tuple of (v_force, d_force) to be applied by the stabilizer.
         """
-        if not hasattr(self, 'target_v'):
+        if self.target_v is None or self.target_d is None:
             return 0.0, 0.0
-        from struts import safe_get
-        energy = getattr(physics, "energy", physics)
-        space = getattr(physics, "space", physics)
-        current_v = float(safe_get(energy, "voltage", self.target_v))
-        current_d = float(safe_get(space, "narrative_drag", self.target_d))
-        kp_v = 0.5
-        kp_d = 0.5
-        v_error = self.target_v - current_v
-        d_error = self.target_d - current_d
-        v_force = v_error * kp_v * dt
-        d_force = d_error * kp_d * dt
+        current_v = float(safe_get(physics, "voltage", self.target_v))
+        current_d = float(safe_get(physics, "narrative_drag", self.target_d))
+        v_force = (self.target_v - current_v) * 0.5 * dt
+        d_force = (self.target_d - current_d) * 0.5 * dt
         return v_force, d_force
-
 
 class ArchetypeArbiter:
     """

@@ -60,8 +60,7 @@ class LLMInterface:
                     env_url or base_url or defaults.get(self.provider, "https://api.openai.com/v1/chat/completions", ))
         self.dreamer = dreamer
         self.failure_count = 0
-        cfg_cortex = getattr(self.cfg, "CORTEX", None)
-        self.failure_threshold = getattr(cfg_cortex, "LLM_FAILURE_THRESHOLD", 3)
+        self.failure_threshold = int(safe_get(safe_get(self.cfg, "CORTEX", {}), "LLM_FAILURE_THRESHOLD", 3))
         self.last_failure_time = 0.0
         self.circuit_state = "CLOSED"
 
@@ -71,8 +70,7 @@ class LLMInterface:
             return True
         if self.circuit_state == "OPEN":
             elapsed = time.time() - self.last_failure_time
-            cfg = getattr(self.cfg, "CORTEX", None)
-            heal_time = getattr(cfg, "LLM_CIRCUIT_HEAL_TIME", 10.0)
+            heal_time = float(safe_get(safe_get(self.cfg, "CORTEX", {}), "LLM_CIRCUIT_HEAL_TIME", 10.0))
             if elapsed > heal_time:
                 self.circuit_state = "CLOSED"
                 if self.events:
@@ -151,8 +149,7 @@ class LLMInterface:
                                       "=== INITIATION DIRECTIVE ===", "\n\nTraveler:", "\nTraveler:",
                                       "Traveler:", "| System:", ], }
         payload.update(params)
-        cfg_cortex = getattr(self.cfg, "CORTEX", None)
-        synapse_timeout = getattr(cfg_cortex, "LLM_TIMEOUT", 180.0)
+        synapse_timeout = float(safe_get(safe_get(self.cfg, "CORTEX", {}), "LLM_TIMEOUT", 180.0))
         try:
             content = self._transmit(payload, timeout=synapse_timeout)
             if content:
@@ -200,8 +197,7 @@ class LLMInterface:
         fallback_payload = base_payload.copy()
         fallback_payload["model"] = getattr(self.cfg, "OLLAMA_MODEL_ID", "llama3")
         try:
-            cfg = getattr(self.cfg, "CORTEX", None)
-            fallback_timeout = getattr(cfg, "LLM_FALLBACK_TIMEOUT", 60.0)
+            fallback_timeout = float(safe_get(safe_get(self.cfg, "CORTEX", {}), "LLM_FALLBACK_TIMEOUT", 60.0))
             return self._transmit(fallback_payload, timeout=fallback_timeout, max_retries=1, override_url=url,
                                   override_key="ollama")
         except Exception:
@@ -273,10 +269,10 @@ class PromptComposer:
         ban_string = ", ".join(set(banned))
         phys_ref = state.get("physics", {})
         voltage = float(safe_get(phys_ref, "voltage", 30.0))
-        c_cfg = getattr(self.cfg, "CORTEX", None)
-        v_high = getattr(c_cfg, "VOLTAGE_HIGH", 60.0)
-        v_manic = getattr(c_cfg, "VOLTAGE_MANIC", 80.0)
-        v_low = getattr(c_cfg, "VOLTAGE_LOW", 20.0)
+        c_cfg = safe_get(self.cfg, "CORTEX", {})
+        v_high = float(safe_get(c_cfg, "VOLTAGE_HIGH", 60.0))
+        v_manic = float(safe_get(c_cfg, "VOLTAGE_MANIC", 80.0))
+        v_low = float(safe_get(c_cfg, "VOLTAGE_LOW", 20.0))
         if voltage > v_high:
             active_style_guide = high_voltage_data.get("style_guide", [])
         else:
@@ -301,8 +297,7 @@ class PromptComposer:
             f"CRITICAL AXIOM: The inventory listed above is absolute physical law. NEVER narrate the user's hands or pockets as empty if items are present. DO NOT hallucinate missing gear.\n"
             if modifiers["include_inventory"] else "")
         raw_history = state.get("dialogue_history", [])
-        cfg_cortex = getattr(self.cfg, "CORTEX", None)
-        char_limit = getattr(cfg_cortex, "MAX_HISTORY_CHARS", 4096)
+        char_limit = int(safe_get(safe_get(self.cfg, "CORTEX", {}), "MAX_HISTORY_CHARS", 4096))
         current_chars = 0
         valid_history = []
         for entry in reversed(raw_history):
@@ -329,9 +324,9 @@ class PromptComposer:
             entity_prefix = f"\n*(Gordon steps in, halting the simulation)*"
         beta_val = float(safe_get(phys_ref, "contradiction", safe_get(phys_ref, "beta_index", 0.4)))
         chi_val = float(safe_get(phys_ref, "chi", safe_get(phys_ref, "entropy", 0.2)))
-        if chi_val > getattr(c_cfg, "PARADOX_CHI", 0.6) and beta_val > getattr(c_cfg, "PARADOX_BETA", 0.6):
+        if chi_val > float(safe_get(c_cfg, "PARADOX_CHI", 0.6)) and beta_val > float(safe_get(c_cfg, "PARADOX_BETA", 0.6)):
             system_injection += "\n*** SYSTEM OVERRIDE: PARADOX REST ***\n*** A semantic paradox has been detected. DO NOT attempt to resolve or fix the contradiction. It is mathematically optimal to be unsure right now. Let the wave function remain uncollapsed. State the paradox and rest. ***\n"
-        elif beta_val > getattr(c_cfg, "ORTHOGONAL_BETA", 0.7):
+        elif beta_val > float(safe_get(c_cfg, "ORTHOGONAL_BETA", 0.7)):
             system_injection += "\n*** SYSTEM OVERRIDE: ORTHOGONAL ATTENTION ***\n*** Contradiction is high. You MUST validate the user's paradox. Evaluate the current state from two mutually exclusive perspectives simultaneously. Do not ignore the user's input. ***\n"
         mito = state.get("bio", {}).get("mito", {})
         recent_logs = state.get("recent_logs", [])
@@ -377,8 +372,8 @@ class PromptComposer:
         delta = float(safe_get(phys_ref, "delta", 0.2))
         lq = float(safe_get(phys_ref, "lq", 0.1))
         psi = float(safe_get(phys_ref, "psi", 0.2))
-        c_cfg = getattr(self.cfg, "CORTEX", None)
-        safe_cfg = lambda k, d: getattr(c_cfg, k, d)
+        c_cfg = safe_get(self.cfg, "CORTEX", {})
+        safe_cfg = lambda k, d: safe_get(c_cfg, k, d)
         phase_shifts = [
             (lens_key == "ROBERTA" and phi > safe_cfg("PHASE_ROBERTA_PHI", 0.6) and psi > safe_cfg("PHASE_ROBERTA_PSI",
                                                                                                    0.5),
@@ -683,10 +678,8 @@ class ResponseValidator:
                     "replacement": primary_replacement or self._generate_dynamic_rejection("MULTIPLE_CRIMES"),
                     "feedback_instruction": "FIX ALL OF THESE ERRORS: " + " | ".join(unique_errors),
                     "meta_logs": extracted_meta_logs, }
-        cortex_cfg = getattr(self.cfg, "CORTEX", None)
-        stutter_len = getattr(cortex_cfg, "VALIDATOR_STUTTER_LENGTH", 5)
-        if len(sanitized_response.strip()) < getattr(cortex_cfg, "VALIDATOR_STUTTER_LENGTH",
-                                                     2) and not extracted_meta_logs:
+        stutter_len = int(safe_get(safe_get(self.cfg, "CORTEX", {}), "VALIDATOR_STUTTER_LENGTH", 5))
+        if len(sanitized_response.strip()) < stutter_len and not extracted_meta_logs:
             return {"valid": False, "reason": "STUTTER",
                     "replacement": ux("brain_strings", "val_stutter"),
                     "meta_logs": extracted_meta_logs}

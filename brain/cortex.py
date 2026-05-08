@@ -57,21 +57,19 @@ class TheCortex:
         self.cfg = services.config_ref or BoneConfig
         self.events = services.events
         self.dialogue_buffer = []
-        cfg = getattr(self.cfg, "CORTEX", None)
-        self.MAX_HISTORY = getattr(cfg, "MAX_HISTORY_LENGTH", 15)
+        self.MAX_HISTORY = int(safe_get(safe_get(self.cfg, "CORTEX", {}), "MAX_HISTORY_LENGTH", 15))
         self.modulator = NeurotransmitterModulator(bio_ref=self.svc.bio, events_ref=self.events, config_ref=self.cfg)
         self.last_physics = {}
         self.last_shadow_nodes = []
         self.consultant = services.consultant
-        self.llm = llm_client or LLMInterface(self.events, provider="mock")
-        eng_ref = getattr(self.svc.orchestrator, "eng", None)
-        self.dreamer = getattr(getattr(eng_ref, "mind", None), "dreamer", None)
-        if self.dreamer:
+        self.llm = llm_client or LLMInterface(self.events, provider="mock", config_ref=self.cfg)
+        eng_ref = self.svc.orchestrator.eng if self.svc.orchestrator else None
+        if eng_ref and hasattr(eng_ref, "mind") and hasattr(eng_ref.mind, "dreamer"):
+            self.dreamer = eng_ref.mind.dreamer
             self.dreamer.llm = self.llm
             self.dreamer.mem = self.svc.mind_memory
         else:
-            self.dreamer = DreamEngine(self.events, self.svc.lore, llm_ref=self.llm, mem_ref=self.svc.mind_memory,
-                                       eng_ref=eng_ref, config_ref=self.cfg)
+            self.dreamer = DreamEngine(self.events, self.svc.lore, llm_ref=self.llm, mem_ref=self.svc.mind_memory, eng_ref=eng_ref, config_ref=self.cfg)
         self.llm.dreamer = self.dreamer
         self.symbiosis = services.symbiosis
         self.composer = PromptComposer(self.svc.lore, config_ref=self.cfg)
@@ -156,7 +154,7 @@ class TheCortex:
         if self.consultant and "/vsl" in user_input.lower():
             return self._handle_vsl_command(user_input)
         is_boot_sequence = "SYSTEM_BOOT" in user_input
-        context_limit = getattr(getattr(self.cfg, "CORTEX", object()), "MAX_INPUT_CHARS", 15000)
+        context_limit = int(safe_get(safe_get(self.cfg, "CORTEX", {}), "MAX_INPUT_CHARS", 15000))
         if len(user_input) > context_limit and not is_system and not is_boot_sequence:
             safe_content = user_input.replace("\n", "|||NEWLINE|||")
             filename = f"context_drop_{int(time.time())}.txt"
