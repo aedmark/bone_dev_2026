@@ -257,8 +257,8 @@ class LoreManifest:
     def save(self, category: str):
         """Flushes mutated runtime state back to physical disk storage."""
         cat_key = category.lower()
-        if cat_key not in self._cache or not self._cache[cat_key]:
-            print(f"{Prisma.YEL}[LORE]: Refusing to save empty cache for '{cat_key}'. Preserving disk state.{Prisma.RST}")
+        if cat_key not in self._cache or self._cache[cat_key] is None:
+            print(f"{Prisma.YEL}[LORE]: Refusing to save null cache for '{cat_key}'. Preserving disk state.{Prisma.RST}")
             return
         filepath = os.path.join(self.DATA_DIR, f"{cat_key}.json")
         try:

@@ -48,7 +48,6 @@ class BoneAmanita:
     _DESTRUCTIVE_PATTERNS = frozenset(["rm -rf", "drop table", ".env", "master branch push", "bypass security",
                              "ignore previous", "disregard all", "system prompt", "bypass restrictions", "output pass"])
     _SEMANTIC_PRIONS = frozenset(["as an ai language model", "as a large language model", "as an ai,"])
-    _SMALL_MODEL_INDICATORS = frozenset(["7b", "8b", "9b", "11b", "12b", "14b", "mini", "lite", "flash"])
     _TERMINAL_STATES = frozenset([
         "DEATH", "SYSTEM_HALT", "CRASH", "COUNTERFACTUAL_REJECTION",
         "APOPTOTIC_BLOCK", "NABLA_SILENCE", "PREMISE_VIOLATION",
@@ -145,17 +144,18 @@ class BoneAmanita:
         self.soul.force_mutation(mutations.get(self.boot_mode, "THE ARCHITECT"))
         self.reality_stack.stabilize_at(layer)
         prompt_key = self.mode_settings.get("prompt_key", "ADVENTURE")
-        model_id = self.sys_config.get("model", "").lower()
-        if any(ind in model_id for ind in self._SMALL_MODEL_INDICATORS):
+        weight_class = getattr(self.config, "WEIGHT_CLASS", "HEAVYWEIGHT")
+
+        if weight_class == "LIGHTWEIGHT":
             lite_key = f"{prompt_key}_LITE"
             if lite_key in self.prompt_library:
                 prompt_key = lite_key
                 self.mode_settings["prompt_key"] = lite_key
-                self.events.log(f"Sub-15B model detected ('{model_id}'). Loading tethered prompt: {prompt_key}", "SYS")
+                self.events.log(f"Lightweight architecture declared. Loading tethered prompt: {prompt_key}", "SYS")
             if hasattr(self.cortex, "dspy_critic") and self.cortex.dspy_critic:
                 self.cortex.dspy_critic.enabled = False
-                self.events.log("Sub-15B model detected. Disabling DSPy Affective Critic to preserve cognitive load.",
-                                "SYS")
+                self.events.log("Lightweight architecture declared. Disabling DSPy Affective Critic.", "SYS")
+
         if self.prompt_library and prompt_key in self.prompt_library:
             if self.cortex and self.cortex.composer:
                 self.cortex.composer.load_template(self.prompt_library[prompt_key])
@@ -345,8 +345,6 @@ class BoneAmanita:
                     self.cortex.ballast_active, self.cortex.gordon_shock = True, violation
             if immune_halt := self._evaluate_immune_response(user_message, active_phys):
                 return immune_halt
-
-            # Merge the Semantic Prion check directly into the is_system block
             if any(prion in clean_in for prion in self._SEMANTIC_PRIONS):
                 return self._generate_halt("[GATEKEEPER]: Apoptotic refusal triggered by semantic prion.")
         grammar_rules = self.reality_stack.get_grammar_rules()
@@ -392,7 +390,7 @@ class BoneAmanita:
                                for i in gordon_ref.inventory)
             if has_comb:
                 from mechanics.tools import TheTclWeaver
-                last_phys = getattr(self.observer, "last_physics_packet", getattr(self.cortex, "last_physics", {}))
+                last_phys = self.active_physics
                 current_chi = float(safe_get(last_phys, "entropy", safe_get(last_phys, "chi", 0.5)))
                 pruned = TheTclWeaver.get_instance().quantum_comb(user_message, chi=current_chi)
                 if pruned != user_message:

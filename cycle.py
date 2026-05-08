@@ -353,7 +353,7 @@ class GeodesicOrchestrator:
     def _check_early_exit(self, ctx: CycleContext) -> Optional[Dict[str, Any]]:
         """Intercepts the pipeline return if the organism died or explicitly refused a toxic prompt."""
         if not ctx.is_alive:
-            if getattr(ctx, "crash_error", None) is not None:
+            if ctx.crash_error:
                 return self._generate_crash_report(ctx.crash_error)
             return self.eng.trigger_death(ctx.physics)
         if ctx.refusal_triggered and ctx.refusal_packet:

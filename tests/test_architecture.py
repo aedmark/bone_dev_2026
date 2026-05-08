@@ -47,6 +47,7 @@ class ArchitectureTests(BoneTestCase):
             "provider": "mock"
         }
         test_engine = BoneAmanita(config)
+        test_engine.config.WEIGHT_CLASS = "LIGHTWEIGHT"
         test_engine._load_system_prompts = MagicMock()
         test_engine.prompt_library = {"CREATIVE_LITE": "Lightweight Prompt Data"}
         test_engine._apply_boot_mode()

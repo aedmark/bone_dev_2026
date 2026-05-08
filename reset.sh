@@ -14,6 +14,7 @@ rm -rf machine/__pycache__
 rm -rf soul/__pycache__
 rm -rf ./MagicMock
 rm -rf tests/MagicMock
+rm -rf tests/memories
 rm -rf logs
 rm -rf memories
 rm -rf saves
