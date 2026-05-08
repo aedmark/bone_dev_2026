@@ -57,6 +57,7 @@ class BoneAmanita:
     def __init__(self, config: Dict[str, Any]):
         self.sys_config = config
         self.config = BoneConfig()
+        self.config.WEIGHT_CLASS = self.sys_config.get("WEIGHT_CLASS", "HEAVYWEIGHT")
         self.navi_sad = NaviSADProtocol()
         self.events = EventBus(config_ref=self.config)
         self.kernel_hash = str(uuid.uuid4())[:8].upper()
