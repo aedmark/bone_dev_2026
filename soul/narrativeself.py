@@ -62,8 +62,8 @@ class NarrativeSelf:
             self.events.subscribe("TRAUMA_EVENT", self._on_trauma)
 
     def _cfg(self, key: str, default: Any) -> Any:
-        cfg_obj = getattr(self.cfg, "SOUL", None)
-        return getattr(cfg_obj, key, default)
+        val = safe_get(safe_get(self.cfg, "SOUL", {}), key, default)
+        return float(val) if isinstance(default, float) else int(val) if isinstance(default, int) else val
 
     def force_mutation(self, new_archetype: str):
         """Forces a hard shift in the system's governing personality (via Mod Chip or event)."""

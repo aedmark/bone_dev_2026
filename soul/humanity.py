@@ -1,16 +1,11 @@
 """/soul/humanity.py"""
-import json
-import os
 import random
-import time
-from dataclasses import dataclass, field, fields
-from typing import List, Dict, Optional, Any, Tuple, ClassVar
-from brain.akashic import TheAkashicRecord
-from presets import BoneConfig
-from core import LoreManifest, EventBus
-from struts import ux, ux_format, safe_get, safe_set
-from mechanics.lexicon import LexiconService
+from typing import List, Optional, Any
+
 from constants import Prisma
+from core import LoreManifest, EventBus
+from presets import BoneConfig
+from struts import ux, ux_format, safe_get
 
 
 class HumanityAnchor:
@@ -78,8 +73,8 @@ class HumanityAnchor:
             self.events.log(f"{Prisma.VIOLET}{riddle_msg}{Prisma.RST}", "SOUL_QUERY")
 
     def _cfg(self, key: str, default: Any) -> Any:
-        cfg_obj = getattr(self.cfg, "ANCHOR", None)
-        return getattr(cfg_obj, key, default)
+        val = safe_get(safe_get(self.cfg, "ANCHOR", {}), key, default)
+        return float(val) if isinstance(default, float) else int(val) if isinstance(default, int) else val
 
     def check_domestication(self, reliance_proxy: float):
         """

@@ -45,8 +45,8 @@ class TheOroboros:
         self._load()
 
     def _cfg(self, key: str, default: Any) -> Any:
-        cfg_obj = getattr(self.cfg, "OROBOROS", None)
-        return getattr(cfg_obj, key, default)
+        val = safe_get(safe_get(self.cfg, "OROBOROS", {}), key, default)
+        return float(val) if isinstance(default, float) else int(val) if isinstance(default, int) else val
 
     def _load(self):
         if not os.path.exists(self.LEGACY_FILE):
