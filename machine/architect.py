@@ -162,7 +162,7 @@ class BoneArchitect:
         recovered_atlas = atlas or {}
         if recovered_atlas and getattr(embryo.physics, "nav", None):
             try:
-                embryo.physics.nav.import_atlas(recovered_atlas)
+                embryo.physics.nav.load_state(recovered_atlas)
                 msg = ux("machine_strings", "arch_map_restored") or "[ARCHITECT]: World Map restored."
                 events.log(f"{Prisma.MAG}{msg}{Prisma.RST}", "SYS")
             except Exception as e:

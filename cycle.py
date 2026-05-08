@@ -122,16 +122,17 @@ class CycleSimulator:
 
     def __init__(self, engine_ref):
         self.eng = engine_ref
-        self.shared_governor = self.eng.bio.governor
+        self.cyb_governor = self.eng.governor
+        self.bio_governor = getattr(self.eng.bio, "governor", None) if hasattr(self.eng, "bio") else None
         target_cfg = getattr(self.eng, "config", BoneConfig)
-        self.stabilizer = CycleStabilizer(self.eng.events, self.shared_governor, config_ref=target_cfg)
+        self.stabilizer = CycleStabilizer(self.eng.events, self.cyb_governor, config_ref=target_cfg)
         self.executor = PhaseExecutor()
         self.full_pipeline: List[SimulationPhase] = [
             ObservationPhase(engine_ref),
             MaintenancePhase(engine_ref),
             SensationPhase(engine_ref),
             GatekeeperPhase(engine_ref),
-            SanctuaryPhase(engine_ref, self.shared_governor),
+            SanctuaryPhase(engine_ref, self.bio_governor),
             MetabolismPhase(engine_ref),
             NavigationPhase(engine_ref),
             MachineryPhase(engine_ref),
@@ -227,7 +228,7 @@ class GeodesicOrchestrator:
         Native Maslov-Sneppen rewiring (Project Navi, Apache 2.0).
         A biological toxin doesn't kill instantly; it flags the system for apoptosis on the next cycle.
         """
-        if getattr(self.eng, "tick_count", 0) % 3 != 0:
+        if self.eng.tick_count % 3 != 0:
             return
         mem = self.eng.mind.mem
         hippo = mem.hippocampus
@@ -270,18 +271,16 @@ class GeodesicOrchestrator:
         physical and biological reality, and runs it through the Simulator.
         """
         cycle_id = str(uuid.uuid4())[:8]
-        tel = getattr(self.eng, "telemetry", None)
-        if tel: tel.start_cycle(cycle_id)
+        self.eng.telemetry.start_cycle(cycle_id)
         try:
             if not is_system:
                 self.eng.tick_count += 1
             ctx = CycleContext(input_text=user_message, is_system_event=is_system)
             ctx.trace_id = cycle_id
             ctx.time_delta = getattr(self.eng, "current_time_delta", 0.0)
-            lattice = getattr(self.eng, "shared_lattice", None)
-            if lattice:
-                ctx.user_state = getattr(lattice, "u", None)
-                ctx.shared_dyn = getattr(lattice, "shared", None)
+            lattice = self.eng.shared_lattice
+            ctx.user_state = lattice.u
+            ctx.shared_dyn = lattice.shared
             target_cfg = getattr(self.eng, "config", BoneConfig)
             ctx.limits = _safe_dict(getattr(target_cfg, "CYCLE", {}))
             obs = self.eng.observer
@@ -303,7 +302,6 @@ class GeodesicOrchestrator:
             if not getattr(ctx.physics, "vector", None):
                 ctx.physics.vector = {}
 
-            # Natively bind the Sincerity Protocols from the structural prompt into systemic vectors
             usr_msg = user_message.lower()
             ctx.physics.vector.update({
                 "critique_mode": "[!r]" in usr_msg,
@@ -314,6 +312,15 @@ class GeodesicOrchestrator:
                 "literal_mode": "[!l]" in usr_msg,
                 "yeetinator_mode": "[!y]" in usr_msg
             })
+
+            lattice_ref = getattr(self.eng, "shared_lattice", None)
+            if lattice_ref and hasattr(self.eng, "governor"):
+                u_exhaustion = float(getattr(lattice_ref.u, "E", 0.0)) if hasattr(lattice_ref, "u") else 0.0
+                phi_val = float(getattr(lattice_ref.shared, "phi", 0.0)) if hasattr(lattice_ref, "shared") else 0.0
+                res_delta = float(getattr(lattice_ref.shared, "resonance_delta", 0.0)) if hasattr(lattice_ref, "shared") else 0.0
+                self.eng.governor.calculate_coupling(phi_val, res_delta, u_exhaustion)
+                ctx.physics.macro_policy = self.eng.governor.get_policy_shift()
+
             ctx = self.simulator.run_simulation(ctx)
             post_logs = [e["text"] for e in self.eng.events.flush()]
             ctx.logs.extend(post_logs)
@@ -331,7 +338,7 @@ class GeodesicOrchestrator:
             ctx.crash_error = e
             return ctx
         finally:
-            if tel: tel.finalize_cycle()
+            self.eng.telemetry.finalize_cycle()
 
     def _dispatch_rem_worker(self, log_msg: str):
         """Handles asynchronous REM sleep consolidation."""
@@ -377,13 +384,12 @@ class GeodesicOrchestrator:
                 self.eng.events.log(f"Async WLS Heuristic Error: {e}", "DEBUG")
 
         if cortex and hasattr(cortex, "get_local_mass_radius"):
-            if clean_message != "(Waiting)" and getattr(self.eng, "tick_count", 0) % 3 == 0:
+            if clean_message != "(Waiting)" and self.eng.tick_count % 3 == 0:
                 self._async_pool.submit(_bg_wls_check, clean_message)
-
         if clean_message != "(Waiting)":
             return
         atp_level = float(getattr(mito_state, "atp_pool", 0.0))
-        delta_level = float(getattr(lattice.shared, "delta", 0.0)) if lattice else 0.0
+        delta_level = float(getattr(self.eng.shared_lattice.shared, "delta", 0.0))
         phys_dict = _safe_dict(ctx.physics)
         energy_node = phys_dict.get("energy", phys_dict)
         debt = float(energy_node.get("coherence_debt", 0.0))

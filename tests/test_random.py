@@ -24,7 +24,6 @@ class RandomTest(BoneTestCase):
      side_effect=Exception("Simulated Core Simulator Collapse"),
             ):
                 result = self.engine.process_turn("Hello?")
-
             self.assertIn("ui", result, "Engine failed to return a UI packet during a crash.")
             self.assertIn("CRITICAL FAILURE", result.get("logs", []), "Engine did not log the critical failure.")
 
@@ -212,8 +211,6 @@ class RandomTest(BoneTestCase):
         self.engine.shared_lattice.u.T_u = 5.0
 
         user_input = "/grief"
-
-        # 1. Capture the result of the turn!
         result = self.engine.process_turn(user_input, is_system=False)
 
         self.assertEqual(self.engine.phys.G, 0,
@@ -223,8 +220,6 @@ class RandomTest(BoneTestCase):
             3.0,
             "Grief Protocol failed to heal user Trauma (T_u).",
         )
-
-        # 2. Assert against the logs array returned in the turn's result packet
         logs = result.get("logs", [])
         self.assertTrue(
             any("compost" in str(log) for log in logs),

@@ -244,10 +244,19 @@ class SanctuaryPhase(SimulationPhase):
     def __init__(self, engine_ref, governor_ref):
         super().__init__(engine_ref)
         self.name = "SANCTUARY"
-        self.governor = governor_ref
+        # We discard the boot-time reference entirely to avoid the race condition.
+
+    @property
+    def bio_governor(self):
+        """Strictly evaluates the existence of the biological organ at runtime."""
+        gov = getattr(self.eng.bio, "governor", None) if hasattr(self.eng, "bio") else None
+        if not gov:
+            raise RuntimeError("CRITICAL: Sanctuary Phase engaged, but the Biological Governor is missing or destroyed.")
+        return gov
 
     def run(self, ctx: CycleContext):
-        in_safe_zone, distance = self.governor.assess(ctx.physics)
+        # If bio_governor fails, the RuntimeError will trigger the Cathedral Collapse protocol natively.
+        in_safe_zone, distance = self.bio_governor.assess(ctx.physics)
         trauma_sum = sum(getattr(self.eng, "trauma_accum", {}).values())
         t_limit = ctx.limits.get("SANCTUARY_TRAUMA_LIMIT", 25.0)
         if in_safe_zone and trauma_sum < t_limit:

@@ -9,10 +9,6 @@ from tests.base import BoneTestCase
 
 class BiologyTests(BoneTestCase):
     def test_fatal_fever_dream_starvation(self):
-        """
-        Verifies the S.L.A.S.H. Sleep Risk Protocol. If the system enters REM
-        with critically low ATP (<5.0), it has a 50% chance to trigger a fatal hallucination.
-        """
         from brain.mind import DreamEngine
         mock_lore = MagicMock()
         mock_lore.get.return_value = {"NIGHTMARES": ["Test Nightmare {ghost}"]}

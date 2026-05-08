@@ -117,9 +117,10 @@ class PhysicsPacket:
     energy: EnergyState = field(default_factory=EnergyState)
     matter: MaterialState = field(default_factory=MaterialState)
     space: SpatialState = field(default_factory=SpatialState)
+    macro_policy: str = "UNKNOWN"
 
     _CORE_DOMAINS = ("energy", "space", "matter")
-    _BASE_FIELDS = frozenset({"energy", "matter", "space", "drag_profile"})
+    _BASE_FIELDS = frozenset({"energy", "matter", "space", "drag_profile", "macro_policy"})
 
     # Maps shorthand architectural aliases to their true paths.
     _ALIAS_MAP = {

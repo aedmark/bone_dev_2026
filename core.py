@@ -437,6 +437,8 @@ class CyberneticGovernor:
     """
 
     def __init__(self, config_ref=None):
+        self.target_d = None
+        self.target_v = None
         self.cfg = config_ref or BoneConfig
         self.beth_index, self.order = 0.5, 1
 
@@ -450,6 +452,31 @@ class CyberneticGovernor:
         if self.order == 2:
             return "CO_REGULATION"
         return "EFFICIENCY"
+
+    def recalibrate(self, target_voltage: float, target_drag: float):
+        """Sets the homeostatic setpoints for the regulatory loop."""
+        self.target_v = target_voltage
+        self.target_d = target_drag
+
+    def regulate(self, physics: Any, dt: float, endocrine_state: Any = None) -> Tuple[float, float]:
+        """
+        Calculates the proportional corrective force to apply to voltage and drag.
+        Returns a tuple of (v_force, d_force) to be applied by the stabilizer.
+        """
+        if not hasattr(self, 'target_v'):
+            return 0.0, 0.0
+        from struts import safe_get
+        energy = getattr(physics, "energy", physics)
+        space = getattr(physics, "space", physics)
+        current_v = float(safe_get(energy, "voltage", self.target_v))
+        current_d = float(safe_get(space, "narrative_drag", self.target_d))
+        kp_v = 0.5
+        kp_d = 0.5
+        v_error = self.target_v - current_v
+        d_error = self.target_d - current_d
+        v_force = v_error * kp_v * dt
+        d_force = d_error * kp_d * dt
+        return v_force, d_force
 
 
 class ArchetypeArbiter:

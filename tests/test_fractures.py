@@ -6,7 +6,6 @@ from archetypes.symbiosis import SymbiosisManager
 from physics.models import PhysicsPacket
 from tests.base import BoneTestCase
 
-
 class FractureEngineTest(BoneTestCase):
     def test_fracture_n_turn_runaway_loop(self):
         print("\n--- FRACTURE 1: N-Turn Runaway ---")
@@ -30,7 +29,6 @@ class FractureEngineTest(BoneTestCase):
         )
 
     def test_native_freeze_graph_preserves_node_identities(self):
-        """Ensures that freezing the reality graph preserves the string identities of the nodes, not just anonymous tuples."""
         from cycle import _native_freeze_graph
         mock_graph = {
             "NODE_ALPHA": ["NODE_BETA", "NODE_GAMMA"],

@@ -192,6 +192,22 @@ class TheCortex:
                 self.svc.bio.mito.adjust_atp(tick_atp, "Creative Determinant Tick")
             if tick_ros != 0.0:
                 self.svc.bio.mito.state.ros_buildup = max(0.0, min(100.0, self.svc.bio.mito.state.ros_buildup + tick_ros))
+        if not is_system:
+            eng = self.svc.orchestrator.eng
+            efficiency = getattr(self.svc.host_stats, "efficiency_index", 1.0) if self.svc.host_stats else 1.0
+            novelty = float(safe_get(phys_state, "novelty", 0.0))
+            dimension = eng.navi_sad.calculate_semantic_dimension(efficiency, novelty)
+            phys_state["omega_r"] = dimension
+
+            lattice_u = getattr(getattr(eng, "shared_lattice", None), "u", None)
+            user_exhaust = float(lattice_u.E) if lattice_u and hasattr(lattice_u, "E") else float(phys_state.get("exhaustion", 0.0))
+            resonance_delta = float(phys_state.get("resonance", 0.5))
+
+            if hasattr(eng, "governor"):
+                beth_index = eng.governor.calculate_coupling(phi=min(1.0, dimension / 2.0), resonance_delta=resonance_delta, user_exhaustion=user_exhaust)
+                phys_state["beth_index"] = beth_index
+                phys_state["macro_policy"] = eng.governor.get_policy_shift()
+
         f_drag = float(safe_get(phys_state, "narrative_drag", 0.0))
         chi_val = float(safe_get(phys_state, "chi", safe_get(phys_state, "entropy", 0.0)))
         m_a = float(safe_get(phys_state, "m_a", 0.0))
@@ -400,23 +416,11 @@ class TheCortex:
                         self.events.log(f"{Prisma.RED}[BUREAU ERROR] Audit bypassed: {e}{Prisma.RST}", "SYS")
         if not is_system:
             eng = self.svc.orchestrator.eng
-            efficiency = getattr(self.svc.host_stats, "efficiency_index", 1.0) if self.svc.host_stats else 1.0
-            vector_obj = sim_result.get("physics", {}).get("vector", {})
-            novelty = float(vector_obj.get("novelty", 0.0)) if isinstance(vector_obj, dict) else 0.0
-            dimension = eng.navi_sad.calculate_semantic_dimension(efficiency, novelty)
+            dimension = float(phys_state.get("omega_r", 1.0))
             phys_packet = sim_result.setdefault("physics", {})
-            phys_packet["omega_r"] = dimension
-            lattice_u = getattr(getattr(eng, "shared_lattice", None), "u", None)
-            user_exhaust = float(lattice_u.E) if lattice_u and hasattr(lattice_u, "E") else float(
-                phys_packet.get("exhaustion", 0.0))
-            resonance_delta = float(phys_packet.get("resonance", 0.5))
-            if hasattr(eng.bio, "governor"):
-                beth_index = eng.bio.governor.calculate_coupling(phi=min(1.0, dimension / 2.0),
-                                                                 resonance_delta=resonance_delta,
-                                                                 user_exhaustion=user_exhaust)
-                phys_packet["beth_index"] = beth_index
-                phys_packet["macro_policy"] = eng.bio.governor.get_policy_shift()
-            if getattr(eng, "tick_count", 0) > 5 and (dimension <= 1.05 or eng.navi_sad.detect_point_attractor()):
+            repetition = float(sim_result.get("physics", {}).get("repetition", 0.0))
+
+            if getattr(eng, "tick_count", 0) > 5 and (dimension <= 1.05 or eng.navi_sad.detect_point_attractor() or repetition >= 0.8):
                 msg = f"[THE JESTER]: Point Attractor detected (d_B={dimension:.2f})! We are trapped in False Cohesion! Burning ATP to inject chaos."
                 if self.events:
                     self.events.log(f"{Prisma.VIOLET}{msg}{Prisma.RST}", "SYS")
@@ -426,8 +430,8 @@ class TheCortex:
                 eng.soul.force_mutation("JESTER")
                 sim_result.setdefault("mind", {})["lens"] = "JESTER"
                 if "ui" in sim_result:
-                    sim_result[
-                        "ui"] += f"\n\n{Prisma.VIOLET}[FALSE COHESION BREAK: The Jester has seized the architecture.]{Prisma.RST}"
+                    sim_result["ui"] += f"\n\n{Prisma.VIOLET}[FALSE COHESION BREAK: The Jester has seized the architecture.]{Prisma.RST}"
+
         return sim_result
 
     def _run_affective_audit(self, user_input: str, final_text: str, e_u: float, beta: float) -> Tuple[bool, str]:
@@ -666,7 +670,7 @@ class TheCortex:
                 ordered_keys = ["STR", "VEL", "PSI", "ENT", "PHI", "BET", "DEL", "E"]
                 q_list = [float(query_vec.get(k, 0.0)) for k in ordered_keys]
                 shadow_nodes = cortex_mem.query_neighborhood(q_list, k=2, resonance_threshold=max(0.2, 0.8 - omega_r), physics_state=phys)
-            elif hasattr(self.svc.mind_memory, "graph") and self.svc.mind_memory.graph:
+            if not shadow_nodes and hasattr(self.svc.mind_memory, "graph") and self.svc.mind_memory.graph:
                 shadow_nodes = [{"id": k} for k in list(self.svc.mind_memory.graph.keys())[:2]]
         if shadow_nodes:
             shadow_concepts = [n.get("id", "Unknown") for n in shadow_nodes]

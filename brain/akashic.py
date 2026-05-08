@@ -316,7 +316,7 @@ class TheAkashicRecord:
         try:
             os.makedirs(target_dir, exist_ok=True)
             os.makedirs(self.save_dir, exist_ok=True)
-            temp_path = f"{filepath}.tmp"
+            temp_path = f"{filepath}.{uuid.uuid4().hex}.tmp"
             with open(temp_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2, cls=BoneJSONEncoder)
                 f.flush()

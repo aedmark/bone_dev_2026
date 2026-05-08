@@ -1,4 +1,5 @@
 """tests/test_architecture.py"""
+
 import os
 import ast
 from unittest.mock import patch
@@ -10,7 +11,6 @@ from presets import BoneConfig
 
 class ArchitectureTests(BoneTestCase):
     def test_arch_type_agnostic_physics(self):
-        """Ensures biological functions don't starve or crash when physics changes types."""
         print("\n--- ARCH 1: Type-Agnostic Physics ---")
         phys_obj = PhysicsPacket(chi=0.85, voltage=45.0)
         phys_obj.clean_words = ["structured", "prose", "kinetic", "heavy"]
@@ -24,14 +24,11 @@ class ArchitectureTests(BoneTestCase):
         print("  [SUCCESS] System metabolizes objects and dictionaries equally.")
 
     def test_immune_evaluation_with_object_physics(self):
-        """Ensures pre-flight checks use safe attribute retrieval and do not eagerly evaluate dictionary methods on Objects."""
-
         class MockPhysicsPacket:
             def __init__(self):
                 self.mu = 0.5
                 self.i_c = 0.8
                 self.entropy = 0.9
-
         engine = BoneAmanita({})
         mock_packet = MockPhysicsPacket()
         try:
@@ -41,12 +38,11 @@ class ArchitectureTests(BoneTestCase):
             self.fail(f"Immune evaluation failed to safely parse an Object (Eager Evaluation Trap triggered): {e}")
 
     def test_arch_small_model_scaffolding(self):
-        """Ensures the engine lowers cognitive complexity for sub-15B models."""
-        print("\n--- ARCH 8: Lightweight Model Scaffolding ---")
+        print("\n--- Lightweight Model Scaffolding ---")
         from main import BoneAmanita
         from unittest.mock import MagicMock
         config = {
-            "model": "llama3-8b-instruct",
+            "model": "hermes3",
             "boot_mode": "CREATIVE",
             "provider": "mock"
         }
@@ -63,7 +59,6 @@ class ArchitectureTests(BoneTestCase):
         print("  [SUCCESS] System automatically degraded cognitive load for the small model.")
 
     def test_multiplex_partial_hydration_safety(self):
-        """Ensures the engine does not crash when a multiplex lattice exists, but the user state is unhydrated (None)."""
         engine = BoneAmanita({})
 
         class MockLattice:
@@ -80,8 +75,7 @@ class ArchitectureTests(BoneTestCase):
             self.fail(f"Engine crashed when encountering a partially hydrated multiplex lattice: {e}")
 
     def test_arch_eventbus_ghost_prevention(self):
-        """Ensures temporary EventBus listeners can cleanly detach."""
-        print("\n--- ARCH 7: EventBus Outflow (Memory Leak Check) ---")
+        print("\n--- EventBus Outflow (Memory Leak Check) ---")
         execution_count = {"hits": 0}
 
         def dummy_listener(data):
@@ -92,13 +86,11 @@ class ArchitectureTests(BoneTestCase):
         self.assertEqual(execution_count["hits"], 1, "[FAIL] Listener failed to attach.")
         self.engine.events.unsubscribe("TEMP_EVENT", dummy_listener)
         self.engine.events.publish("TEMP_EVENT", {"data": "ghost"})
-        self.assertEqual(execution_count["hits"], 1,
-                         "[FAIL] Ghost listener detected! Unsubscribe failed to detach the callback.")
+        self.assertEqual(execution_count["hits"], 1, "[FAIL] Ghost listener detected! Unsubscribe failed to detach the callback.")
         print("  [SUCCESS] EventBus cleanly severed the connection. No memory leaks detected.")
 
     def test_arch_unqualified_imports(self):
-        """Scans the AST to physically block unqualified local imports (e.g., 'from tools')."""
-        print("\n--- ARCH 2: Syntactic Import Scanner ---")
+        print("\n--- Syntactic Import Scanner ---")
         restricted_modules = {"tools", "gui", "lexicon", "commands", "inventory"}
         violations = []
         target_dirs = ["body", "brain", "archetypes", "mechanics", "physics"]
@@ -131,8 +123,7 @@ class ArchitectureTests(BoneTestCase):
         print("  [SUCCESS] All local imports are strictly anchored to their parent modules.")
 
     def test_arch_narrative_bleed(self):
-        """Ensures the system prompt doesn't inject 'None' if a localization string is missing."""
-        print("\n--- ARCH 3: Narrative Bleed (The Lexical Fallback) ---")
+        print("\n--- Narrative Bleed (The Lexical Fallback) ---")
         with patch('brain.mind.ux', return_value=None):
             directive = self.engine.cortex.modulator.get_mood_directive()
             self.assertNotEqual(str(directive).strip().lower(), "none",
@@ -141,7 +132,6 @@ class ArchitectureTests(BoneTestCase):
         print("  [SUCCESS] Structural fallbacks successfully prevented 'None' from bleeding into the LLM context.")
 
     def test_arch_lexical_firewall_cliche_tax(self):
-        """Ensures Semantic Antigens yield 0 ATP and spike Cortisol."""
         print("\n--- ARCH 4: The Lexical Firewall (Cliché Tax) ---")
         from unittest.mock import MagicMock, patch
         track = self.engine.soma.digestive
@@ -167,8 +157,7 @@ class ArchitectureTests(BoneTestCase):
         print("  [SUCCESS] Lexical Firewall successfully rejected semantic antigens and levied the Cliché Tax.")
 
     def test_arch_panic_room_serotonin_retention(self):
-        """Ensures the Panic Room preserves baseline Serotonin while dropping all other chemistry."""
-        print("\n--- ARCH 5: Panic Room State Retention ---")
+        print("\n--- Panic Room State Retention ---")
         from machine.panic import PanicRoom
         toxic_prev_state = {
             "chem": {"SER": 0.85, "COR": 1.0, "DOP": 0.9, "ADR": 1.0}
@@ -185,8 +174,7 @@ class ArchitectureTests(BoneTestCase):
 
     @patch("cycle.CongruenceValidator.__init__", return_value=None)
     def test_arch_hot_loop_validator_singleton(self, mock_validator_init):
-        """Ensures the CongruenceValidator is not instantiated during the hot loop."""
-        print("\n--- ARCH 6: Hot-Loop Instantiation Leak Check ---")
+        print("\n--- Hot-Loop Instantiation Leak Check ---")
         self.engine.orchestrator.run_headless_turn("Testing the loop.")
         self.assertEqual(
             mock_validator_init.call_count, 0,
