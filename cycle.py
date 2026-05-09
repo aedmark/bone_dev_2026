@@ -154,12 +154,14 @@ class CycleSimulator:
         last_packet = getattr(self.eng.observer, "last_physics_packet", None)
         if comp == "PHYSICS" or not getattr(ctx, "physics", None):
             ctx.physics = PanicRoom.get_safe_physics()
-            if last_packet and hasattr(last_packet, "to_graph"):
-                last_good_graph = last_packet.to_graph()
-                adj_dict = getattr(last_good_graph, "adj", {})
-                ctx.physics.space.godel_scar = _native_freeze_graph(adj_dict)
-                self.eng.events.log(
-                    f"{Prisma.VIOLET}[PANIC ROOM] System state safely loaded. Mnemonic structure frozen into Gödel Scar.{Prisma.RST}", "SYS")
+            try:
+                mem_graph = self.eng.mind.mem.hippocampus.get_graph()
+                if mem_graph and hasattr(mem_graph, "adj"):
+                    ctx.physics.space.godel_scar = _native_freeze_graph(mem_graph.adj)
+                    self.eng.events.log(
+                        f"{Prisma.VIOLET}[PANIC ROOM] System state safely loaded. Mnemonic structure frozen into Gödel Scar.{Prisma.RST}", "SYS")
+            except AttributeError:
+                pass
         if comp == "BIO":
             ctx.bio_result = PanicRoom.get_safe_bio()
             ctx.is_alive = True
@@ -195,13 +197,10 @@ class GeodesicOrchestrator:
         if self.eng.tick_count % 3 != 0:
             return
         mem = self.eng.mind.mem
-        hippo = mem.hippocampus
-        if not (hasattr(hippo, "get_graph") and hasattr(mem, "calculate_clustering")):
+        actual_graph = mem.hippocampus.get_graph()
+        if not actual_graph or len(actual_graph) <= 5 or not hasattr(actual_graph, "adj"):
             return
-        actual_graph = hippo.get_graph()
-        if not actual_graph or len(actual_graph) <= 5:
-            return
-        actual_adj = getattr(actual_graph, "adj", {})
+        actual_adj = actual_graph.adj
         if not actual_adj:
             return
 
@@ -259,18 +258,12 @@ class GeodesicOrchestrator:
             if not getattr(ctx.physics, "vector", None):
                 ctx.physics.vector = {}
             usr_msg = user_message.lower()
-            ctx.physics.vector.update({
-                "critique_mode": "[!r]" in usr_msg,
-                "objective_mode": "[!q]" in usr_msg,
-                "healing_mode": "[!h]" in usr_msg,
-                "void_mode": "[!v]" in usr_msg,
-                "lateral_shuffle": "[!s]" in usr_msg,
-                "literal_mode": "[!l]" in usr_msg,
-                "yeetinator_mode": "[!y]" in usr_msg
-            })
-            u_exhaustion = float(ctx.user_state.E)
-            phi_val = float(ctx.shared_dyn.phi)
-            res_delta = float(ctx.shared_dyn.resonance_delta)
+            ctx.physics.vector.update({"critique_mode": "[!r]" in usr_msg, "objective_mode": "[!q]" in usr_msg,
+                "healing_mode": "[!h]" in usr_msg, "void_mode": "[!v]" in usr_msg,
+                "lateral_shuffle": "[!s]" in usr_msg, "literal_mode": "[!l]" in usr_msg, "yeetinator_mode": "[!y]" in usr_msg})
+            u_exhaustion = float(getattr(ctx.user_state, "E", 0.0))
+            phi_val = float(getattr(ctx.shared_dyn, "phi", 0.0))
+            res_delta = float(getattr(ctx.shared_dyn, "resonance_delta", 0.0))
             self.eng.governor.calculate_coupling(phi_val, res_delta, u_exhaustion)
             ctx.physics.macro_policy = self.eng.governor.get_policy_shift()
             ctx = self.simulator.run_simulation(ctx)

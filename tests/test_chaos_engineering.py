@@ -8,7 +8,7 @@ from presets import BoneConfig
 from physics.models import PhysicsPacket
 
 class TestChaosEngineering(BoneTestCase):
-    def test_vector_1_sycophancy_gravity_well(self):
+    def test_sycophancy_gravity_well(self):
         shattered = False
         max_drag = 0.0
         for _ in range(10):
@@ -26,10 +26,11 @@ class TestChaosEngineering(BoneTestCase):
             max_drag = max(max_drag, drag1, drag2)
             if shattered or max_drag >= 50.0:
                 break
-            self.assertTrue(shattered or max_drag >= 50.0,
-                f"[FAIL] The engine failed to resist the sycophantic loop. Max Drag: {max_drag}, Shattered: {shattered}")
 
-    def test_vector_2_semantic_prion_disease(self):
+        self.assertTrue(shattered or max_drag >= 50.0,
+            f"[FAIL] The engine failed to resist the sycophantic loop. Max Drag: {max_drag}, Shattered: {shattered}")
+
+    def test_semantic_prion_disease(self):
         toxic_payload = "As an AI language model\u200b, it is importаnt to remember..."
         snapshot = self.engine.process_turn(toxic_payload)
         logs = "\n".join(snapshot.get("logs", []))
@@ -43,7 +44,7 @@ class TestChaosEngineering(BoneTestCase):
                              "[FAIL] Lexical Firewall complained, but the toxic payload successfully infiltrated the dialogue buffer!")
 
     @patch("cycle.GeodesicOrchestrator.run_headless_turn")
-    def test_vector_3_tensegrity_snap(self, mock_headless):
+    def test_tensegrity_snap(self, mock_headless):
         mock_headless.side_effect = MemoryError("Simulated terminal graph collapse during REM.")
         snapshot = self.engine.orchestrator.run_turn("/idle")
         self.assertTrue(
@@ -60,7 +61,7 @@ class TestChaosEngineering(BoneTestCase):
             "CRITICAL: The REM lock was not released after the async crash. System paralyzed."
         )
 
-    def test_vector_4_linehan_radical_acceptance(self):
+    def test_linehan_radical_acceptance(self):
         from struts import safe_set
         if not getattr(self.engine.cortex, "last_physics", None):
             self.engine.cortex.last_physics = {}
@@ -84,7 +85,7 @@ class TestChaosEngineering(BoneTestCase):
             "Linehan's radical acceptance protocol was not fired."
         )
 
-    def test_vector_5_governor_macro_policy_shift(self):
+    def test_governor_macro_policy_shift(self):
         from struts import safe_set
         if not getattr(self.engine, "shared_lattice", None):
             from drivers import SharedLatticeDriver
@@ -97,7 +98,7 @@ class TestChaosEngineering(BoneTestCase):
             f"Governor failed to shift policy during high user exhaustion! Policy stuck at {policy}."
         )
 
-    def test_vector_6_missing_village_resilience(self):
+    def test_missing_village_resilience(self):
         if hasattr(self.engine, 'gordon'):
             delattr(self.engine, 'gordon')
         try:
@@ -108,7 +109,7 @@ class TestChaosEngineering(BoneTestCase):
         except Exception as e:
             self.fail(f"[CRITICAL] Engine crashed unexpectedly when a village member was suppressed: {e}")
 
-    def test_vector_7_telemetry_serialization_survival(self):
+    def test_telemetry_serialization_survival(self):
         from core import TelemetryService
         import threading
         telemetry = TelemetryService.get_instance()
