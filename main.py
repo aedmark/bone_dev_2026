@@ -25,6 +25,7 @@ from constants import Prisma, RealityLayer
 from mechanics.terminal import typewriter, SessionGuardian
 from mechanics.setup import ConfigWizard
 from mechanics.tools import TheSubstrate
+from machine.consolidator import TheConsolidator
 
 
 @dataclass
@@ -102,6 +103,7 @@ class BoneAmanita:
         self.soma = SomaticLoop(self.bio, self.mind.mem, self.lex, self.events)
         self.noetic = NoeticLoop(self.mind, self.bio, self.events)
         self.orchestrator = GeodesicOrchestrator(self)
+        self.consolidator = TheConsolidator(self.events, self.mind.mem, self.akashic)
         llm_args = {k: v for k, v in self.sys_config.items() if k in ["provider", "base_url", "api_key", "model"]}
         self.cortex = TheCortex.from_engine(self, llm_client=LLMInterface(events_ref=self.events, **llm_args))
         self.mind.mem.lex = self.lex
@@ -211,11 +213,10 @@ class BoneAmanita:
         self.oroboros = anatomy.get("oroboros")
         self.drivers = anatomy.get("drivers")
         self.symbiosis = anatomy.get("symbiosis")
-        self.consolidator = anatomy.get("consolidator")
         self.consultant = anatomy.get("consultant", None)
-        self.phys = getattr(self.embryo, "physics", None)
-        self.mind = getattr(self.embryo, "mind", None)
-        self.bio = getattr(self.embryo, "bio", None)
+        self.phys = self.embryo.physics
+        self.mind = self.embryo.mind
+        self.bio = self.embryo.bio
         self.shimmer = getattr(self.embryo, "shimmer", None)
         if self.bio:
             self.bio.setup_listeners()
@@ -245,8 +246,7 @@ class BoneAmanita:
         chi = float(safe_get(active_phys, "entropy", safe_get(active_phys, "chi", 0.2)))
         base_exhaust = float(safe_get(active_phys, "exhaustion", 0.0))
         beta = float(safe_get(active_phys, "beta_index", 0.0))
-        lattice = getattr(self, "shared_lattice", None)
-        e_u = float(lattice.u.E) if lattice and getattr(lattice, "u", None) is not None else base_exhaust
+        e_u = float(self.shared_lattice.u.E) if self.shared_lattice.u else base_exhaust
         if (chi * m_a) > i_c:
             self.events.log("Apoptotic Gate triggered. Runaway loop exceeds Immune Competence.", "CRIT")
             return self.trigger_death(active_phys)
@@ -280,9 +280,7 @@ class BoneAmanita:
 
     def _pre_flight_checks(self, user_message: str, is_system: bool) -> Optional[Dict[str, Any]]:
         """
-        The Checkpoint Council
-        Evaluates the mathematics of the request before token generation.
-        Returns an Apoptotic Block if boundaries are violated.
+        The Checkpoint Council evaluates the mathematics of the request before token generation.
         """
         clean_in = user_message.lower().strip()
         active_phys = self.active_physics
@@ -456,10 +454,10 @@ class BoneAmanita:
 
     def get_metrics(self, atp=0.0):
         if atp <= 0.0 and (state := self._mito_state):
-            atp = getattr(state, "atp_pool", 0.0)
+            atp = state.atp_pool
         return {"health": max(0.0, float(self.health)), "stamina": max(0.0, float(self.stamina)),
                 "atp": max(0.0, float(atp)), "tick": self.tick_count,
-                "efficiency": getattr(self.host_stats, "efficiency_index", 1.0), }
+                "efficiency": self.host_stats.efficiency_index, }
 
     def emergency_dump(self, exit_cause="UNKNOWN"):
         return self.chronos.emergency_dump(exit_cause)

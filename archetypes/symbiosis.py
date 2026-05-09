@@ -216,14 +216,26 @@ class SymbiosisManager:
                 self._log_event(f"{Prisma.GRY}Trust deepens through friction. (+1 G_pool){Prisma.RST}", "SYS")
         beth = (self.shared.phi * 0.6) + (self.u.E_u * 0.4)
         safe_set(physics, "beth", beth)
-        safe_set(physics, "beta_index", beth)
+
+        prev_beta = safe_get(physics, "beta_index")
+        if prev_beta is not None:
+            safe_set(physics, "beta_index", (float(prev_beta) * 0.7) + (beth * 0.3))
+        else:
+            safe_set(physics, "beta_index", beth)
+
         setattr(self.shared, "beth", beth)
         p_m = float(safe_get(physics, "stamina", 100.0))
         if self.u.E_u > 0.7 and p_m > 50.0:
             p_transfer = (p_m * 0.1) * self.shared.phi
             safe_set(physics, "p_transfer", p_transfer)
+
         safe_set(physics, "phi", self.shared.phi)
-        safe_set(physics, "resonance", self.shared.phi)
+
+        prev_phi = safe_get(physics, "resonance")
+        if prev_phi is not None:
+            safe_set(physics, "resonance", (float(prev_phi) * 0.7) + (self.shared.phi * 0.3))
+        else:
+            safe_set(physics, "resonance", self.shared.phi)
         has_override = "[safe]" in text_lower or "#override" in text_lower
         if has_override:
             if self.shared.g_pool >= 1:

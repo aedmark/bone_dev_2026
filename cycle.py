@@ -114,21 +114,16 @@ class CycleSimulator:
     def __init__(self, engine_ref):
         self.eng = engine_ref
         self.cyb_governor = self.eng.governor
-        self.bio_governor = getattr(self.eng.bio, "governor", None) if hasattr(self.eng, "bio") else None
-        target_cfg = getattr(self.eng, "config", BoneConfig)
+        self.bio_governor = getattr(self.eng.bio, "governor")
+        target_cfg = self.eng.config
         self.stabilizer = CycleStabilizer(self.eng.events, self.cyb_governor, config_ref=target_cfg)
         self.executor = PhaseExecutor()
         self.full_pipeline: List[SimulationPhase] = [ObservationPhase(engine_ref), MaintenancePhase(engine_ref),
-                                                     SensationPhase(engine_ref), GatekeeperPhase(engine_ref),
-                                                     SanctuaryPhase(engine_ref, self.bio_governor),
-                                                     MetabolismPhase(engine_ref), NavigationPhase(engine_ref),
-                                                     MachineryPhase(engine_ref), RealityFilterPhase(engine_ref),
-                                                     IntrusionPhase(engine_ref), SoulPhase(engine_ref),
-                                                     ArbitrationPhase(engine_ref), SimulationPreflightPhase(engine_ref),
-                                                     CognitionPhase(engine_ref),
-                                                     StabilizationPhase(engine_ref, self.stabilizer), ]
-        self.system_pipeline = [p for p in self.full_pipeline
-                                if p.name in ["OBSERVE", "GATEKEEP", "STABILIZATION"]]
+            SensationPhase(engine_ref), GatekeeperPhase(engine_ref), SanctuaryPhase(engine_ref, self.bio_governor),
+            MetabolismPhase(engine_ref), NavigationPhase(engine_ref), MachineryPhase(engine_ref), RealityFilterPhase(engine_ref),
+            IntrusionPhase(engine_ref), SoulPhase(engine_ref), ArbitrationPhase(engine_ref), SimulationPreflightPhase(engine_ref),
+            CognitionPhase(engine_ref), StabilizationPhase(engine_ref, self.stabilizer), ]
+        self.system_pipeline = [p for p in self.full_pipeline if p.name in ["OBSERVE", "GATEKEEP", "STABILIZATION"]]
 
     def run_simulation(self, ctx: CycleContext) -> CycleContext:
         ctx = self.executor.execute_phases(self, ctx)
@@ -242,12 +237,11 @@ class GeodesicOrchestrator:
                 self.eng.tick_count += 1
             ctx = CycleContext(input_text=user_message, is_system_event=is_system)
             ctx.trace_id = cycle_id
-            ctx.time_delta = getattr(self.eng, "current_time_delta", 0.0)
+            ctx.time_delta = self.eng.current_time_delta
             lattice = self.eng.shared_lattice
             ctx.user_state = lattice.u
             ctx.shared_dyn = lattice.shared
-            target_cfg = getattr(self.eng, "config", BoneConfig)
-            ctx.limits = _safe_dict(getattr(target_cfg, "CYCLE", {}))
+            ctx.limits = _safe_dict(getattr(self.eng.config, "CYCLE", {}))
             obs = self.eng.observer
             last_packet = getattr(obs, "last_physics_packet", None)
             if last_packet:
@@ -258,7 +252,7 @@ class GeodesicOrchestrator:
                     ux("cycle_strings", "orch_physics_bypass", default="Initial physics bypass. Safe state engaged."),
                     "SYS")
             ctx.validator = self.congruence_validator
-            ctx.reality_stack = getattr(self.eng, "reality_stack", None)
+            ctx.reality_stack = self.eng.reality_stack
             ctx.user_name = self.eng.user_name
             ctx.council_mandates = []
             ctx.timestamp = time.time()
@@ -274,12 +268,11 @@ class GeodesicOrchestrator:
                 "literal_mode": "[!l]" in usr_msg,
                 "yeetinator_mode": "[!y]" in usr_msg
             })
-            if hasattr(self.eng, "governor"):
-                u_exhaustion = float(getattr(ctx.user_state, "E", 0.0))
-                phi_val = float(getattr(ctx.shared_dyn, "phi", 0.0))
-                res_delta = float(getattr(ctx.shared_dyn, "resonance_delta", 0.0))
-                self.eng.governor.calculate_coupling(phi_val, res_delta, u_exhaustion)
-                ctx.physics.macro_policy = self.eng.governor.get_policy_shift()
+            u_exhaustion = float(ctx.user_state.E)
+            phi_val = float(ctx.shared_dyn.phi)
+            res_delta = float(ctx.shared_dyn.resonance_delta)
+            self.eng.governor.calculate_coupling(phi_val, res_delta, u_exhaustion)
+            ctx.physics.macro_policy = self.eng.governor.get_policy_shift()
             ctx = self.simulator.run_simulation(ctx)
             post_logs = [e["text"] for e in self.eng.events.flush()]
             ctx.logs.extend(post_logs)
@@ -321,7 +314,7 @@ class GeodesicOrchestrator:
         mito_state = self.eng._mito_state
         if not mito_state:
             return
-        lattice = getattr(self.eng, "shared_lattice", None)
+        lattice = self.eng.shared_lattice
         mem = self.eng.mind.mem
         cortex = mem.cortex
 
@@ -340,8 +333,8 @@ class GeodesicOrchestrator:
                 self._async_pool.submit(_bg_wls_check, clean_message)
         if clean_message != "(Waiting)":
             return
-        atp_level = float(getattr(mito_state, "atp_pool", 0.0))
-        delta_level = float(getattr(self.eng.shared_lattice.shared, "delta", 0.0))
+        atp_level = float(mito_state.atp_pool)
+        delta_level = float(self.eng.shared_lattice.shared.delta)
         phys_dict = _safe_dict(ctx.physics)
         energy_node = phys_dict.get("energy", phys_dict)
         debt = float(energy_node.get("coherence_debt", 0.0))
