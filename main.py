@@ -246,7 +246,8 @@ class BoneAmanita:
         chi = float(safe_get(active_phys, "entropy", safe_get(active_phys, "chi", 0.2)))
         base_exhaust = float(safe_get(active_phys, "exhaustion", 0.0))
         beta = float(safe_get(active_phys, "beta_index", 0.0))
-        e_u = float(self.shared_lattice.u.E) if self.shared_lattice.u else base_exhaust
+        lattice = getattr(self, "shared_lattice", None)
+        e_u = float(lattice.u.E) if lattice and lattice.u else base_exhaust
         if (chi * m_a) > i_c:
             self.events.log("Apoptotic Gate triggered. Runaway loop exceeds Immune Competence.", "CRIT")
             return self.trigger_death(active_phys)
@@ -369,7 +370,7 @@ class BoneAmanita:
                         f"{Prisma.CYN}Gordon rakes the comb through your prompt. Fluff discarded. -> '{pruned}'{Prisma.RST}",
                         "SYS", )
         try:
-            snapshot = self.cortex.process(user_message, is_system=is_system)
+            snapshot = self.orchestrator.run_turn(user_message, is_system=is_system)
         except Exception as e:
             full_trace = traceback.format_exc()
             self.events.log(f"ORCHESTRATOR COLLAPSE: {e}\n{full_trace}", "CRIT")

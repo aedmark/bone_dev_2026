@@ -82,6 +82,9 @@ class GeodesicRenderer:
         soul_strip = self.soul_dashboard.render()
         if soul_strip:
             raw_dashboard = f"{soul_strip}\n{raw_dashboard}"
+        cortex_text = getattr(ctx, "bureau_ui", "")
+        if cortex_text:
+            raw_dashboard = f"{raw_dashboard}\n\n{cortex_text}"
         clean_ui = raw_dashboard
         bureau = getattr(self.eng, "bureau", None)
         if bureau:

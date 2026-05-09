@@ -89,9 +89,12 @@ def _native_freeze_graph(adj_dict: dict) -> tuple:
     hashed tuple. Used to permanently freeze a snapshot of the graph when the system crashes (The Gödel Scar).
     """
     try:
-        safe_items = list(adj_dict.items())
-    except RuntimeError:
-        safe_items = list(adj_dict.copy().items())
+        # Lock-free approximation: isolate keys first to survive concurrent mutation
+        keys = list(adj_dict.keys())
+        safe_items = [(k, adj_dict[k]) for k in keys if k in adj_dict]
+    except Exception:
+        safe_items = []
+
     return tuple((k, tuple(sorted(neighbors, key=str))) for k, neighbors in sorted(safe_items, key=lambda x: str(x[0])))
 
 class PhaseExecutor:
@@ -385,7 +388,13 @@ class GeodesicOrchestrator:
             self._async_pool.shutdown(wait=False)
 
     def _hydrate_snapshot_metadata(self, snapshot: Dict, ctx: CycleContext):
-        snapshot.update({"trace_id": ctx.trace_id, "is_alive": True, "physics": _safe_dict(ctx.physics),
+        phys_dict = _safe_dict(ctx.physics)
+        if hasattr(ctx.physics, "__dict__"):
+            for k, v in vars(ctx.physics).items():
+                if k not in phys_dict and not k.startswith("_"):
+                    phys_dict[k] = v
+
+        snapshot.update({"trace_id": ctx.trace_id, "is_alive": True, "physics": phys_dict,
                          "bio": _safe_dict(ctx.bio_result), "mind": _safe_dict(ctx.mind_state),
                          "world": _safe_dict(ctx.world_state), "soul": _safe_dict(getattr(self.eng, "soul", {})),
                          "council_mandates": ctx.council_mandates, "dream": ctx.last_dream,

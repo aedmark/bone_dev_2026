@@ -1,4 +1,5 @@
 """phases/cognitive.py"""
+
 from constants import Prisma
 from presets import BoneConfig
 from core import LoreManifest, ArchetypeArbiter
@@ -103,6 +104,25 @@ class CognitionPhase(SimulationPhase):
         thought = ctx.mind_state.get("context_msg", ctx.mind_state.get("thought"))
         if thought:
             ctx.log(thought)
+
+        # S.L.A.S.H. V3 RE-WIRING: The Core Inversion.
+        # Invoke the Cortex (DSPy LLM generation) *during* the CognitionPhase.
+        if hasattr(self.eng, "cortex") and self.eng.cortex:
+            if not getattr(ctx, "refusal_triggered", False):
+                cortex_packet = self.eng.cortex.process_context(ctx)
+
+                # Unpack the Cortex's mutated payload back into the CycleContext
+                ctx.bureau_ui = cortex_packet.get("ui", getattr(ctx, "bureau_ui", ""))
+                ctx.logs = cortex_packet.get("logs", ctx.logs)
+                if "mind" in cortex_packet:
+                    ctx.mind_state.update(cortex_packet["mind"])
+                if "physics" in cortex_packet and isinstance(cortex_packet["physics"], dict):
+                    for k, v in cortex_packet["physics"].items():
+                        setattr(ctx.physics, k, v)
+                if "type" in cortex_packet and cortex_packet["type"] != "SNAPSHOT":
+                    ctx.refusal_triggered = True
+                    ctx.refusal_packet = cortex_packet
+
         return ctx
 
 

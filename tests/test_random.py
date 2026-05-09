@@ -366,8 +366,6 @@ class RandomTest(BoneTestCase):
             "world": {},
             "soul": {},
         }
-        self.engine.cortex.svc.orchestrator.run_turn = MagicMock(
-            return_value=clean_sim_result)
         self.engine.cortex.validator.validate = MagicMock(
             return_value={
                 "valid": False,
@@ -375,7 +373,15 @@ class RandomTest(BoneTestCase):
             })
         if hasattr(self.engine.cortex, "llm"):
             self.engine.cortex.llm.generate = MagicMock(return_value="Bad output")
-        result = self.engine.cortex.process("Hello, please tell me a simple story.",is_system=False)
+
+        from core import CycleContext
+        from physics.models import PhysicsPacket
+        ctx = CycleContext(input_text="Hello, please tell me a simple story.", is_system_event=False)
+        ctx.physics = PhysicsPacket()
+        ctx.bio_result = clean_sim_result["bio"]
+        ctx.mind_state = clean_sim_result["mind"]
+        ctx.world_state = clean_sim_result["world"]
+        result = self.engine.cortex.process_context(ctx)
         phys = self.engine.cortex.last_physics
         drag_val = (phys.get("narrative_drag") if isinstance(phys, dict) else getattr(phys, "narrative_drag", 0.0))
         self.assertEqual(drag_val, 0.0, "Mercy Rule failed to drop narrative drag to 0.0.")

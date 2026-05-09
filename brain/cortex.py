@@ -135,15 +135,13 @@ class TheCortex:
         if self.events:
             self.events.log("[APOPTOSIS] Context array purged. Stateless bedrock re-established.", "SYS", )
 
-    def process(self, user_input: str, is_system: bool = False) -> Dict[str, Any]:
+    def process_context(self, ctx: Any) -> Dict[str, Any]:
         """
-        The Master Generation Loop.
-        1. Compiles the physical, biological, and memory state.
-        2. Evaluates the physics pre-flight (Drag, Toxicity) to block runaway loops.
-        3. Composes the prompt and speculative LLM calls.
-        4. Audits the response via the DSPy Critic and Lexical Firewall.
-        5. Returns mutated state to main.py.
+        The Master Generation Loop (Inverted).
+        Now invoked *during* the CognitionPhase of the GeodesicOrchestrator.
         """
+        user_input = ctx.input_text
+        is_system = getattr(ctx, "is_system_event", False)
         if self.navigator:
             target_randomness = {"CREATIVE": 0.7, "ADVENTURE": 0.3, "CONVERSATION": 0.3}.get(self.active_mode, 0.0)
             dial_status = self.navigator.set_randomness(target_randomness)
@@ -155,6 +153,26 @@ class TheCortex:
             return self._handle_vsl_command(user_input)
         is_boot_sequence = "SYSTEM_BOOT" in user_input
         context_limit = int(safe_get(safe_get(self.cfg, "CORTEX", {}), "MAX_INPUT_CHARS", 15000))
+        phys_proxy = ctx.physics
+        if hasattr(phys_proxy, "to_dict"):
+            phys_proxy = phys_proxy.to_dict()
+        elif hasattr(phys_proxy, "__dict__"):
+            phys_proxy = phys_proxy.__dict__
+
+        sim_result = {
+            "physics": phys_proxy,
+            "bio": getattr(ctx, "bio_result", {}),
+            "mind": getattr(ctx, "mind_state", {}),
+            "world": getattr(ctx, "world_state", {}),
+            "ui": getattr(ctx, "bureau_ui", ""),
+            "logs": getattr(ctx, "logs", []),
+            "council_mandates": getattr(ctx, "council_mandates", []),
+            "dream": getattr(ctx, "last_dream", None),
+            "mutated_input": user_input,
+            "trace_id": getattr(ctx, "trace_id", "UNKNOWN"),
+            "type": getattr(ctx, "type", "SNAPSHOT")
+        }
+
         if len(user_input) > context_limit and not is_system and not is_boot_sequence:
             safe_content = user_input.replace("\n", "|||NEWLINE|||")
             filename = f"context_drop_{int(time.time())}.txt"
@@ -164,13 +182,16 @@ class TheCortex:
                 self.svc.bio.mito.adjust_atp(-s_cost, "Massive Context Ingestion")
             msg = f"{Prisma.CYN}[Substrate Queue]: Massive context drop detected. Routed to silent indexing. Dialogue buffer bypassed. (-{s_cost:.1f} ATP){Prisma.RST}"
             self.events.log(msg, "SYS")
-            return {"ui": msg, "type": "SILENT_INGEST", "physics": self.last_physics, "logs": [msg]}
-        sim_result = self.svc.orchestrator.run_turn(user_input, is_system=is_system)
-        if sim_result.get("physics"):
-            self.last_physics = sim_result["physics"]
-        if sim_result.get("type") not in ("SNAPSHOT", "GEODESIC_FRAME", None):
+            sim_result.update({"ui": msg, "type": "SILENT_INGEST"})
+            return sim_result
+
+        if getattr(ctx, "refusal_triggered", False) and getattr(ctx, "refusal_packet", None):
+            sim_result.update(ctx.refusal_packet)
             self._update_history(user_input, sim_result.get("ui", "SYSTEM REJECTED PROMPT."))
             return sim_result
+
+        if sim_result.get("physics"):
+            self.last_physics = sim_result["physics"]
         if hasattr(self, "last_shadow_nodes") and self.last_shadow_nodes:
             engaged = [node for node in self.last_shadow_nodes if node.lower() in user_input.lower()]
             for node in engaged:

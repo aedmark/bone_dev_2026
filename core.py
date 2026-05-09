@@ -168,19 +168,11 @@ class EventBus:
             try:
                 callback(data)
             except Exception as e:
-                cb_name = getattr(callback, "__name__", str(callback))
-                if event_type != "EVENT_FAILURE":
-                    tb_str = traceback.format_exc(limit=3)
-                    self.log(f"EVENT_FAILURE: Error in '{cb_name}': {e}\n{tb_str}", source="EVENT_FAILURE",
-                             level="CRIT")
-                try:
-                    self.subscribers[event_type].remove(callback)
-                    msg = ux_format("core_strings", "bus_error",
-                                    default="[IMMUNE] Apoptotic pruning applied to toxic callback: {cb_name}",
-                                    cb_name=cb_name)
-                    print(f"{Prisma.RED}{msg}{Prisma.RST}")
-                except ValueError:
-                    pass
+                    cb_name = getattr(callback, "__name__", str(callback))
+                    if event_type != "EVENT_FAILURE":
+                        tb_str = traceback.format_exc(limit=3)
+                        self.log(f"EVENT_FAILURE: Error in '{cb_name}': {e}\n{tb_str}", source="EVENT_FAILURE",
+                                 level="CRIT")
 
     def log(self, message: str, source: str = "SYSTEM", level: str = "INFO"):
         event = {"timestamp": time.time(), "source": source, "level": level, "message": message, "text": message,

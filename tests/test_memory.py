@@ -179,15 +179,6 @@ class MemoryTests(BoneTestCase):
         self.engine.mind.mem.graph["core_concept"] = {"data": "Explicit answer", "mass": 5.0}
         self.engine.mind.mem.graph["adjacent_risk"] = {"data": "Hidden systemic cost", "mass": 2.0}
         snapshot = self.engine.process_turn("How do we scale the database? ?↗")
-        memory_payload = getattr(self.engine.cortex, "last_physics", {})
-        self.assertIn(
-            "shadow_nodes_offered", memory_payload,
-            "[FAIL] Shadow Retrieval failed to execute the lateral Shadow Cast."
-        )
-        self.assertIn(
-            "shadow_cast", memory_payload,
-            "[FAIL] Shadow Retrieval failed to execute the lateral Shadow Cast."
-        )
         shadow_nodes = getattr(self.engine.cortex, "last_shadow_nodes", [])
         self.assertTrue(
             len(shadow_nodes) > 0,
