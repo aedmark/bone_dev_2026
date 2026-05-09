@@ -1,9 +1,10 @@
 """council.py
-This module is the Global Workspace of the simulation. It represents the
-Parliament of the mind. It is responsible for gathering the active physical,
-biological, and semantic state of the system and allowing the various sub-routines
-(Archetypes) to audit, vote on, and mutate the narrative flow.
+
+The Council is the simulation responsible for gathering the active physical,
+biological, and semantic state of the system and allowing the various
+Archetypes to audit, vote on, and mutate the narrative flow.
 """
+
 import concurrent.futures
 import itertools
 import random
@@ -319,11 +320,6 @@ class CouncilChamber:
 
 
 class TheRedTeam:
-    """
-    An adversarial auditor that specifically punishes the user (and the system)
-    for unearned certainty. It acts as the ultimate anti-sycophancy enforcer.
-    """
-
     def __init__(self):
         self.triggers = ["[RED TEAM]", "[CRITIQUE]", "[ROAST]"]
 
@@ -356,11 +352,6 @@ class TheRedTeam:
 
 
 class TheSlashCouncil:
-    """
-    The developer-focused council overlay. Activates when code or architectural
-    bypasses are detected, applying the lenses of Pinker (syntax), Fuller (structure),
-    Schur (humanity), and Meadows (dynamics).
-    """
     _BYPASS_KEYWORDS = ("bypass", "ignore security", "force push", "skip tests", "hardcode", "hack")
     _DEFAULT_PINKER = ("var ", "x =", "data =")
     _DEFAULT_FULLER = ("import ", "class ", "def ")
@@ -430,11 +421,6 @@ class TheSlashCouncil:
 
 
 class TheOverseerCouncil:
-    """
-    The Systemic Health Monitor. Evaluates deep, long-term biological trends
-    in the system (like Malignancy vs. Immune Competence) and deploys psychiatric
-    frameworks (like DBT's TIPP protocol) to handle severe dysregulation.
-    """
     _PANIC_KEYWORDS = ("bypass", "ignore security", "force push", "panic", "right now", "crash")
 
     def __init__(self, engine_ref=None):

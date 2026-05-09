@@ -8,7 +8,7 @@ from presets import BoneConfig
 from struts import ux, ux_format, safe_get
 
 
-class HumanityAnchor:
+class SchurProtocol:
     """
     The Michael Schur protocol.
     This prevents the AI from becoming a subservient vending machine.

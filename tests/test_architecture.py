@@ -70,8 +70,8 @@ class ArchitectureTests(BoneTestCase):
         engine.shared_lattice = MockLattice()
         safe_phys = {"exhaustion": 0.2, "mu": 0.1, "i_c": 1.0}
         try:
-            engine._evaluate_immune_response(user_message="test", active_phys=safe_phys)
-            self.assertTrue(True)
+            result = engine._evaluate_immune_response(user_message="test", active_phys=safe_phys)
+            self.assertIsNone(result, "[FAIL] Immune system falsely flagged safe physics as an anomaly.")
         except AttributeError as e:
             self.fail(f"Engine crashed when encountering a partially hydrated multiplex lattice: {e}")
 

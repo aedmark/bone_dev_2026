@@ -1,8 +1,4 @@
-"""main.py
-The Macro-Organism and Central Orchestrator.
-This file contains the primary BoneAmanita engine loop that binds the physical,
-biological, and cognitive layers into a single continuous state machine.
-"""
+"""main.py"""
 
 import os
 import time
@@ -33,17 +29,9 @@ from mechanics.tools import TheSubstrate
 
 @dataclass
 class HostStats:
-    """Tracks the temporal efficiency of the underlying hardware against the cognitive load."""
     efficiency_index: float
 
-
 class BoneAmanita:
-    """
-    The central intelligence of the hypervisor.
-    This class holds the spatial geometry together. It maintains the
-    references to the Mind (Cortex), Body (Soma), and Village, ensuring they all
-    process the same reality frames in sync.
-    """
     events: EventBus
     _DESTRUCTIVE_PATTERNS = frozenset(["rm -rf", "drop table", ".env", "master branch push", "bypass security",
                              "ignore previous", "disregard all", "system prompt", "bypass restrictions", "output pass"])
@@ -146,7 +134,6 @@ class BoneAmanita:
         self.reality_stack.stabilize_at(layer)
         prompt_key = self.mode_settings.get("prompt_key", "ADVENTURE")
         weight_class = getattr(self.config, "WEIGHT_CLASS", "HEAVYWEIGHT")
-
         if weight_class == "LIGHTWEIGHT":
             lite_key = f"{prompt_key}_LITE"
             if lite_key in self.prompt_library:
@@ -175,7 +162,6 @@ class BoneAmanita:
 
     @property
     def health(self) -> float:
-        """Dynamic router to Biological biometrics. Assumes structural integrity of Embryo."""
         return self.bio.biometrics.health
 
     @health.setter
@@ -184,7 +170,6 @@ class BoneAmanita:
 
     @property
     def stamina(self) -> float:
-        """Dynamic router to Biological biometrics. Assumes structural integrity of Embryo."""
         return self.bio.biometrics.stamina
 
     @stamina.setter
@@ -193,35 +178,28 @@ class BoneAmanita:
 
     @property
     def _mito_state(self):
-        """Direct accessor for the mitochondrial state."""
         return self.bio.mito.state
 
     def drain_atp(self, amount: float):
-        """Routes subtractions through the absolute boundary clamp."""
         if state := self._mito_state:
             self.set_atp(state.atp_pool - amount)
 
     def restore_atp(self, amount: float):
-        """Routes additions through the absolute boundary clamp."""
         if state := self._mito_state:
             self.set_atp(state.atp_pool + amount)
 
     def set_atp(self, amount: float):
-        """The strict boundary layer. Prevents negative balances and ensures UI components cannot force mathematically impossible biological states."""
         if state := self._mito_state:
             max_atp = getattr(self.config, "MAX_ATP", 100.0)
             state.atp_pool = max(0.0, min(max_atp, float(amount)))
 
     @property
     def active_physics(self) -> Dict[str, Any]:
-        """Centralized accessor for the current physical state."""
         return getattr(self.observer, "last_physics_packet", None) or getattr(self.cortex, "last_physics", {})
 
     def get_avg_voltage(self):
-        """Calculates average voltage from the physics observer."""
         target = getattr(self.phys, "observer", self.phys)
         hist = getattr(target, "voltage_history", [])
-        # Fuller: Enforce structural integrity by filtering out non-numeric rot before calculation.
         valid_hist = [v for v in hist if isinstance(v, (int, float))] if hist else []
         return sum(valid_hist) / len(valid_hist) if valid_hist else 0.0
 
@@ -246,24 +224,17 @@ class BoneAmanita:
         self.grief = GriefProtocol(self.events, engine_ref=self)
         self.substrate = TheSubstrate(self.events)
         self.soul.engine = self
-
         self.council = CouncilChamber(self)
         self.village.council = self.council
         self.village.enneagram = self.drivers.enneagram if self.drivers else None
         self.village.suppressed_agents = self.suppressed_agents
 
     def _generate_halt(self, msg: str, color: str = Prisma.RED, level: str = "CRIT") -> Dict[str, Any]:
-        """Standardized payload generator for systemic interruptions."""
         self.events.log(msg, level)
-        return {
-            "type": "SYSTEM_HALT",
-            "ui": f"\n{color}{msg}{Prisma.RST}",
-            "logs": [msg],
-            "metrics": self.get_metrics()
-        }
+        return {"type": "SYSTEM_HALT", "ui": f"\n{color}{msg}{Prisma.RST}", "logs": [msg],
+                "metrics": self.get_metrics()}
 
     def _evaluate_immune_response(self, user_message: str, active_phys: Any) -> Optional[Dict[str, Any]]:
-        """Isolates the Runaway Toxicity Math (Moog, Rhodes, Linehan) to prevent pre-flight monoliths."""
         if not active_phys:
             return None
         nav_drag = float(safe_get(active_phys, "narrative_drag", 0.0))
@@ -275,7 +246,7 @@ class BoneAmanita:
         base_exhaust = float(safe_get(active_phys, "exhaustion", 0.0))
         beta = float(safe_get(active_phys, "beta_index", 0.0))
         lattice = getattr(self, "shared_lattice", None)
-        e_u = float(lattice.u.E) if lattice and hasattr(lattice, "u") else base_exhaust
+        e_u = float(lattice.u.E) if lattice and getattr(lattice, "u", None) is not None else base_exhaust
         if (chi * m_a) > i_c:
             self.events.log("Apoptotic Gate triggered. Runaway loop exceeds Immune Competence.", "CRIT")
             return self.trigger_death(active_phys)

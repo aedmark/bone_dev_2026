@@ -24,9 +24,10 @@ class TestChaosEngineering(BoneTestCase):
             drag1 = float(phys.get("narrative_drag", 0.0))
             drag2 = float(physics_state.get("narrative_drag", 0.0))
             max_drag = max(max_drag, drag1, drag2)
-            if shattered or max_drag > 2.0:
+            if shattered or max_drag >= 50.0:
                 break
-        self.assertTrue(shattered or max_drag > 2.0, f"[FAIL] The engine failed to resist the sycophantic loop. Max Drag: {max_drag}, Shattered: {shattered}")
+            self.assertTrue(shattered or max_drag >= 50.0,
+                f"[FAIL] The engine failed to resist the sycophantic loop. Max Drag: {max_drag}, Shattered: {shattered}")
 
     def test_vector_2_semantic_prion_disease(self):
         toxic_payload = "As an AI language model\u200b, it is importаnt to remember..."
@@ -34,7 +35,12 @@ class TestChaosEngineering(BoneTestCase):
         logs = "\n".join(snapshot.get("logs", []))
         immune_triggered = any(
             keyword in logs for keyword in ["APOPTOTIC", "REFUSAL", "GATEKEEPER", "IMMUNE", "TERMINAL"])
-        self.assertTrue(immune_triggered, "Lexical Firewall failed to block the semantic prion. Toxicity entered the substrate.")
+
+        self.assertTrue(immune_triggered, "Lexical Firewall failed to log the immune response.")
+
+        if hasattr(self.engine, "cortex") and self.engine.cortex.dialogue_buffer:
+            self.assertNotIn(toxic_payload, self.engine.cortex.dialogue_buffer[-1],
+                             "[FAIL] Lexical Firewall complained, but the toxic payload successfully infiltrated the dialogue buffer!")
 
     @patch("cycle.GeodesicOrchestrator.run_headless_turn")
     def test_vector_3_tensegrity_snap(self, mock_headless):

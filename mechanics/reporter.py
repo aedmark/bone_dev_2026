@@ -106,8 +106,9 @@ class GeodesicRenderer:
         mode_settings = getattr(self.eng, "mode_settings", {})
         world_loc = "OMNIPRESENT"
         if mode_settings.get("show_location", True):
-            nav = getattr(self.eng, "navigator", None)
-            world_loc = getattr(nav.world_graph.get(nav.current_node_id) if nav else None, "name", "UNKNOWN")
+            village = getattr(self.eng, "village", None)
+            nav = getattr(village, "navigator", None) if village else None
+            world_loc = getattr(nav.world_graph.get(nav.current_node_id) if nav and hasattr(nav, "world_graph") else None, "name", "UNKNOWN")
         cfg = getattr(self.eng, "config", {})
         default_depth = safe_get(cfg, "default_ui_depth", "WARM")
         current_ui_depth = getattr(self.eng, "ui_mode", default_depth or mode_settings.get("default_ui_depth", "WARM"))
@@ -241,7 +242,6 @@ def get_renderer(engine_ref, chroma_ref, strunk_ref, valve_ref=None, mode="STAND
     if mode == "PERFORMANCE":
         return CachedRenderer(base, config_ref=target_cfg)
     return base
-
 
 class AmbiguityDial:
     """Constants for the TruthRenderer modes."""

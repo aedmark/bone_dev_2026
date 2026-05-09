@@ -119,15 +119,15 @@ class CommandStateInterface:
         }
 
     def get_inventory(self) -> List[str]:
-        """Reaches into Gordon's backpack to see what the user is carrying."""
         village = getattr(self.eng, "village", None)
-        return getattr(getattr(village, "gordon", None), "inventory", [])
+        gordon = getattr(village, "gordon", None) if village else None
+        return getattr(gordon, "inventory", [])
 
     def get_navigation_report(self) -> str:
-        """Asks the navigator to translate abstract physics coordinates into human-readable locations."""
         village = getattr(self.eng, "village", None)
-        nav = getattr(village, "navigator", None)
-        observer = getattr(getattr(self.eng, "phys", None), "observer", None)
+        nav = getattr(village, "navigator", None) if village else None
+        phys = getattr(self.eng, "phys", None)
+        observer = getattr(phys, "observer", None) if phys else None
         packet = getattr(observer, "last_physics_packet", None)
         if nav and packet:
             return nav.report_position(packet)
@@ -313,7 +313,8 @@ class CommandProcessor:
             logs = self.interface.Config.load_preset(preset)
             for log in logs:
                 self.interface.log(log)
-            observer = getattr(getattr(self.interface.eng, "phys", None), "observer", None)
+            phys = getattr(self.interface.eng, "phys", None)
+            observer = getattr(phys, "observer", None) if phys else None
             if phys_packet := getattr(observer, "last_physics_packet", None):
                 self.interface.Config.reconcile_state(phys_packet)
                 msg = ux("command_alerts", "mode_reconciled")

@@ -4,7 +4,7 @@ import time
 from dataclasses import dataclass, field, fields
 from typing import List, Dict, Optional, Any, Tuple
 from brain.akashic import TheAkashicRecord
-from soul import TheEditor, HumanityAnchor
+from soul import TheEditor, SchurProtocol
 from soul.traitvector import TraitVector
 from constants import Prisma
 from core import EventBus
@@ -42,7 +42,7 @@ class NarrativeSelf:
         self.mem = memory_ref
         self.cfg = config_ref or BoneConfig
         self.editor = TheEditor()
-        self.anchor = HumanityAnchor(events_ref, config_ref=self.cfg)
+        self.anchor = SchurProtocol(events_ref, config_ref=self.cfg)
         self.akashic = akashic_ref if akashic_ref else TheAkashicRecord()
         self.traits = TraitVector()
         self.chapters: List[str] = []
@@ -66,7 +66,6 @@ class NarrativeSelf:
         return float(val) if isinstance(default, float) else int(val) if isinstance(default, int) else val
 
     def force_mutation(self, new_archetype: str):
-        """Forces a hard shift in the system's governing personality (via Mod Chip or event)."""
         self.archetype = new_archetype.upper()
         self.archetype_tenure = 0
         self.archetype_lock = True

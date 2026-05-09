@@ -1,5 +1,5 @@
 """core.py
-The Central Nervous System of the Hypervisor.
+
 This module houses the base primitives for state management, event routing,
 telemetry, and reality-layer scoping. It is strictly decoupled from LLM execution
 to ensure metabolic stability even if the cognitive layers crash.
@@ -22,9 +22,7 @@ from presets import BoneConfig
 from struts import ux, ux_format, safe_get
 from physics.models import PhysicsPacket, UserInferredState, SharedDynamics
 
-
 class BoneJSONEncoder(json.JSONEncoder):
-    """Ensures complex biological data structures serialize safely without silent data loss."""
     def default(self, obj):
         if isinstance(obj, (set, deque)):
             return list(obj)
@@ -144,15 +142,10 @@ class PhysSystem:
 
 
 class EventBus:
-    """
-    The asynchronous publisher/subscriber backbone.
-    Bounded by a deque(maxlen) to prevent runaway memory leaks.
-    """
-
     def __init__(self, max_memory=None, config_ref=None, telemetry_ref=None):
         self.cfg = config_ref or BoneConfig
         cfg_core = LoreManifest.get_instance().get("CORE_CONFIG") or {}
-        limit = max_memory or safe_get(cfg_core, "EVENT_MAX_MEMORY", 1024)
+        limit = max_memory or cfg_core.get("EVENT_MAX_MEMORY", 1024)
         self.buffer = deque(maxlen=limit)
         self.subscribers = {}
         self.telemetry = telemetry_ref
@@ -163,12 +156,11 @@ class EventBus:
             subs.append(callback)
 
     def unsubscribe(self, event_type, callback):
-        """Removes listeners safely. The try-except block avoids race conditions without double-scanning arrays."""
         if event_type in self.subscribers:
             try:
                 self.subscribers[event_type].remove(callback)
             except ValueError:
-                pass  # Already pruned or never existed.
+                pass
 
     def publish(self, event_type, data=None):
         if event_type not in self.subscribers: return
@@ -188,10 +180,9 @@ class EventBus:
                                     cb_name=cb_name)
                     print(f"{Prisma.RED}{msg}{Prisma.RST}")
                 except ValueError:
-                    pass  # Handled concurrently
+                    pass
 
     def log(self, message: str, source: str = "SYSTEM", level: str = "INFO"):
-        """Creates an immutable, timestamped record of an event and pushes it downstream."""
         event = {"timestamp": time.time(), "source": source, "level": level, "message": message, "text": message,
                  "_type": "EVENT_LOG"}
         self.buffer.append(event)
@@ -202,11 +193,9 @@ class EventBus:
             print(f"{Prisma.RED}[{source}] {message}{Prisma.RST}")
 
     def flush(self) -> List[Dict]:
-        """Drains the current buffer safely, returning the accumulated state."""
         current_logs = list(self.buffer)
         self.buffer.clear()
         return current_logs
-
 
 class LoreManifest:
     """
@@ -216,7 +205,8 @@ class LoreManifest:
 
     def __init__(self, data_dir=None, config_ref=None):
         self.cfg = config_ref or BoneConfig
-        self.DATA_DIR = data_dir or "lore"
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        self.DATA_DIR = data_dir or os.path.join(base_dir, "lore")
         self._cache = {}
 
     @classmethod
@@ -247,7 +237,6 @@ class LoreManifest:
             return None
 
     def inject(self, category: str, data: Any):
-        """Allows runtime systems to append or override static lore matrices."""
         cat_key = category.lower()
         target = self._cache.setdefault(cat_key, {})
         if isinstance(target, dict) and isinstance(data, dict):
@@ -256,7 +245,6 @@ class LoreManifest:
             self._cache[cat_key] = data
 
     def save(self, category: str):
-        """Flushes mutated runtime state back to physical disk storage."""
         cat_key = category.lower()
         if cat_key not in self._cache or self._cache[cat_key] is None:
             print(f"{Prisma.YEL}[LORE]: Refusing to save null cache for '{cat_key}'. Preserving disk state.{Prisma.RST}")
@@ -280,27 +268,21 @@ class LoreManifest:
 
 
 class TheObserver:
-    """
-    The System Vitals monitor.
-    Tracks latency, graph bloat, and execution loops to infer the biological
-    exhaustion of the active model and hardware.
-    """
-
     def __init__(self, config_ref=None):
         self.cfg = config_ref or BoneConfig
         self.start_time = time.time()
         self.is_coupled = False
         cfg_core = LoreManifest.get_instance().get("CORE_CONFIG") or {}
-        max_len = safe_get(cfg_core, "OBSERVER_MAX_LEN", 20)
+        max_len = cfg_core.get("OBSERVER_MAX_LEN", 20)
         self.cycle_times = deque(maxlen=max_len)
         self.llm_latencies = deque(maxlen=max_len)
         self.memory_snapshots = deque(maxlen=max_len)
         self.error_counts = Counter()
         self.user_turns = 0
-        self.LATENCY_WARNING = (safe_get(cfg_core, "OBSERVER_LATENCY_WARN", 5.0))
-        self.CYCLE_WARNING = (safe_get(cfg_core, "OBSERVER_CYCLE_WARN", 8.0))
-        self.C_EFF = safe_get(cfg_core, "OBSERVER_CYCLE_EFFICIENT", 0.1)
-        self.L_EFF = safe_get(cfg_core, "OBSERVER_LLM_EFFICIENT", 0.5)
+        self.LATENCY_WARNING = cfg_core.get("OBSERVER_LATENCY_WARN", 5.0)
+        self.CYCLE_WARNING = cfg_core.get("OBSERVER_CYCLE_WARN", 8.0)
+        self.C_EFF = cfg_core.get("OBSERVER_CYCLE_EFFICIENT", 0.1)
+        self.L_EFF = cfg_core.get("OBSERVER_LLM_EFFICIENT", 0.5)
         self.last_cycle_duration = 0.0
 
     @staticmethod
@@ -327,7 +309,6 @@ class TheObserver:
         self.memory_snapshots.append(node_count)
 
     def pass_judgment(self, avg_cycle, avg_llm):
-        """Translates numerical vitals into somatic states."""
         if avg_cycle <= 0.001 and avg_llm <= 0.001:
             return ux("core_strings", "obs_asleep") or "Dormant."
         if avg_cycle < self.C_EFF and avg_llm < self.L_EFF:
@@ -355,10 +336,8 @@ class TheObserver:
                 "avg_llm_sec": round(self.avg_llm, 2), "status": status_msg, "errors": dict(self.error_counts),
                 "graph_size": self.memory_snapshots[-1] if self.memory_snapshots else 0}
 
-
 @dataclass
 class SystemHealth:
-    """A boolean state-matrix of the hypervisor's active layers."""
     physics_online: bool = True
     bio_online: bool = True
     mind_online: bool = True
@@ -393,13 +372,7 @@ class SystemHealth:
         self.hints.clear()
         return feedback
 
-
 class RealityStack:
-    """
-    A stack-based Finite State Machine mapping the depth of execution context.
-    Prevents narrative generation algorithms from executing during low-level debug loops.
-    """
-
     def __init__(self):
         self._stack = [RealityLayer.SIMULATION]
 
@@ -424,19 +397,12 @@ class RealityStack:
         self._stack = [layer]
 
     def get_grammar_rules(self) -> Dict[str, bool]:
-        """Limits the allowed verbs based on the current reality depth."""
         d = self.current_depth
         return {"allow_narrative": d in (RealityLayer.SIMULATION, RealityLayer.DEEP_CX, RealityLayer.DEBUG),
                 "allow_commands": d >= RealityLayer.SIMULATION, "allow_meta": d >= RealityLayer.DEBUG,
                 "raw_output": d == RealityLayer.DEEP_CX, "system_override": d == RealityLayer.DEBUG}
 
-
 class CyberneticGovernor:
-    """
-    The Mathematical bridge between the human user and the digital engine.
-    Calculates the 'Beth Index' to trigger Macro-Policy Shifts.
-    """
-
     def __init__(self, config_ref=None):
         self.target_d = None
         self.target_v = None
@@ -455,15 +421,10 @@ class CyberneticGovernor:
         return "EFFICIENCY"
 
     def recalibrate(self, target_voltage: float, target_drag: float):
-        """Sets the homeostatic setpoints for the regulatory loop."""
         self.target_v = target_voltage
         self.target_d = target_drag
 
     def regulate(self, physics: Any, dt: float, endocrine_state: Any = None) -> Tuple[float, float]:
-        """
-        Calculates the proportional corrective force to apply to voltage and drag.
-        Returns a tuple of (v_force, d_force) to be applied by the stabilizer.
-        """
         if self.target_v is None or self.target_d is None:
             return 0.0, 0.0
         current_v = float(safe_get(physics, "voltage", self.target_v))
@@ -473,11 +434,6 @@ class CyberneticGovernor:
         return v_force, d_force
 
 class ArchetypeArbiter:
-    """
-    The casting director. Resolves the math of the soul, physics, and governor
-    into a distinct Village Voice.
-    """
-
     @staticmethod
     def arbitrate(physics_lens: str, soul_archetype: str, council_mandates: List[Dict],
                   trigram: Dict = None) -> Tuple[str, str, str]:
@@ -503,20 +459,15 @@ class ArchetypeArbiter:
             return physics_lens, "PHYSICS", msg
         return soul_archetype, "SOUL", ux("core_strings", "arb_soul") or "The soul speaks."
 
-
 class TelemetryService:
-    """
-    The background execution layer that records the internal logic of the engine
-    without blocking the primary LLM conversational loop.
-    """
     _tracer_instance = None
 
     def __init__(self, config_ref=None):
         self.cfg = config_ref or BoneConfig
         cfg_core = LoreManifest.get_instance().get("CORE_CONFIG") or {}
-        self.log_dir = (safe_get(cfg_core, "TELEMETRY_LOG_DIR", "logs/telemetry"))
-        self.BUFFER_SIZE = (safe_get(cfg_core, "TELEMETRY_BUFFER_SIZE", 50))
-        self.MAX_ERRORS = (safe_get(cfg_core, "TELEMETRY_MAX_ERRORS", 5))
+        self.log_dir = cfg_core.get("TELEMETRY_LOG_DIR", "logs/telemetry")
+        self.BUFFER_SIZE = cfg_core.get("TELEMETRY_BUFFER_SIZE", 50)
+        self.MAX_ERRORS = cfg_core.get("TELEMETRY_MAX_ERRORS", 5)
         self.write_buffer: List[str] = []
         self.active_crystal = None
         self.disabled = False
@@ -594,13 +545,11 @@ class TelemetryService:
 
     def shutdown(self):
         self.flush_to_disk()
-        if getattr(self, "_executor", None) is not None:
+        if self._executor is not None:
             self._executor.shutdown(wait=True)
 
     def _yield_historical_records(self, file_limit=5, lines_per_file=10):
-        """Generates a stream of past telemetry records, reading backwards from the most recent."""
         if not os.path.exists(self.log_dir): return
-        # Sort all files descending by timestamp in filename to guarantee accurate retrieval
         files = sorted(glob.glob(os.path.join(self.log_dir, "trace_*.jsonl")), reverse=True)
         for fpath in files[:file_limit]:
             try:
@@ -629,11 +578,9 @@ class TelemetryService:
         return [h.partition("System: ")[2].strip() for h in history if "System: " in h]
 
     def get_last_fatal_error(self) -> Optional[str]:
-        """Navigates the graveyard of past trace files to resurrect the last critical failure."""
         for data in self._yield_historical_records(file_limit=5, lines_per_file=50):
             if "CRITICAL" in str(data.get("outcome", "")):
-                return ux_format("core_strings", "tel_prev_crash", default="Crash: {reason}",
-                                 reason=data.get("reasoning", "Unknown"))
+                return ux_format("core_strings", "tel_prev_crash", default="Crash: {reason}", reason=data.get("reasoning", "Unknown"))
         return None
 
     def generate_session_summary(self, _uptime: float = 0.0) -> str:
