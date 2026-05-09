@@ -275,7 +275,7 @@ class BoneAmanita:
         base_exhaust = float(safe_get(active_phys, "exhaustion", 0.0))
         beta = float(safe_get(active_phys, "beta_index", 0.0))
         lattice = getattr(self, "shared_lattice", None)
-        e_u = float(lattice.u.E) if lattice and getattr(lattice, "u", None) is not None else base_exhaust
+        e_u = float(lattice.u.E) if lattice and hasattr(lattice, "u") else base_exhaust
         if (chi * m_a) > i_c:
             self.events.log("Apoptotic Gate triggered. Runaway loop exceeds Immune Competence.", "CRIT")
             return self.trigger_death(active_phys)
@@ -413,7 +413,7 @@ class BoneAmanita:
         if snapshot.get("type") in self._TERMINAL_STATES:
             return snapshot
         self._update_host_stats(snapshot, turn_start)
-        soul_anchor = getattr(getattr(self, "soul", None), "anchor", None)
+        soul_anchor = getattr(self.soul, "anchor", None)
         cfg = getattr(self.config, "MAIN", object())
         if soul_anchor and self.host_stats.efficiency_index < getattr(cfg, "DOMESTICATION_EFF_WARN", 0.6):
             reliance = (getattr(cfg, "RELIANCE_HIGH", 0.9)

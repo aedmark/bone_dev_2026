@@ -113,10 +113,8 @@ class GatekeeperPhase(SimulationPhase):
                     ui_msg = audit_result.get(
                         "ui", ux("cycle_strings", "gatekeep_bureau_injunction"))
                     log_msg = ux("cycle_strings", "gatekeep_log_bureau_block")
-                    ctx.refusal_packet = {"type": "BUREAU_BLOCK",
-                                          "ui": ui_msg,
-                                          "logs": [log_msg] if log_msg else [],
-                                          "metrics": getattr(self.eng, "get_metrics", lambda: {})(), }
+                    ctx.refusal_packet = {"type": "BUREAU_BLOCK", "ui": ui_msg,
+                        "logs": [log_msg] if log_msg else [], "metrics": getattr(self.eng, "get_metrics", lambda: {})(), }
                     return ctx
                 if self.eng.bio and self.eng.bio.mito:
                     self.eng.bio.mito.adjust_atp(
@@ -202,8 +200,9 @@ class MachineryPhase(SimulationPhase):
         Executes an 'Airstrike'. An extreme penalty applied when the system detects
         runaway chaotic logic loops. Shaves off 20% of the system's max health instantly.
         """
+        from struts import safe_get
         target_cfg = getattr(self.eng, "config", BoneConfig)
-        max_hp = getattr(target_cfg, "MAX_HEALTH", 100.0)
+        max_hp = float(safe_get(target_cfg, "MAX_HEALTH", 100.0))
         damage = max_hp * 0.20
         if getattr(self.eng, "bio", None) and self.eng.bio.biometrics:
             self.eng.bio.biometrics.health = max(

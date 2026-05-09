@@ -15,11 +15,11 @@ from presets import BoneConfig
 class TheCrucible:
     def __init__(self, config_ref=None):
         self.cfg = config_ref or BoneConfig
-        cfg = getattr(self.cfg, "MACHINE", None)
-        self.max_voltage_cap = safe_get(cfg, "CRUCIBLE_VOLTAGE_CAP", 20.0)
+        cfg = safe_get(self.cfg, "MACHINE", {})
+        self.max_voltage_cap = float(safe_get(cfg, "CRUCIBLE_VOLTAGE_CAP", 20.0))
         self.active_state = "COLD"
-        self.dampener_charges = safe_get(cfg, "CRUCIBLE_DAMPENER_CHARGES", 3)
-        self.dampener_tolerance = safe_get(cfg, "DAMPENER_TOLERANCE", 15.0)
+        self.dampener_charges = int(safe_get(cfg, "CRUCIBLE_DAMPENER_CHARGES", 3))
+        self.dampener_tolerance = float(safe_get(cfg, "DAMPENER_TOLERANCE", 15.0))
         self.instability_index = 0.0
         self.logs = self._load_logs()
 
@@ -87,8 +87,8 @@ class TheCrucible:
         if voltage > 18.0:
             if structure > 0.5:
                 gain = voltage * 0.1
-                cfg = getattr(self.cfg, "MACHINE", None)
-                base_cap = safe_get(cfg, "CRUCIBLE_VOLTAGE_CAP", 20.0)
+                cfg = safe_get(self.cfg, "MACHINE", {})
+                base_cap = float(safe_get(cfg, "CRUCIBLE_VOLTAGE_CAP", 20.0))
                 self.max_voltage_cap = min(base_cap * 3.0, self.max_voltage_cap + gain)
                 self.active_state = "RITUAL"
                 msg_template = self.logs.get(

@@ -64,8 +64,9 @@ class ConfigWizard:
         The interactive CLI questionnaire.
         Establishes Identity, Intent (Mode), Compute (Backend), and Interface constraints.
         """
-        cfg = getattr(BoneConfig, "GUI", object())
-        setup_speed = getattr(cfg, "RENDER_SPEED_SETUP", 0.02)
+        from struts import safe_get
+        cfg = safe_get(BoneConfig, "GUI", {})
+        setup_speed = float(safe_get(cfg, "RENDER_SPEED_SETUP", 0.02))
         subprocess.run("cls" if os.name == "nt" else "clear", shell=True)
         seq_msg = ux("main_strings", "init_seq")
         hyp_msg = ux("main_strings", "init_hypervisor")

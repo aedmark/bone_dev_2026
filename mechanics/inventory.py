@@ -144,8 +144,8 @@ class GordonKnot:
         starters = data.get("STARTING_INVENTORY", [])
         if not self.inventory and starters:
             self.inventory = [s for s in starters if isinstance(s, str)]
-        if hasattr(self.cfg, "INVENTORY"):
-            self.max_slots = getattr(self.cfg.INVENTORY, "MAX_SLOTS", 10)
+        inv_cfg = safe_get(self.cfg, "INVENTORY", {})
+        self.max_slots = int(safe_get(inv_cfg, "MAX_SLOTS", 10))
 
     def process_loot_tags(self, text: str, user_input: str) -> Tuple[str, List[str]]:
         """
@@ -248,10 +248,7 @@ class GordonKnot:
         what kind of item is revealed. Highly toxic environments yield different items
         than stable ones.
         """
-        try:
-            cost = self.cfg.INVENTORY.RUMMAGE_COST
-        except AttributeError:
-            cost = 15.0
+        cost = float(safe_get(safe_get(self.cfg, "INVENTORY", {}), "RUMMAGE_COST", 15.0))
         if stamina_pool < cost:
             return False, f"{Prisma.OCHRE}{ux('gordon_strings', 'rummage_tired')}{Prisma.RST}", 0.0
         loot_table = self._get_loot_candidates(physics_ref)
@@ -267,11 +264,11 @@ class GordonKnot:
         v = float(safe_get(physics, "voltage", 0.0))
         d = float(safe_get(physics, "narrative_drag", 0.0))
         p = float(safe_get(physics, "psi", 0.0))
-        cfg = getattr(self.cfg, "PHYSICS", object())
-        vh = getattr(cfg, "VOLTAGE_HIGH", 12.0)
-        vc = getattr(cfg, "VOLTAGE_CRITICAL", 15.0)
-        dh = getattr(cfg, "DRAG_HEAVY", 5.0)
-        ph = getattr(cfg, "PSI_HIGH", 0.6)
+        cfg = safe_get(self.cfg, "PHYSICS", {})
+        vh = float(safe_get(cfg, "VOLTAGE_HIGH", 12.0))
+        vc = float(safe_get(cfg, "VOLTAGE_CRITICAL", 15.0))
+        dh = float(safe_get(cfg, "DRAG_HEAVY", 5.0))
+        ph = float(safe_get(cfg, "PSI_HIGH", 0.6))
         return [item.name
                 for item in self.registry.values()
                 if (ctx := item.spawn_context) in ("COMMON", "STANDARD")
@@ -393,27 +390,25 @@ class GordonKnot:
         the system consumes the item automatically to force systemic stabilization,
         saving the host from a crash.
         """
-        cfg = getattr(self.cfg, "INVENTORY", object())
+        cfg = safe_get(self.cfg, "INVENTORY", {})
         v = float(safe_get(physics_ref, "voltage", 0.0))
         d = float(safe_get(physics_ref, "narrative_drag", 0.0))
         k = float(safe_get(physics_ref, "kappa", 0.5))
         for name in list(self.inventory):
             item = self.get_item_data(name)
-            if not item:
+            if not item or not item.reflex_trigger:
                 continue
             trigger_type = item.reflex_trigger
-            if not trigger_type:
-                continue
-            if trigger_type == "VOLTAGE_CRITICAL" and v > getattr(cfg, "REFLEX_VOLTAGE_TRIGGER", 18.0):
+            if trigger_type == "VOLTAGE_CRITICAL" and v > float(safe_get(cfg, "REFLEX_VOLTAGE_TRIGGER", 18.0)):
                 self.safe_remove_item(name)
-                safe_set(physics_ref, "voltage", getattr(cfg, "REFLEX_VOLTAGE_RESET", 12.0))
+                safe_set(physics_ref, "voltage", float(safe_get(cfg, "REFLEX_VOLTAGE_RESET", 12.0)))
                 return True, f"{Prisma.CYN}{(ux('gordon_strings', 'reflex_voltage') or '').format(name=name)}{Prisma.RST}"
-            if trigger_type == "DRIFT_CRITICAL" and d > getattr(cfg, "REFLEX_DRAG_TRIGGER", 6.0):
+            if trigger_type == "DRIFT_CRITICAL" and d > float(safe_get(cfg, "REFLEX_DRAG_TRIGGER", 6.0)):
                 self.safe_remove_item(name)
-                safe_set(physics_ref, "narrative_drag", getattr(cfg, "REFLEX_DRAG_RESET", 0.0))
+                safe_set(physics_ref, "narrative_drag", float(safe_get(cfg, "REFLEX_DRAG_RESET", 0.0)))
                 return True, f"{Prisma.OCHRE}{(ux('gordon_strings', 'reflex_drift') or '').format(name=name)}{Prisma.RST}"
-            if trigger_type == "KAPPA_CRITICAL" and k < getattr(cfg, "REFLEX_KAPPA_TRIGGER", 0.2):
+            if trigger_type == "KAPPA_CRITICAL" and k < float(safe_get(cfg, "REFLEX_KAPPA_TRIGGER", 0.2)):
                 self.safe_remove_item(name)
-                safe_set(physics_ref, "kappa", getattr(cfg, "REFLEX_KAPPA_RESET", 0.8))
+                safe_set(physics_ref, "kappa", float(safe_get(cfg, "REFLEX_KAPPA_RESET", 0.8)))
                 return True, f"{Prisma.GRN}{(ux('gordon_strings', 'reflex_kappa') or '').format(name=name)}{Prisma.RST}"
         return False, None

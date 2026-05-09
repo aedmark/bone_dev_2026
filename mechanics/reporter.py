@@ -25,9 +25,9 @@ class PulseReader:
     @staticmethod
     def derive_mood(bio_state: Dict, config_ref=None) -> str:
         """Determines the overarching emotional state based on chemical dominance."""
-        cfg = getattr(config_ref or BoneConfig, "GUI", object())
-        c_warn = getattr(cfg, "CHEM_HIGH_WARN", 0.6)
-        a_warn = getattr(cfg, "ATP_EXHAUSTED_WARN", 20.0)
+        cfg = safe_get(config_ref or BoneConfig, "GUI", {})
+        c_warn = float(safe_get(cfg, "CHEM_HIGH_WARN", 0.6))
+        a_warn = float(safe_get(cfg, "ATP_EXHAUSTED_WARN", 20.0))
         chem = bio_state.get("chem", {})
         if chem.get("COR", 0) > c_warn:
             return ux("pulse_reader", "mood_defensive")
@@ -42,12 +42,12 @@ class PulseReader:
     @staticmethod
     def analyze_voltage(voltage: float, config_ref=None) -> Tuple[str, str]:
         """Translates the numeric Voltage metric into a narrative alert level."""
-        cfg = getattr(config_ref or BoneConfig, "GUI", object())
-        if voltage > getattr(cfg, "V_CRIT", 20.0):
+        cfg = safe_get(config_ref or BoneConfig, "GUI", {})
+        if voltage > float(safe_get(cfg, "V_CRIT", 20.0)):
             key = "voltage_critical"
-        elif voltage > getattr(cfg, "V_HIGH", 15.0):
+        elif voltage > float(safe_get(cfg, "V_HIGH", 15.0)):
             key = "voltage_high"
-        elif voltage < getattr(cfg, "V_LOW", 5.0):
+        elif voltage < float(safe_get(cfg, "V_LOW", 5.0)):
             key = "voltage_low"
         else:
             key = "voltage_nominal"
@@ -217,9 +217,9 @@ class CachedRenderer:
 
     def render_frame(self, ctx, tick: int, events: List[Dict]) -> Dict:
         voltage = float(safe_get(ctx.physics, "voltage", 0.0))
-        cfg = getattr(self.cfg, "GUI", object())
-        cache_expired = (tick - self._last_tick) >= getattr(cfg, "UI_CACHE_LIFETIME", 5)
-        if voltage > getattr(cfg, "HIGH_VOLTAGE_REFRESH", 15.0) or events or cache_expired:
+        cfg = safe_get(self.cfg, "GUI", {})
+        cache_expired = (tick - self._last_tick) >= int(safe_get(cfg, "UI_CACHE_LIFETIME", 5))
+        if voltage > float(safe_get(cfg, "HIGH_VOLTAGE_REFRESH", 15.0)) or events or cache_expired:
             frame = self._base.render_frame(ctx, tick, events)
             self._cached_ui_content = frame["ui"]
             self._last_tick = tick

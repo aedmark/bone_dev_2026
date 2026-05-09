@@ -106,15 +106,16 @@ class CommandStateInterface:
 
     def get_vitals(self) -> Dict[str, float]:
         """Consolidates current health, stamina, and ATP, alongside their maximum limits."""
+        from struts import safe_get
         metrics = self.eng.get_metrics()
-        cmd_cfg = getattr(self.Config, "COMMANDS", None)
+        cmd_cfg = safe_get(self.Config, "COMMANDS", {})
         return {
             "health": metrics.get("health", 0.0),
             "stamina": metrics.get("stamina", 0.0),
             "atp": metrics.get("atp", 0.0),
-            "max_health": getattr(self.Config, "MAX_HEALTH", 100.0),
-            "max_stamina": getattr(self.Config, "MAX_STAMINA", 100.0),
-            "max_atp": getattr(cmd_cfg, "STATUS_MAX_ATP", 200.0),
+            "max_health": float(safe_get(self.Config, "MAX_HEALTH", 100.0)),
+            "max_stamina": float(safe_get(self.Config, "MAX_STAMINA", 100.0)),
+            "max_atp": float(safe_get(cmd_cfg, "STATUS_MAX_ATP", 200.0)),
         }
 
     def get_inventory(self) -> List[str]:
@@ -220,12 +221,13 @@ class CommandProcessor:
     }
 
     def __init__(self, engine, prisma_ref, _lexicon_ref=None, config_ref=None, _cartographer_ref=None):
+        from struts import safe_get
         real_config = config_ref if config_ref else BoneConfig
         self.interface = CommandStateInterface(engine, prisma_ref, real_config)
         self.tax = ResourceTax(self.interface)
         self.registry = CommandRegistry(self.interface)
         self.P = prisma_ref
-        self.cmd_cfg = getattr(self.interface.Config, "COMMANDS", object())
+        self.cmd_cfg = safe_get(self.interface.Config, "COMMANDS", {})
         for attr in dir(self):
             if attr.startswith("_cmd_"):
                 name = attr[5:]
@@ -305,7 +307,7 @@ class CommandProcessor:
             msg = ux("command_alerts", "mode_unknown")
             self.interface.log(f"{self.P.RED}{msg.format(mode=mode_name)}{self.P.RST}")
             return True
-        cost = getattr(self.cmd_cfg, "COST_MODE", 10.0)
+        cost = float(safe_get(self.cmd_cfg, "COST_MODE", 10.0))
         if self.tax.levy("MODE_SWITCH", {"stamina": cost}):
             preset = getattr(BonePresets, mode_name)
             logs = self.interface.Config.load_preset(preset)
@@ -323,7 +325,7 @@ class CommandProcessor:
     def _cmd_save(self, _parts):
         """Forces an immediate state write to the database."""
         res = self.interface.save_state()
-        error_flags = getattr(self.cmd_cfg, "SAVE_ERROR_FLAGS", ["Error", "Failed", "Exception"])
+        error_flags = safe_get(self.cmd_cfg, "SAVE_ERROR_FLAGS", ["Error", "Failed", "Exception"])
         if not res or any(flag in str(res) for flag in error_flags):
             msg = ux("command_alerts", "save_failed")
             self.interface.log(f"{self.P.RED}{msg.format(res=res)}{self.P.RST}")
@@ -350,7 +352,7 @@ class CommandProcessor:
 
     def _cmd_map(self, _parts):
         """Reveals current physical/metaphorical location."""
-        cost = getattr(self.cmd_cfg, "COST_MAP", 2.0)
+        cost = float(safe_get(self.cmd_cfg, "COST_MAP", 2.0))
         if not self.tax.levy("MAP", {"stamina": cost}):
             return True
         nav_report = self.interface.get_navigation_report()
@@ -593,10 +595,11 @@ class CommandProcessor:
 
     def _cmd_podcast(self, parts):
         """Triggers the LLM to generate a massive, multi-archetype debate, then writes it to disk."""
+        from struts import safe_get
         if len(parts) < 2:
             self.interface.log("Usage: /podcast <topic>")
             return True
-        cost = getattr(self.cmd_cfg, "COST_PODCAST", 20.0)
+        cost = float(safe_get(self.cmd_cfg, "COST_PODCAST", 20.0))
         if not self.tax.levy("PODCAST", {"atp": cost}):
             return True
         topic = " ".join(parts[1:])
@@ -622,7 +625,7 @@ class CommandProcessor:
 
     def _cmd_journal(self, _parts):
         """Triggers the LLM to summarize the recent dialogue buffer into a surreal diary entry."""
-        cost = getattr(self.cmd_cfg, "COST_JOURNAL", 15.0)
+        cost = float(safe_get(self.cmd_cfg, "COST_JOURNAL", 15.0))
         if not self.tax.levy("JOURNAL", {"atp": cost}):
             return True
         self.interface.log(f"{self.P.CYN}📖 Compiling narrative journal...{self.P.RST}")
@@ -647,8 +650,9 @@ class CommandProcessor:
         return True
 
     def _cmd_shuffle(self, _parts):
+        from struts import safe_get
         """The emergency release valve. Burns ATP to physically reset structural/narrative loops."""
-        cost = getattr(self.cmd_cfg, "COST_SHUFFLE", 5.0)
+        cost = float(safe_get(self.cmd_cfg, "COST_SHUFFLE", 5.0))
         if not self.tax.levy("SHUFFLE", {"atp": cost}):
             return True
         if hasattr(self.interface.eng, "phys"):

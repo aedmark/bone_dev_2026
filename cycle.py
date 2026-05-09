@@ -313,11 +313,10 @@ class GeodesicOrchestrator:
                 "yeetinator_mode": "[!y]" in usr_msg
             })
 
-            lattice_ref = getattr(self.eng, "shared_lattice", None)
-            if lattice_ref and hasattr(self.eng, "governor"):
-                u_exhaustion = float(getattr(lattice_ref.u, "E", 0.0)) if hasattr(lattice_ref, "u") else 0.0
-                phi_val = float(getattr(lattice_ref.shared, "phi", 0.0)) if hasattr(lattice_ref, "shared") else 0.0
-                res_delta = float(getattr(lattice_ref.shared, "resonance_delta", 0.0)) if hasattr(lattice_ref, "shared") else 0.0
+            if hasattr(self.eng, "governor"):
+                u_exhaustion = float(getattr(ctx.user_state, "E", 0.0))
+                phi_val = float(getattr(ctx.shared_dyn, "phi", 0.0))
+                res_delta = float(getattr(ctx.shared_dyn, "resonance_delta", 0.0))
                 self.eng.governor.calculate_coupling(phi_val, res_delta, u_exhaustion)
                 ctx.physics.macro_policy = self.eng.governor.get_policy_shift()
 

@@ -223,8 +223,8 @@ class ChronosKeeper:
         try:
             files = sorted([f for f in os.listdir(self.CRASH_DIR) if f.startswith(prefix)])
             target_cfg = getattr(self.eng, "config", BoneConfig) if self.eng else BoneConfig
-            cfg = getattr(target_cfg, "CHRONOS", object())
-            kept = getattr(cfg, "CRASH_FILES_KEPT", 4)
+            cfg = safe_get(target_cfg, "CHRONOS", {})
+            kept = int(safe_get(cfg, "CRASH_FILES_KEPT", 4))
             for oldest in files[:-kept] if kept > 0 else files:
                 os.remove(os.path.join(self.CRASH_DIR, oldest))
         except Exception:
