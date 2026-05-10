@@ -348,10 +348,12 @@ class TheCortex:
                                "meta_logs": ["[SYSTEM] HLA Stabilizer engaged."]}
                 if not val_res.get("feedback_instruction"):
                     val_res = self.validator.validate(gate_txt, full_state)
-            if val_res["valid"]:
-                final_output = val_res["content"]
-                extracted_logs = val_res.get("meta_logs", [])
-                break
+                if val_res["valid"]:
+                    final_output = val_res["content"]
+                    extracted_logs = val_res.get("meta_logs", [])
+                    if val_res.get("learned_triplet") and self.events:
+                        self.events.publish("SYNTAX_CORRECTED", {"triplet": val_res["learned_triplet"]})
+                    break
             if self.svc.bio:
                 lbl = "Cognitive Stumble (Terminal)" if attempt == max_retries - 1 else "Cognitive Stumble"
                 self.svc.bio.mito.adjust_atp(-2.0, lbl)
@@ -385,7 +387,7 @@ class TheCortex:
         self._log_telemetry(final_prompt, telemetry_output, full_state, sim_result)
         self.svc.symbiosis.monitor_host(time.time() - start_time, final_output, len(final_prompt))
         self._update_history("SYSTEM_INIT" if is_boot_sequence else user_input, final_output)
-        ui_parts = [sim_result.get("ui", ""), "\n".join(e["text"] for e in self.events.flush())]
+        ui_parts = [sim_result.get("ui", "")]
         if sim_result.get("dream"):
             ui_parts.append(f"{Prisma.VIOLET}☁️ While you were gone: {sim_result['dream']}{Prisma.RST}")
         ui_parts.append(f"{Prisma.WHT}{beautify_thoughts(final_output)}{Prisma.RST}")
@@ -670,7 +672,7 @@ class TheCortex:
         scope_val = float(safe_get(phys, "scope", 1.0))
         depth_val = float(safe_get(phys, "depth", 0.0))
         omega_r = float(safe_get(phys, "omega_r", 0.5))
-        query_vec = phys.get("vector", {})
+        query_vec = safe_get(phys, "vector", {})
         if scope_val > 0.6 or depth_val > 0.6:
             if scope_val > 0.8:
                 phys["lateral_search"] = True

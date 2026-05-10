@@ -334,6 +334,15 @@ class PromptComposer:
                         if any(k in str(log) for k in self._COUNCIL_KEYS)]
         critic_str = ("\n".join(council_logs)
                       if council_logs else "[CRITIC] The village is quiet.")
+
+        # S.L.A.S.H. V3: Hot-load Few-Shot compiler weights to drive latency down
+        syn_weights = self.lore.get("syntactic_weights", [])
+        if syn_weights and active_mode_name != "CONVERSATION":
+            samples = random.sample(syn_weights, min(2, len(syn_weights)))
+            critic_str += "\n\n=== SYNTACTIC WEIGHTS (LEARNED CORRECTIONS) ===\nCRITICAL: Do NOT repeat these past mistakes. Observe how your errors were previously corrected:\n"
+            for s in samples:
+                critic_str += f"[FAILED OUTPUT]: {s['bad']}\n[CRITIC INSTRUCTION]: {s['instruction']}\n[CORRECTED OUTPUT]: {s['good']}\n"
+
         vsl_hijack = self._build_vsl_dashboard(phys_ref, mito, beta_val, chi_val, voltage, critic_str)
         mode_trigger = f"[MODE: {active_mode_name}]"
         dialogue_block = f"=== RECENT DIALOGUE ===\n{history_str}\n\n"
@@ -545,6 +554,8 @@ class ResponseValidator:
         self.lore = lore_ref
         self.cfg = config_ref or BoneConfig
         crimes = self.lore.get("style_crimes") or {}
+        self.last_failed_attempt = None
+        self.last_feedback = None
         self.banned_phrases = crimes.get("BANNED_PHRASES", [])
         if self.banned_phrases:
             escaped_banned = [re.escape(p) for p in self.banned_phrases]
@@ -674,13 +685,30 @@ class ResponseValidator:
                 errors_found.append(f"RULE VIOLATION: {error_msg}")
         if errors_found:
             unique_errors = list(dict.fromkeys(errors_found))
+            feedback = "FIX ALL OF THESE ERRORS: " + " | ".join(unique_errors)
+            self.last_failed_attempt = response
+            self.last_feedback = feedback
             return {"valid": False, "reason": "IMMISSION_BREAK",
                     "replacement": primary_replacement or self._generate_dynamic_rejection("MULTIPLE_CRIMES"),
-                    "feedback_instruction": "FIX ALL OF THESE ERRORS: " + " | ".join(unique_errors),
+                    "feedback_instruction": feedback,
                     "meta_logs": extracted_meta_logs, }
         stutter_len = int(safe_get(safe_get(self.cfg, "CORTEX", {}), "VALIDATOR_STUTTER_LENGTH", 5))
         if len(sanitized_response.strip()) < stutter_len and not extracted_meta_logs:
+            self.last_failed_attempt = response
+            self.last_feedback = "RESPONSE TOO SHORT. STUTTER."
             return {"valid": False, "reason": "STUTTER",
                     "replacement": ux("brain_strings", "val_stutter"),
                     "meta_logs": extracted_meta_logs}
-        return {"valid": True, "content": sanitized_response, "meta_logs": extracted_meta_logs}
+
+        # S.L.A.S.H. V3: Capture the learning delta when a successful generation follows a failure
+        learned_triplet = None
+        if getattr(self, "last_failed_attempt", None):
+            learned_triplet = {
+                "bad": self.last_failed_attempt,
+                "instruction": self.last_feedback,
+                "good": sanitized_response
+            }
+            self.last_failed_attempt = None
+            self.last_feedback = None
+
+        return {"valid": True, "content": sanitized_response, "meta_logs": extracted_meta_logs, "learned_triplet": learned_triplet}

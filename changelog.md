@@ -1,6 +1,28 @@
 # CHANGELOG.md
 -----------------------------------------------------------
 
+### **BONEAMANITA 19.9.3 "The S.L.A.S.H. V3 Inversion & Syntactic Ephemeralization"**
+
+**Added**
+
+* **The Syntactic Compiler (Few-Shot Learning Loop):** The engine now actively learns from its mistakes to drive down latency and metabolic waste. The `ResponseValidator` now captures DSPy Critic rejections, distills them into `(Bad Output -> Critic Instruction -> Corrected Output)` triplets, and publishes them via the EventBus. `TheConsolidator` saves these weights to `lore/syntactic_weights.json` and hot-loads them into the Cortex, dynamically teaching the LLM to avoid past style crimes on the first attempt.
+* **Umbilical Integration Tests:** Added a dedicated `tests/test_integration.py` suite. These tests bypass localized mocks to physically verify the entire Umbilical cord: verifying that the Orchestrator correctly routes to the Cortex, that dynamic attributes survive the phase pipeline without being overwritten, and that cross-layer events (Mind mutating Biology) successfully traverse the EventBus.
+
+**Changed**
+
+* **Inversion of Control (The Great Rewiring):** Stripped `TheCortex` of its "God-Object" status. The engine's master execution loop is now permanently driven by the `GeodesicOrchestrator` (`cycle.py`). The LLM is now structurally subservient, firing strictly when commanded during the Orchestrator's `CognitionPhase`, aligning the engine with its core philosophy: reality dictates thought, not the other way around.
+* **UI Ephemeralization (The Glass Scalpel):** Drastically improved terminal rendering speed and visual clarity. `TheCortex` no longer hoards and flushes system logs. The `GeodesicRenderer` now cleanly groups the Projector HUD and structured logs, injecting a `|||SPLIT|||` token before the LLM output. This allows `main.py` to instantly snap the telemetry to the screen and reserve the mechanical typewriter effect exclusively for the system's narrative response.
+* **Tolerant Apoptosis (EventBus):** Halted the over-aggressive permanent deletion of subscribed callbacks in `core.py`. If a cognitive node experiences a transient error, the EventBus logs the failure but no longer permanently amputates the system, preventing silent "zombie" mechanics for the remainder of the session.
+
+**Fixed**
+
+* **Phase Pipeline Data Attrition:** Hardened the Orchestrator's `_hydrate_snapshot_metadata` serialization. Dynamically generated attributes attached to the physics packet (like `shadow_nodes_offered` and `omega_r`) now successfully survive the phase-transition handoffs without being wiped by the static struct enforcer.
+* **Concurrency Paranoia (Gödel Scar):** Replaced a brittle `.copy()` fallback in `cycle.py`'s `_native_freeze_graph` with a lock-free key isolation approximation. This prevents the engine from throwing fatal double `RuntimeError`s if a background thread mutates the graph exactly as the system attempts to take a crash snapshot.
+* **Monkey-Patch Hardening:** Hardened the `shared_lattice` dependency in `main.py` to gracefully handle edge-cases where the Immune System triggers a rejection loop before the Orchestrator has fully attached the lattice to the engine.
+* **Nested Vector Extraction:** Restored the Cortex's ability to trigger lateral Shadow Casts by fixing `gather_state` to properly deep-search the newly nested `physics.matter.vector` structure.
+
+---
+
 ### **BONEAMANITA 19.9.2 "The S.L.A.S.H. Audit & Synergetic Tensegrity"**
 
 **Added**

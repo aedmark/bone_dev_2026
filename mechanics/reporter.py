@@ -80,21 +80,26 @@ class GeodesicRenderer:
         bio = ctx.bio_result
         raw_dashboard = self.render_dashboard(ctx)
         soul_strip = self.soul_dashboard.render()
-        if soul_strip:
-            raw_dashboard = f"{soul_strip}\n{raw_dashboard}"
+        structured_logs = self.compose_logs(ctx.logs, current_events, tick)
+        hud_parts = []
+        if soul_strip: hud_parts.append(soul_strip.strip())
+        if raw_dashboard: hud_parts.append(raw_dashboard.strip())
+        if structured_logs: hud_parts.append("\n".join(structured_logs))
+        instant_hud = "\n\n".join(hud_parts)
         cortex_text = getattr(ctx, "bureau_ui", "")
-        if cortex_text:
-            raw_dashboard = f"{raw_dashboard}\n\n{cortex_text}"
-        clean_ui = raw_dashboard
+        split_token = ux("main_strings", "ui_split_token") or "|||SPLIT|||"
+        if instant_hud:
+            clean_ui = f"{instant_hud}\n{split_token}\n{cortex_text}"
+        else:
+            clean_ui = cortex_text
         bureau = getattr(self.eng, "bureau", None)
         if bureau:
-            clean_ui, style_log = bureau.sanitize(raw_dashboard)
+            clean_ui, style_log = bureau.sanitize(clean_ui)
             if style_log:
                 self._punish_style_crime(style_log)
-                current_events.append({"text": style_log})
+                clean_ui = f"{style_log}\n{clean_ui}"
         ignore_msg = ux("renderer", "ignore_msg") or "The system is listening."
         clean_ui = clean_ui.replace(ignore_msg, "")
-        structured_logs = self.compose_logs(ctx.logs, current_events, tick)
         atp_val = bio.get("atp", 0.0) if isinstance(bio, dict) else 0.0
         return {"type": "GEODESIC_FRAME", "ui": clean_ui, "logs": structured_logs,
                 "metrics": self.eng.get_metrics(atp_val), }
