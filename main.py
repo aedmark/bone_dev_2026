@@ -103,6 +103,7 @@ class BoneAmanita:
         self.soma = SomaticLoop(self.bio, self.mind.mem, self.lex, self.events)
         self.noetic = NoeticLoop(self.mind, self.bio, self.events)
         self.orchestrator = GeodesicOrchestrator(self)
+        self.orchestrator.start_daemon() # Boot the pacemaker for both UI and Tests
         self.consolidator = TheConsolidator(self.events, self.mind.mem, self.akashic)
         llm_args = {k: v for k, v in self.sys_config.items() if k in ["provider", "base_url", "api_key", "model"]}
         self.cortex = TheCortex.from_engine(self, llm_client=LLMInterface(events_ref=self.events, **llm_args))
@@ -370,7 +371,15 @@ class BoneAmanita:
                         f"{Prisma.CYN}Gordon rakes the comb through your prompt. Fluff discarded. -> '{pruned}'{Prisma.RST}",
                         "SYS", )
         try:
-            snapshot = self.orchestrator.run_turn(user_message, is_system=is_system)
+            # Phase 1: Push to the Orchestrator's input queue instead of directly calling it
+            self.orchestrator.output_buffer = None
+            self.orchestrator.input_queue.put((user_message, is_system))
+
+            # Step 1 Rule: Leave it synchronous at first to test the pipe
+            while self.orchestrator.output_buffer is None:
+                time.sleep(0.05)
+
+            snapshot = self.orchestrator.output_buffer
         except Exception as e:
             full_trace = traceback.format_exc()
             self.events.log(f"ORCHESTRATOR COLLAPSE: {e}\n{full_trace}", "CRIT")
@@ -546,9 +555,11 @@ class BoneAmanita:
             self.orchestrator.shutdown()
         self.chronos.perform_shutdown()
 
+
 if __name__ == "__main__":
     sys_config = ConfigWizard.load_or_create()
     engine = BoneAmanita(config=sys_config)
+
     with SessionGuardian(engine) as session:
         boot_packet = session.engage_cold_boot()
         if boot_packet and boot_packet.get("ui"):

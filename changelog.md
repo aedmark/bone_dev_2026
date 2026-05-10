@@ -1,6 +1,23 @@
 # CHANGELOG.md
 -----------------------------------------------------------
 
+### **BONEAMANITA 20.0.0 "Unbound Chronos"**
+
+**Added**
+
+* **Asynchronous Metabolism (Daemonization):** The engine ceases to be a reactive script tied to the `input()` REPL. It now runs as a persistent biological daemon on a continuous background thread. `main.py` has been structurally demoted to a UI window, utilizing `queue.Queue` and lock-free state handoffs to communicate with the physics engine.
+* **The Circadian Rhythm (Idle Detection):** The engine now possesses temporal awareness. It tracks the temporal delta between inputs; if 300 seconds (5 minutes) elapse without interaction, the system crosses the idle threshold and transitions from a `WAKE` state to `REM` sleep.
+* **The Dream Engine:** While in `REM` sleep, the engine continues to metabolize. It slows its execution loop to save CPU, slowly burns ATP, reduces Cortisol/ROS, triggers memory defragmentation (`Autophagy`), and hallucinates "Shadow Casts" by blending its accumulated trauma vector with objects in Gordon's inventory via silent, zero-UI DSPy calls. These dreams are prepended to the UI upon waking.
+
+**Changed**
+
+* **Core Ignition Sequence:** Moved the daemon boot sequence (`engine.orchestrator.start_daemon()`) out of the terminal UI loop and directly into the engine's internal anatomy (`_initialize_cognition`). The pacemaker now starts automatically upon instantiation.
+
+**Fixed**
+
+* **Concurrency Deadlocks (The Great Hang):** Implemented a structural fail-safe in the Geodesic Orchestrator's background thread. If the daemon encounters an unhandled exception or `MemoryError`, it forcibly unblocks the main thread by injecting a `CRITICAL DAEMON CRASH` snapshot into the output buffer, preventing terminal paralysis.
+* **Test Suite Paralysis:** Fixed an issue where tests (e.g., `test_governor_macro_policy_shift`) would infinitely hang because the headless test environment was bypassing the terminal-level daemon ignition.
+
 ### **BONEAMANITA 19.9.3 "The S.L.A.S.H. V3 Inversion & Syntactic Ephemeralization"**
 
 **Added**

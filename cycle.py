@@ -10,6 +10,7 @@ the system stable over time.
 import random
 import threading
 import time
+import queue
 from concurrent.futures import ThreadPoolExecutor
 import traceback
 import uuid
@@ -187,11 +188,112 @@ class GeodesicOrchestrator:
         self.reporter = CycleReporter(engine_ref)
         self._rem_lock = threading.Lock()
         self.symbiosis = self.eng.symbiosis
+
+        # Phase 1: Daemonization State
+        self.input_queue = queue.Queue()
+        self.output_buffer = None
+        self.is_running = False
+        self.daemon_thread = None
+
+        # Phase 2 & 3: Circadian Rhythm State
+        self.last_interaction_time = time.time()
+        self.engine_state = "WAKE"
+        self.dream_log = []
         self._async_pool = ThreadPoolExecutor(max_workers=3, thread_name_prefix="CycleAsync")
         from drivers import SharedLatticeDriver
         if not hasattr(self.eng, "shared_lattice"):
             self.eng.shared_lattice = SharedLatticeDriver()
         self.congruence_validator = CongruenceValidator()
+
+    def start_daemon(self):
+        """Phase 1: Boot the background pacemaker thread."""
+        if not self.is_running:
+            self.is_running = True
+            self.daemon_thread = threading.Thread(target=self.run_continuous, daemon=True, name="CycleDaemon")
+            self.daemon_thread.start()
+
+    def run_continuous(self):
+        """Phase 1 & 2: The infinite background execution loop with Circadian Rhythm."""
+        while self.is_running:
+            current_time = time.time()
+            try:
+                # Poll the queue. Timeout allows the loop to breathe and process idle tasks.
+                user_message, is_system = self.input_queue.get(timeout=0.1)
+
+                # WAKE STATE: Process input
+                self.last_interaction_time = current_time
+                if self.engine_state == "REM":
+                    self.engine_state = "WAKE"
+                    self.eng.events.log(f"{Prisma.VIOLET}Engine waking from REM sleep...{Prisma.RST}", "SYS")
+
+                snapshot = self.run_turn(user_message, is_system)
+
+                # Phase 3: Inject the Dream Log on Wake
+                if self.dream_log and "ui" in snapshot:
+                    dream_summary = "\n".join(self.dream_log[-5:]) # Keep only the deepest 5 dreams
+                    snapshot["ui"] = f"\n{Prisma.MAG}☁️ While you were gone, the system dreamt of:\n{dream_summary}{Prisma.RST}\n{snapshot['ui']}"
+                    self.dream_log.clear()
+                self.output_buffer = snapshot  # Lock-free snapshot handoff to the UI
+                self.input_queue.task_done()
+
+            except queue.Empty:
+                # Phase 2: PASSIVE METABOLISM & Idle Detection
+                time_since_last = current_time - self.last_interaction_time
+
+                if self.engine_state == "WAKE":
+                    if time_since_last > 300:  # 5 minutes (300 seconds) threshold
+                        self.engine_state = "REM"
+                        self.eng.events.log(f"{Prisma.VIOLET}Idle threshold crossed. Engine transitioning to REM sleep...{Prisma.RST}", "SYS")
+
+                        # Note: In a fully wired EventBus, we would also trigger a SYSTEM_SLEEP event here
+
+                elif self.engine_state == "REM":
+                    # Phase 3: The Dream Engine (Asynchronous Metabolism)
+                    time.sleep(60.0) # Slow loop to 1 tick per 60 seconds to save CPU
+
+                    # 1. Metabolic Burn & Stress Decay
+                    if hasattr(self.eng, "drain_atp"):
+                        self.eng.drain_atp(0.5)
+                    if getattr(self.eng, "_mito_state", None):
+                        self.eng._mito_state.ros_buildup = max(0.0, self.eng._mito_state.ros_buildup - 0.1)
+
+                    # 2. Memory Defragmentation
+                    if hasattr(self.eng, "consolidator") and hasattr(self.eng.consolidator, "trigger_autophagy"):
+                        try:
+                            self.eng.consolidator.trigger_autophagy()
+                        except Exception:
+                            pass
+
+                    # 3. Hallucination (Shadow Casts)
+                    try:
+                        trauma_level = sum(self.eng.trauma_accum.values()) if getattr(self.eng, "trauma_accum", None) else 0.0
+                        inv_ref = getattr(getattr(self.eng, "village", None), "gordon", None)
+                        objects = getattr(inv_ref, "inventory", ["static"]) if inv_ref else ["static"]
+
+                        if hasattr(self.eng, "mind") and hasattr(self.eng.mind, "dream_engine"):
+                            # Run a silent zero-UI DSPy generation
+                            dream_txt, _ = self.eng.mind.dream_engine.hallucinate({"chi": 0.85}, trauma_level=trauma_level)
+                            obj = random.choice(objects) if objects else "static"
+
+                            # Construct the surreal one-liner
+                            full_dream = f"  • {Prisma.strip(dream_txt)} (Shadow cast involving: {obj})"
+                            self.dream_log.append(full_dream)
+                    except Exception as e:
+                        self.eng.events.log(f"Dream generation failed in REM: {e}", "DEBUG")
+
+            except Exception as e:
+                self.eng.events.log(f"Daemon Engine Crash: {e}", "CRIT")
+
+                # Concurrency Fail-Safe: Unblock the main thread if the cycle crashed
+                if self.output_buffer is None:
+                    self.output_buffer = {
+                        "type": "CRASH",
+                        "ui": f"\n{Prisma.RED}CRITICAL DAEMON CRASH: {e}{Prisma.RST}",
+                        "logs": [str(e)],
+                        "metrics": getattr(self.eng, "get_metrics", lambda: {})()
+                    }
+
+                time.sleep(1.0) # Prevent tight crash loops
 
     def _verify_semantic_topology(self, ctx: CycleContext):
         """
