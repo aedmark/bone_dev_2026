@@ -23,6 +23,7 @@ rm -f ./lore/akashic*
 rm -f ./legacy.json
 rm -rf ./output
 rm -rf ./tests/tests_isolated_legacy_void.json
+rm -rf ./tests_isolated_legacy_void.json
 rm -rf ./tests/logs
 rm -rf ./tests/saves
 rm -rf ./tests/tests

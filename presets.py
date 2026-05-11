@@ -63,8 +63,7 @@ class BonePresets:
     LABORATORY = {"PHYSICS.VOLTAGE_FLOOR": 0.5,
         "PHYSICS.VOLTAGE_MAX": 15.0,
         "PHYSICS.DRAG_FLOOR": 2.0,
-        "BIO.DECAY_RATE": 0.0,
-        "COUNCIL.FOOTNOTE_CHANCE": 1.0,}
+        "BIO.DECAY_RATE": 0.0}
 
     # The absolute framework for User Experience.
     # Defines what UI elements render, what mechanics are allowed, and who is awake in the Village.

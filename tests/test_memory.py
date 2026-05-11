@@ -36,24 +36,6 @@ class MemoryTests(BoneTestCase):
             "Autophagy failed to refund ATP to the Mitochondrial Forge.",
         )
 
-    def test_autophagy_prompt_injection(self):
-        composer = PromptComposer(self.engine.prompt_library)
-        state = self.engine.cortex.gather_state({"physics": {"voltage": 30.0}})
-        state["recent_logs"] = [
-            "[AUTOPHAGY: Consumed memory of 'User's favorite color' to survive.]"
-        ]
-        prompt = composer.compose(state, "What was my favorite color?")
-        self.assertIn(
-            "[AUTOPHAGY:",
-            prompt,
-            "The PromptComposer failed to inject the Autophagy footnote into the LLM's context window.",
-        )
-        self.assertIn(
-            "favorite color",
-            prompt,
-            "The specific consumed memory was not communicated to the LLM.",
-        )
-
     def test_autophagy_phantom_generation(self):
         """
         When MemoryCore reaches critical load and executes Autophagy,

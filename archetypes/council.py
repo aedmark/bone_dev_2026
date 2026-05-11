@@ -171,7 +171,7 @@ class CouncilChamber:
         for auditor in [self.slash_council, self.overseer_council, self.red_team]:
             hit, a_logs, a_corr, a_man = auditor.audit(text, physics_packet)
             if hit:
-                transcript.extend(self.footnote.commentary(log) for log in a_logs)
+                transcript.extend(a_logs)
                 adjustments.update(a_corr)
                 mandates.extend(a_man)
         village_logs = self.village.audit(physics_packet, _bio_result)
@@ -193,10 +193,7 @@ class CouncilChamber:
                 mandates.append({"action": "SYNERGY_FIRED", "value": syn.get("name", chord_key)})
                 synergy_fired = True
                 break
-        if synergy_fired:
-            transcript.extend(
-                self.footnote.commentary(f"{Prisma.GRY}{Prisma.strip(vlog)}{Prisma.RST}") for vlog in village_logs)
-        elif len(village_logs) > 2:
+        if len(village_logs) > 2:
             msg_t = ux("council_strings", "stage_manager_tension")
             msg_s = ux("council_strings", "stage_manager_silence")
             transcript.append(f"{Prisma.WHT}{msg_t}{Prisma.RST}")
@@ -204,11 +201,6 @@ class CouncilChamber:
             cfg = safe_get(BoneConfig, "COUNCIL", {})
             tension_drag = float(safe_get(cfg, "TENSION_DRAG_PENALTY", 3.0))
             adjustments["narrative_drag"] = adjustments.get("narrative_drag", 0) + tension_drag
-            for vlog in village_logs[:2]:
-                transcript.append(self.footnote.commentary(vlog))
-        else:
-            for vlog in village_logs:
-                transcript.append(self.footnote.commentary(vlog))
         votes = {"YEA": 0, "NAY": 0}
         cfg = safe_get(BoneConfig, "COUNCIL", {})
         for voice in self.voices:
@@ -241,7 +233,7 @@ class CouncilChamber:
                 adjustments[k] = adjustments.get(k, 0) + v
             mandates.append({"type": "TIE_BREAKER",
                              "directive": "Synthesize the conflicting perspectives. Do not choose one side over the other."})
-        transcript.append(self.footnote.commentary(final_log))
+        transcript.append(final_log)
         return transcript, adjustments, mandates
 
     def host_podcast(self, topic: str, llm: Any) -> str:
