@@ -168,11 +168,11 @@ class EventBus:
             try:
                 callback(data)
             except Exception as e:
-                    cb_name = getattr(callback, "__name__", str(callback))
-                    if event_type != "EVENT_FAILURE":
-                        tb_str = traceback.format_exc(limit=3)
-                        self.log(f"EVENT_FAILURE: Error in '{cb_name}': {e}\n{tb_str}", source="EVENT_FAILURE",
-                                 level="CRIT")
+                cb_name = getattr(callback, "__name__", str(callback))
+                if event_type != "EVENT_FAILURE":
+                    tb_str = traceback.format_exc(limit=3)
+                    self.log(f"EVENT_FAILURE: Error in '{cb_name}': {e}\n{tb_str}", source="EVENT_FAILURE",
+                             level="CRIT")
 
     def log(self, message: str, source: str = "SYSTEM", level: str = "INFO"):
         event = {"timestamp": time.time(), "source": source, "level": level, "message": message, "text": message,
@@ -333,7 +333,6 @@ class SystemHealth:
     physics_online: bool = True
     bio_online: bool = True
     mind_online: bool = True
-    cortex_online: bool = True
     errors: deque = field(default_factory=lambda: deque(maxlen=50))
     warnings: List[str] = field(default_factory=list)
     hints: List[str] = field(default_factory=list)

@@ -25,7 +25,6 @@ from constants import Prisma, RealityLayer
 from mechanics.terminal import typewriter, SessionGuardian
 from mechanics.setup import ConfigWizard
 from mechanics.tools import TheSubstrate
-from machine.consolidator import TheConsolidator
 
 
 @dataclass
@@ -70,7 +69,6 @@ class BoneAmanita:
         self._unpack_anatomy(anatomy)
         if getattr(self.village, "town_hall", None):
             self.events.subscribe("ITEM_DROP", self.village.town_hall.on_item_drop)
-        self.cosmic = self.phys.dynamics
         self.stabilizer = ZoneInertia(config_ref=self.config)
         self.telemetry = TelemetryService.get_instance(config_ref=self.config)
         self.events.telemetry = self.telemetry
@@ -103,8 +101,7 @@ class BoneAmanita:
         self.soma = SomaticLoop(self.bio, self.mind.mem, self.lex, self.events)
         self.noetic = NoeticLoop(self.mind, self.bio, self.events)
         self.orchestrator = GeodesicOrchestrator(self)
-        self.orchestrator.start_daemon() # Boot the pacemaker for both UI and Tests
-        self.consolidator = TheConsolidator(self.events, self.mind.mem, self.akashic)
+        self.orchestrator.start_daemon()
         llm_args = {k: v for k, v in self.sys_config.items() if k in ["provider", "base_url", "api_key", "model"]}
         self.cortex = TheCortex.from_engine(self, llm_client=LLMInterface(events_ref=self.events, **llm_args))
         self.mind.mem.lex = self.lex
@@ -215,6 +212,7 @@ class BoneAmanita:
         self.drivers = anatomy.get("drivers")
         self.symbiosis = anatomy.get("symbiosis")
         self.consultant = anatomy.get("consultant", None)
+        self.consolidator = anatomy.get("consolidator")
         self.phys = self.embryo.physics
         self.mind = self.embryo.mind
         self.bio = self.embryo.bio
@@ -263,9 +261,7 @@ class BoneAmanita:
             safe_set(active_phys, "entropy", 0.1)
             safe_set(active_phys, "narrative_drag", 999.0)
             msg = "[LINEHAN]: High exhaustion and contradiction detected. The architecture is stable. We sit with the debris."
-            self.events.log(msg, "SYS")
-            return {"type": "SYSTEM_HALT", "ui": f"\n{Prisma.CYN}{msg}{Prisma.RST}", "logs": [msg],
-                    "metrics": self.get_metrics()}
+            return self._generate_halt(msg, color=Prisma.CYN, level="SYS")
         return None
 
     def _update_host_stats(self, packet, turn_start):

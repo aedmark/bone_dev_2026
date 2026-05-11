@@ -144,8 +144,6 @@ class CycleSimulator:
         msg_crash = ux("cycle_strings", "sim_crash_header")
         formatted_trace = traceback.format_exc()
         self.eng.events.log(f"{Prisma.RED}{msg_crash.format(phase_name=phase_name)}\n{formatted_trace}{Prisma.RST}", "CRIT")
-        if phase_name == "COGNITION":
-            self.eng.events.log(f"CORTEX COLLAPSE: {error} (See trace above)", "CRIT")
         ctx.logs.append("CRITICAL FAILURE")
         narrative = LoreManifest.get_instance().get("narrative_data") or {}
         cathedral_logs = narrative.get("CATHEDRAL_COLLAPSE_LOGS", ["System Failure."])
@@ -155,7 +153,6 @@ class CycleSimulator:
         comp = _CRASH_COMPONENT_MAP.get(phase_name, "SIMULATION")
         self.eng.system_health.report_failure(comp, error)
         # Native deterministic graph freezing based on Nelson Spence (Project Navi).
-        last_packet = getattr(self.eng.observer, "last_physics_packet", None)
         if comp == "PHYSICS" or not getattr(ctx, "physics", None):
             ctx.physics = PanicRoom.get_safe_physics()
             try:
@@ -249,7 +246,10 @@ class GeodesicOrchestrator:
 
                 elif self.engine_state == "REM":
                     # Phase 3: The Dream Engine (Asynchronous Metabolism)
-                    time.sleep(60.0) # Slow loop to 1 tick per 60 seconds to save CPU
+                    last_rem = getattr(self, "last_rem_tick", 0.0)
+                    if current_time - last_rem < 60.0:
+                        continue
+                    self.last_rem_tick = current_time
 
                     # 1. Metabolic Burn & Stress Decay
                     if hasattr(self.eng, "drain_atp"):
