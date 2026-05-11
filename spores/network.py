@@ -456,7 +456,6 @@ class MycelialNetwork:
              joy_history: List[Dict[str, Any]], mitochondria_traits=None, antibodies=None, soul_data=None,
              continuity=None, world_atlas=None, village_data=None, ):
         """
-        The Encapsulation Event (Death).
         Compiles the active metabolic state, the semantic graph, and the epigenetic
         changes into a static JSON Spore for future reincarnation or crossover.
         """
@@ -473,17 +472,13 @@ class MycelialNetwork:
             valid_edges = {t: round(w, 2)
                            for t, w in data.get("edges", {}).items() if w > 1.0}
             if valid_edges or data.get("is_diamond", False):
-                core_graph[k] = {
-                    "edges": valid_edges,
-                    "last_tick": 0,
-                    "strata": data.get("strata"),
-                    "is_diamond": data.get("is_diamond", False)
-                }
+                core_graph[k] = {"edges": valid_edges, "last_tick": 0, "strata": data.get("strata"),
+                                 "is_diamond": data.get("is_diamond", False)}
         future_seed_q = self._generate_future_seed(temp_health=health, trauma_vec=final_vector)
         seed_list = [{"q": s.question, "m": s.maturity, "b": s.bloomed} for s in self.seeds if not s.bloomed]
         if not any(s["q"] == future_seed_q for s in seed_list):
             seed_list.append({"q": future_seed_q, "m": 0.0, "b": False})
-        data = {"genome": "BA_01991", "session_id": self.session_id, "parent_id": self.session_id,
+        data = {"genome": "BA_02001", "session_id": self.session_id, "parent_id": self.session_id,
                 "meta": {"timestamp": time.time(), "final_health": health, "final_stamina": stamina, },
                 "trauma_vector": final_vector, "joy_vectors": top_joy or [], "joy_legacy": joy_legacy_data,
                 "core_graph": core_graph, "mutations": mutations or {},

@@ -406,9 +406,10 @@ class BoneAmanita:
     def _execute_zen_flush(self) -> Dict[str, Any]:
         """A dedicated somatic reflex to bypass the loop and clear systemic toxicity."""
         self.cortex.purge_context()
-        active_phys = self.active_physics
-        if active_phys:
-            safe_set(active_phys, "narrative_drag", 0.0)
+        if obs_phys := getattr(self.observer, "last_physics_packet", None):
+            safe_set(obs_phys, "narrative_drag", 0.0)
+        if ctx_phys := getattr(self.cortex, "last_physics", None):
+            safe_set(ctx_phys, "narrative_drag", 0.0)
         self.stamina = getattr(self.config, "MAX_STAMINA", 100.0)
         self.set_atp(getattr(self.config, "MAX_ATP", 100.0))
         if state := self._mito_state:

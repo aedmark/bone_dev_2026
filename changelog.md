@@ -1,6 +1,26 @@
 # CHANGELOG.md
 -----------------------------------------------------------
 
+### **BONEAMANITA 20.0.1 "The S.L.A.S.H. Matrix Optimization"**
+
+**Changed**
+
+* **Geodesic Cache Wiring:** Wired the ignored `_CACHED_CONSTANTS` inside the Geodesic Engine, bypassing repetitive `LoreManifest` fetches on every user input and drastically reducing CPU overhead.
+* **Structural Rot Purge:** Excised redundant alias variables (`self.cosmic`), phantom nodes (`cortex_online`), phantom observer pulls (`last_packet`), and duplicate hardcoded fail-safes across `main.py` and `cycle.py`.
+* **Double-Tick Desync:** Removed redundant `tick_count` increments in `ObservationPhase` that were causing temporal drift across time-based decays.
+
+**Fixed**
+
+* **Metabolic Thermodynamics:** Fixed the "Negative Inefficiency Artifact" in `body/metabolism.py` ensuring mathematically accurate inefficiency calculations when the surge protector caps maximum ATP burn. Corrected the "Anaerobic Ghost Metric" telemetry desync to accurately record the true 20.0 ATP emergency deduction.
+* **The REM Coma & Queue Deadlock:** Replaced a thread-blocking `time.sleep(60.0)` in the Dream Engine with a non-blocking timestamp delta, restoring asynchronous responsiveness. Prevented indefinite zombie-state deadlocks by forcing `task_done()` queue acknowledgments during daemon crashes.
+* **Epigenetic Type-Collapse:** Shielded the Dream Engine's prompt evolution mechanics (`brain/mind.py`) against DSPy critic string-collapses, forcing list-type conversion to prevent fatal `AttributeError` crashes during axiom appending.
+* **Memory Leaks & Severed Nerves:** Excised a `TheConsolidator` double-instantiation memory leak / ghost listener upon boot. Restored "Shadow Casts" (lateral memory generation) by pointing the Cortex back to the true `ann` database.
+* **Dynamic Pipeline Attrition:** Overrode `to_dict()` in `PhysicsPacket` to serialize and merge dynamically generated attributes, ensuring phase-handoffs no longer scrub runtime variables (like `tracer_particles`).
+* **The Great Disconnect:** Fixed a daemon logic bypass where the `GeodesicOrchestrator` would run the simulation but fail to invoke `TheCortex` for a response.
+* **Isolated Test Fragility:** Bulletproofed `TheCortex` against null-pointer exceptions when executing massive context drops or mercy rules in isolated test environments. Hardened `_execute_zen_flush()` to dual-target both the Observer and active Cortex physics states to survive decoupled mock environments.
+
+---
+
 ### **BONEAMANITA 20.0.0 "Unbound Chronos"**
 
 **Added**

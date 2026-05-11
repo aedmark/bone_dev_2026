@@ -296,8 +296,8 @@ class DreamEngine:
                         threshold = safe_get(safe_get(self.cfg, "CORTEX", {}), "EPIGENETIC_PRUNE_THRESHOLD", 12)
                         if len(dirs) > threshold:
                             compressed = getattr(self.dspy_critic, "compress_prompts", lambda x: None)(dirs)
-                            if compressed:
-                                disk_prompts[active_mode]["directives"] = compressed
+                        if compressed:
+                            disk_prompts[active_mode]["directives"] = [compressed] if isinstance(compressed, str) else compressed
                             if self.eng:
                                 self.eng.prompt_library = disk_prompts
                             self.lore.inject("SYSTEM_PROMPTS", disk_prompts)

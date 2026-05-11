@@ -223,7 +223,14 @@ class GeodesicOrchestrator:
                     self.engine_state = "WAKE"
                     self.eng.events.log(f"{Prisma.VIOLET}Engine waking from REM sleep...{Prisma.RST}", "SYS")
 
+                # Ensure Cognition is active for non-system turns
                 snapshot = self.run_turn(user_message, is_system)
+
+                # Validation check: If cognition didn't fire, force-bridge the Cortex
+                if not is_system and not snapshot.get("ui") and snapshot.get("type") == "SNAPSHOT":
+                    self.eng.events.log("Cognition bypass detected. Force-syncing Cortex umbilical...", "WARN")
+                    cognition_result = self.eng.cortex.process(user_message, snapshot.get("physics", {}))
+                    snapshot["ui"] = cognition_result.get("ui", "")
 
                 # Phase 3: Inject the Dream Log on Wake
                 if self.dream_log and "ui" in snapshot:
@@ -292,6 +299,10 @@ class GeodesicOrchestrator:
                         "logs": [str(e)],
                         "metrics": getattr(self.eng, "get_metrics", lambda: {})()
                     }
+
+                # Acknowledge the task even on crash to prevent Queue Deadlock
+                if hasattr(self, 'input_queue'):
+                    self.input_queue.task_done()
 
                 time.sleep(1.0) # Prevent tight crash loops
 
@@ -414,7 +425,7 @@ class GeodesicOrchestrator:
             return
         lattice = self.eng.shared_lattice
         mem = self.eng.mind.mem
-        cortex = mem.cortex
+        cortex = getattr(self.eng, "cortex", None)
 
         def _bg_wls_check(msg_str):
             try:

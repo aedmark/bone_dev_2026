@@ -174,16 +174,19 @@ class TheCortex:
         }
 
         if len(user_input) > context_limit and not is_system and not is_boot_sequence:
-            safe_content = user_input.replace("\n", "|||NEWLINE|||")
-            filename = f"context_drop_{int(time.time())}.txt"
-            self.svc.orchestrator.eng.substrate.queue_write(f"memory_queue/{filename}", safe_content)
-            s_logs, s_cost = self.svc.orchestrator.eng.substrate.execute_writes(stamina_override=100.0)
-            if self.svc.bio:
-                self.svc.bio.mito.adjust_atp(-s_cost, "Massive Context Ingestion")
-            msg = f"{Prisma.CYN}[Substrate Queue]: Massive context drop detected. Routed to silent indexing. Dialogue buffer bypassed. (-{s_cost:.1f} ATP){Prisma.RST}"
-            self.events.log(msg, "SYS")
-            sim_result.update({"ui": msg, "type": "SILENT_INGEST"})
-            return sim_result
+            eng_ref = getattr(self.svc.orchestrator, "eng", None)
+            sub = getattr(eng_ref, "substrate", None)
+            if sub:
+                safe_content = user_input.replace("\n", "|||NEWLINE|||")
+                filename = f"context_drop_{int(time.time())}.txt"
+                sub.queue_write(f"memory_queue/{filename}", safe_content)
+                s_logs, s_cost = sub.execute_writes(stamina_override=100.0)
+                if self.svc.bio:
+                    self.svc.bio.mito.adjust_atp(-s_cost, "Massive Context Ingestion")
+                msg = f"{Prisma.CYN}[Substrate Queue]: Massive context drop detected. Routed to silent indexing. Dialogue buffer bypassed. (-{s_cost:.1f} ATP){Prisma.RST}"
+                self.events.log(msg, "SYS")
+                sim_result.update({"ui": msg, "type": "SILENT_INGEST"})
+                return sim_result
 
         if getattr(ctx, "refusal_triggered", False) and getattr(ctx, "refusal_packet", None):
             sim_result.update(ctx.refusal_packet)
@@ -363,7 +366,9 @@ class TheCortex:
                 final_output = ux("brain_strings", "cortex_tangled") or fallback_msg
                 extracted_logs.append(
                     "[SYSTEM MERCY RULE]: Rejection loop broken. Releasing tension. Dropping Drag to 0.0.")
-                if obs_packet := getattr(self.svc.orchestrator.eng.observer, "last_physics_packet", None):
+                eng_ref = getattr(self.svc.orchestrator, "eng", None)
+                obs_ref = getattr(eng_ref, "observer", None) if eng_ref else None
+                if obs_packet := getattr(obs_ref, "last_physics_packet", None):
                     safe_set(obs_packet, "narrative_drag", 0.0)
                 if self.last_physics:
                     safe_set(self.last_physics, "narrative_drag", 0.0)
@@ -397,9 +402,11 @@ class TheCortex:
         sim_result["logs"] = sim_result.get("logs", []) + extracted_logs
         sim_result["raw_content"] = final_output
         self.ballast_active = False
-        sub = self.svc.orchestrator.eng.substrate
+        eng_ref = getattr(self.svc.orchestrator, "eng", None)
+        sub = getattr(eng_ref, "substrate", None)
+
         for log in extracted_logs:
-            if isinstance(log, str) and log.startswith("[SUBSTRATE_QUEUE]"):
+            if sub and isinstance(log, str) and log.startswith("[SUBSTRATE_QUEUE]"):
                 try:
                     _, _, data = log.partition(" ")
                     path, _, safe_content = data.partition(":::")
@@ -409,7 +416,7 @@ class TheCortex:
                     err_msg = f"Failed to parse or write file block. {e}"
                     print(f"{Prisma.RED}[SUBSTRATE QUEUE ERROR]: {err_msg}{Prisma.RST}")
                     self.events.log(f"{Prisma.RED}[SUBSTRATE QUEUE ERROR]: {err_msg}{Prisma.RST}", "SYS")
-        if sub.pending_writes:
+        if sub and sub.pending_writes:
             stamina = self.svc.bio.biometrics.stamina
             s_logs, s_cost = sub.execute_writes(stamina)
             if s_logs:
@@ -667,7 +674,7 @@ class TheCortex:
                     "CONTRADICTION_FLAG": "CRITICAL [CONTRADICTION_FLAG]: The Paradox Engine override is active. You MUST explicitly locate and output the friction (β) in the current logic BEFORE you answer."}
                 if msg := directive_map.get(val):
                     mind["style_directives"].append(msg)
-        cortex_mem = getattr(self.svc.mind_memory, "cortex", None)
+        cortex_mem = getattr(self.svc.mind_memory, "ann", None)
         shadow_nodes = []
         scope_val = float(safe_get(phys, "scope", 1.0))
         depth_val = float(safe_get(phys, "depth", 0.0))

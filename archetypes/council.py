@@ -15,37 +15,6 @@ from presets import BoneConfig
 from archetypes.symbiosis import get_symbiont
 from constants import Prisma
 
-
-class TheFootnote:
-    """
-    A narrative flavor engine. Occasionally appends academic or systemic footnotes
-    to logs, mimicking a deeply contextual, self-referential machine consciousness.
-    """
-
-    def __init__(self):
-        lore = LoreManifest.get_instance()
-        data = lore.get("FOOTNOTES") or {}
-        self.footnotes = data.get("DEFAULT", ["* [Citation Needed]"])
-        self.context_map = data.get("CONTEXT_MAP", {})
-
-    def commentary(self, log_text: str) -> str:
-        """
-        Rolls against a baseline probability to append a footnote. If triggered,
-        it searches the log for contextual keywords to append a relevant note,
-        or falls back to a generic default.
-        """
-        chance = float(safe_get(safe_get(BoneConfig, "COUNCIL", {}), "FOOTNOTE_CHANCE", 0.1))
-        if random.random() > chance:
-            return log_text
-        text_lower = log_text.lower()
-        candidates = next(
-            (notes for trig, notes in self.context_map.items() if trig in text_lower),
-            self.footnotes
-        )
-        note = random.choice(candidates)
-        return f"{log_text}{Prisma.RST} {Prisma.GRY}{note}{Prisma.RST}"
-
-
 class TheVillageCouncil:
     """
     Evaluates the current physical state of the simulation against the behavioral
@@ -145,7 +114,6 @@ class CouncilChamber:
         self.eng = engine_ref
         self.voices = []
         self.village = TheVillageCouncil()
-        self.footnote = TheFootnote()
         self.slash_council = TheSlashCouncil()
         self.overseer_council = TheOverseerCouncil(engine_ref)
         self.red_team = TheRedTeam()
@@ -317,7 +285,6 @@ class CouncilChamber:
             f"{Prisma.WHT}[STAGE MANAGER]{Prisma.RST}\n{Prisma.strip(synthesis)}"
         )
         return script
-
 
 class TheRedTeam:
     def __init__(self):
