@@ -12,6 +12,7 @@ import json
 import os
 import random
 import time
+import tempfile
 from collections import deque
 from typing import List, Tuple, Optional, Dict
 from core import BoneJSONEncoder
@@ -22,12 +23,10 @@ from spores.spore_utils import _identity, _word_to_vector, _mat_mul, _reorthogon
 
 class SubconsciousStrata:
     """
-    The deep substrate. When active memories are destroyed (cannibalized)
-    or deliberately repressed, they are "buried" here.
-    Instead of just keeping a text log, this class maintains two mathematical
-    matrices (M_t and Q_n) that constantly rotate and decay. This allows the
-    system to retain the "vibe" or geometric signature of long-forgotten words
-    without carrying the metabolic cost of keeping them in active memory.
+    The deep substrate. When active memories are destroyed or repressed, they are "buried" here.
+    This class maintains two mathematical matrices (M_t and Q_n) that constantly rotate and decay.
+    This allows thesystem to retain the geometric signature of long-forgotten words
+    without keeping them in active memory.
     """
 
     def __init__(self, filename="memories/subconscious.jsonl"):
@@ -43,7 +42,7 @@ class SubconsciousStrata:
         self.Q_n = self._load_q_matrix()
 
     def _load_json(self, path, default_factory):
-        """[H]euristic: Failsafe loading. If the file is locked or corrupt, return the default."""
+        """ If the file is locked or corrupt, return the default."""
         if os.path.exists(path):
             try:
                 with open(path, "r", encoding="utf-8") as f:
@@ -57,6 +56,14 @@ class SubconsciousStrata:
 
     def _load_q_matrix(self):
         return self._load_json(self.q_filepath, lambda: _identity(8))
+
+    def apply_scar(self, concept: str):
+        """Mathematically flinches the matrix away from a traumatic concept vector."""
+        v = _word_to_vector(concept)
+        H = _householder(v)
+        self.Q_n = _mat_mul(H, self.Q_n)
+        self.Q_n = _reorthogonalize(self.Q_n)
+        self.save_matrix()
 
     def save_matrix(self):
         try:
@@ -126,7 +133,6 @@ class SubconsciousStrata:
                 lines = f.readlines()
             keep_count = int(len(lines) * 0.9)
             survivors = lines[-keep_count:] if keep_count else []
-            import tempfile
             fd, temp_path = tempfile.mkstemp(dir=self.directory, text=True)
             with os.fdopen(fd, "w", encoding="utf-8") as f:
                 f.writelines(survivors)

@@ -1,16 +1,14 @@
 """machine/theremin.py
+
 The Theremin is the simulation's stagnation detector.
-It monitors the conversation for 'Decoherence'—the moment when a dynamic,
+It monitors the conversation for the moment when a dynamic,
 complex exchange flattens out into a repetitive or highly predictable loop.
-It metaphorically tracks this stagnation as 'Resin'. If resin builds up too much,
-the conversation fossilizes in 'Amber'. The system must then use turbulence,
-complexity, or thermal energy to shatter the amber and restore flow.
 """
+
 from typing import Tuple, Optional, Any
 from core import LoreManifest
 from struts import ux, safe_get, safe_set
 from presets import BoneConfig
-
 
 class TheTheremin:
     def __init__(self, config_ref=None):
@@ -77,15 +75,13 @@ class TheTheremin:
             theremin_msg = f"{theremin_msg} {turb_msg}".strip()
             self.classical_turns = 0
         if turb < 0.2:
-            current_drag = float(safe_get(physics, "narrative_drag", 0.0))
-            safe_set(physics, "narrative_drag", max(0.0, current_drag - 1.0))
+            physics.narrative_drag = max(0.0, getattr(physics, "narrative_drag", 0.0) - 1.0)
         if self.decoherence_buildup > self.SHATTER_POINT:
             self.decoherence_buildup = 0.0
             self.classical_turns = 0
             self.is_stuck = False
-            current_drag = float(safe_get(physics, "narrative_drag", 0.0))
-            safe_set(physics, "narrative_drag", max(current_drag + 20.0, 20.0))
-            safe_set(physics, "voltage", 0.0)
+            physics.narrative_drag = max(getattr(physics, "narrative_drag", 0.0) + 20.0, 20.0)
+            physics.voltage = 0.0
             return False, resin_flow, self.logs.get("COLLAPSE", ""), "AIRSTRIKE"
         if self.classical_turns > 3:
             critical_event = "CORROSION"

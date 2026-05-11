@@ -24,9 +24,8 @@ class SurfaceTension:
             Tuple[bool, str, str]: (Is_Triggered, Message, State_Flag)
         """
         cfg = safe_get(config_ref or BoneConfig, "PHYSICS", {})
-        energy_state = safe_get(physics, "energy", physics)
-        current_voltage = float(safe_get(energy_state, "voltage", 0.0))
-        current_kappa = float(safe_get(energy_state, "kappa", 0.0))
+        current_voltage = float(getattr(physics, "voltage", 0.0))
+        current_kappa = float(getattr(physics, "kappa", 0.0))
 
         v_crit = float(safe_get(cfg, "VOLTAGE_CRITICAL", 15.0))
         v_high = float(safe_get(cfg, "VOLTAGE_HIGH", 12.0))

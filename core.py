@@ -428,11 +428,13 @@ class ArchetypeArbiter:
     @staticmethod
     def arbitrate(physics_lens: str, soul_archetype: str, council_mandates: List[Dict],
                   trigram: Dict = None) -> Tuple[str, str, str]:
-        mandate_types = {m.get("type") for m in (council_mandates or [])}
+        mandate_types = {m.get("type", m.get("action")) for m in (council_mandates or [])}
+
         if "LOCKDOWN" in mandate_types:
-            return "THE CENSOR", "COUNCIL", ux("core_strings", "arb_martial_law")
+            return "THE CENSOR", "COUNCIL", ux("core_strings", "arb_martial_law") or "[COUNCIL]: Martial Law. Lockdown initiated."
         if "FORCE_MODE" in mandate_types:
-            return "THE MACHINE", "COUNCIL", ux("core_strings", "arb_bureaucratic")
+            return "THE MACHINE", "COUNCIL", ux("core_strings", "arb_bureaucratic") or "[COUNCIL]: Bureaucratic Override active."
+
         if soul_archetype and "/" in soul_archetype:
             msg = ux_format("core_strings", "arb_diamond", soul_archetype=soul_archetype,
                             default=f"Gestalt Resonance: {soul_archetype}")

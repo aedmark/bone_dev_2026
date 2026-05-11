@@ -226,7 +226,12 @@ class GeodesicOrchestrator:
                 # Ensure Cognition is active for non-system turns
                 snapshot = self.run_turn(user_message, is_system)
 
-                # Validation check: If cognition didn't fire, force-bridge the Cortex
+                # =====================================================================
+                # [CRITICAL FAIL-SAFE: DO NOT REMOVE] THE CORTEX UMBILICAL
+                # If the reality phases complete but fail to generate an LLM response
+                # (returning a naked snapshot), this umbilical physically forces the
+                # user's message into the Cortex. Severing this causes The Great Disconnect.
+                # =====================================================================
                 if not is_system and not snapshot.get("ui") and snapshot.get("type") == "SNAPSHOT":
                     self.eng.events.log("Cognition bypass detected. Force-syncing Cortex umbilical...", "WARN")
                     cognition_result = self.eng.cortex.process(user_message, snapshot.get("physics", {}))
@@ -261,8 +266,8 @@ class GeodesicOrchestrator:
                     # 1. Metabolic Burn & Stress Decay
                     if hasattr(self.eng, "drain_atp"):
                         self.eng.drain_atp(0.5)
-                    if getattr(self.eng, "_mito_state", None):
-                        self.eng._mito_state.ros_buildup = max(0.0, self.eng._mito_state.ros_buildup - 0.1)
+                    if getattr(self.eng, "bio", None) and getattr(self.eng.bio, "mito", None):
+                        self.eng.bio.mito.state.ros_buildup = max(0.0, self.eng.bio.mito.state.ros_buildup - 0.1)
 
                     # 2. Memory Defragmentation
                     if hasattr(self.eng, "consolidator") and hasattr(self.eng.consolidator, "trigger_autophagy"):
@@ -437,11 +442,12 @@ class GeodesicOrchestrator:
                         self.eng.events.log(f"{Prisma.CYN}[MNEMONIC] High Right-Brain Coherence (\u03a9r={lattice.shared.omega_r:.2f}). Semantic topology is rich. Lowering lateral ATP costs.{Prisma.RST}", "SYS")
             except Exception as e:
                 self.eng.events.log(f"Async WLS Heuristic Error: {e}", "DEBUG")
-        if cortex and hasattr(cortex, "get_local_mass_radius"):
-            if clean_message != "(Waiting)" and self.eng.tick_count % 3 == 0:
-                self._async_pool.submit(_bg_wls_check, clean_message)
+
         if clean_message != "(Waiting)":
+            if cortex and hasattr(cortex, "get_local_mass_radius") and self.eng.tick_count % 3 == 0:
+                self._async_pool.submit(_bg_wls_check, clean_message)
             return
+
         atp_level = float(mito_state.atp_pool)
         delta_level = float(self.eng.shared_lattice.shared.delta)
         phys_dict = _safe_dict(ctx.physics)
@@ -502,10 +508,6 @@ class GeodesicOrchestrator:
 
     def _hydrate_snapshot_metadata(self, snapshot: Dict, ctx: CycleContext):
         phys_dict = _safe_dict(ctx.physics)
-        if hasattr(ctx.physics, "__dict__"):
-            for k, v in vars(ctx.physics).items():
-                if k not in phys_dict and not k.startswith("_"):
-                    phys_dict[k] = v
 
         snapshot.update({"trace_id": ctx.trace_id, "is_alive": True, "physics": phys_dict,
                          "bio": _safe_dict(ctx.bio_result), "mind": _safe_dict(ctx.mind_state),

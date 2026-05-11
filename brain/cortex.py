@@ -153,11 +153,16 @@ class TheCortex:
             return self._handle_vsl_command(user_input)
         is_boot_sequence = "SYSTEM_BOOT" in user_input
         context_limit = int(safe_get(safe_get(self.cfg, "CORTEX", {}), "MAX_INPUT_CHARS", 15000))
-        phys_proxy = ctx.physics
-        if hasattr(phys_proxy, "to_dict"):
-            phys_proxy = phys_proxy.to_dict()
-        elif hasattr(phys_proxy, "__dict__"):
-            phys_proxy = phys_proxy.__dict__
+        phys_proxy = {}
+        if hasattr(ctx.physics, "to_dict"):
+            phys_proxy = ctx.physics.to_dict()
+        elif hasattr(ctx.physics, "__dict__"):
+            phys_proxy = dict(ctx.physics.__dict__)
+
+        if hasattr(ctx.physics, "__dict__"):
+            for k, v in vars(ctx.physics).items():
+                if k not in phys_proxy and not k.startswith("_"):
+                    phys_proxy[k] = v
 
         sim_result = {
             "physics": phys_proxy,
@@ -249,8 +254,9 @@ class TheCortex:
                 if hasattr(self.svc.mind_memory, "record_scar"):
                     self.svc.mind_memory.record_scar("Cortex Counterfactual Toxicity", phys_state)
                 self.svc.bio.mito.state.ros_buildup += simulated_ros
-                self.svc.bio.mito.state.atp_pool -= 10.0
-                sim_result["ui"] = (sim_result.get("ui", "") + f"\n\n{Prisma.RED}{reject_msg}{Prisma.RST}\n{Prisma.VIOLET}{scar_msg}{Prisma.RST}").strip()
+                self.svc.bio.mito.adjust_atp(-10.0, "Cortex Counterfactual Toxicity")
+                sim_result["ui"] = (sim_result.get("ui",
+                                                   "") + f"\n\n{Prisma.RED}{reject_msg}{Prisma.RST}\n{Prisma.VIOLET}{scar_msg}{Prisma.RST}").strip()
                 sim_result["type"] = "COUNTERFACTUAL_REJECTION"
                 return sim_result
         modifiers = self.svc.symbiosis.get_prompt_modifiers(phys_state)
@@ -285,6 +291,11 @@ class TheCortex:
         firewall_active = any(
             m.get("action") == "LEXICAL_FIREWALL_STRICT" for m in sim_result.get("council_mandates", []))
         base_prompt = final_prompt
+        eng_ref = getattr(self.svc.orchestrator, "eng", None)
+        gk = getattr(eng_ref, "gatekeeper", None)
+        if not gk:
+            from physics import TheGatekeeper
+            gk = TheGatekeeper(self.svc.lexicon, config_ref=self.cfg)
         for attempt in range(max_retries):
             val_res = {"valid": False}
             raw_resp = self.llm.generate(final_prompt, llm_params)
@@ -340,9 +351,6 @@ class TheCortex:
                     self.events.log(f"DSPy Critic Objected: {short_reason}", "SYS")
             else:
                 gate_txt = final_text
-                from physics import TheGatekeeper
-                eng = self.svc.orchestrator.eng
-                gk = getattr(eng, "gatekeeper", None) or TheGatekeeper(self.svc.lexicon, config_ref=self.cfg)
                 gate_pass, gate_txt = gk.audit_generation(final_text, self.svc.bio.mito)
                 if not gate_pass or "IMMUNOSUPPRESSION ENGAGED" in gate_txt:
                     val_res = {"valid": False,
@@ -414,8 +422,8 @@ class TheCortex:
                         sub.queue_write(path.strip(), safe_content.replace("|||NEWLINE|||", "\n"))
                 except Exception as e:
                     err_msg = f"Failed to parse or write file block. {e}"
-                    print(f"{Prisma.RED}[SUBSTRATE QUEUE ERROR]: {err_msg}{Prisma.RST}")
-                    self.events.log(f"{Prisma.RED}[SUBSTRATE QUEUE ERROR]: {err_msg}{Prisma.RST}", "SYS")
+                    if self.events:
+                        self.events.log(f"{Prisma.RED}[SUBSTRATE QUEUE ERROR]: {err_msg}{Prisma.RST}", "SYS")
         if sub and sub.pending_writes:
             stamina = self.svc.bio.biometrics.stamina
             s_logs, s_cost = sub.execute_writes(stamina)
@@ -639,7 +647,7 @@ class TheCortex:
                 full_state)
         mind.setdefault("style_directives", [])
         traits = soul_data.get("traits", {})
-        if traits:
+        if traits and isinstance(list(traits.values())[0], (int, float)):
             dom_trait = max(traits, key=traits.get)
             if traits[dom_trait] > 0.6:
                 mind["style_directives"].append(
