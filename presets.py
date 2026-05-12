@@ -139,6 +139,9 @@ class BoneConfig:
     STAMINA_REGEN = 1.0
     MAX_DRAG_LIMIT = 5.0
 
+    # System Lifecycle Limits
+    REM_IDLE_THRESHOLD = 300.0
+
     # Simulation Math Tolerances
     GEODESIC_STRENGTH = 10.0
     BASE_IGNITION_THRESHOLD = 0.5

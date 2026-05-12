@@ -222,6 +222,7 @@ class GeodesicOrchestrator:
                 if self.engine_state == "REM":
                     self.engine_state = "WAKE"
                     self.eng.events.log(f"{Prisma.VIOLET}Engine waking from REM sleep...{Prisma.RST}", "SYS")
+                    self.eng.events.publish("SYSTEM_WAKE", {"timestamp": current_time})
 
                 # Ensure Cognition is active for non-system turns
                 snapshot = self.run_turn(user_message, is_system)
@@ -250,11 +251,13 @@ class GeodesicOrchestrator:
                 time_since_last = current_time - self.last_interaction_time
 
                 if self.engine_state == "WAKE":
-                    if time_since_last > 300:  # 5 minutes (300 seconds) threshold
+                    rem_threshold_seconds = float(getattr(self.eng.config, "REM_IDLE_THRESHOLD", 300.0))
+                    if time_since_last > rem_threshold_seconds:
                         self.engine_state = "REM"
-                        self.eng.events.log(f"{Prisma.VIOLET}Idle threshold crossed. Engine transitioning to REM sleep...{Prisma.RST}", "SYS")
-
-                        # Note: In a fully wired EventBus, we would also trigger a SYSTEM_SLEEP event here
+                        self.eng.events.log(
+                            f"{Prisma.VIOLET}Idle threshold ({rem_threshold_seconds}s) crossed. Engine transitioning to REM sleep...{Prisma.RST}",
+                            "SYS")
+                        self.eng.events.publish("SYSTEM_SLEEP", {"idle_duration": time_since_last})
 
                 elif self.engine_state == "REM":
                     # Phase 3: The Dream Engine (Asynchronous Metabolism)
@@ -305,9 +308,12 @@ class GeodesicOrchestrator:
                         "metrics": getattr(self.eng, "get_metrics", lambda: {})()
                     }
 
-                # Acknowledge the task even on crash to prevent Queue Deadlock
-                if hasattr(self, 'input_queue'):
-                    self.input_queue.task_done()
+                # Acknowledge the task only if we are sure an item was in-flight
+                if self.engine_state == "WAKE" and getattr(self, "last_interaction_time", 0) > 0:
+                    try:
+                        self.input_queue.task_done()
+                    except ValueError:
+                        pass # Ignore if task_done() was already called or not needed
 
                 time.sleep(1.0) # Prevent tight crash loops
 
@@ -487,6 +493,15 @@ class GeodesicOrchestrator:
         self._evaluate_systemic_feedback(clean_message, ctx)
         snapshot = self.reporter.render_snapshot(ctx)
         self._hydrate_snapshot_metadata(snapshot, ctx)
+
+        # =====================================================================
+        # [CRITICAL FAIL-SAFE] THE CORTEX UMBILICAL (Synchronous fallback)
+        # =====================================================================
+        if not is_system and not snapshot.get("ui") and snapshot.get("type", "SNAPSHOT") == "SNAPSHOT":
+            self.eng.events.log("Cognition bypass detected. Force-syncing Cortex umbilical...", "WARN")
+            cognition_result = self.eng.cortex.process(user_message, snapshot.get("physics", {}))
+            snapshot["ui"] = cognition_result.get("ui", "")
+
         if "ui" in snapshot:
             self.symbiosis.monitor_host(time.time() - ctx.timestamp, snapshot["ui"], len(user_message))
         if "mind" in snapshot:

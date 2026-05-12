@@ -26,7 +26,7 @@ class TheTheremin:
         manifest = LoreManifest.get_instance(config_ref=self.cfg).get("PHYSICS_STRINGS") or {}
         return manifest.get("THEREMIN_LOGS", {})
 
-    def listen(self, physics: Any, governor_mode="COURTYARD") -> Tuple[bool, float, Optional[str], Optional[str]]:
+    def listen(self, physics: dict, governor_mode: str = "COURTYARD") -> Tuple[bool, float, Optional[str], Optional[str]]:
         """
         The core observation loop. Evaluates the physical/semantic state of the prompt
         to calculate if the conversation is flowing freely or calcifying into a rut.
@@ -75,13 +75,15 @@ class TheTheremin:
             theremin_msg = f"{theremin_msg} {turb_msg}".strip()
             self.classical_turns = 0
         if turb < 0.2:
-            physics.narrative_drag = max(0.0, getattr(physics, "narrative_drag", 0.0) - 1.0)
+            current_drag = float(safe_get(physics, "narrative_drag", 0.0))
+            safe_set(physics, "narrative_drag", max(0.0, current_drag - 1.0))
         if self.decoherence_buildup > self.SHATTER_POINT:
             self.decoherence_buildup = 0.0
             self.classical_turns = 0
             self.is_stuck = False
-            physics.narrative_drag = max(getattr(physics, "narrative_drag", 0.0) + 20.0, 20.0)
-            physics.voltage = 0.0
+            current_drag = float(safe_get(physics, "narrative_drag", 0.0))
+            safe_set(physics, "narrative_drag", max(current_drag + 20.0, 20.0))
+            safe_set(physics, "voltage", 0.0)
             return False, resin_flow, self.logs.get("COLLAPSE", ""), "AIRSTRIKE"
         if self.classical_turns > 3:
             critical_event = "CORROSION"
