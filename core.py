@@ -158,7 +158,11 @@ class EventBus:
     def unsubscribe(self, event_type, callback):
         subs = self.subscribers.get(event_type, ())
         if callback in subs:
-            self.subscribers[event_type] = tuple(c for c in subs if c != callback)
+            new_subs = tuple(c for c in subs if c != callback)
+            if not new_subs:
+                del self.subscribers[event_type]
+            else:
+                self.subscribers[event_type] = new_subs
 
     def publish(self, event_type, data=None):
         if event_type not in self.subscribers: return
@@ -191,6 +195,7 @@ class LoreManifest:
     The lazy-loaded, singleton data cache. We only load files from the disk when requested.
     """
     _instance = None
+    _lock = threading.Lock()
 
     def __init__(self, data_dir=None, config_ref=None):
         self.cfg = config_ref or BoneConfig
@@ -201,7 +206,9 @@ class LoreManifest:
     @classmethod
     def get_instance(cls, config_ref=None):
         if cls._instance is None:
-            cls._instance = LoreManifest(config_ref=config_ref)
+            with cls._lock:
+                if cls._instance is None:
+                    cls._instance = LoreManifest(config_ref=config_ref)
         return cls._instance
 
     def get(self, category: str, sub_key: str = None) -> Any:
@@ -416,10 +423,17 @@ class CyberneticGovernor:
     def regulate(self, physics: Any, dt: float, endocrine_state: Any = None) -> Tuple[float, float]:
         if self.target_v is None or self.target_d is None:
             return 0.0, 0.0
+
         current_v = float(safe_get(physics, "voltage", self.target_v))
         current_d = float(safe_get(physics, "narrative_drag", self.target_d))
-        half_dt = dt * 0.5
-        return (self.target_v - current_v) * half_dt, (self.target_d - current_d) * half_dt
+
+        stress_modifier = 1.0
+        if endocrine_state:
+            glimmers = float(getattr(endocrine_state, "glimmers", 0.0))
+            stress_modifier = 1.5 if glimmers >= 1 else 0.75
+
+        adjusted_dt = dt * 0.5 * stress_modifier
+        return (self.target_v - current_v) * adjusted_dt, (self.target_d - current_d) * adjusted_dt
 
 class ArchetypeArbiter:
     @staticmethod
@@ -573,7 +587,7 @@ class TelemetryService:
                 return ux_format("core_strings", "tel_prev_crash", default="Crash: {reason}", reason=data.get("reasoning", "Unknown"))
         return None
 
-    def generate_session_summary(self, _uptime: float = 0.0) -> str:
+    def generate_session_summary(self) -> str:
         self.flush_to_disk()
         return ux_format("core_strings", "tel_session_summary", status="DISABLED" if self.disabled else "ACTIVE",
                          count=self.crystals_logged, trace_file=self.current_trace_file)

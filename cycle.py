@@ -484,14 +484,6 @@ class GeodesicOrchestrator:
         snapshot = self.reporter.render_snapshot(ctx)
         self._hydrate_snapshot_metadata(snapshot, ctx)
 
-        # =====================================================================
-        # [CRITICAL FAIL-SAFE] THE CORTEX UMBILICAL (Synchronous fallback)
-        # =====================================================================
-        if not is_system and not snapshot.get("ui") and snapshot.get("type", "SNAPSHOT") == "SNAPSHOT":
-            self.eng.events.log("Cognition bypass detected. Force-syncing Cortex umbilical...", "WARN")
-            cognition_result = self.eng.cortex.process(user_message, snapshot.get("physics", {}))
-            snapshot["ui"] = cognition_result.get("ui", "")
-
         if "ui" in snapshot:
             self.symbiosis.monitor_host(time.time() - ctx.timestamp, snapshot["ui"], len(user_message))
         if "mind" in snapshot:
@@ -512,13 +504,17 @@ class GeodesicOrchestrator:
             self._async_pool.shutdown(wait=False)
 
     def _hydrate_snapshot_metadata(self, snapshot: Dict, ctx: CycleContext):
-        phys_dict = _safe_dict(ctx.physics)
-
-        snapshot.update({"trace_id": ctx.trace_id, "is_alive": True, "physics": phys_dict,
-                         "bio": _safe_dict(ctx.bio_result), "mind": _safe_dict(ctx.mind_state),
-                         "world": _safe_dict(ctx.world_state), "soul": _safe_dict(getattr(self.eng, "soul", {})),
-                         "council_mandates": ctx.council_mandates, "dream": ctx.last_dream,
-                         "mutated_input": ctx.input_text, })
+        snapshot.update({
+            "trace_id": ctx.trace_id,
+            "physics": _safe_dict(ctx.physics),
+            "bio": _safe_dict(ctx.bio_result),
+            "mind": _safe_dict(ctx.mind_state),
+            "world": _safe_dict(ctx.world_state),
+            "soul": _safe_dict(getattr(self.eng, "soul", {})),
+            "council_mandates": ctx.council_mandates,
+            "dream": ctx.last_dream,
+            "mutated_input": ctx.input_text
+        })
 
     @staticmethod
     def _generate_crash_report(e: Exception) -> Dict[str, Any]:

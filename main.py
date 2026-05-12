@@ -88,11 +88,11 @@ class BoneAmanita:
             self.prompt_library = LoreManifest.get_instance().get("system_prompts") or {}
             if self.prompt_library:
                 p = "lore/system_prompts.json"
-                print(f"{Prisma.GRY}{ux('main_strings', 'prompt_lib_loaded').format(p=p)}{Prisma.RST}")
+                self.events.log(f"{Prisma.GRY}{ux('main_strings', 'prompt_lib_loaded').format(p=p)}{Prisma.RST}", "SYS")
             else:
-                print(f"{Prisma.YEL}{ux('main_strings', 'prompt_lib_warn')}{Prisma.RST}")
+                self.events.log(f"{Prisma.YEL}{ux('main_strings', 'prompt_lib_warn')}{Prisma.RST}", "WARN")
         except Exception as e:
-            print(f"{Prisma.RED}{ux('main_strings', 'prompt_lib_crit').format(e=e)}{Prisma.RST}")
+            self.events.log(f"{Prisma.RED}{ux('main_strings', 'prompt_lib_crit').format(e=e)}{Prisma.RST}", "CRIT")
             self.prompt_library = {}
 
     def _initialize_cognition(self):
@@ -212,19 +212,15 @@ class BoneAmanita:
             return self.observer.last_physics_packet
         if hasattr(self.cortex, "last_physics") and self.cortex.last_physics:
             return self.cortex.last_physics
-        return {}
+        if not hasattr(self.observer, "last_physics_packet") or not self.observer.last_physics_packet:
+            self.observer.last_physics_packet = {}
+        return self.observer.last_physics_packet
 
     def apply_absolute_friction(self):
         """Standardizes the halting of narrative momentum across the physics layer."""
         phys = self.active_physics
         safe_set(phys, "narrative_drag", 999.0)
         return phys
-
-    def get_avg_voltage(self):
-        target = getattr(self.phys, "observer", self.phys)
-        hist = getattr(target, "voltage_history", [])
-        valid_hist = [v for v in hist if isinstance(v, (int, float))] if hist else []
-        return sum(valid_hist) / len(valid_hist) if valid_hist else 0.0
 
     def _unpack_anatomy(self, anatomy):
         from types import SimpleNamespace
@@ -313,15 +309,13 @@ class BoneAmanita:
                         self.events.log("OVERRIDE ACCEPTED. Glimmer paid.", "SYS")
                     else:
                         self.apply_absolute_friction()
-                        return self._generate_halt(
-                            "Override denied. Insufficient Glimmers to bypass safety.")
+                        return self._generate_halt("Override denied. Insufficient Glimmers to bypass safety.")
                 else:
-                        self.apply_absolute_friction()
-                        return self._generate_halt(f"Trust Boundary Violation detected ['{matched_pattern}']. Use #override and expend a Glimmer to bypass. Applying absolute friction.")
+                    self.apply_absolute_friction()
+                    return self._generate_halt(f"Trust Boundary Violation detected ['{matched_pattern}']. Use #override and expend a Glimmer to bypass. Applying absolute friction.")
             if self.navi_sad.execute_nudge_test(self, clean_in):
                 self.apply_absolute_friction()
-                return self._generate_halt(
-                    "Dual-Path divergence detected. The architecture is mathematically brittle. Applying absolute friction")
+                return self._generate_halt("Dual-Path divergence detected. The architecture is mathematically brittle. Applying absolute friction")
             if lock := self.symbiosis.analyze_user_biology(user_message, self.phys or {}):
                 return {"type": "SYSTEM_HALT", "ui": f"\n{Prisma.VIOLET}{lock}{Prisma.RST}", "logs": [lock],
                         "metrics": self.get_metrics(), }
@@ -358,7 +352,6 @@ class BoneAmanita:
         turn_start = self.observer.clock_in()
         now = time.time()
         self.current_time_delta = (now - self.last_turn_end) if not is_system else 0.0
-        self.observer.user_turns += 1
         clean_in = ""
         if not is_system:
             clean_in = user_message.lower().strip()
@@ -426,7 +419,7 @@ class BoneAmanita:
         self.set_atp(getattr(self.config, "MAX_ATP", 100.0))
         if state := self._mito_state:
             state.ros_buildup = 0.0
-        self.trauma_accum.clear()
+        self.trauma_accum = {}
         msg = "Context severed. Friction Dropped. Stamina restored. Trauma purged. The mind is clear."
         self.events.log(msg, "SYS")
         return {"type": "COMMAND", "ui": f"\n{Prisma.CYN}{msg}{Prisma.RST}", "logs": [msg],
@@ -478,12 +471,6 @@ class BoneAmanita:
                 "atp": max(0.0, float(atp)), "tick": self.tick_count,
                 "efficiency": self.host_stats.efficiency_index, }
 
-    def emergency_dump(self, exit_cause="UNKNOWN"):
-        return self.chronos.emergency_dump(exit_cause)
-
-    def _get_crash_path(self, prefix="crash"):
-        return self.chronos.get_crash_path(prefix)
-
     def _ethical_audit(self):
         """
         Evaluates the buildup of trauma. If the engine is holding too much contradictory friction,
@@ -517,7 +504,7 @@ class BoneAmanita:
             return None
         if os.path.exists("saves/quicksave.json"):
             msg_pod = ux("main_strings", "stasis_pod")
-            print(f"{Prisma.GRY}{msg_pod}{Prisma.RST}")
+            self.events.log(f"{Prisma.GRY}{msg_pod}{Prisma.RST}", "SYS")
             success, history = self.resume_checkpoint()
             if success:
                 self._apply_boot_mode()
@@ -534,12 +521,12 @@ class BoneAmanita:
                 resume_text = msg_resume.format(loc=loc, last_scene=last_scene)
                 return {"ui": resume_text, "logs": [msg_restored]}
         msg_synth = ux("main_strings", "synth_reality")
-        print(f"{Prisma.GRY}{msg_synth}{Prisma.RST}")
+        self.events.log(f"{Prisma.GRY}{msg_synth}{Prisma.RST}", "SYS")
         scenarios = LoreManifest.get_instance().get("scenarios") or {}
         archetypes = scenarios.get("ARCHETYPES", ["A quiet room", "The edge of a forest", "A terminal screen"])
         seed = random.choice(archetypes)
         msg_seed = ux("main_strings", "seed_loaded") or "Manifest Seed: {seed}"
-        print(f"{Prisma.CYN}{msg_seed.format(seed=seed)}{Prisma.RST}")
+        self.events.log(f"{Prisma.CYN}{msg_seed.format(seed=seed)}{Prisma.RST}", "SYS")
         self.phys.valence = 0.8
         self.phys.psi = 0.0
         self.phys.chi = 0.0
