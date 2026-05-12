@@ -116,10 +116,6 @@ class BoneAmanita:
             self.health = self.mind.mem.session_health
             self.stamina = self.mind.mem.session_stamina
 
-            # Ensure the memory backend has an initialized dictionary
-            if self.trauma_accum is None:
-                self.trauma_accum = {}
-
         if self.tick_count == 0:
             bio_cfg = getattr(self.config, "BIO", None)
             start_atp = getattr(bio_cfg, "STARTING_ATP", 100.0) if bio_cfg else 100.0
@@ -303,11 +299,10 @@ class BoneAmanita:
         efficiency = (novelty * nov_mult) / burn_proxy
         self.host_stats.efficiency_index = min(1.0, efficiency)
 
-    def _pre_flight_checks(self, user_message: str, is_system: bool) -> Optional[Dict[str, Any]]:
+    def _pre_flight_checks(self, user_message: str, clean_in: str, is_system: bool) -> Optional[Dict[str, Any]]:
         """
         The Checkpoint Council evaluates the mathematics of the request before token generation.
         """
-        clean_in = user_message.lower().strip()
         active_phys = self.active_physics
         if not is_system:
             matched_pattern = next((p for p in self._DESTRUCTIVE_PATTERNS if p in clean_in), None)
@@ -364,13 +359,14 @@ class BoneAmanita:
         now = time.time()
         self.current_time_delta = (now - self.last_turn_end) if not is_system else 0.0
         self.observer.user_turns += 1
+        clean_in = ""
         if not is_system:
             clean_in = user_message.lower().strip()
             if clean_in in ("/flush", "/zen", "[zen]"):
                 zen_packet = self._execute_zen_flush()
                 self.observer.clock_out(turn_start)
                 return zen_packet
-        if pre_flight_halt := self._pre_flight_checks(user_message, is_system):
+        if pre_flight_halt := self._pre_flight_checks(user_message, clean_in, is_system):
             return pre_flight_halt
         if not is_system:
             if self.cmd and self.cmd.execute(user_message):
@@ -586,7 +582,7 @@ if __name__ == "__main__":
             except EOFError:
                 break
             clean_in = user_in.strip().lower()
-            if clean_in in ["exit", "quit", "/exit", "/quit"]:
+            if clean_in in ("exit", "quit", "/exit", "/quit"):
                 break
             res = session.process_turn(user_in)
             print(f"\n{Prisma.GRY}{term_div}{Prisma.RST}")

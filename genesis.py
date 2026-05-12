@@ -50,14 +50,11 @@ class BoneGenesis:
             msg = ux_format("genesis_strings", "legacy_scars", default="The lattice remembers. Inherited scars: {logs}", logs=', '.join(logs))
             events.log(f"{Prisma.MAG}{msg}{Prisma.RST}", "OROBOROS")
 
-            applied_drag = dummy_phys.get("narrative_drag", base_drag) - base_drag
-            if applied_drag != 0:
-                embryo.physics.narrative_drag = max(0.0, float(getattr(embryo.physics, "narrative_drag", base_drag)) + float(applied_drag))
+            if (applied_drag := float(dummy_phys.get("narrative_drag", base_drag) - base_drag)) != 0.0:
+                embryo.physics.narrative_drag = max(0.0, float(getattr(embryo.physics, "narrative_drag", base_drag)) + applied_drag)
 
-            volt_penalty = base_voltage - dummy_phys.get("voltage", base_voltage)
-            if volt_penalty > 0:
-                current_v = float(getattr(embryo.physics, "voltage", base_voltage))
-                embryo.physics.voltage = max(0.0, current_v - float(volt_penalty))
+            if (volt_penalty := float(base_voltage - dummy_phys.get("voltage", base_voltage))) > 0.0:
+                embryo.physics.voltage = max(0.0, float(getattr(embryo.physics, "voltage", base_voltage)) - volt_penalty)
 
         embryo.mind.mem.session_trauma_vector = bio_proxy.get("trauma_vector", {})
 
@@ -81,18 +78,19 @@ class BoneGenesis:
 
         gordon = spawn("GORDON", GordonKnot, events=events, mode=boot_mode, config_ref=c)
         navigator = spawn("NAVIGATOR", TheCartographer, embryo.shimmer, config_ref=c)
-        if "DEATH" not in suppressed:
-            DeathGen.load_protocols()
-        if "REPRO" not in suppressed:
-            LiteraryReproduction.load_genetics(config_ref=c)
+        death_gen = spawn("DEATH", DeathGen)
+        if death_gen: DeathGen.load_protocols()
+        repro = spawn("REPRO", LiteraryReproduction, config_ref=c)
+        if repro: LiteraryReproduction.load_genetics(config_ref=c)
+
         return {
             "gordon": gordon,
             "navigator": navigator,
             "tinkerer": spawn("TINKERER", TheTinkerer, gordon, events, akashic, config_ref=c),
-            "death_gen": spawn("DEATH", DeathGen),
+            "death_gen": death_gen,
             "bureau": spawn("BUREAU", TheBureau, config_ref=c),
             "town_hall": spawn("TOWN_HALL", TownHall, gordon, events, embryo.shimmer, akashic, navigator, config_ref=c),
-            "repro": spawn("REPRO", LiteraryReproduction, config_ref=c),
+            "repro": repro,
             "zen": spawn("ZEN", ZenGarden, events, config_ref=c),
             "critics": spawn("CRITICS", TheCriticsCircle, events, config_ref=c),
             "therapy": spawn("THERAPY", TherapyProtocol, config_ref=c),

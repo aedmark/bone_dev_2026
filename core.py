@@ -151,20 +151,18 @@ class EventBus:
         self.telemetry = telemetry_ref
 
     def subscribe(self, event_type, callback):
-        subs = self.subscribers.setdefault(event_type, [])
+        subs = self.subscribers.get(event_type, ())
         if callback not in subs:
-            subs.append(callback)
+            self.subscribers[event_type] = subs + (callback,)
 
     def unsubscribe(self, event_type, callback):
-        if event_type in self.subscribers:
-            try:
-                self.subscribers[event_type].remove(callback)
-            except ValueError:
-                pass
+        subs = self.subscribers.get(event_type, ())
+        if callback in subs:
+            self.subscribers[event_type] = tuple(c for c in subs if c != callback)
 
     def publish(self, event_type, data=None):
         if event_type not in self.subscribers: return
-        for callback in self.subscribers[event_type][:]:
+        for callback in self.subscribers[event_type]:
             try:
                 callback(data)
             except Exception as e:
@@ -175,8 +173,7 @@ class EventBus:
                              level="CRIT")
 
     def log(self, message: str, source: str = "SYSTEM", level: str = "INFO"):
-        event = {"timestamp": time.time(), "source": source, "level": level, "message": message, "text": message,
-                 "_type": "EVENT_LOG"}
+        event = {"timestamp": time.time(), "source": source, "level": level, "text": message, "_type": "EVENT_LOG"}
         self.buffer.append(event)
         self.publish(source, event)
         if self.telemetry:
@@ -306,7 +303,7 @@ class TheObserver:
         if avg_cycle < self.C_EFF and avg_llm < self.L_EFF:
             return ux("core_strings", "obs_efficient") or "High Efficiency."
         if avg_llm > self.LATENCY_WARNING:
-            target_key = random.choice(["obs_fog", "obs_degraded", "obs_ponderous"])
+            target_key = random.choice(("obs_fog", "obs_degraded", "obs_ponderous"))
             return ux("core_strings", target_key) or "High Cognitive Load."
         if avg_cycle > self.CYCLE_WARNING:
             return ux("core_strings", "obs_sluggish") or "System Sluggish."
@@ -372,12 +369,13 @@ class RealityStack:
         return self._stack[-1]
 
     def push_layer(self, layer: int) -> bool:
-        if layer == self.current_depth:
+        curr = self._stack[-1]
+        if layer == curr:
             return True
-        if layer == RealityLayer.DEBUG or layer == self.current_depth + 1:
+        if layer == RealityLayer.DEBUG or layer == curr + 1:
             self._stack.append(layer)
             return True
-        raise ValueError(f"Reality Layer Violation: Cannot topologically shift from layer {self.current_depth} to {layer}.")
+        raise ValueError(f"Reality Layer Violation: Cannot topologically shift from layer {curr} to {layer}.")
 
     def pop_layer(self) -> int:
         if len(self._stack) > 1:
@@ -420,9 +418,8 @@ class CyberneticGovernor:
             return 0.0, 0.0
         current_v = float(safe_get(physics, "voltage", self.target_v))
         current_d = float(safe_get(physics, "narrative_drag", self.target_d))
-        v_force = (self.target_v - current_v) * 0.5 * dt
-        d_force = (self.target_d - current_d) * 0.5 * dt
-        return v_force, d_force
+        half_dt = dt * 0.5
+        return (self.target_v - current_v) * half_dt, (self.target_d - current_d) * half_dt
 
 class ArchetypeArbiter:
     @staticmethod
@@ -445,7 +442,7 @@ class ArchetypeArbiter:
                 if r.get("trigram") == trigram.get("name") and r.get("lens", physics_lens) == physics_lens and r.get(
                         "soul", soul_archetype) == soul_archetype:
                     return r["result"], r.get("source", "COSMIC"), r.get("msg") or ux("core_strings", "arb_resonance") or "Cosmic Resonance."
-        loud_lenses = LoreManifest.get_instance().get("COUNCIL_DATA", "LOUD_LENSES") or ["THE MANIC", "THE VOID"]
+        loud_lenses = LoreManifest.get_instance().get("COUNCIL_DATA", "LOUD_LENSES") or ("THE MANIC", "THE VOID")
         if physics_lens in loud_lenses:
             msg = ux_format("core_strings", "arb_loud", physics_lens=physics_lens,
                             default=f"Physics Override: {physics_lens}")
