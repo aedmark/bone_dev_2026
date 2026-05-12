@@ -188,7 +188,7 @@ class GeodesicOrchestrator:
 
         # Phase 1: Daemonization State
         self.input_queue = queue.Queue()
-        self.output_buffer = None
+        self.output_queue = queue.Queue()
         self.is_running = False
         self.daemon_thread = None
 
@@ -227,23 +227,14 @@ class GeodesicOrchestrator:
                 # Ensure Cognition is active for non-system turns
                 snapshot = self.run_turn(user_message, is_system)
 
-                # =====================================================================
-                # [CRITICAL FAIL-SAFE: DO NOT REMOVE] THE CORTEX UMBILICAL
-                # If the reality phases complete but fail to generate an LLM response
-                # (returning a naked snapshot), this umbilical physically forces the
-                # user's message into the Cortex. Severing this causes The Great Disconnect.
-                # =====================================================================
-                if not is_system and not snapshot.get("ui") and snapshot.get("type") == "SNAPSHOT":
-                    self.eng.events.log("Cognition bypass detected. Force-syncing Cortex umbilical...", "WARN")
-                    cognition_result = self.eng.cortex.process(user_message, snapshot.get("physics", {}))
-                    snapshot["ui"] = cognition_result.get("ui", "")
-
                 # Phase 3: Inject the Dream Log on Wake
                 if self.dream_log and "ui" in snapshot:
                     dream_summary = "\n".join(self.dream_log[-5:]) # Keep only the deepest 5 dreams
                     snapshot["ui"] = f"\n{Prisma.MAG}☁️ While you were gone, the system dreamt of:\n{dream_summary}{Prisma.RST}\n{snapshot['ui']}"
                     self.dream_log.clear()
-                self.output_buffer = snapshot  # Lock-free snapshot handoff to the UI
+
+                # Push the resolved snapshot to the blocking queue
+                self.output_queue.put(snapshot)
                 self.input_queue.task_done()
 
             except queue.Empty:
@@ -300,13 +291,12 @@ class GeodesicOrchestrator:
                 self.eng.events.log(f"Daemon Engine Crash: {e}", "CRIT")
 
                 # Concurrency Fail-Safe: Unblock the main thread if the cycle crashed
-                if self.output_buffer is None:
-                    self.output_buffer = {
-                        "type": "CRASH",
-                        "ui": f"\n{Prisma.RED}CRITICAL DAEMON CRASH: {e}{Prisma.RST}",
-                        "logs": [str(e)],
-                        "metrics": getattr(self.eng, "get_metrics", lambda: {})()
-                    }
+                self.output_queue.put({
+                    "type": "CRASH",
+                    "ui": f"\n{Prisma.RED}CRITICAL DAEMON CRASH: {e}{Prisma.RST}",
+                    "logs": [str(e)],
+                    "metrics": getattr(self.eng, "get_metrics", lambda: {})()
+                })
 
                 # Acknowledge the task only if we are sure an item was in-flight
                 if self.engine_state == "WAKE" and getattr(self, "last_interaction_time", 0) > 0:

@@ -117,8 +117,8 @@ class BoneAmanita:
             self.stamina = self.mind.mem.session_stamina
 
             # Ensure the memory backend has an initialized dictionary
-            if not hasattr(self.mind.mem, "session_trauma_vector") or self.mind.mem.session_trauma_vector is None:
-                self.mind.mem.session_trauma_vector = {}
+            if self.trauma_accum is None:
+                self.trauma_accum = {}
 
         if self.tick_count == 0:
             bio_cfg = getattr(self.config, "BIO", None)
@@ -171,27 +171,19 @@ class BoneAmanita:
 
     @property
     def tick_count(self) -> int:
-        return self.observer.user_turns if hasattr(self, "observer") else getattr(self, "_temp_tick", 0)
+        return self.observer.user_turns
 
     @tick_count.setter
     def tick_count(self, value: int):
-        if hasattr(self, "observer"):
-            self.observer.user_turns = value
-        else:
-            self._temp_tick = value
+        self.observer.user_turns = value
 
     @property
     def trauma_accum(self) -> dict:
-        if not hasattr(self, "mind") or not self.mind:
-            return getattr(self, "_temp_trauma", {})
         return getattr(self.mind.mem, "session_trauma_vector", {})
 
     @trauma_accum.setter
     def trauma_accum(self, value: dict):
-        if hasattr(self, "mind") and self.mind:
-            self.mind.mem.session_trauma_vector = value
-        else:
-            self._temp_trauma = value
+        self.mind.mem.session_trauma_vector = value
 
     @property
     def stamina(self) -> float:
@@ -400,15 +392,11 @@ class BoneAmanita:
                         f"{Prisma.CYN}Gordon rakes the comb through your prompt. Fluff discarded. -> '{pruned}'{Prisma.RST}",
                         "SYS", )
         try:
-            # Phase 1: Push to the Orchestrator's input queue instead of directly calling it
-            self.orchestrator.output_buffer = None
+            # Phase 1: Push to the Orchestrator's input queue
             self.orchestrator.input_queue.put((user_message, is_system))
 
-            # Step 1 Rule: Leave it synchronous at first to test the pipe
-            while self.orchestrator.output_buffer is None:
-                time.sleep(0.05)
-
-            snapshot = self.orchestrator.output_buffer
+            # Block the main thread cleanly until the daemon resolves the turn
+            snapshot = self.orchestrator.output_queue.get()
         except Exception as e:
             full_trace = traceback.format_exc()
             self.events.log(f"ORCHESTRATOR COLLAPSE: {e}\n{full_trace}", "CRIT")
