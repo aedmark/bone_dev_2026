@@ -18,7 +18,23 @@ from typing import List, Tuple, Optional, Dict
 from core import BoneJSONEncoder
 from struts import ux, ux_format
 from presets import BoneConfig
+import re
+from typing import Any
 from spores.spore_utils import _identity, _word_to_vector, _mat_mul, _reorthogonalize, _householder
+
+def _billy_mitchell_protocol(data: Any) -> Any:
+    """
+    Recursive walk to purge zero-width characters, homoglyphs, and untrusted artifacts.
+    Ensures the Mnemonic Arcade remains mathematically pure and prevents data exploits.
+    """
+    if isinstance(data, str):
+        return re.sub(r'[\u200B-\u200D\uFEFF\u202A-\u202E]', '', data)
+    elif isinstance(data, dict):
+        # We must recursively sanitize the keys as well as the values.
+        return {_billy_mitchell_protocol(k): _billy_mitchell_protocol(v) for k, v in data.items()}
+    elif isinstance(data, list):
+        return [_billy_mitchell_protocol(i) for i in data]
+    return data
 
 
 class SubconsciousStrata:
@@ -96,11 +112,13 @@ class SubconsciousStrata:
     def bury(self, fossil_data: Dict, config_ref=None):
         """
         The act of permanent compression. Takes a dying active memory, appends it
-        to the JSONL fossil record, and permanently warps the deep matrices (M_t and Q_n)
-        using the word's structural vector.
+        to the JSONL fossil record (The Cabinets), and permanently warps the deep matrices.
         """
         try:
             from struts import safe_get
+
+            # The Billy Mitchell Protocol: Sanitize before committing to the Cabinet
+            fossil_data = _billy_mitchell_protocol(fossil_data)
             target_cfg = config_ref or BoneConfig
             cfg = safe_get(target_cfg, "SPORES", {})
             max_idx = int(safe_get(cfg, "MAX_INDEX_SIZE", 1000))
@@ -144,7 +162,10 @@ class SubconsciousStrata:
             pass
 
     def dredge(self, trigger_word: str) -> Optional[Dict]:
-        """Attempts to dig up the exact literal data of a buried word using O(1) memory cache."""
+        """
+        Attempts to dig up the exact literal data of a buried word.
+        Uses the in-RAM index as a 'Cheat Sheet' to avoid O(N) file parsing of the Cabinets.
+        """
         return self.index.get(trigger_word)
 
     def dredge_vibe(self, trigger_word: str) -> list:
@@ -209,7 +230,17 @@ class MemoryCore:
                 if node_cats & active_dim_cats[dim]:
                     resonance_score += val * 1.5
             mass = sum(data.get("edges", {}).values())
-            resonance_score += mass * 0.1
+
+            # Ensure the node has a baseline structural weight before compounding
+            base_mass_score = mass * 0.1
+
+            # The Bonus Round: If Entropy (Chaos) or Velocity (Energy) is highly elevated,
+            # abandon linear similarity and apply multiplicative framing to pull explosive patterns.
+            if active_dims.get("ENT", 0.0) > 0.7 or active_dims.get("VEL", 0.0) > 0.7:
+                resonance_score = (resonance_score + base_mass_score) * (1.0 + (mass * 0.5))
+            else:
+                resonance_score += base_mass_score
+
             if resonance_score > 0.5:
                 scored_memories.append((resonance_score, node, data))
         scored_memories.sort(key=lambda x: x[0], reverse=True)

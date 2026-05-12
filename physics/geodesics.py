@@ -107,6 +107,10 @@ class GeodesicEngine:
                 "coherence": round(coherence_val, 3), "abstraction": round(abstraction_val, 2), }
 
     @staticmethod
+    def _clamp(v: float) -> float:
+        return max(0.0, min(1.0, v))
+
+    @staticmethod
     def _calculate_dimensions(masses, forces, counts, volume) -> Dict[str, float]:
         """
         Translates the physical masses into the 8 core dimensions of the system's mind state.
@@ -114,9 +118,7 @@ class GeodesicEngine:
         """
         inv_vol = 1.0 / volume
         base_mass = 0.1
-
-        def clamp(v: float) -> float:
-            return max(0.0, min(1.0, v))
+        clamp = GeodesicEngine._clamp
 
         return {
             "VEL": clamp((masses["kinetic"] * 2.0 - forces["compression"] + base_mass) * inv_vol),

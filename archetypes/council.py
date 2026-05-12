@@ -86,8 +86,7 @@ class TheVillageCouncil:
 
 class CouncilChamber:
     """
-    The master orchestrator. Calls all sub-councils, manages the paradox engine,
-    evaluates inter-archetype synergy, and hosts LLM-driven internal podcasts.
+    The master orchestrator. Calls all sub-councils, manages the paradox engine, evaluates inter-archetype synergy.
     """
     _BASE_PANTHEON = {
         "GORDON (The Superintendent)": "grounded, strict, literal, and weary.",
@@ -137,15 +136,6 @@ class CouncilChamber:
                 if not topic:
                     topic = "The current structural integrity of the system."
                 transcript.append(f"{Prisma.CYN}🎙️ The Parliament convenes to debate: '{topic}'...{Prisma.RST}")
-                try:
-                    script = self.host_podcast(topic, llm)
-                    transcript.append(f"\n{script}\n")
-                    adjustments["stamina_cost"] = 15.0
-                except Exception:
-                    msg = (ux("council_strings", "podcast_failed")
-                           or "The Parliament is too exhausted to sustain the simulation. We will sit in silence instead.")
-                    transcript.append(f"{Prisma.RED}[SYSTEM FATIGUE]: {msg}{Prisma.RST}")
-                    adjustments["narrative_drag"] = adjustments.get("narrative_drag", 0) + 2.0
         beta = float(safe_get(physics_packet, "beta_index", 0.0))
         phi = float(safe_get(physics_packet, "resonance", 0.0))
         voltage = float(safe_get(physics_packet, "voltage", 0.0))
@@ -235,48 +225,6 @@ class CouncilChamber:
                              "directive": "Synthesize the conflicting perspectives. Do not choose one side over the other."})
         transcript.append(final_log)
         return transcript, adjustments, mandates
-
-    def host_podcast(self, topic: str, llm: Any) -> str:
-        """
-        Dynamically spins up 4 distinct LLM perspectives.
-        Uses concurrent threads to generate a Thesis, Antithesis, and Lateral
-        argument simultaneously, then feeds all 3 to the Stage Manager for Synthesis.
-        """
-        pantheon = dict(self._BASE_PANTHEON)
-        if hasattr(self, "slash_council") and self.slash_council.active:
-            pantheon.update(self._SLASH_PANTHEON)
-        selected_voices = random.sample(list(pantheon.keys()), 3)
-        v1_name, v2_name, v3_name = selected_voices
-
-        def _prompt(name, instruction):
-            return (f"SYSTEM_INSTRUCTION: You are {name}. Your persona is {pantheon[name]}\n"
-                    f"TASK: The user has presented this topic: '{topic}'.\n{instruction} "
-                    "Do not use UI tags. CRITICAL: Output ONLY the raw dialogue. Do NOT include any introductory text or conversational filler.")
-
-        p1 = _prompt(v1_name,
-                     "Provide a rigid, highly opinionated 3-sentence THESIS on this topic from your unique perspective.")
-        p2 = _prompt(v2_name,
-                     "Tear the concept apart or twist it entirely. Provide a biting, contrasting 3-sentence ANTITHESIS.")
-        p3 = _prompt(v3_name,
-                     "Inject a completely lateral, unexpected 2-sentence perspective that derails or transcends the standard arguments.")
-        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
-            configs = [{"temperature": 0.4, "max_tokens": 1024}, {"temperature": 0.8, "max_tokens": 1024},
-                       {"temperature": 0.7, "max_tokens": 1024}]
-            futures = [executor.submit(llm.generate, p, c) for p, c in zip([p1, p2, p3], configs)]
-            thesis, antithesis, lateral = [f.result(timeout=15.0) for f in futures]
-        p4 = (
-            "SYSTEM_INSTRUCTION: You are The Stage Manager. You are the exhausted orchestrator holding the system together.\n"
-            f"TASK: Review this chaotic debate:\n1. {v1_name}: {Prisma.strip(thesis)}\n2. {v2_name}: {Prisma.strip(antithesis)}\n3. {v3_name}: {Prisma.strip(lateral)}\n"
-            "Provide a 3-sentence SYNTHESIS that resolves the tension or forces a structural pause. Be tired but profound. Do not use UI tags. "
-            "CRITICAL: Do NOT summarize, repeat, or quote the other speakers. Output ONLY your own 2-sentence original conclusion. No preambles.")
-        synthesis = llm.generate(p4, {"temperature": 0.6, "max_tokens": 512})
-        script = (
-            f"{Prisma.CYN}[{v1_name}]{Prisma.RST}\n{Prisma.strip(thesis)}\n\n"
-            f"{Prisma.MAG}[{v2_name}]{Prisma.RST}\n{Prisma.strip(antithesis)}\n\n"
-            f"{Prisma.YEL}[{v3_name}]{Prisma.RST}\n{Prisma.strip(lateral)}\n\n"
-            f"{Prisma.WHT}[STAGE MANAGER]{Prisma.RST}\n{Prisma.strip(synthesis)}"
-        )
-        return script
 
 class TheRedTeam:
     def __init__(self):

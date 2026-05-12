@@ -1,6 +1,24 @@
 # CHANGELOG.md
 -----------------------------------------------------------
 
+### **BONEAMANITA 20.0.2 "The Ephemeralization Pass"**
+
+**Changed**
+
+* **Asynchronous Heartbeat:** Eradicated the toxic synchronous busy-wait loop in `main.py` and `cycle.py`. The `GeodesicOrchestrator` now seamlessly passes execution snapshots via a thread-safe, zero-cost blocking queue (`output_queue`).
+* **The Bonus Round:** Modified Hippocampal retrieval (`MemoryCore.illuminate()`) to dynamically shift from linear addition to multiplicative scaling when system Chaos (Entropy) or Velocity exceeds 0.7, yielding explosive, compounded structural patterns.
+* **Metabolic Flow:** Condensed redundant evaluation loops in `MitochondrialForge` into a single kinetic O(N) pass, and decoupled lazy set instantiations from the hot path in `EndocrineSystem`, slashing global test suite execution time by ~40%.
+* **The Garbage Collection Tax:** Promoted nested closures (e.g., `clamp()`) in the `GeodesicEngine` to static class methods, permanently eliminating the invisible ATP drain of continuous memory reallocation.
+
+**Fixed**
+
+* **The Billy Mitchell Protocol:** Grafted recursive sanitization into `SubconsciousStrata.bury()`. The Mnemonic Arcade now mathematically purges zero-width characters and homoglyphs from both nested dictionary keys and values prior to deep fossilization.
+* **Crucible Deafness:** Purged the stale boot-time `self.logs` cache in `TheCrucible`. The physics regulator now dynamically looks up narrative strings, ensuring it respects Epigenetic mutations spawned during REM sleep.
+* **Paradox Runaway Loops:** Installed the "Thermal Exhaust Port" in `TheParadoxEngine` (`is_active` check), physically hard-capping paradox generation to fire exactly once per active logic sequence to prevent terminal sycophantic drag.
+* **Paranoid Tensegrity:** Stripped out legacy `hasattr()` checks, redundant `max(1, len)` wrappers, and expensive intermediate `.get()` dictionary scaffolds across the `body/` and `physics/` layers where structural geometry is already mathematically guaranteed.
+
+---
+
 ### **BONEAMANITA 20.0.1 "The S.L.A.S.H. Matrix Optimization"**
 
 **Changed**

@@ -493,22 +493,6 @@ class TheCortex:
                     "SYS")
             return True, ""
 
-    def _run_council_debate(self, user_input: str) -> Tuple[str, List[str]]:
-        topic = re.sub(r"(?i)\[COUNCIL]", "", user_input).strip()
-        if not topic:
-            topic = "The nature of our shared existence."
-        self.events.log(f"{Prisma.VIOLET}🎙️ SPINNING UP COUNCIL STUDIO...{Prisma.RST}", "SYS")
-        eng = self.svc.orchestrator.eng
-        if not getattr(eng, "council", None):
-            return "The studio is empty. The Council is offline.", ["[SYSTEM ERROR] Council module missing."]
-        script = eng.council.host_podcast(topic, self.llm)
-        extracted_logs = []
-        filename = f"podcast_script_{int(time.time())}.txt"
-        safe_script = script.replace("\n", "|||NEWLINE|||")
-        extracted_logs.append(f"[SUBSTRATE_QUEUE] {filename}:::{safe_script}")
-        script += f"\n\n[SYSTEM] The studio light switches off. The Council has concluded its debate. Awaiting your next directive."
-        return script, extracted_logs
-
     def _handle_vsl_command(self, text):
         if not self.consultant:
             return {"ui": "VSL Unavailable", "logs": []}

@@ -330,18 +330,27 @@ class DigestiveTrack:
         min_len = safe_get(cfg, "MIN_WORD_LENGTH", 4)
         comp_len = safe_get(cfg, "COMPLEX_WORD_LENGTH", 7)
         antigen_set = self.lex.get("antigen") or set()
-        valid_words = {w: c for w, c in word_counts.items() if len(w) >= min_len or w in antigen_set}
-        hits = sum(c for w, c in valid_words.items() if w not in antigen_set)
-        if not valid_words:
-            return 0.0, [], 0.0, hits
         kinetic_set = frozenset((self.lex.get("kinetic") or set()) | (self.lex.get("explosive") or set()))
+
         atp_yield = 0.0
         enzymes = []
         cliche_tax = 0.0
-        for word, count in valid_words.items():
-            if word in antigen_set:
+        hits = 0
+
+        for word, count in word_counts.items():
+            is_antigen = word in antigen_set
+
+            # Filter out short, non-antigen words immediately
+            if not is_antigen and len(word) < min_len:
+                continue
+
+            if is_antigen:
                 cliche_tax += self.CLICHE_TAX_RATE * count
                 continue
+
+            hits += count
+            val = self.COMPLEX_WORD_BONUS if len(word) > comp_len else self.BASE_WORD_VALUE
+            log_mult = 1.0 + math.log(count)
             val = self.COMPLEX_WORD_BONUS if len(word) > comp_len else self.BASE_WORD_VALUE
             log_mult = 1.0 + math.log(count)
             if word in kinetic_set:

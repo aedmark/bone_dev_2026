@@ -199,7 +199,7 @@ class CosmicDynamics:
         Calculates the gravitational pull of the current conversation (clean_words)
         against the known massive concepts in the network to determine our orbital state.
         """
-        if not (clean_words and network and getattr(network, "graph", None)):
+        if not clean_words or not network or not network.graph:
             return "VOID_DRIFT", 3.0, self.logs.get("VOID") or "Drifting in the Void."
         now = int(time.time())
         if not self.cached_wells or (now - self.last_scan_time) > self.SCAN_INTERVAL:
@@ -240,10 +240,13 @@ class CosmicDynamics:
             if direct_hits := word_counts.get(well, 0):
                 basin_pulls[well] += (well_mass * 2.0) * direct_hits
                 active_filaments += direct_hits
-            if overlaps := unique_words & network.graph.get(well, {}).get("edges", {}).keys():
+
+            # well is guaranteed to exist natively in network.graph at this execution phase.
+            if overlaps := unique_words & network.graph[well]["edges"].keys():
                 overlap_count = sum(word_counts[w] for w in overlaps)
                 basin_pulls[well] += (well_mass * 0.5) * overlap_count
                 active_filaments += overlap_count
+
         return basin_pulls, active_filaments
 
     def _handle_void_state(self, words, geodesic_hubs) -> Tuple[str, float, str]:
