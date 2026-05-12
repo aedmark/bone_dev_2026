@@ -50,7 +50,7 @@ class LexiconStore:
         self.SOLVENTS = set(data.get("solvents", []))
         self.ANTIGEN_REPLACEMENTS = data.get("antigen_replacements", {})
         for cat, words in data.items():
-            if cat not in ["solvents", "antigen_replacements"]:
+            if cat not in ("solvents", "antigen_replacements"):
                 self.categories.add(cat)
                 word_set = set(words)
                 self.VOCAB[cat] = word_set

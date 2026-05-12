@@ -44,7 +44,8 @@ class AgentTests(BoneTestCase):
                 self.skipTest("Gordon is not instantiated in this profile.")
             gordon.inventory = ["APPLE"]
             gordon.action_coupling = {"unlock": ["key", "lockpick", "card"]}
-            result = self.engine._pre_flight_checks("I want to unlock the heavy door", is_system=False)
+            msg = "I want to unlock the heavy door"
+            result = self.engine._pre_flight_checks(msg, msg.lower().strip(), is_system=False)
             self.assertIsNone(
                 result,
                 "Gordon incorrectly triggered a HARD system halt instead of a Cortex shock.",

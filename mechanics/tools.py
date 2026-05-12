@@ -277,9 +277,9 @@ class TheSubstrate:
         logs, cost = [], 0.0
         if not self.pending_writes: return logs, cost
         os.makedirs("output", exist_ok=True)
+        base_dir = os.path.abspath("output")
         retained_writes = []
         for w in self.pending_writes:
-            base_dir = os.path.abspath("output")
             s_path = os.path.abspath(os.path.join(base_dir, w["path"].lstrip("/")))
             s_name = os.path.basename(s_path)
             if not s_path.startswith(base_dir):

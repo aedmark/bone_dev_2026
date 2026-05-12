@@ -324,7 +324,7 @@ class CommandProcessor:
     def _cmd_save(self, _parts):
         """Forces an immediate state write to the database."""
         res = self.interface.save_state()
-        error_flags = safe_get(self.cmd_cfg, "SAVE_ERROR_FLAGS", ["Error", "Failed", "Exception"])
+        error_flags = safe_get(self.cmd_cfg, "SAVE_ERROR_FLAGS", ("Error", "Failed", "Exception"))
         if not res or any(flag in str(res) for flag in error_flags):
             msg = ux("command_alerts", "save_failed")
             self.interface.log(f"{self.P.RED}{msg.format(res=res)}{self.P.RST}")
@@ -429,7 +429,7 @@ class CommandProcessor:
                 reporter.renderers["STANDARD"] = TruthRenderer(self.interface.eng)
                 reporter.renderer = reporter.renderers["STANDARD"]
             self.interface.eng.ambiguity_dial = mode
-            modes = ux("command_alerts", "truth_modes", ["BOARDROOM", "WORKSHOP", "RED TEAM", "PALIMPSEST"])
+            modes = ux("command_alerts", "truth_modes", ("BOARDROOM", "WORKSHOP", "RED TEAM", "PALIMPSEST"))
             self.interface.log(
                 f"{self.P.CYN}{ux('command_alerts', 'truth_dial_set').format(mode=modes[mode])}{self.P.RST}")
         except ValueError:
