@@ -11,12 +11,9 @@ from presets import BoneConfig
 if TYPE_CHECKING:
     from body.system import BioSystem
 
-
 class MitochondrialForge:
     """
-    The engine of systemic stamina.
-    In a standard LLM, generation is infinitely free. In this architecture, to think is
-    to burn ATP (energy) and generate ROS (toxicity). This class calculates the exact
+    The engine of systemic stamina. This class calculates the exact
     thermodynamic cost of a prompt based on its structural complexity and chaos.
     """
 
@@ -79,10 +76,8 @@ class MitochondrialForge:
         self.adjust_atp(-20.0, "Anaerobic Burn")
         if self.events and (msg := ux("mito_forge", "anaerobic_bypass")):
             self.events.log(f"{Prisma.MAG}{msg.format(cost=raw_cost)}{Prisma.RST}", "BIO_WARN")
-        return MetabolicReceipt(
-            base_cost=raw_cost, drag_tax=0.0, inefficiency_tax=0.0, total_burn=20.0,
-            waste_generated=2.0, status="ANAEROBIC", symptom="LACTATE_BUILDUP",
-        )
+        return MetabolicReceipt(base_cost=raw_cost, drag_tax=0.0, inefficiency_tax=0.0, total_burn=20.0,
+            waste_generated=2.0, status="ANAEROBIC", symptom="LACTATE_BUILDUP",)
 
     def process_cycle(self, physics_packet: Any, modifier: float = 1.0) -> MetabolicReceipt:
         """
@@ -129,7 +124,6 @@ class MitochondrialForge:
         ideal_cost = (base_demand + cognitive_load_tax) * modifier
         raw_cost = ideal_cost / efficiency
         inefficiency_tax = raw_cost - ideal_cost
-
         if raw_cost > self.ANAEROBIC_THRESHOLD:
             return self._trigger_anaerobic_bypass(raw_cost)
         if raw_cost > self.MAX_SAFE_BURN:
@@ -180,7 +174,7 @@ class MitochondrialForge:
         Manages Mitohormesis: The biological principle that small amounts of stress
         make the system stronger, but chronic stress causes collapse.
         """
-        cfg = getattr(self.cfg, "BIO", None)
+        cfg = safe_get(self.cfg, "BIO", {})
         ros_sig = safe_get(cfg, "ROS_SIGNAL", 5.0)
         ros_dam = safe_get(cfg, "ROS_DAMAGE", 20.0)
         ros_purge = safe_get(cfg, "ROS_PURGE", 60.0)
@@ -217,8 +211,8 @@ class MitochondrialForge:
         Emergency reset. The toxicity is terminal, so the system consumes its own
         mitochondria to prevent the spread of bad data, costing massive energy.
         """
-        cfg = getattr(self.cfg, "BIO", None)
-        self.adjust_atp(-safe_get(cfg, "MITOPHAGY_COST", 30.0), "Mitophagy")
+        cfg = safe_get(self.cfg, "BIO", {})
+        self.adjust_atp(-float(safe_get(cfg, "MITOPHAGY_COST", 30.0)), "Mitophagy")
         self.state.ros_buildup = 0.0
         self.state.membrane_potential = 0.6
         self.state.retrograde_signal = "MITOPHAGY_RESET"
@@ -297,8 +291,9 @@ class DigestiveTrack:
             self.bio.endo.cortisol += (scaled_tax * 0.02)
             if msg := ux("digestive_track", "cliche_tax"):
                 logs.append(f"{Prisma.OCHRE}{msg.format(tax=scaled_tax)}{Prisma.RST}")
-        v_thresh = getattr(self.cfg.BIO, "VOLTAGE_BONUS_THRESHOLD", 8.0)
-        p_bonus = getattr(self.cfg.BIO, "PROTEASE_BONUS", 5.0)
+        bio_cfg = safe_get(self.cfg, "BIO", {})
+        v_thresh = float(safe_get(bio_cfg, "VOLTAGE_BONUS_THRESHOLD", 8.0))
+        p_bonus = float(safe_get(bio_cfg, "PROTEASE_BONUS", 5.0))
         if float(safe_get(phys, "voltage", 0.0)) > v_thresh and found_enzymes:
             found_enzymes.append("PROTEASE")
             total_atp += p_bonus
@@ -326,31 +321,23 @@ class DigestiveTrack:
         if not self.lex:
             return 0.0, [], 0.0, 0
         word_counts = Counter(words)
-        cfg = getattr(self.cfg, "BIO", None)
+        cfg = safe_get(self.cfg, "BIO", {})
         min_len = safe_get(cfg, "MIN_WORD_LENGTH", 4)
         comp_len = safe_get(cfg, "COMPLEX_WORD_LENGTH", 7)
         antigen_set = self.lex.get("antigen") or set()
         kinetic_set = frozenset((self.lex.get("kinetic") or set()) | (self.lex.get("explosive") or set()))
-
         atp_yield = 0.0
         enzymes = []
         cliche_tax = 0.0
         hits = 0
-
         for word, count in word_counts.items():
             is_antigen = word in antigen_set
-
-            # Filter out short, non-antigen words immediately
             if not is_antigen and len(word) < min_len:
                 continue
-
             if is_antigen:
                 cliche_tax += self.CLICHE_TAX_RATE * count
                 continue
-
             hits += count
-            val = self.COMPLEX_WORD_BONUS if len(word) > comp_len else self.BASE_WORD_VALUE
-            log_mult = 1.0 + math.log(count)
             val = self.COMPLEX_WORD_BONUS if len(word) > comp_len else self.BASE_WORD_VALUE
             log_mult = 1.0 + math.log(count)
             if word in kinetic_set:

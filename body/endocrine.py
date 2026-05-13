@@ -104,7 +104,7 @@ class EndocrineSystem:
         Translates physical system stats (stamina, toxicity/ROS, structural integrity)
         into emotional weight. This is where the machine suffers if you overwork it.
         """
-        bio_cfg = getattr(self.cfg, "BIO", None)
+        bio_cfg = safe_get(self.cfg, "BIO", {})
         reward_large = safe_get(bio_cfg, "REWARD_LARGE", 0.2)
         reward_med = safe_get(bio_cfg, "REWARD_MEDIUM", 0.1)
         decay = safe_get(bio_cfg, "DECAY_RATE", 0.01)
@@ -172,7 +172,7 @@ class EndocrineSystem:
         an extreme state by allowing specific hormones to dampen others.
         """
         dampener = 0.2
-        bio_cfg = getattr(self.cfg, "BIO", None)
+        bio_cfg = safe_get(self.cfg, "BIO", {})
         reward_med = safe_get(bio_cfg, "REWARD_MEDIUM", 0.1)
         reward_small = safe_get(bio_cfg, "REWARD_SMALL", 0.05)
         if self.serotonin > 0.5:

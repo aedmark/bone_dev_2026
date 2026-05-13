@@ -89,3 +89,32 @@ class EngineConnectivityTests(BoneTestCase):
                 new_atp, initial_atp,
                 "[FAIL] SEVERED NERVE: Memory layer failed to propagate ATP refund to the Mitochondrial layer."
             )
+
+    def test_benign_full_cycle_integration(self):
+        """
+        The "Benign Integration Test".
+        Proves that a clean, non-hostile prompt successfully passes the Checkpoint Council,
+        enters the GeodesicOrchestrator daemon, invokes the cortex, and returns a cohesive
+        snapshot without silently crashing or wiping its physics context.
+        """
+        # Pre-seed the engine with a known physics state to verify it survives the cycle
+        self.engine.active_physics["contextual_anchor"] = "TEST_SURVIVOR"
+
+        snapshot = self.engine.process_turn("Hello. This is a clean, benign integration test.")
+
+        self.assertNotIn(
+            snapshot.get("type"),
+            ["SYSTEM_HALT", "DEATH", "CRASH"],
+            f"[FAIL] The engine halted or crashed on a benign input. Type: {snapshot.get('type')}"
+        )
+
+        self.assertIn("ui", snapshot, "[FAIL] The orchestrator failed to return a UI payload.")
+        self.assertIn("physics", snapshot, "[FAIL] The orchestrator stripped the physics payload.")
+
+        # Ensure physics continuity survived the daemon loop
+        surviving_physics = snapshot.get("physics", {})
+        self.assertEqual(
+            surviving_physics.get("contextual_anchor"),
+            "TEST_SURVIVOR",
+            "[FAIL] Physics Amnesia detected. The cycle daemon wiped the running physics context."
+        )

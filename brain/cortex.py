@@ -77,7 +77,7 @@ class TheCortex:
         self.pragmatist = ThePragmatist(events_ref=self.events)
         from mechanics.tools import DSPyCritic
         self.dspy_critic = DSPyCritic(config_ref=self.cfg)
-        if getattr(self.cfg, "WEIGHT_CLASS", "HEAVYWEIGHT") == "LIGHTWEIGHT":
+        if safe_get(self.cfg, "WEIGHT_CLASS", "HEAVYWEIGHT") == "LIGHTWEIGHT":
             self.dspy_critic.enabled = False
             if self.events:
                 self.events.log(
@@ -154,16 +154,12 @@ class TheCortex:
         is_boot_sequence = "SYSTEM_BOOT" in user_input
         context_limit = int(safe_get(safe_get(self.cfg, "CORTEX", {}), "MAX_INPUT_CHARS", 15000))
         phys_proxy = {}
-        if hasattr(ctx.physics, "to_dict"):
+        if isinstance(ctx.physics, dict):
+            phys_proxy = dict(ctx.physics)
+        elif hasattr(ctx.physics, "to_dict"):
             phys_proxy = ctx.physics.to_dict()
         elif hasattr(ctx.physics, "__dict__"):
-            phys_proxy = dict(ctx.physics.__dict__)
-
-        if hasattr(ctx.physics, "__dict__"):
-            for k, v in vars(ctx.physics).items():
-                if k not in phys_proxy and not k.startswith("_"):
-                    phys_proxy[k] = v
-
+            phys_proxy = {k: v for k, v in vars(ctx.physics).items() if not k.startswith("_")}
         sim_result = {
             "physics": phys_proxy,
             "bio": getattr(ctx, "bio_result", {}),

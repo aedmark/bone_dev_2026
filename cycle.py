@@ -213,9 +213,11 @@ class GeodesicOrchestrator:
         """Phase 1 & 2: The infinite background execution loop with Circadian Rhythm."""
         while self.is_running:
             current_time = time.time()
+            task_acquired = False
             try:
                 # Poll the queue. Timeout allows the loop to breathe and process idle tasks.
                 user_message, is_system = self.input_queue.get(timeout=0.1)
+                task_acquired = True
 
                 # WAKE STATE: Process input
                 self.last_interaction_time = current_time
@@ -235,7 +237,6 @@ class GeodesicOrchestrator:
 
                 # Push the resolved snapshot to the blocking queue
                 self.output_queue.put(snapshot)
-                self.input_queue.task_done()
 
             except queue.Empty:
                 # Phase 2: PASSIVE METABOLISM & Idle Detection
@@ -297,15 +298,10 @@ class GeodesicOrchestrator:
                     "logs": [str(e)],
                     "metrics": getattr(self.eng, "get_metrics", lambda: {})()
                 })
-
-                # Acknowledge the task only if we are sure an item was in-flight
-                if self.engine_state == "WAKE" and getattr(self, "last_interaction_time", 0) > 0:
-                    try:
-                        self.input_queue.task_done()
-                    except ValueError:
-                        pass # Ignore if task_done() was already called or not needed
-
                 time.sleep(1.0) # Prevent tight crash loops
+            finally:
+                if task_acquired:
+                    self.input_queue.task_done()
 
     def _verify_semantic_topology(self, ctx: CycleContext):
         """
@@ -335,14 +331,12 @@ class GeodesicOrchestrator:
             except Exception as e:
                 self.eng.events.log(f"Async Topology Error: {e}", "WARN")
 
-        try:
-            safe_adj = {k: set(v) for k, v in list(actual_adj.items())}
-            self._async_pool.submit(_bg_topology_check, safe_adj)
-        except RuntimeError as e:
-            if "dictionary changed size" in str(e):
-                self.eng.events.log("Topology mutation detected during snapshot. Deferring check to next cycle.",
-                                    "DEBUG")
-            else:
+        frozen_tuples = _native_freeze_graph(actual_adj)
+        if frozen_tuples:
+            safe_adj = {k: set(v) for k, v in frozen_tuples}
+            try:
+                self._async_pool.submit(_bg_topology_check, safe_adj)
+            except RuntimeError as e:
                 self.eng.events.log(f"Async pool rejected topology check. Engine may be shutting down: {e}", "DEBUG")
 
     def _execute_core_cycle(self, user_message: str, is_system: bool = False) -> CycleContext:
@@ -360,7 +354,10 @@ class GeodesicOrchestrator:
             ctx.limits = _safe_dict(getattr(self.eng.config, "CYCLE", {}))
             obs = self.eng.observer
             last_packet = getattr(obs, "last_physics_packet", None)
-            if last_packet:
+            from physics.models import PhysicsPacket
+            if isinstance(last_packet, dict) and last_packet:
+                ctx.physics = PhysicsPacket(**last_packet)
+            elif hasattr(last_packet, "snapshot"):
                 ctx.physics = last_packet.snapshot()
             else:
                 ctx.physics = PanicRoom.get_safe_physics()
@@ -471,7 +468,12 @@ class GeodesicOrchestrator:
             else:
                 self.eng.events.log("Dream worker already active. Ignoring overlapping idle request.", "SYS")
             packet = getattr(self.eng.observer, "last_physics_packet", None)
-            safe_phys = packet.snapshot().to_dict() if packet else PanicRoom.get_safe_physics().to_dict()
+            if isinstance(packet, dict) and packet:
+                safe_phys = packet
+            elif hasattr(packet, "snapshot"):
+                safe_phys = packet.snapshot().to_dict()
+            else:
+                safe_phys = PanicRoom.get_safe_physics().to_dict()
             return {"type": "SNAPSHOT",
                     "ui": f"\n{Prisma.VIOLET}☁️ The system slips into deep background REM. Memory consolidation and epigenetic autopoiesis are running asynchronously...{Prisma.RST}",
                     "physics": safe_phys, "bio": {"is_alive": True},

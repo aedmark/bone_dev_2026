@@ -19,10 +19,8 @@ if TYPE_CHECKING:
 
 class PIDController:
     """
-    Proportional-Integral-Derivative Controller.
     Used to calculate the required correction to keep a system variable
     (like Voltage or Drag) at a specific target (setpoint).
-    This prevents the LLM's 'mood' from wildly oscillating.
     """
 
     def __init__(self, kp, ki, kd, setpoint, output_limits=(-10.0, 10.0)):
@@ -168,7 +166,7 @@ class MetabolicGovernor:
     def _check_override_safety(self, physics: Dict, gov_text: Dict) -> Optional[str]:
         """Even if manually overridden, if voltage gets lethal, the system clears the override."""
         current_voltage = float(safe_get(physics, "voltage", 0.0))
-        gov_crit = safe_get(getattr(self.cfg, "BIO", None), "GOV_VOLTAGE_CRITICAL", 25.0)
+        gov_crit = float(safe_get(safe_get(self.cfg, "BIO", {}), "GOV_VOLTAGE_CRITICAL", 25.0))
         if current_voltage > gov_crit and self.mode != "SANCTUARY":
             self.manual_override = False
             return gov_text.get("OVERRIDE_CLEARED", "")
@@ -294,7 +292,7 @@ class BioFeedback:
         Complains if context windows get too large, and slowly reduces narrative
         drag over time if the user hasn't added more chaos.
         """
-        cfg = getattr(self.cfg, "BIO", None)
+        cfg = safe_get(self.cfg, "BIO", {})
         if len(text) > safe_get(cfg, "BUFFER_WARN_LIMIT", 10000) and (msg := ux("bio_feedback", "large_buffer")):
             logs.append(f"{Prisma.GRY}{msg}{Prisma.RST}")
         space = safe_get(phys, "space", phys)

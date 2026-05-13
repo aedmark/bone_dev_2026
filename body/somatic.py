@@ -35,7 +35,7 @@ class SynestheticCortex:
         """
         impulse = BiologicalImpulse()
         impulse.stamina_impact -= 1.0
-        cortex_cfg = getattr(self.cfg, "CORTEX", None)
+        cortex_cfg = safe_get(self.cfg, "CORTEX", {})
         base_sens = safe_get(cortex_cfg, "BASE_SENSITIVITY", 1.0)
         if traits:
             curiosity = float(safe_get(traits, "curiosity", 0.5))
@@ -53,7 +53,7 @@ class SynestheticCortex:
             impulse.cortisol_delta += abs(valence) * sens
         antigen_count = counts.get("antigen", 0)
         if antigen_count > 0:
-            toxin_weight = getattr(self.cfg, "TOXIN_WEIGHT", 1.0)
+            toxin_weight = float(safe_get(self.cfg, "TOXIN_WEIGHT", 1.0))
             toxin_scalar = safe_get(cortex_cfg, "TOXIN_SCALAR", 0.5)
             raw_tox = antigen_count * (toxin_weight * 0.2)
             impulse.cortisol_delta += min(toxin_scalar, raw_tox)

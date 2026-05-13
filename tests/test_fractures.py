@@ -181,10 +181,7 @@ class FractureEngineTest(BoneTestCase):
             "System: Me too",
         ]
         self.engine.stamina = 12.0
-        if (not hasattr(self.engine.cortex, "last_physics")
-                or not self.engine.cortex.last_physics):
-            self.engine.cortex.last_physics = MagicMock()
-        self.engine.cortex.last_physics.narrative_drag = 8.5
+        self.engine.cortex.last_physics = {"narrative_drag": 8.5}
         result = self.engine.process_turn("/zen", is_system=False)
         self.assertEqual(result.get("type"), "COMMAND", "Zen flush did not intercept the prompt.")
         self.assertEqual(
@@ -198,7 +195,7 @@ class FractureEngineTest(BoneTestCase):
             "[FAIL] Stamina not restored.",
         )
         self.assertEqual(
-            self.engine.cortex.last_physics.narrative_drag,
+            self.engine.cortex.last_physics.get("narrative_drag"),
             0.0,
             "[FAIL] Narrative Drag not dropped to 0.",
         )

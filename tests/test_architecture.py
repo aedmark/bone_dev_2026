@@ -42,12 +42,11 @@ class ArchitectureTests(BoneTestCase):
         from main import BoneAmanita
         from unittest.mock import MagicMock
         config = {
-            "model": "hermes3",
+            "model": "hermes3-8b",
             "boot_mode": "CREATIVE",
             "provider": "mock"
         }
         test_engine = BoneAmanita(config)
-        test_engine.config.WEIGHT_CLASS = "LIGHTWEIGHT"
         test_engine._load_system_prompts = MagicMock()
         test_engine.prompt_library = {"CREATIVE_LITE": "Lightweight Prompt Data"}
         test_engine._apply_boot_mode()
@@ -59,21 +58,19 @@ class ArchitectureTests(BoneTestCase):
                          "[FAIL] Engine failed to append the _LITE suffix for the small model prompt!")
         print("  [SUCCESS] System automatically degraded cognitive load for the small model.")
 
-    def test_multiplex_partial_hydration_safety(self):
+    def test_immune_system_malformed_physics_resilience(self):
+        print("\n--- Malformed Physics Resilience ---")
         engine = BoneAmanita({})
 
-        class MockLattice:
-            def __init__(self):
-                self.u = None
-                self.shared = {}
-
-        engine.shared_lattice = MockLattice()
-        safe_phys = {"exhaustion": 0.2, "mu": 0.1, "i_c": 1.0}
+        # A completely fractured physics packet missing all expected keys
+        fractured_phys = {"random_key": 42, "string_val": "broken"}
         try:
-            result = engine._evaluate_immune_response(user_message="test", active_phys=safe_phys)
-            self.assertIsNone(result, "[FAIL] Immune system falsely flagged safe physics as an anomaly.")
-        except AttributeError as e:
-            self.fail(f"Engine crashed when encountering a partially hydrated multiplex lattice: {e}")
+            # The immune system should safely default to 0.0s and 1.0s without throwing KeyErrors
+            result = engine._evaluate_immune_response(user_message="test", active_phys=fractured_phys)
+            self.assertIsNone(result, "[FAIL] Immune system falsely flagged fractured physics as an anomaly.")
+            print("  [SUCCESS] Immune system mathematically survived a fractured physics packet.")
+        except Exception as e:
+            self.fail(f"Engine crashed when immune system encountered malformed physics data: {e}")
 
     def test_arch_eventbus_ghost_prevention(self):
         print("\n--- EventBus Outflow (Memory Leak Check) ---")

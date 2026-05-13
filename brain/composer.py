@@ -41,9 +41,9 @@ class LLMInterface:
         self.cfg = config_ref or BoneConfig
         self.events = events_ref
         env_url = os.environ.get("OLLAMA_BASE_URL")
-        self.provider = (provider or getattr(self.cfg, "PROVIDER", "ollama")).lower()
-        self.api_key = api_key or getattr(self.cfg, "API_KEY", "")
-        self.model = model or getattr(self.cfg, "MODEL", "")
+        self.provider = (provider or safe_get(self.cfg, "PROVIDER", "ollama")).lower()
+        self.api_key = api_key or safe_get(self.cfg, "API_KEY", "")
+        self.model = model or safe_get(self.cfg, "MODEL", "")
         self.weight_class = "HEAVYWEIGHT"
         lower_model = self.model.lower()
         if param_match := re.search(r"(\d+(?:\.\d+)?)b\b", lower_model):
@@ -192,10 +192,10 @@ class LLMInterface:
 
     def _local_fallback(self, base_payload: Dict) -> str:
         """Attempts to execute the payload against a local Ollama instance if the cloud fails."""
-        url = os.environ.get("OLLAMA_BASE_URL") or getattr(self.cfg, "OLLAMA_URL",
+        url = os.environ.get("OLLAMA_BASE_URL") or safe_get(self.cfg, "OLLAMA_URL",
                                                            "http://127.0.0.1:11434/v1/chat/completions")
         fallback_payload = base_payload.copy()
-        fallback_payload["model"] = getattr(self.cfg, "OLLAMA_MODEL_ID", "llama3")
+        fallback_payload["model"] = safe_get(self.cfg, "OLLAMA_MODEL_ID", "llama3")
         try:
             fallback_timeout = float(safe_get(safe_get(self.cfg, "CORTEX", {}), "LLM_FALLBACK_TIMEOUT", 60.0))
             return self._transmit(fallback_payload, timeout=fallback_timeout, max_retries=1, override_url=url,
@@ -334,8 +334,6 @@ class PromptComposer:
                         if any(k in str(log) for k in self._COUNCIL_KEYS)]
         critic_str = ("\n".join(council_logs)
                       if council_logs else "[CRITIC] The village is quiet.")
-
-        # S.L.A.S.H. V3: Hot-load Few-Shot compiler weights to drive latency down
         syn_weights = self.lore.get("syntactic_weights", [])
         if syn_weights and active_mode_name != "CONVERSATION":
             samples = random.sample(syn_weights, min(2, len(syn_weights)))
@@ -456,7 +454,7 @@ class PromptComposer:
             if e > 0.8:
                 vsl_lines.append("CRITICAL: You are exhausted. You must conclude your thought in under 3 sentences.")
             persona_block.extend(vsl_lines)
-            if getattr(self.cfg, "WEIGHT_CLASS", "HEAVYWEIGHT") == "LIGHTWEIGHT":
+            if safe_get(self.cfg, "WEIGHT_CLASS", "HEAVYWEIGHT") == "LIGHTWEIGHT":
                 return [f"Role: {role}.", mood_note,
                         "SYSTEM HEURISTIC: You are running on Lightweight Physics. Prioritize brief, direct, and grounded physical actions over deep philosophical analysis.",
                         *[line for line in persona_block if
