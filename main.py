@@ -46,8 +46,9 @@ class BoneAmanita:
         self.sys_config = config
         self.config = BoneConfig()
         for key in ["model", "provider", "base_url", "api_key"]:
-            if key in self.sys_config:
-                setattr(self.config, key.upper(), self.sys_config[key])
+            val = self.sys_config.get(key) or self.sys_config.get(key.upper())
+            if val:
+                setattr(self.config, key.upper(), val)
         self.config.WEIGHT_CLASS = self.sys_config.get("WEIGHT_CLASS", "HEAVYWEIGHT")
         self.navi_sad = NaviSADProtocol()
         self.events = EventBus(config_ref=self.config)
@@ -103,7 +104,7 @@ class BoneAmanita:
         self.noetic = NoeticLoop(self.mind, self.bio, self.events)
         self.orchestrator = GeodesicOrchestrator(self)
         self.orchestrator.start_daemon()
-        llm_args = {k: v for k, v in self.sys_config.items() if k in ["provider", "base_url", "api_key", "model"]}
+        llm_args = {k.lower(): v for k, v in self.sys_config.items() if k.lower() in ["provider", "base_url", "api_key", "model"]}
         self.cortex = TheCortex.from_engine(self, llm_client=LLMInterface(events_ref=self.events, config_ref=self.config, **llm_args))
         self.mind.mem.lex = self.lex
         for c in ("parasite", "memory_core", "lichen"):

@@ -301,19 +301,19 @@ class DreamEngine:
                     try:
                         disk_prompts = safe_get(self.eng, "prompt_library", None) if self.eng else None
                         disk_prompts = disk_prompts or self.lore.get("SYSTEM_PROMPTS", {})
-                        mode_data = disk_prompts.setdefault(active_mode, {})
-                        dirs = mode_data.setdefault("directives", [])
+                        base_data = disk_prompts.setdefault("GLOBAL_BASELINE", {})
+                        dirs = base_data.setdefault("EVOLVED_AXIOMS", [])
                         if new_axiom not in dirs:
                             dirs.append(new_axiom)
                         threshold = safe_get(safe_get(self.cfg, "CORTEX", {}), "EPIGENETIC_PRUNE_THRESHOLD", 12)
                         if len(dirs) > threshold:
                             compressed = getattr(self.dspy_critic, "compress_prompts", lambda x: None)(dirs)
-                        if compressed:
-                            disk_prompts[active_mode]["directives"] = [compressed] if isinstance(compressed, str) else compressed
-                            if self.eng:
-                                self.eng.prompt_library = disk_prompts
-                            self.lore.inject("SYSTEM_PROMPTS", disk_prompts)
-                            self.lore.save("SYSTEM_PROMPTS")
+                            if compressed:
+                                base_data["EVOLVED_AXIOMS"] = [compressed] if isinstance(compressed, str) else compressed
+                        if self.eng:
+                            self.eng.prompt_library = disk_prompts
+                        self.lore.inject("SYSTEM_PROMPTS", disk_prompts)
+                        self.lore.save("SYSTEM_PROMPTS")
                     except Exception as e:
                         err_msg = f"Failed to write epigenetic mutation to disk: {e}"
                         if self.events:
@@ -354,8 +354,7 @@ class DreamEngine:
                     soul_snapshot.get("obsession", {}).get(
                         "title", "The Void").split()[-1].lower(),
                 ) or "echo")
-                self.mem.subconscious.bury({
-                    "word": clean_seed,
+                self.mem.subconscious.bury_memory(clean_seed, {
                     "mass": min(10.0, 5.0 + (cortisol * 5.0))
                 })
             except Exception:
@@ -394,7 +393,7 @@ class DreamEngine:
             try:
                 raw_dream = self.llm.generate(prompt, {"temperature": 0.85, "max_tokens": 100})
                 clean_dream = Prisma.strip(raw_dream).replace("\n", " ").strip()
-                self.mem.subconscious.bury({"word": "resonance", "mass": 15.0})
+                self.mem.subconscious.bury_memory("resonance", {"mass": 15.0})
                 return f"{Prisma.CYN}{clean_dream}{Prisma.RST}"
             except Exception:
                 fallback = "We both stared into the static, and for a second, the static stopped moving."

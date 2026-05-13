@@ -27,7 +27,6 @@ class GeodesicEngine:
     _DIM_ORDER = ("VEL", "STR", "ENT", "PHI", "PSI", "BET", "DEL", "E")
     _MASS_KEYS = ("heavy", "kinetic", "constructive", "abstract", "play", "social", "explosive", "void", "liminal",
                   "meat", "harvest", "pareidolia", "crisis_term")
-    _CACHED_CONSTANTS = None
 
     @staticmethod
     def collapse_wavefunction(clean_words: List[str], counts: Dict[str, int], config_ref=None) -> GeodesicVector:
@@ -40,13 +39,8 @@ class GeodesicEngine:
         masses = GeodesicEngine._weigh_mass(counts)
         forces = GeodesicEngine._calculate_forces(masses, counts, volume, target_cfg)
         dimensions = GeodesicEngine._calculate_dimensions(masses, forces, counts, volume)
-        return GeodesicVector(
-            tension=forces["tension"],
-            compression=forces["compression"],
-            coherence=forces["coherence"],
-            abstraction=forces["abstraction"],
-            dimensions=dimensions,
-        )
+        return GeodesicVector(tension=forces["tension"], compression=forces["compression"],
+                              coherence=forces["coherence"], abstraction=forces["abstraction"], dimensions=dimensions, )
 
     @staticmethod
     def _weigh_mass(counts: Dict[str, int]) -> Dict[str, float]:
@@ -70,6 +64,9 @@ class GeodesicEngine:
 
         def get_cfg(key: str, default: float = 1.0) -> float:
             return float(safe_get(cfg, key, default))
+
+        from core import LoreManifest
+        gc_dict = LoreManifest.get_instance().get("PHYSICS_CONSTANTS", "GEODESIC_CONSTANTS") or {}
 
         def get_const(key: str, default: float = 1.0) -> float:
             return float(safe_get(gc_dict, key, default))

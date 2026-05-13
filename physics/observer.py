@@ -12,7 +12,6 @@ from physics.maths import CreativeDeterminantEngine, _native_permutation_entropy
 from physics.geodesics import GeodesicEngine
 from struts import safe_get
 
-
 @dataclass
 class PhysicsDelta:
     """
@@ -25,7 +24,6 @@ class PhysicsDelta:
     source: str
     message: Optional[str] = None
 
-
 def apply_metabolic_tax(mito_state: Any, atp_cost: float, ros_cost: float) -> None:
     """
     Directly burns the system's biological energy (ATP) and increases toxicity (ROS).
@@ -37,7 +35,6 @@ def apply_metabolic_tax(mito_state: Any, atp_cost: float, ros_cost: float) -> No
     target = getattr(mito_state, "state", mito_state)
     target.atp_pool = max(0.0, target.atp_pool - atp_cost)
     target.ros_buildup = min(100.0, target.ros_buildup + ros_cost)
-
 
 def apply_somatic_feedback(physics_packet: PhysicsPacket, qualia: Any, config_ref=None) -> PhysicsPacket:
     """
@@ -164,7 +161,8 @@ class QuantumObserver:
         delta_atp, delta_ros = self.cd_engine.execute_metabolic_tick(viability)
         strong_coherence_ideal = resonance * gamma_idx * beta
         generative_gap = abs(strong_coherence_ideal - actual_coherence)
-        cd_drag = (geo.compression * 0.5) + (generative_gap * getattr(self.cfg.PHYSICS, "DRAG_HALT", 10.0) * 0.5)
+        phys_cfg = safe_get(self.cfg, "PHYSICS", {})
+        cd_drag = (geo.compression * 0.5) + (generative_gap * float(safe_get(phys_cfg, "DRAG_HALT", 10.0)) * 0.5)
         energy = EnergyState(
             voltage=avg_voltage, entropy=entropy, beta_index=beta, contradiction=beta, scope=scope, depth=depth,
             connectivity=connectivity, resonance=resonance, silence=silence, lq=loop_quotient, mass=graph_mass,
@@ -177,8 +175,6 @@ class QuantumObserver:
                                vector=geo.dimensions, truth_ratio=0.5)
         space = SpatialState(narrative_drag=cd_drag, zone=self._determine_zone(geo.dimensions),
                              flow_state=self._determine_flow(avg_voltage, geo.coherence, self.cfg))
-
-        # Attach dynamic fields directly to the PhysicsPacket so they survive to_dict() serialization
         self.last_physics_packet = PhysicsPacket(
             energy=energy, matter=matter, space=space,
             viability_potential=viability, coherence_debt=current_debt,
@@ -332,7 +328,8 @@ class CycleStabilizer:
         applied_correction = False
         if self.pending_drag > 0:
             current_drag = getattr(physics, "narrative_drag", 0.0)
-            drag_halt = getattr(self.cfg.PHYSICS, "DRAG_HALT", 10.0)
+            phys_cfg = safe_get(self.cfg, "PHYSICS", {})
+            drag_halt = float(safe_get(phys_cfg, "DRAG_HALT", 10.0))
             available_capacity = max(0.0, drag_halt - current_drag)
             bleed = min(self.pending_drag, min(2.0, available_capacity))
             if bleed > 0:

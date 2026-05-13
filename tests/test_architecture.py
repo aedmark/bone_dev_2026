@@ -42,9 +42,9 @@ class ArchitectureTests(BoneTestCase):
         from main import BoneAmanita
         from unittest.mock import MagicMock
         config = {
-            "MODEL": "hermes3-8b",
+            "model": "hermes3-8b",
             "boot_mode": "CREATIVE",
-            "PROVIDER": "mock"
+            "provider": "mock"
         }
         test_engine = BoneAmanita(config)
         test_engine._load_system_prompts = MagicMock()

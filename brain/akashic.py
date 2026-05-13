@@ -22,13 +22,14 @@ class TheAkashicRecord:
     caused previous system failures.
     """
 
-    def __init__(self, lore_manifest: Optional["LoreManifest"] = None, events_ref=None):
+    def __init__(self, lore_manifest: Optional["LoreManifest"] = None, events_ref=None, config_ref=None):
+        self.cfg = config_ref or BoneConfig
         self.discovered_words: Dict[str, str] = {}
         self.lens_cooccurrence: Dict[Tuple[str, str], int] = {}
         self.ingredient_affinity: Dict[str, int] = {}
         self.known_recipes: Set[Tuple[str, str]] = set()
         self.recipe_candidates: Dict[Tuple[str, str], Dict[str, int]] = {}
-        self.cfg_akashic = safe_get(BoneConfig, "AKASHIC", {})
+        self.cfg_akashic = safe_get(self.cfg, "AKASHIC", {})
         self.RECIPE_THRESHOLD = int(safe_get(self.cfg_akashic, "RECIPE_THRESHOLD", 3))
         self.HYBRID_LENS_THRESHOLD = int(safe_get(self.cfg_akashic, "HYBRID_LENS_THRESHOLD", 5))
         self.MAX_SHADOW_CAPACITY = int(safe_get(self.cfg_akashic, "MAX_SHADOW_CAPACITY", 50))
@@ -78,8 +79,8 @@ class TheAkashicRecord:
         it physically consumes its own long-term memories or acquired vocabulary,
         converting the semantic mass back into raw energy to survive the turn.
         """
-        akashic_cfg = safe_get(BoneConfig, "AKASHIC", {})
-        bio_cfg = safe_get(BoneConfig, "BIO", {})
+        akashic_cfg = safe_get(self.cfg, "AKASHIC", {})
+        bio_cfg = safe_get(self.cfg, "BIO", {})
         if self.subconscious_strata:
             victim_data = self.subconscious_strata.pop(0)
             target = victim_data.get("concept", "Unknown Node")
@@ -114,7 +115,7 @@ class TheAkashicRecord:
         it logs the exact physical/dimensional coordinates (Voltage, Entropy, Beta) of the failure.
         It then permanently injects an 'Avoidance Axiom' into the LLM's system prompt.
         """
-        cfg = safe_get(BoneConfig, "AKASHIC", {})
+        cfg = safe_get(self.cfg, "AKASHIC", {})
         cfg_defaults = safe_get(cfg, "DEFAULT_SCAR_COORDS", {})
         axis_map = {
             "E": ("exhaustion", 0.2), "beta": ("beta_index", 0.4), "S": ("scope", 0.3),
@@ -275,7 +276,7 @@ class TheAkashicRecord:
             if vector.get(force, 0) > threshold_data.get("threshold", 0.5):
                 hazards.append(threshold_data.get("hazard_name"))
         desc_template = (ux("akashic_strings", "artifact_desc") or "A coalesced artifact of {dominant_force}.")
-        cfg = safe_get(BoneConfig, "AKASHIC", {})
+        cfg = safe_get(self.cfg, "AKASHIC", {})
         artifact_val = float(safe_get(cfg, "ARTIFACT_VALUE", 50.0))
         new_data = {
             "name": new_name,
