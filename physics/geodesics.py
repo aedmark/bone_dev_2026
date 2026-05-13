@@ -57,10 +57,6 @@ class GeodesicEngine:
         from struts import safe_get
         t_cfg = config_ref or BoneConfig
         cfg = safe_get(t_cfg, "PHYSICS", {})
-        if GeodesicEngine._CACHED_CONSTANTS is None:
-            from core import LoreManifest
-            GeodesicEngine._CACHED_CONSTANTS = LoreManifest.get_instance().get("PHYSICS_CONSTANTS", "GEODESIC_CONSTANTS") or {}
-        gc_dict = GeodesicEngine._CACHED_CONSTANTS
 
         def get_cfg(key: str, default: float = 1.0) -> float:
             return float(safe_get(cfg, key, default))
