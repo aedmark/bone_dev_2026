@@ -41,9 +41,9 @@ class LLMInterface:
         self.cfg = config_ref or BoneConfig
         self.events = events_ref
         env_url = os.environ.get("OLLAMA_BASE_URL")
-        self.provider = (provider or safe_get(self.cfg, "PROVIDER", "ollama")).lower()
-        self.api_key = api_key or safe_get(self.cfg, "API_KEY", "")
-        self.model = model or safe_get(self.cfg, "MODEL", "")
+        self.provider = (provider or safe_get(self.cfg, "PROVIDER", safe_get(self.cfg, "provider", "ollama"))).lower()
+        self.api_key = api_key or safe_get(self.cfg, "API_KEY", safe_get(self.cfg, "api_key", ""))
+        self.model = model or safe_get(self.cfg, "MODEL", safe_get(self.cfg, "model", ""))
         self.weight_class = "HEAVYWEIGHT"
         lower_model = self.model.lower()
         if param_match := re.search(r"(\d+(?:\.\d+)?)b\b", lower_model):

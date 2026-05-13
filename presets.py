@@ -169,7 +169,8 @@ class BoneConfig:
     MAX_OUTPUT_TOKENS = 4096
     DEFAULT_LLM_ENDPOINTS = {"ollama": "http://127.0.0.1:11434/v1/chat/completions",
                              "openai": "https://api.openai.com/v1/chat/completions",
-                             "lm_studio": "http://127.0.0.1:1234/v1/chat/completions", "mock": "N/A", }
+                             "lm_studio": "http://127.0.0.1:1234/v1/chat/completions",
+                             "mock": "N/A"}
     PROVIDER = "ollama"
     BASE_URL = None
     API_KEY = "ollama"
