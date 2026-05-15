@@ -11,7 +11,7 @@ import json
 import os
 import tempfile
 from typing import List, Tuple
-from core import BoneJSONEncoder
+from core import JSONEncoder
 from struts import ux_format
 from constants import Prisma
 
@@ -45,7 +45,7 @@ class LocalFileSporeLoader:
         try:
             fd, temp_path = tempfile.mkstemp(dir=os.path.dirname(final_path), text=True)
             with os.fdopen(fd, "w", encoding="utf-8") as f:
-                json.dump(data, f, indent=2, cls=BoneJSONEncoder)
+                json.dump(data, f, indent=2, cls=JSONEncoder)
                 f.flush()
                 os.fsync(f.fileno())
             os.replace(temp_path, final_path)

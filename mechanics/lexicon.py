@@ -1,11 +1,10 @@
 """
 lexicon.py
-The Linguistic Cortex and Semantic Vector Engine.
-This module fundamentally changes how the engine "reads" text. Rather than relying
-solely on LLM embedding vectors, this system performs biological parsing. It calculates
-the phonetic density of words, the syntactic turbulence of sentences, and maintains
-a 'Lexical Firewall' that actively strips out narrative clichés and corporate antigens.
+
+Changes how the engine "reads" text. Rather than relying
+solely on LLM embedding vectors, this system performs biological parsing.
 """
+
 import json
 import os
 import random
@@ -19,10 +18,8 @@ from typing import Tuple, Dict, Set, Optional, List
 from core import Prisma, LoreManifest
 from struts import ux
 
-
 class LexiconStore:
     """
-    The Epigenetic Dictionary (Fuller / Pinker).
     Manages both the hardcoded baseline vocabulary ('VOCAB') and the dynamic,
     user-taught vocabulary ('LEARNED_VOCAB' / The Hive). It builds an O(1) reverse
     index so the engine can instantly know what semantic categories a word belongs to.
@@ -33,7 +30,8 @@ class LexiconStore:
     def __init__(self):
         from presets import BoneConfig
         from struts import safe_get
-        self.save_dir = safe_get(safe_get(BoneConfig, "AKASHIC", {}), "SAVE_DIR", "saves")
+        akashic_cfg = safe_get(BoneConfig, "AKASHIC", {})
+        self.save_dir = safe_get(akashic_cfg, "SAVE_DIR", "saves")
         self.HIVE_FILENAME = os.path.join(self.save_dir, "cortex_hive.json")
         self.categories = set()
         self.VOCAB: Dict[str, Set[str]] = {}
@@ -105,7 +103,6 @@ class LexiconStore:
     def teach(self, word: str, category: str, tick: int) -> bool:
         """
         Dynamically adds a word to a semantic category.
-        Limits category size to 1000 to prevent infinite memory bloat.
         """
         w = word.lower()
         cat_dict = self.LEARNED_VOCAB.setdefault(category, {})
@@ -113,8 +110,8 @@ class LexiconStore:
         if len(cat_dict) >= 1000:
             oldest_word = min(cat_dict, key=cat_dict.get)
             del cat_dict[oldest_word]
-            if oldest_word in self.REVERSE_INDEX and category in self.REVERSE_INDEX[oldest_word]:
-                self.REVERSE_INDEX[oldest_word].remove(category)
+            if oldest_word in self.REVERSE_INDEX:
+                self.REVERSE_INDEX[oldest_word].discard(category)
                 if not self.REVERSE_INDEX[oldest_word]:
                     del self.REVERSE_INDEX[oldest_word]
         cat_dict[w] = tick
@@ -134,16 +131,14 @@ class LexiconStore:
 
 class LinguisticAnalyzer:
     """
-    The Phonetic and Semantic Math Engine (Pinker).
-    This class performs the actual computational analysis of language. It calculates
-    how physically difficult a word is to pronounce, maps text to multi-dimensional
+    Calculates how physically difficult a word is to pronounce, maps text to multi-dimensional
     vectors, and acts as the execution layer for the Lexical Firewall (purging antigens).
     """
 
     def __init__(self, store_ref):
         self.ANTIGEN_REGEX = None
         self.store = store_ref
-        self._TRANSLATOR = getattr(self.store, "_TRANSLATOR", None)
+        self._TRANSLATOR = store_ref._TRANSLATOR
         ling_data = LoreManifest.get_instance().get("LINGUISTICS") or {}
         raw_phonetics = ling_data.get("PHONETICS", {})
         self.PHONETICS = {k: set(v) for k, v in raw_phonetics.items()}
@@ -160,10 +155,9 @@ class LinguisticAnalyzer:
 
     def compile_antigens(self):
         """
-        Builds the Lexical Firewall regex.
         Antigens are cliché or sycophantic words/phrases that cause semantic rot.
         """
-        reps = getattr(self.store, "ANTIGEN_REPLACEMENTS", {})
+        reps = self.store.ANTIGEN_REPLACEMENTS
         if reps:
             patterns = sorted(reps.keys(), key=len, reverse=True)
             escaped = [rf"\b{re.escape(str(p))}\b" for p in patterns]
@@ -241,7 +235,6 @@ class LinguisticAnalyzer:
 
     def sanitize(self, text: str) -> List[str]:
         """
-        The Filter.
         Normalizes unicode, strips punctuation, and violently replaces Lexical Antigens.
         """
         if not text:
@@ -250,9 +243,8 @@ class LinguisticAnalyzer:
             normalized = unicodedata.normalize("NFKD", text).encode("ASCII", "ignore").decode("utf-8")
         except (TypeError, AttributeError):
             normalized = text
-        xlate = self._TRANSLATOR or str.maketrans("", "")
-        cleaned_text = normalized.translate(xlate).lower()
-        if getattr(self, "ANTIGEN_REGEX", None):
+        cleaned_text = normalized.translate(self._TRANSLATOR).lower()
+        if self.ANTIGEN_REGEX:
             cleaned_text = self.ANTIGEN_REGEX.sub(
                 lambda m: self.store.ANTIGEN_REPLACEMENTS.get(m.group(0).lower(), ""), cleaned_text
             )
@@ -315,14 +307,10 @@ class LinguisticAnalyzer:
         heavy_shift = 1.0 - ((drag - 2.0) * 0.05)
         self.biases["heavy"] = round(max(0.5, min(1.0, heavy_shift)), 3)
 
-
 class SemanticField:
     """
-    The Conversation Weather Map (Fuller).
-    Instead of analyzing single sentences in a vacuum, this class tracks the
-    shifting semantic vectors of a conversation over time, tracking its momentum.
+    Tracks the shifting semantic vectors of a conversation over time, tracking its momentum.
     """
-
     def __init__(self, analyzer_ref):
         self.analyzer = analyzer_ref
         self.current_vector = {}
@@ -358,14 +346,10 @@ class SemanticField:
             return f"{Prisma.VIOLET}Volatile {dom.upper()} Storm{Prisma.RST}"
         return f"{Prisma.CYN}Stable {dom.upper()} Atmosphere{Prisma.RST}"
 
-
 class LexiconService:
     """
-    The Syntactic API Layer (Schur).
-    A clean, safely bounded facade. This is the only object the rest of the
-    engine touches, hiding the complex linguistics math behind simple method calls.
+    A clean, safely bounded facade.
     """
-
     def __init__(self, events_ref=None):
         self._INITIALIZED = False
         self._STORE = LexiconStore()

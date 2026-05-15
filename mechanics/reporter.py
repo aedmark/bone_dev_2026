@@ -116,10 +116,16 @@ class GeodesicRenderer:
         if mode_settings.get("show_location", True):
             village = getattr(self.eng, "village", None)
             nav = getattr(village, "navigator", None) if village else None
-            world_loc = getattr(nav.world_graph.get(nav.current_node_id) if nav and hasattr(nav, "world_graph") else None, "name", "UNKNOWN")
+
+            # Unpack the brittle inline ternary to cleanly traverse the navigation boundaries
+            if nav and hasattr(nav, "world_graph") and nav.current_node_id in nav.world_graph:
+                world_loc = getattr(nav.world_graph[nav.current_node_id], "name", "UNKNOWN")
+            else:
+                world_loc = "UNKNOWN"
         cfg = getattr(self.eng, "config", {})
-        default_depth = safe_get(cfg, "default_ui_depth", "WARM")
-        current_ui_depth = getattr(self.eng, "ui_mode", default_depth or mode_settings.get("default_ui_depth", "WARM"))
+        # Consolidate the fallback chain to prevent redundant dictionary lookups
+        fallback_depth = mode_settings.get("default_ui_depth", safe_get(cfg, "default_ui_depth", "WARM"))
+        current_ui_depth = getattr(self.eng, "ui_mode", fallback_depth)
         soul = getattr(self.eng, "soul", None)
         anchor = getattr(soul, "anchor", None)
         dignity_val = getattr(anchor, "dignity_reserve", 100.0)
@@ -152,9 +158,13 @@ class GeodesicRenderer:
 
     def _calculate_lattice_strain(self, physics: Dict) -> float:
         """Calculates the physical divergence (strain) between expectation and reality."""
-        q_matrix = safe_get(safe_get(physics, "observer"), "Q_n")
+        # Safely detach the observer payload before querying the quantum matrix
+        observer_data = safe_get(physics, "observer", {})
+        q_matrix = safe_get(observer_data, "Q_n", [])
+
         if not isinstance(q_matrix, list) or not q_matrix or not isinstance(q_matrix[0], list):
             return 0.0
+
         return sum(float(abs(v)) for i, row in enumerate(q_matrix) for j, v in enumerate(row) if i != j)
 
     @staticmethod

@@ -1,15 +1,14 @@
 """
 genesis.py
 
-This module is responsible for the sequence of events that brings the engine from a static
-configuration state into a living, metabolizing instance.
+Brings the engine from a static configuration state into a living, metabolizing instance.
 """
 
 from typing import Dict, Any, Set
 from brain.akashic import TheAkashicRecord
 from presets import BoneConfig
 from core import EventBus, LoreManifest
-from struts import ux, ux_format
+from struts import ux, ux_format, safe_get, safe_set
 from drivers import DriverRegistry, BoneConsultant
 from mechanics.inventory import GordonKnot
 from machine import BoneArchitect, TheConsolidator
@@ -34,30 +33,27 @@ class BoneGenesis:
         mode_settings = config.get("mode_settings") or {}
         suppressed_set = set(mode_settings.get("village_suppression") or [])
         village_bundle = BoneGenesis._summon_village(events, embryo, akashic, suppressed_set, config.get("boot_mode", "ADVENTURE"), target_cfg)
-        soul = NarrativeSelf(engine_ref=None, events_ref=events, memory_ref=embryo.mind.mem, akashic_ref=akashic,
-                             config_ref=target_cfg)
+        soul = NarrativeSelf(engine_ref=None, events_ref=events, memory_ref=embryo.mind.mem, akashic_ref=akashic, config_ref=target_cfg)
         if embryo.soul_legacy:
             soul.load_from_dict(embryo.soul_legacy)
         oroboros = TheOroboros(config_ref=target_cfg)
-
-        cfg_gen = getattr(target_cfg, "GENESIS", object())
-        base_voltage = getattr(cfg_gen, "DUMMY_VOLTAGE", 10.0)
-        base_drag = getattr(cfg_gen, "DUMMY_DRAG", 0.0)
+        cfg_gen = safe_get(target_cfg, "GENESIS", {})
+        base_voltage = float(safe_get(cfg_gen, "DUMMY_VOLTAGE", 10.0))
+        base_drag = float(safe_get(cfg_gen, "DUMMY_DRAG", 0.0))
         dummy_phys = {"narrative_drag": base_drag, "voltage": base_voltage}
-
-        bio_proxy = {"trauma_vector": getattr(embryo.mind.mem, "session_trauma_vector", {})}
+        bio_proxy = {"trauma_vector": safe_get(embryo.mind.mem, "session_trauma_vector", {})}
         if logs := oroboros.apply_legacy(dummy_phys, bio_proxy):
             msg = ux_format("genesis_strings", "legacy_scars", default="The lattice remembers. Inherited scars: {logs}", logs=', '.join(logs))
             events.log(f"{Prisma.MAG}{msg}{Prisma.RST}", "OROBOROS")
-
-            if (applied_drag := float(dummy_phys.get("narrative_drag", base_drag) - base_drag)) != 0.0:
-                embryo.physics.narrative_drag = max(0.0, float(getattr(embryo.physics, "narrative_drag", base_drag)) + applied_drag)
-
-            if (volt_penalty := float(base_voltage - dummy_phys.get("voltage", base_voltage))) > 0.0:
-                embryo.physics.voltage = max(0.0, float(getattr(embryo.physics, "voltage", base_voltage)) - volt_penalty)
-
-        embryo.mind.mem.session_trauma_vector = bio_proxy.get("trauma_vector", {})
-
+            applied_drag = float(dummy_phys.get("narrative_drag", base_drag)) - base_drag
+            if applied_drag != 0.0:
+                current_drag = float(safe_get(embryo.physics, "narrative_drag", base_drag))
+                safe_set(embryo.physics, "narrative_drag", max(0.0, current_drag + applied_drag))
+            volt_penalty = base_voltage - float(dummy_phys.get("voltage", base_voltage))
+            if volt_penalty > 0.0:
+                current_volt = float(safe_get(embryo.physics, "voltage", base_voltage))
+                safe_set(embryo.physics, "voltage", max(0.0, current_volt - volt_penalty))
+        safe_set(embryo.mind.mem, "session_trauma_vector", bio_proxy.get("trauma_vector", {}))
         drivers = DriverRegistry(events, config_ref=target_cfg)
         consultant = BoneConsultant(config_ref=target_cfg, lexicon_ref=lexicon_ref) if "CONSULTANT" not in suppressed_set else None
         symbiosis = SymbiosisManager(events, config_ref=target_cfg)
@@ -82,7 +78,6 @@ class BoneGenesis:
         if death_gen: DeathGen.load_protocols()
         repro = spawn("REPRO", LiteraryReproduction, config_ref=c)
         if repro: LiteraryReproduction.load_genetics(config_ref=c)
-
         return {
             "gordon": gordon,
             "navigator": navigator,

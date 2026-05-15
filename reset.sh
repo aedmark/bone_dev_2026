@@ -5,7 +5,7 @@ rm -rf ./spores/__pycache__
 rm -rf ./physics/__pycache__
 rm -rf ./phases/__pycache__
 rm -rf ./body/__pycache__
-rm -rf ./rchetypes/__pycache__
+rm -rf ./archetypes/__pycache__
 rm -rf ./brain/__pycache__
 rm -rf ./mechanics/__pycache__
 rm -rf ./protocols/__pycache__

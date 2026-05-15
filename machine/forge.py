@@ -54,7 +54,6 @@ class TheForge:
             self, physics: Any, inventory_list: List[str]
     ) -> Tuple[bool, Optional[str], Optional[str], Optional[str]]:
         """
-        Targeted Alchemy (Inventory Required).
         Checks the user's current inventory against the words they just spoke.
         If a spoken word belongs to a 'catalyst_category' required by an inventory item's
         recipe, the forge attempts a transmutation.

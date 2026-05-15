@@ -78,6 +78,13 @@ class BioSystem:
             "governor_mode": self.governor.mode,
         }
 
+    def expend_glimmer(self) -> bool:
+        """Safely consumes a glimmer from the Endocrine system for structural overrides."""
+        if self.endo and getattr(self.endo, "glimmers", 0) >= 1:
+            self.endo.glimmers -= 1
+            return True
+        return False
+
     def rest(self, factor: float = 1.0) -> List[str]:
         """
         The biological healing mechanism.

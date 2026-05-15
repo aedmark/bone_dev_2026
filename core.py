@@ -22,15 +22,15 @@ from presets import BoneConfig
 from struts import ux, ux_format, safe_get
 from physics.models import PhysicsPacket, UserInferredState, SharedDynamics
 
-class BoneJSONEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, (set, deque)):
-            return list(obj)
-        if hasattr(obj, "to_dict") and callable(obj.to_dict):
-            return obj.to_dict()
-        if hasattr(obj, "__dict__"):
-            return vars(obj)
-        return super().default(obj)
+class JSONEncoder(json.JSONEncoder):
+    def default(self, o):
+        if isinstance(o, (set, deque)):
+            return list(o)
+        if hasattr(o, "to_dict") and callable(o.to_dict):
+            return o.to_dict()
+        if hasattr(o, "__dict__"):
+            return vars(o)
+        return super().default(o)
 
 
 @dataclass
@@ -66,7 +66,7 @@ class DecisionCrystal:
         data = asdict(self)
         data["_summary"] = f"{self.system_state}::{self.active_archetype}"
         data["_type"] = "CRYSTAL"
-        return json.dumps(data, cls=BoneJSONEncoder)
+        return json.dumps(data, cls=JSONEncoder)
 
 
 @dataclass
@@ -248,7 +248,7 @@ class LoreManifest:
         filepath = os.path.join(self.DATA_DIR, f"{cat_key}.json")
         try:
             with open(filepath, "w", encoding="utf-8") as f:
-                json.dump(self._cache[cat_key], f, indent=2, cls=BoneJSONEncoder)
+                json.dump(self._cache[cat_key], f, indent=2, cls=JSONEncoder)
             print(f"{Prisma.GRY}[LORE]: Persisted '{cat_key}'.{Prisma.RST}")
         except Exception as e:
             print(f"{Prisma.RED}[LORE]: Failed to save '{cat_key}': {e}{Prisma.RST}")
@@ -334,9 +334,7 @@ class TheObserver:
 
 @dataclass
 class SystemHealth:
-    physics_online: bool = True
-    bio_online: bool = True
-    mind_online: bool = True
+    components_online: Dict[str, bool] = field(default_factory=lambda: {"physics": True, "bio": True, "mind": True})
     errors: deque = field(default_factory=lambda: deque(maxlen=50))
     warnings: List[str] = field(default_factory=list)
     hints: List[str] = field(default_factory=list)
@@ -350,9 +348,7 @@ class SystemHealth:
         self.errors.append(ErrorLog(component, msg, severity=severity))
         if self.observer:
             self.observer.log_error(component)
-        attr_name = f"{component.lower()}_online"
-        if hasattr(self, attr_name):
-            setattr(self, attr_name, False)
+        self.components_online[component.lower()] = False
         return ux_format("core_strings", "health_offline", component=component, msg=msg)
 
     def report_warning(self, message: str):
@@ -429,7 +425,7 @@ class CyberneticGovernor:
 
         stress_modifier = 1.0
         if endocrine_state:
-            glimmers = float(getattr(endocrine_state, "glimmers", 0.0))
+            glimmers = float(safe_get(endocrine_state, "glimmers", 0.0))
             stress_modifier = 1.5 if glimmers >= 1 else 0.75
 
         adjusted_dt = dt * 0.5 * stress_modifier
@@ -492,7 +488,7 @@ class TelemetryService:
         if self.disabled or not self.current_trace_file:
             return
         try:
-            serialized = json.dumps(event_dict, cls=BoneJSONEncoder)
+            serialized = json.dumps(event_dict, cls=JSONEncoder)
             self._buffer_line(serialized)
         except (TypeError, ValueError) as e:
             print(f"{Prisma.YEL}[TELEMETRY] Dropped un-serializable event: {e}{Prisma.RST}")

@@ -1,4 +1,5 @@
 """/soul/oroboros.py"""
+
 import json
 import os
 import random
@@ -10,7 +11,6 @@ from soul import NarrativeSelf
 from presets import BoneConfig
 from struts import ux, ux_format, safe_get, safe_set
 
-
 @dataclass
 class Scar:
     """A mechanical penalty passed on to the next generation upon death."""
@@ -19,7 +19,6 @@ class Scar:
     value: float
     description: str
 
-
 @dataclass
 class Myth:
     """A core lesson extracted from the previous generation's strongest memory."""
@@ -27,13 +26,11 @@ class Myth:
     lesson: str
     trigger: str
 
-
 class TheOroboros:
     """
-    The generational bridging system.
     When the system hits a terminal state (Starvation, Toxicity collapse), it 'dies'.
-    However, the corpse fertilizes the soil. Scars and Myths are written to `legacy.json`
-    and physically alter the physics constraints of the *next* boot-up.
+    Scars and Myths are written to `legacy.json' and physically alter the physics constraints
+    of the *next* boot-up.
     """
     LEGACY_FILE = "legacy.json"
 
@@ -80,8 +77,12 @@ class TheOroboros:
             verdict_map = {"TOXICITY": "TOXIC", "BOREDOM": "BORING", "STARVATION": "LIGHT", "APOPTOSIS": "TOXIC"}
             v_key = verdict_map.get(cause_of_death, "HEAVY")
             v_list = death_data.get("VERDICTS", {}).get(v_key)
-            desc = random.choice(v_list) if isinstance(v_list, list) and v_list else entry[3]
-            new_scars.append(Scar(entry[0], entry[1], entry[2], desc))
+            fallback_desc = entry[3] if len(entry) > 3 else "The system collapsed under unknown pressure."
+            desc = random.choice(v_list) if isinstance(v_list, list) and v_list else fallback_desc
+            scar_name = entry[0] if len(entry) > 0 else "Unknown Scar"
+            stat_affected = entry[1] if len(entry) > 1 else "voltage"
+            val = float(entry[2]) if len(entry) > 2 else 5.0
+            new_scars.append(Scar(scar_name, stat_affected, val, desc))
         if soul.core_memories:
             strongest = max(soul.core_memories, key=lambda m: m.impact_voltage)
             trigger_word = strongest.trigger_words[0] if strongest.trigger_words else (

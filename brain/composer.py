@@ -1,4 +1,5 @@
 """brain/composer.py"""
+
 import json
 import os
 import random
@@ -8,9 +9,8 @@ import urllib.error
 import urllib.request
 from typing import Dict, Any, Optional
 from presets import BoneConfig
-from core import Prisma, EventBus, BoneJSONEncoder
+from core import Prisma, EventBus, JSONEncoder
 from struts import ux, ux_format, safe_get, safe_set
-
 
 class SynapseError(Exception):
     """Base exception for failures in the LLM neural bridge."""
@@ -87,7 +87,7 @@ class LLMInterface:
         target_url = override_url or self.base_url
         target_key = override_key or self.api_key
         headers = {"Content-Type": "application/json", "Authorization": f"Bearer {target_key}", }
-        data = json.dumps(payload, cls=BoneJSONEncoder).encode()
+        data = json.dumps(payload, cls=JSONEncoder).encode()
         for attempt in range(max_retries + 1):
             try:
                 req = urllib.request.Request(target_url, data=data, headers=headers)

@@ -22,17 +22,13 @@ class TheConsolidator:
         """Compiles a failed LLM generation and its correction into a permanent Few-Shot weight."""
         triplet = payload.get("triplet")
         if not triplet: return
-
         from core import LoreManifest
         lore = LoreManifest.get_instance()
         weights = lore.get("SYNTACTIC_WEIGHTS") or []
-
         if not isinstance(weights, list):
             weights = []
-
         weights.append(triplet)
         weights = weights[-50:]
-
         try:
             lore.inject("SYNTACTIC_WEIGHTS", weights)
             lore.save("SYNTACTIC_WEIGHTS")

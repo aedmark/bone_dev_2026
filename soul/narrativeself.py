@@ -202,8 +202,8 @@ class NarrativeSelf:
         if not self.current_obsession: return None
         clean_words = self._extract_lexical_matter(physics)
         lex = getattr(self.eng, "lex", None)
-        if self.current_target_cat and lex and (target_words := lex.get(self.current_target_cat)) and any(
-                w in target_words for w in clean_words):
+        target_words = lex.get(self.current_target_cat) if (self.current_target_cat and lex) else set()
+        if target_words and any(w in target_words for w in clean_words):
             self.obsession_progress = min(100.0, self.obsession_progress + 10.0)
             self.obsession_neglect = 0.0
             gravity_assist = 1.0 + (self.obsession_progress / max(1.0, self._cfg("OBSESSION_GRAVITY_ASSIST", 10.0)))
@@ -416,7 +416,8 @@ class NarrativeSelf:
 
     def _safe_get_packet(self):
         phys = getattr(self.eng, "phys", None)
-        return getattr(phys.observer, "last_physics_packet", None) if phys else None
+        observer = getattr(phys, "observer", None) if phys else None
+        return getattr(observer, "last_physics_packet", None) if observer else None
 
     def _trigger_synthesis(self):
         """

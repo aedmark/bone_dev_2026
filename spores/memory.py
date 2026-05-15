@@ -15,7 +15,7 @@ import time
 import tempfile
 from collections import deque
 from typing import List, Tuple, Optional, Dict
-from core import BoneJSONEncoder
+from core import JSONEncoder
 from struts import ux, ux_format
 from presets import BoneConfig
 import re
@@ -126,7 +126,7 @@ class SubconsciousStrata:
                 self._prune_strata()
             with open(self.filepath, "a", encoding="utf-8") as f:
                 fossil_data["buried_at"] = time.time()
-                f.write(json.dumps(fossil_data, cls=BoneJSONEncoder) + "\n")
+                f.write(json.dumps(fossil_data, cls=JSONEncoder) + "\n")
             self.index[fossil_data["word"]] = fossil_data
             word = fossil_data["word"]
             mass = fossil_data.get("mass", 1.0)

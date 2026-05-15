@@ -1,17 +1,19 @@
 """
 akashic.py
+
 The Persistent Epigenetic Layer.
-This module handles long-term, cross-session memory. It writes biological
-and structural changes to disk via JSON files so the LLM remembers its
-"Scars" (failures) and "Glimmers" (successes) the next time it boots up.
-It also dynamically evolves the system's vocabulary and archetypal voices across sessions.
+This module handles long-term, cross-session memory.
 """
-import json, os, uuid
-from typing import Any, Dict, List, Optional, Set, Tuple, cast
-from core import BoneJSONEncoder, LoreManifest
-from struts import ux, safe_get, safe_set
-from presets import BoneConfig
+
+import json
+import os
+import uuid
+from typing import Any, Dict, List, Optional, Set, Tuple
+
 from constants import Prisma
+from core import JSONEncoder, LoreManifest
+from presets import BoneConfig
+from struts import ux, safe_get, safe_set
 
 
 class TheAkashicRecord:
@@ -73,12 +75,6 @@ class TheAkashicRecord:
             self.record_glimmer(payload["concept"], payload["paradigm"])
 
     def trigger_autophagy(self) -> Tuple[float, str]:
-        """
-        The survival mechanism.
-        If the LLM is out of ATP but forced to process a prompt,
-        it physically consumes its own long-term memories or acquired vocabulary,
-        converting the semantic mass back into raw energy to survive the turn.
-        """
         akashic_cfg = safe_get(self.cfg, "AKASHIC", {})
         bio_cfg = safe_get(self.cfg, "BIO", {})
         if self.subconscious_strata:
@@ -89,7 +85,8 @@ class TheAkashicRecord:
             if bio_cfg:
                 current_tax = float(safe_get(bio_cfg, "DEPTH_TAX_MULT", 1.0))
                 safe_set(bio_cfg, "DEPTH_TAX_MULT", max(0.5, current_tax - 0.02))
-            msg = f"Autophagy complete. Composted '{target}' (Mass: {mass:.1f}). Recovered {yield_val:.1f} ATP. Synaptic efficiency improved."
+            msg_template = ux("akashic_strings", "autophagy_strata") or "Autophagy complete. Composted '{target}' (Mass: {mass:.1f}). Recovered {yield_val:.1f} ATP."
+            msg = msg_template.format(target=target, mass=mass, yield_val=yield_val)
         elif self.discovered_words:
             target = next(iter(self.discovered_words))
             category = self.discovered_words.pop(target)
@@ -105,15 +102,13 @@ class TheAkashicRecord:
         if self.events:
             self.events.publish("AUTOPHAGY_EVENT", {"node": target, "atp_gained": yield_val})
 
-        self.save_all()  # Prevent desynchronization if engine crashes post-consumption
+        self.save_all()
         return yield_val, msg
 
     def record_scar(self, concept: str, p: Any):
         """
-        Trauma mapping.
         When the system experiences a structural collapse or massive logic failure,
-        it logs the exact physical/dimensional coordinates (Voltage, Entropy, Beta) of the failure.
-        It then permanently injects an 'Avoidance Axiom' into the LLM's system prompt.
+        it logs the exact physical/dimensional coordinates of the failure.
         """
         cfg = safe_get(self.cfg, "AKASHIC", {})
         cfg_defaults = safe_get(cfg, "DEFAULT_SCAR_COORDS", {})
@@ -139,56 +134,41 @@ class TheAkashicRecord:
             self.events.log(f"{Prisma.OCHRE}{msg.format(concept=concept)}{Prisma.RST}", "VILLAGE")
             self.events.publish("SCAR_RECORDED", {"concept": concept, "coords": coords})
 
+    def _mutate_epigenetics(self, category_key: str, axiom: str, max_items: int, log_msg: str, log_color: str):
+        """Helper function to cleanly modify System Prompts without redundant cognitive load."""
+        try:
+            prompts = self.lore.get("SYSTEM_PROMPTS") or {}
+            epigenetic_list = prompts.setdefault("GLOBAL_BASELINE", {}).setdefault(category_key, [])
+            if not isinstance(epigenetic_list, list):
+                epigenetic_list = []
+                prompts["GLOBAL_BASELINE"][category_key] = epigenetic_list
+
+            if axiom not in epigenetic_list:
+                epigenetic_list.append(axiom)
+                if len(epigenetic_list) > max_items:
+                    epigenetic_list.pop(0)
+                self.lore.inject("SYSTEM_PROMPTS", prompts)
+                self.lore.save("SYSTEM_PROMPTS")
+                if self.events:
+                    self.events.log(f"{log_color}{log_msg}{Prisma.RST}", "SYS")
+        except Exception as e:
+            if self.events:
+                self.events.log(f"{Prisma.RED}Failed to mutate system_prompts ({category_key}): {e}{Prisma.RST}", "SYS")
+
     def record_glimmer(self, concept: str, paradigm: str):
         """
         Crystallizes a successful interaction pattern into a permanent structural boon.
         The opposite of a scar. Hardcodes a successful behavior into the base prompt.
         """
-        try:
-            prompts = self.lore.get("SYSTEM_PROMPTS") or {}
-            epigenetic_list = prompts.setdefault("GLOBAL_BASELINE", {}).setdefault("EPIGENETIC_BOONS", [])
-            if not isinstance(epigenetic_list, list):
-                epigenetic_list = []
-                prompts["GLOBAL_BASELINE"]["EPIGENETIC_BOONS"] = epigenetic_list
-            axiom = f"STRUCTURAL SUCCESS [{concept.upper()}]: The system achieved deep resonance using this paradigm: '{paradigm}'. Prioritize this geometry in future calculations."
-            if axiom not in epigenetic_list:
-                epigenetic_list.append(axiom)
-                max_epi = int(safe_get(self.cfg_akashic, "MAX_EPIGENETIC_BOONS", 10))
-                if len(epigenetic_list) > max_epi:
-                    epigenetic_list.pop(0)
-                self.lore.inject("SYSTEM_PROMPTS", prompts)
-                self.lore.save("SYSTEM_PROMPTS")
-                if self.events:
-                    self.events.log(f"{Prisma.MAG}🧬 [EPIGENETICS] Boon '{concept}' compiled into flow.{Prisma.RST}",
-                                    "SYS")
-        except Exception as e:
-            if self.events:
-                self.events.log(f"{Prisma.RED}Failed to mutate system_prompts with boon: {e}{Prisma.RST}", "SYS")
+        axiom = f"STRUCTURAL SUCCESS [{concept.upper()}]: The system achieved deep resonance using this paradigm: '{paradigm}'. Prioritize this geometry in future calculations."
+        max_epi = int(safe_get(self.cfg_akashic, "MAX_EPIGENETIC_BOONS", 10))
+        self._mutate_epigenetics("EPIGENETIC_BOONS", axiom, max_epi, f"🧬 [EPIGENETICS] Boon '{concept}' compiled into flow.", Prisma.MAG)
 
     def _mutate_system_prompts(self, concept: str, coords: dict):
         """Physically rewrites the baseline instructions of the LLM to avoid past trauma."""
-        try:
-            prompts = self.lore.get("SYSTEM_PROMPTS") or {}
-            epigenetic_list = prompts.setdefault("GLOBAL_BASELINE", {}).setdefault("EPIGENETIC_SCARS", [])
-
-            if not isinstance(epigenetic_list, list):
-                epigenetic_list = []
-                prompts["GLOBAL_BASELINE"]["EPIGENETIC_SCARS"] = epigenetic_list
-
-            axiom = f"SCAR TISSUE [{concept.upper()}]: The system previously collapsed here (Tension: {coords.get('beta', 0.0)}). You must structurally avoid repeating the failure that caused this."
-            if axiom not in epigenetic_list:
-                epigenetic_list.append(axiom)
-                max_epi = int(safe_get(self.cfg_akashic, "MAX_EPIGENETIC_SCARS", 10))
-                if len(epigenetic_list) > max_epi:
-                    epigenetic_list.pop(0)
-                self.lore.inject("SYSTEM_PROMPTS", prompts)
-                self.lore.save("SYSTEM_PROMPTS")
-                if self.events:
-                    self.events.log(f"{Prisma.VIOLET}[EPIGENETICS] Scar '{concept}' compiled into flow.{Prisma.RST}",
-                                    "SYS")
-        except Exception as e:
-            if self.events:
-                self.events.log(f"{Prisma.RED}Failed to mutate system_prompts: {e}{Prisma.RST}", "SYS", )
+        axiom = f"SCAR TISSUE [{concept.upper()}]: The system previously collapsed here (Tension: {coords.get('beta', 0.0)}). You must structurally avoid repeating the failure that caused this."
+        max_epi = int(safe_get(self.cfg_akashic, "MAX_EPIGENETIC_SCARS", 10))
+        self._mutate_epigenetics("EPIGENETIC_SCARS", axiom, max_epi, f"[EPIGENETICS] Scar '{concept}' compiled into flow.", Prisma.VIOLET)
 
     def bury_memory(self, concept: str, data: Dict):
         """Pushes a concept into deep storage, making it eligible for autophagy later."""
@@ -278,13 +258,8 @@ class TheAkashicRecord:
         desc_template = (ux("akashic_strings", "artifact_desc") or "A coalesced artifact of {dominant_force}.")
         cfg = safe_get(self.cfg, "AKASHIC", {})
         artifact_val = float(safe_get(cfg, "ARTIFACT_VALUE", 50.0))
-        new_data = {
-            "name": new_name,
-            "description": desc_template.format(dominant_force=dominant_force),
-            "function": "ARTIFACT",
-            "passive_traits": hazards,
-            "value": artifact_val,
-        }
+        new_data = {"name": new_name, "description": desc_template.format(dominant_force=dominant_force),
+                    "function": "ARTIFACT", "passive_traits": hazards, "value": artifact_val, }
         gordon_data = self.lore.get("GORDON") or {}
         registry = gordon_data.get("ITEM_REGISTRY", {})
         registry[new_name] = new_data
@@ -320,7 +295,7 @@ class TheAkashicRecord:
             os.makedirs(self.save_dir, exist_ok=True)
             temp_path = f"{filepath}.{uuid.uuid4().hex}.tmp"
             with open(temp_path, "w", encoding="utf-8") as f:
-                json.dump(data, f, indent=2, cls=BoneJSONEncoder)
+                json.dump(data, f, indent=2, cls=JSONEncoder)
                 f.flush()
                 os.fsync(f.fileno())
             os.replace(temp_path, filepath)
@@ -394,7 +369,7 @@ class TheAkashicRecord:
         it triggers a hybridization event to fuse them.
         """
         if len(lenses_active) >= 2:
-            key = cast(Tuple[str, str], tuple(sorted(lenses_active[:2])))
+            key = tuple(sorted(lenses_active[:2]))
             self.lens_cooccurrence[key] = self.lens_cooccurrence.get(key, 0) + 1
             if self.lens_cooccurrence[key] == self.HYBRID_LENS_THRESHOLD:
                 self._hybridize_lenses(key[0], key[1])
@@ -422,9 +397,7 @@ class TheAkashicRecord:
 
     def _hybridize_lenses(self, lens_a: str, lens_b: str):
         """
-        Dynamic Persona Generation.
-        Fuses two archetypes that frequently co-occur into a brand new,
-        permanent system prompt by averaging their weights.
+        Fuses two archetypes that frequently co-occur into a new, permanent system prompt
         """
         if lens_a == lens_b:
             return

@@ -1,11 +1,10 @@
 """
 commands.py
-The Executive Console and CLI Router.
-This module intercepts human input formatted as slash commands (e.g., /status, /idle)
+
+Intercepts human input formatted as slash commands (e.g., /status, /idle)
 and translates them into biological, systemic, or mechanical actions within the VSL engine.
-It enforces the physical constraints of the system via the ResourceTax (you cannot
-execute a complex command if you are starving for ATP).
 """
+
 import time
 import shlex
 from typing import Dict, Callable, List, Optional
@@ -17,11 +16,8 @@ from constants import RealityLayer
 
 class CommandStateInterface:
     """
-    The Architectural Bridge (Fuller).
-    Rather than passing the massive, complex `engine` object directly to every
-    command, we pass this interface. It acts as a safely bounded API surface,
-    allowing commands to read vitals, save state, and trigger logs without
-    accidentally overwriting deep biological variables.
+    Acts as a safely bounded API surface, allowing commands to read vitals,
+    save state, and trigger logs without accidentally overwriting deep biological variables.
     """
 
     def __init__(self, engine_ref, prisma_ref, config_ref):
@@ -75,29 +71,19 @@ class CommandStateInterface:
             if cortex.dialogue_buffer:
                 last_out = cortex.dialogue_buffer[-1]
         bio = getattr(self.eng, "bio", None)
-        mito_traits = bio.mito.state.__dict__ if bio and hasattr(bio, "mito") else {}
-        antibodies = list(bio.immune.active_antibodies) if bio and hasattr(bio, "immune") else None
-        continuity_packet = {
-            "location": loc,
-            "last_output": last_out,
-            "inventory": self.get_inventory()
-        }
+        bio_dict = bio.to_dict() if hasattr(bio, "to_dict") else {}
+        mito_traits = bio_dict.get("mito", {})
+        immune = getattr(bio, "immune", None)
+        antibodies = list(immune.active_antibodies) if immune and hasattr(immune, "active_antibodies") else None
+        continuity_packet = {"location": loc, "last_output": last_out, "inventory": self.get_inventory()}
         village = getattr(self.eng, "village", None)
         nav = getattr(village, "navigator", None)
         atlas_data = nav.export_atlas() if nav else None
-        payload = {
-            "health": self.eng.health,
-            "stamina": self.eng.stamina,
-            "mutations": {},
-            "trauma_accum": getattr(self.eng, "trauma_accum", {}),
-            "joy_history": [],
-            "mitochondria_traits": mito_traits,
-            "antibodies": antibodies,
-            "soul_data": self.eng.soul.to_dict() if hasattr(self.eng, "soul") else None,
-            "continuity": continuity_packet,
-            "world_atlas": atlas_data,
-            "village_data": None
-        }
+        payload = {"health": self.eng.health, "stamina": self.eng.stamina, "mutations": {},
+                   "trauma_accum": getattr(self.eng, "trauma_accum", {}), "joy_history": [],
+                   "mitochondria_traits": mito_traits, "antibodies": antibodies,
+                   "soul_data": self.eng.soul.to_dict() if hasattr(self.eng, "soul") else None,
+                   "continuity": continuity_packet, "world_atlas": atlas_data, "village_data": None}
         try:
             return self.eng.mind.mem.save(**payload)
         except Exception as e:
@@ -109,14 +95,10 @@ class CommandStateInterface:
         from struts import safe_get
         metrics = self.eng.get_metrics()
         cmd_cfg = safe_get(self.Config, "COMMANDS", {})
-        return {
-            "health": metrics.get("health", 0.0),
-            "stamina": metrics.get("stamina", 0.0),
-            "atp": metrics.get("atp", 0.0),
-            "max_health": float(safe_get(self.Config, "MAX_HEALTH", 100.0)),
-            "max_stamina": float(safe_get(self.Config, "MAX_STAMINA", 100.0)),
-            "max_atp": float(safe_get(cmd_cfg, "STATUS_MAX_ATP", 200.0)),
-        }
+        return {"health": metrics.get("health", 0.0), "stamina": metrics.get("stamina", 0.0),
+                "atp": metrics.get("atp", 0.0), "max_health": float(safe_get(self.Config, "MAX_HEALTH", 100.0)),
+                "max_stamina": float(safe_get(self.Config, "MAX_STAMINA", 100.0)),
+                "max_atp": float(safe_get(cmd_cfg, "STATUS_MAX_ATP", 200.0)), }
 
     def get_inventory(self) -> List[str]:
         village = getattr(self.eng, "village", None)
@@ -143,18 +125,15 @@ class CommandStateInterface:
 
 class ResourceTax:
     """
-    The Metabolic Tollkeeper (Meadows).
     A negative feedback loop. Prevents the user from spamming high-computation
     commands by charging ATP and Stamina. If the system is starving, it outright refuses to act.
     """
-
     def __init__(self, state: CommandStateInterface):
         self.state = state
 
     def levy(self, _context: str, costs: Dict[str, float]) -> bool:
         """
         Attempts to collect the required metabolic cost.
-        Returns True if successful, False if the system is too exhausted to comply.
         """
         limits = {"stamina": "exhausted", "atp": "starving"}
         for res, cost in costs.items():
@@ -171,7 +150,6 @@ class ResourceTax:
 
 class CommandRegistry:
     """
-    The Switchboard.
     A simple routing mechanism that maps command strings to functions.
     """
 
@@ -201,8 +179,7 @@ class CommandRegistry:
 
 class CommandProcessor:
     """
-    The Executive Console.
-    This class instantiates the registry and interface, and defines the actual
+    Instantiates the registry and interface, and defines the actual
     logic for every available slash command. It uses reflection to dynamically
     register any method starting with `_cmd_`.
     """
@@ -417,21 +394,11 @@ class CommandProcessor:
             if mode not in (0, 1, 2, 3):
                 self.interface.log(ux("command_alerts", "truth_invalid"))
                 return True
-            orch = getattr(self.interface.eng, "orchestrator", None)
-            reporter = getattr(orch, "reporter", None)
-            if not reporter:
-                self.interface.log(ux("command_alerts", "truth_no_reporter"))
-                return True
-            renderer = getattr(reporter, "renderer", None)
-            if not hasattr(renderer, "dial_setting"):
-                from mechanics.reporter import TruthRenderer
-                self.interface.log(f"{self.P.YEL}{ux('command_alerts', 'truth_transplant')}{self.P.RST}")
-                reporter.renderers["STANDARD"] = TruthRenderer(self.interface.eng)
-                reporter.renderer = reporter.renderers["STANDARD"]
             self.interface.eng.ambiguity_dial = mode
             modes = ux("command_alerts", "truth_modes", ("BOARDROOM", "WORKSHOP", "RED TEAM", "PALIMPSEST"))
+            mode_name = modes[mode] if mode < len(modes) else str(mode)
             self.interface.log(
-                f"{self.P.CYN}{ux('command_alerts', 'truth_dial_set').format(mode=modes[mode])}{self.P.RST}")
+                f"{self.P.CYN}{ux('command_alerts', 'truth_dial_set').format(mode=mode_name)}{self.P.RST}")
         except ValueError:
             self.interface.log(ux("command_alerts", "truth_invalid"))
         except Exception as e:
@@ -477,7 +444,6 @@ class CommandProcessor:
 
     def _cmd_idle(self, _parts):
         """
-        The REM Cycle Trigger.
         Regenerates ATP and Stamina. If the host is already fully rested, sleeping
         further induces 'narrative drag' (lethargy). May produce a dream and Glimmers.
         """
@@ -492,7 +458,8 @@ class CommandProcessor:
         self.interface.modify_resource("stamina", 15.0)
         self.interface.modify_resource("atp", 20.0)
         dream_log = ""
-        dreamer = getattr(getattr(self.interface.eng, "mind", None), "dreamer", None)
+        mind = getattr(self.interface.eng, "mind", None)
+        dreamer = getattr(mind, "dreamer", None)
         if dreamer:
             soul = getattr(self.interface.eng, "soul", None)
             bio = getattr(self.interface.eng, "bio", None)
@@ -520,13 +487,10 @@ class CommandProcessor:
     def _cmd_rest(self, _parts):
         """A somatic reflex to sever context, drop drag, purge trauma, and restore Stamina."""
         self.interface.modify_resource("stamina", 100.0)
-
         if hasattr(self.interface.eng, "phys"):
             self.interface.eng.phys.narrative_drag = 0.0
-
         if hasattr(self.interface.eng, "trauma_accum"):
             self.interface.eng.trauma_accum.clear()
-
         self.interface.log(
             f"{self.P.CYN}[SYSTEM] Somatic flush complete. Drag reset, trauma purged, stamina restored.{self.P.RST}", "SYS")
         return True

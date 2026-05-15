@@ -4,7 +4,6 @@ from dataclasses import dataclass
 from typing import Dict, List
 from presets import BoneConfig
 
-
 @dataclass
 class GeodesicVector:
     """
@@ -17,7 +16,6 @@ class GeodesicVector:
     coherence: float
     abstraction: float
     dimensions: Dict[str, float]
-
 
 class GeodesicEngine:
     """
@@ -88,7 +86,6 @@ class GeodesicEngine:
                     masses["heavy"] * 0.5 + 1.0)
         signal_drag_mult = float(safe_get(t_cfg, "SIGNAL_DRAG_MULTIPLIER", 1.0))
         kinetic_gain = float(safe_get(t_cfg, "KINETIC_GAIN", 1.0))
-
         raw_comp = (((visc - lift) / safe_vol) * get_const("COMPRESSION_SCALAR", 2.0) * signal_drag_mult)
         str_mass = max(0.0, masses["heavy"] + masses["constructive"] + masses["harvest"] - masses["void"] * 0.5)
         coherence_val = min(1.0, str_mass / max(1.0, shapley_thresh))

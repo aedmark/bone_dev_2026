@@ -1,16 +1,13 @@
 """machine/crucible.py
-The Crucible is the thermal regulator and safety valve of the physics engine.
-It monitors the relationship between conversational intensity ('voltage') and
-logical coherence ('kappa' or structure).
-Its primary function is to dynamically apply 'narrative drag' (friction)
-to prevent the system from entering a terminal hallucination or sycophantic loop.
+
+Thermal regulator and safety valve of the physics engine.
 """
+
 import math
 from typing import Tuple, Optional, Any
 from core import LoreManifest
 from struts import ux, safe_get, safe_set
 from presets import BoneConfig
-
 
 class TheCrucible:
     def __init__(self, config_ref=None):
@@ -49,9 +46,8 @@ class TheCrucible:
 
     def audit_fire(self, physics: Any) -> Tuple[str, float, Optional[str]]:
         """
-        The core dynamic feedback loop. Evaluates current system voltage against
-        structural integrity, adjusting 'narrative drag' to maintain equilibrium.
-        Returns the new state, the applied adjustment, and an optional narrative log.
+        Evaluates current system voltage against structural integrity, adjusting 'narrative drag'
+        to maintain equilibrium. Returns the new state, the applied adjustment, and an optional narrative log.
         """
         current_drag = float(safe_get(physics, "narrative_drag", 0.0))
         if math.isinf(current_drag) or current_drag > 900.0:
@@ -69,10 +65,8 @@ class TheCrucible:
         adjustment = self.instability_index * 0.5
         if current_drag < 1.0 and adjustment < 0:
             adjustment *= 0.1
-
         final_drag = round(max(0.0, min(10.0, current_drag + adjustment)), 2)
         safe_set(physics, "narrative_drag", final_drag)
-
         msg = None
         if abs(adjustment) > 0.1:
             fallback = "TIGHTENING" if adjustment > 0 else "RELAXING"
@@ -80,13 +74,11 @@ class TheCrucible:
             direction = ux("machine_strings", ux_key) or fallback
             template = ux("physics_strings", "crucible_regulator") or "[REGULATOR]: {direction} | Drag: {current:.1f} -> {new:.1f}"
             msg = template.format(direction=direction, current=current_drag, new=final_drag)
-
         surge = safe_get(physics, "system_surge_event", False)
         if surge:
             self.active_state = "SURGE"
             msg_template = ux("physics_strings", "crucible_surge") or "[SURGE]: Voltage spike detected ({voltage:.1f})."
             return "SURGE", 0.0, msg_template.format(voltage=voltage)
-
         if voltage > 18.0:
             if structure > 0.5:
                 gain = voltage * 0.1
@@ -101,6 +93,5 @@ class TheCrucible:
                 self.active_state = "MELTDOWN"
                 msg_template = ux("physics_strings", "crucible_meltdown") or "[MELTDOWN]: Structure failing under voltage. ({damage:.1f} Damage)"
                 return "MELTDOWN", damage, msg_template.format(damage=damage)
-
         self.active_state = "REGULATED"
         return "REGULATED", adjustment, msg

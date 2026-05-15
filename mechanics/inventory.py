@@ -17,6 +17,7 @@ from presets import BoneConfig
 from core import LoreManifest
 from struts import ux, ux_format, safe_get, safe_set
 from constants import Prisma
+from mechanics.tools import TheTclWeaver
 
 @dataclass
 class Item:
@@ -62,6 +63,25 @@ class GordonKnot:
         self.acquisition_verbs = []
         self.abandonment_phrases = []
         self.load_config()
+
+    def apply_filters(self, user_message: str, active_physics: dict) -> str:
+        """Applies inventory-based mutations to the raw user input before processing."""
+        has_comb = any("CUT_THE_CRAP" in (self.get_item_data(i).passive_traits if self.get_item_data(i) else []) for i in self.inventory)
+
+        if has_comb:
+            try:
+                current_chi = float(safe_get(active_physics, "entropy", safe_get(active_physics, "chi", 0.5)))
+                pruned = TheTclWeaver.get_instance().quantum_comb(user_message, chi=current_chi)
+                if pruned != user_message:
+                    if self.events:
+                        self.events.log(
+                            f"{Prisma.CYN}Gordon rakes the comb through your prompt. Fluff discarded. -> '{pruned}'{Prisma.RST}",
+                            "SYS"
+                        )
+                    return pruned
+            except ImportError:
+                pass
+        return user_message
 
     def enforce_object_action_coupling(self, user_input: str, current_zone: str) -> Optional[str]:
         if self.mode in ["CREATIVE", "CONVERSATION", "TECHNICAL"]:
