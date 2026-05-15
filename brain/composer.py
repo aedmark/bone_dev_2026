@@ -21,7 +21,6 @@ class AuthError(SynapseError):
 class TransientError(SynapseError):
     pass
 
-
 class LLMInterface:
     def __init__(self, events_ref: Optional[EventBus] = None, provider: str = None, base_url: str = None,
                  api_key: str = None, model: str = None, dreamer: Any = None, config_ref=None, ):
@@ -550,16 +549,21 @@ class ResponseValidator:
         clean_text = self._MULTI_SLOP.sub("", self._SLOP_PATTERN.sub("", response)).strip()
         active_mode = _state.get("meta", {}).get("active_mode", "ADVENTURE")
         patterns = [self._internals_pattern] + ([self._think_pattern] if active_mode != "TECHNICAL" else [])
+
+        def _extract_thought(match):
+            extracted_meta_logs.extend(
+                f"[THOUGHT]: {line.strip()}" for line in match.group(1).split("\n") if line.strip())
+            return ""
+
         for pattern in patterns:
-            for match in pattern.finditer(clean_text):
-                extracted_meta_logs.extend(
-                    f"[THOUGHT]: {line.strip()}" for line in match.group(1).split("\n") if line.strip())
-            clean_text = pattern.sub("", clean_text)
-        for match in self._file_pattern.finditer(clean_text):
+            clean_text = pattern.sub(_extract_thought, clean_text)
+
+        def _extract_file(match):
             safe_content = match.group(2).strip().replace("\n", "|||NEWLINE|||")
-            extracted_meta_logs.append(
-                f"[SUBSTRATE_QUEUE] {match.group(1).strip()}:::{safe_content}")
-        clean_text = self._file_pattern.sub("", clean_text)
+            extracted_meta_logs.append(f"[SUBSTRATE_QUEUE] {match.group(1).strip()}:::{safe_content}")
+            return ""
+
+        clean_text = self._file_pattern.sub(_extract_file, clean_text)
         for pattern, replacement in self.scrub_patterns:
             clean_text = pattern.sub(replacement, clean_text)
         clean_lines = []

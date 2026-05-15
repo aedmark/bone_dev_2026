@@ -1,4 +1,4 @@
-"""cortex.py"""
+"""brian/cortex.py"""
 
 import random
 import re

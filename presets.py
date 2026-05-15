@@ -3,6 +3,7 @@
 import copy
 import json
 import os
+from types import SimpleNamespace
 from typing import Dict, Any, List
 from struts import ux
 
@@ -157,11 +158,11 @@ class BoneConfig:
                 tuning_data[sector] = {}
         cls._TEMPLATE_DATA = tuning_data
         for sector_name, properties in tuning_data.items():
-            setattr(cls, sector_name, type('ConfigSector', (object,), copy.deepcopy(properties))())
+            setattr(cls, sector_name, SimpleNamespace(**copy.deepcopy(properties)))
 
     def __init__(self):
         for sector_name, properties in self._TEMPLATE_DATA.items():
-            setattr(self, sector_name, type('ConfigSector', (object,), copy.deepcopy(properties))())
+            setattr(self, sector_name, SimpleNamespace(**copy.deepcopy(properties)))
 
     def load_preset(self, preset_dict: Dict[str, Any]) -> List[str]:
         logs = []
@@ -204,28 +205,21 @@ class BoneConfig:
             errors.append("Decay Rate inverted. Clamped to absolute zero.")
         return errors
 
-    @staticmethod
-    def check_pareidolia(words: List[str]) -> Any:
-        if "face" in words and "smoke" in words:
-            return True, ux("config_strings", "pareidolia_smoke") or ""
-        return False, ""
-
     def reconcile_state(self, physics_packet: Any):
         from struts import safe_get, safe_set
-        e_obj = safe_get(physics_packet, "energy") or {}
-        s_obj = safe_get(physics_packet, "space") or {}
-        v_val = safe_get(physics_packet, "voltage")
-        v_val = safe_get(e_obj, "voltage") if v_val is None else v_val
-        raw_v = float(v_val if v_val is not None else 5.0)
-        v_floor = getattr(self.PHYSICS, "VOLTAGE_FLOOR", 0.0)
-        v_max = getattr(self.PHYSICS, "VOLTAGE_MAX", 100.0)
-        new_v = max(v_floor, min(raw_v, v_max))
-        d_val = safe_get(physics_packet, "narrative_drag")
-        d_val = safe_get(s_obj, "narrative_drag") if d_val is None else d_val
-        raw_d = float(d_val if d_val is not None else 1.0)
-        d_floor = getattr(self.PHYSICS, "DRAG_FLOOR", 0.0)
-        d_halt = getattr(self.PHYSICS, "DRAG_HALT", self.MAX_DRAG_LIMIT)
-        new_d = max(d_floor, min(raw_d, d_halt))
+
+        def _clamp(key, sub_key, default, floor_attr, ceil_attr, ceil_def):
+            val = safe_get(physics_packet, key)
+            if val is None:
+                sub = safe_get(physics_packet, sub_key) or {}
+                val = safe_get(sub, key)
+            raw = float(val if val is not None else default)
+            floor_val = getattr(self.PHYSICS, floor_attr, 0.0)
+            ceil_val = getattr(self.PHYSICS, ceil_attr, ceil_def)
+            return max(floor_val, min(raw, ceil_val))
+
+        new_v = _clamp("voltage", "energy", 5.0, "VOLTAGE_FLOOR", "VOLTAGE_MAX", 100.0)
+        new_d = _clamp("narrative_drag", "space", 1.0, "DRAG_FLOOR", "DRAG_HALT", self.MAX_DRAG_LIMIT)
         safe_set(physics_packet, "voltage", new_v)
         safe_set(physics_packet, "narrative_drag", new_d)
         return physics_packet

@@ -35,7 +35,7 @@ class SharedLatticeDriver:
         self.u.T_u = self._get_f(input_phys, "T", "trauma", default=getattr(self.u, "T_u", 0.0))
         sys_beta, sys_chi = sys_phys.beta, sys_phys.chi
         sys_val, sys_psi = sys_phys.valence, sys_phys.psi
-        sys_drag = sys_phys.narrative_drag or 1.0
+        sys_drag = float(sys_phys.narrative_drag) if sys_phys.narrative_drag is not None else 1.0
         dp_trauma = 0.0
         if sys_phys.drag_profile is not None:
             dp = sys_phys.drag_profile

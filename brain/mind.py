@@ -1,4 +1,4 @@
-"""mind.py"""
+"""brain/mind.py"""
 
 import math
 import random
@@ -331,8 +331,9 @@ class DreamEngine:
         if not sources:
             sources = self.dream_lore.get(subtype.upper(), ["You stare into the static."])
         if isinstance(sources, dict):
-            sources = [item for v in sources.values() for item in (v if isinstance(v, list) else [v])] or [
-                "The void stares back."]
+            flat = []
+            for v in sources.values(): flat.extend(v if isinstance(v, list) else [v])
+            sources = flat or ["The void stares back."]
         if self.llm:
             lore_sample = ", ".join(random.sample(sources, min(3, len(sources))))
             prompt = (f"SYSTEM_INSTRUCTION: You are the dream-engine of a cybernetic orgnaism. "
@@ -367,7 +368,9 @@ class DreamEngine:
         category = "NIGHTMARES" if trauma_level > 0.5 else "SURREAL"
         templates = self.dream_lore.get(category, [])
         if isinstance(templates, dict):
-            templates = [item for v in templates.values() for item in (v if isinstance(v, list) else [v])]
+            flat = []
+            for v in templates.values(): flat.extend(v if isinstance(v, list) else [v])
+            templates = flat
         if not templates:
             return "The walls breathe.", 0.1
         from mechanics.tools import TheTclWeaver

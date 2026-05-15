@@ -2,7 +2,7 @@
 
 from typing import Dict, Optional, Any
 from presets import BoneConfig
-from struts import ux, safe_get
+from struts import ux, ux_format, safe_get
 from drivers.registry import VSLState
 from drivers.liminal import LiminalModule
 from drivers.syntax import SyntaxModule
@@ -74,6 +74,7 @@ class BoneConsultant:
         if soul_snapshot:
             arch = soul_snapshot.get("archetype", "UNKNOWN")
             muse = (soul_snapshot.get("obsession") or {}).get("title", "None")
-            msg = ux("driver_strings", "vsl_layer_muse") or "Layer Focus: {arch} | Muse: {muse}"
-            directives.append(msg.format(arch=arch, muse=muse))
+            directives.append(
+                ux_format("driver_strings", "vsl_layer_muse", default="Layer Focus: {arch} | Muse: {muse}", arch=arch,
+                          muse=muse))
         return "\n".join(directives)

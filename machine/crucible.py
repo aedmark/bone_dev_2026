@@ -3,7 +3,7 @@
 import math
 from typing import Tuple, Optional, Any
 from core import LoreManifest
-from struts import ux, safe_get, safe_set
+from struts import ux, ux_format, safe_get, safe_set
 from presets import BoneConfig
 
 class TheCrucible:
@@ -56,13 +56,14 @@ class TheCrucible:
             fallback = "TIGHTENING" if adjustment > 0 else "RELAXING"
             ux_key = "crucible_tightening" if adjustment > 0 else "crucible_relaxing"
             direction = ux("machine_strings", ux_key) or fallback
-            template = ux("physics_strings", "crucible_regulator") or "[REGULATOR]: {direction} | Drag: {current:.1f} -> {new:.1f}"
-            msg = template.format(direction=direction, current=current_drag, new=final_drag)
+            msg = ux_format("physics_strings", "crucible_regulator",
+                            default="[REGULATOR]: {direction} | Drag: {current:.1f} -> {new:.1f}",
+                            direction=direction, current=current_drag, new=final_drag)
         surge = safe_get(physics, "system_surge_event", False)
         if surge:
             self.active_state = "SURGE"
-            msg_template = ux("physics_strings", "crucible_surge") or "[SURGE]: Voltage spike detected ({voltage:.1f})."
-            return "SURGE", 0.0, msg_template.format(voltage=voltage)
+            msg = ux_format("physics_strings", "crucible_surge", default="[SURGE]: Voltage spike detected ({voltage:.1f}).", voltage=voltage)
+            return "SURGE", 0.0, msg
         if voltage > 18.0:
             if structure > 0.5:
                 gain = voltage * 0.1
@@ -70,12 +71,12 @@ class TheCrucible:
                 base_cap = float(safe_get(cfg, "CRUCIBLE_VOLTAGE_CAP", 20.0))
                 self.max_voltage_cap = min(base_cap * 3.0, self.max_voltage_cap + gain)
                 self.active_state = "RITUAL"
-                msg_template = ux("physics_strings", "crucible_ritual") or "[RITUAL]: High tension converted to capacity. (+{gain:.1f} Cap)"
-                return "RITUAL", gain, msg_template.format(gain=gain)
+                msg = ux_format("physics_strings", "crucible_ritual", default="[RITUAL]: High tension converted to capacity. (+{gain:.1f} Cap)", gain=gain)
+                return "RITUAL", gain, msg
             else:
                 damage = voltage * 0.5
                 self.active_state = "MELTDOWN"
-                msg_template = ux("physics_strings", "crucible_meltdown") or "[MELTDOWN]: Structure failing under voltage. ({damage:.1f} Damage)"
-                return "MELTDOWN", damage, msg_template.format(damage=damage)
+                msg = ux_format("physics_strings", "crucible_meltdown", default="[MELTDOWN]: Structure failing under voltage. ({damage:.1f} Damage)", damage=damage)
+                return "MELTDOWN", damage, msg
         self.active_state = "REGULATED"
         return "REGULATED", adjustment, msg

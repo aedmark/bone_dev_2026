@@ -5,7 +5,7 @@ from collections import deque, Counter
 from dataclasses import dataclass
 from typing import Dict, Tuple, Optional, Any
 from core import LoreManifest
-from struts import ux, safe_get, safe_set
+from struts import ux, ux_format, safe_get, safe_set
 from presets import BoneConfig
 from constants import Prisma
 from physics.models import UserInferredState, SharedDynamics
@@ -40,17 +40,15 @@ class HostHealth:
 class CoherenceAnchor:
     @staticmethod
     def compress_anchor(soul_state: Dict, physics_state: Dict, max_tokens=200) -> str:
-        template = ux("symbiosis_strings", "anchor_compressed")
-        if not template:
-            return ""
-        location = safe_get(physics_state, "zone", "VOID")
-        vitals = f"V:{safe_get(physics_state, 'voltage', 0):.1f}"
+        location = str(safe_get(physics_state, "zone", "VOID"))
+        vitals = f"V:{float(safe_get(physics_state, 'voltage', 0)):.1f}"
         top_traits = Counter(soul_state.get("traits") or {}).most_common(3)
         traits_formatted = ",".join(f"{k[:3]}:{v:.1f}" for k, v in top_traits)
-        anchor = template.format(loc=location, vits=vitals, traits=traits_formatted)
+        anchor = ux_format("symbiosis_strings", "anchor_compressed",
+                           default=f"[{location}] {vitals} | {traits_formatted}",
+                           loc=location, vits=vitals, traits=traits_formatted)
         limit = max_tokens * 4
         return f"{anchor[:limit]}..." if len(anchor) > limit else anchor
-
 
 class DiagnosticConfidence:
     def __init__(self, persistence_threshold=None, config_ref=None):
@@ -103,9 +101,9 @@ class SymbiontVoice:
         self.personality = personality_matrix or {}
 
     def opine(self, clean_words: list, voltage: float) -> Tuple[float, str]:
-        safe_words = clean_words or []
-        hits = len(set(safe_words).intersection(self.archetypes))
-        score = (hits / max(1, len(safe_words))) * 10.0
+        unique_words = set(clean_words or [])
+        hits = len(unique_words.intersection(self.archetypes))
+        score = (hits / max(1, len(unique_words))) * 10.0
         return score, self._get_comment(score, voltage)
 
     def _get_comment(self, score, voltage):
@@ -177,22 +175,15 @@ class SymbiosisManager:
                 self._log_event(f"{Prisma.GRY}Trust deepens through friction. (+1 G_pool){Prisma.RST}", "SYS")
         beth = (self.shared.phi * 0.6) + (self.u.E_u * 0.4)
         safe_set(physics, "beth", beth)
-        prev_beta = safe_get(physics, "beta_index")
-        if prev_beta is not None:
-            safe_set(physics, "beta_index", (float(prev_beta) * 0.7) + (beth * 0.3))
-        else:
-            safe_set(physics, "beta_index", beth)
+        curr_beta = float(safe_get(physics, "beta_index", beth))
+        safe_set(physics, "beta_index", (curr_beta * 0.7) + (beth * 0.3))
         setattr(self.shared, "beth", beth)
         p_m = float(safe_get(physics, "stamina", 100.0))
         if self.u.E_u > 0.7 and p_m > 50.0:
-            p_transfer = (p_m * 0.1) * self.shared.phi
-            safe_set(physics, "p_transfer", p_transfer)
+            safe_set(physics, "p_transfer", (p_m * 0.1) * self.shared.phi)
         safe_set(physics, "phi", self.shared.phi)
-        prev_phi = safe_get(physics, "resonance")
-        if prev_phi is not None:
-            safe_set(physics, "resonance", (float(prev_phi) * 0.7) + (self.shared.phi * 0.3))
-        else:
-            safe_set(physics, "resonance", self.shared.phi)
+        curr_phi = float(safe_get(physics, "resonance", self.shared.phi))
+        safe_set(physics, "resonance", (curr_phi * 0.7) + (self.shared.phi * 0.3))
         has_override = "[safe]" in text_lower or "#override" in text_lower
         if has_override:
             if self.shared.g_pool >= 1:

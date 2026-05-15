@@ -1,5 +1,5 @@
-"""mechanics/projector.py
-"""
+"""mechanics/projector.py"""
+
 import re
 from typing import Any, Dict, List
 import markdown
@@ -18,7 +18,6 @@ def beautify_thoughts(text: str) -> str:
         inner = "\n".join(
             f"{Prisma.CYN}  │ {Prisma.GRY}{line.strip()}{Prisma.RST}" for line in content.split("\n") if line.strip())
         return f"{Prisma.CYN}  ┌─ {Prisma.MAG}[ COGNITIVE SUBSTRATE ]{Prisma.RST}\n{inner}\n{Prisma.CYN}  └─{Prisma.RST}"
-
     return _THOUGHT_PATTERN.sub(replacer, text)
 
 class Projector:
@@ -280,7 +279,7 @@ class SoulDashboard:
         max_dig = float(safe_get(cfg, "DIGNITY_MAX", 100.0))
         clamped_dig = max(0.0, min(max_dig, dig))
         max_bar_width = int(max_dig / d_ratio)
-        filled = int(clamped_dig / d_ratio)
+        filled = min(max_bar_width, int(clamped_dig / d_ratio))
         empty = max(0, max_bar_width - filled)
         c_fill = ux("status_menu", "bar_filled") or "█"
         c_empty = ux("status_menu", "bar_empty") or "░"

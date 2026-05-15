@@ -25,7 +25,6 @@ class SystemEmbryo:
     soul_legacy: Optional[Dict] = None
     continuity: Optional[Dict] = None
 
-
 class BoneArchitect:
     @staticmethod
     def _construct_mind(events, lex, config_ref=None) -> Tuple[MindSystem, LimboLayer]:
@@ -90,12 +89,9 @@ class BoneArchitect:
             msg = ux("machine_strings", "arch_spore_fail") or "[ARCHITECT]: Spore resurrection failed: {e}"
             events.log(f"{Prisma.RED}{msg.format(e=e)}{Prisma.RST}", "CRIT")
             load_result = None
-        results = list(load_result) if isinstance(load_result, (list, tuple)) else []
-        mito_legacy = results[0] if len(results) > 0 else None
-        immune_legacy = results[1] if len(results) > 1 else None
-        soul_legacy = results[2] if len(results) > 2 else {}
-        continuity = results[3] if len(results) > 3 else None
-        atlas = results[4] if len(results) > 4 else None
+        results = (list(load_result) + [None] * 5)[:5] if isinstance(load_result, (list, tuple)) else [None] * 5
+        mito_legacy, immune_legacy, soul_legacy, continuity, atlas = results
+        soul_legacy = soul_legacy or {}
         if mito_legacy:
             embryo.bio.mito.apply_inheritance(mito_legacy)
         if immune_legacy and isinstance(immune_legacy, (list, set)):

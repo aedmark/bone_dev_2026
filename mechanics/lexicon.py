@@ -25,7 +25,7 @@ class LexiconStore:
         self.HIVE_FILENAME = os.path.join(self.save_dir, "cortex_hive.json")
         self.categories = set()
         self.VOCAB: Dict[str, Set[str]] = {}
-        self.LEARNED_VOCAB: Dict[str, Dict[str, int]] = {}
+        self.LEARNED_VOCAB: Dict[str, Dict[str, int]] = defaultdict(dict)
         self.USER_FLAGGED_BIAS = set()
         self.ANTIGEN_REPLACEMENTS = {}
         self.SOLVENTS = set()

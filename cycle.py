@@ -39,10 +39,16 @@ def _native_wls(x: list[float], y: list[float], weights: list[float]) -> float:
     """
     sum_w = sum(weights)
     if sum_w == 0.0: return 0.0
-    mean_x = sum(w * xi for w, xi in zip(weights, x)) / sum_w
-    mean_y = sum(w * yi for w, yi in zip(weights, y)) / sum_w
-    ss_xx = sum(w * xi * xi for w, xi in zip(weights, x)) - sum_w * mean_x * mean_x
-    ss_xy = sum(w * xi * yi for w, xi, yi in zip(weights, x, y)) - sum_w * mean_x * mean_y
+    sum_wx = sum_wy = ss_xx = ss_xy = 0.0
+    for w, xi, yi in zip(weights, x, y):
+        sum_wx += w * xi
+        sum_wy += w * yi
+        ss_xx += w * xi * xi
+        ss_xy += w * xi * yi
+    mean_x, mean_y = sum_wx / sum_w, sum_wy / sum_w
+    ss_xx -= sum_w * mean_x * mean_x
+    ss_xy -= sum_w * mean_x * mean_y
+
     return ss_xy / ss_xx if ss_xx != 0.0 else 0.0
 
 
@@ -78,12 +84,12 @@ def _native_rewire(adj_dict: dict, n_swaps: int) -> dict:
     return adj
 
 def _native_freeze_graph(adj_dict: dict) -> tuple:
+    if not isinstance(adj_dict, dict):
+        return ()
     try:
-        keys = list(adj_dict.keys())
-        safe_items = [(k, adj_dict[k]) for k in keys if k in adj_dict]
+        safe_items = list(adj_dict.items())
     except Exception:
-        safe_items = []
-
+        return ()
     return tuple((k, tuple(sorted(neighbors, key=str))) for k, neighbors in sorted(safe_items, key=lambda x: str(x[0])))
 
 class PhaseExecutor:

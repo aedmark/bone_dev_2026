@@ -1,7 +1,26 @@
 # CHANGELOG.md
 -----------------------------------------------------------
 
-### **BONEAMANITA 20.1.0 "The Ephemeralization Pass"**
+### **BONEAMANITA 20.1.0 "The Substrate Optimization Pass"**
+
+**Changed**
+
+- **Dynamic Allocation Trim (Presets):** Replaced memory-leaking dynamic class proxy generation (`type('ConfigSector'...)`) in `presets.py` with Python's native, highly optimized `types.SimpleNamespace`, heavily reducing object overhead during system boot.
+- **O(N) Traversal & Loop Compression:** Collapsed double-regex passes in the LLM `ResponseValidator`, fused WLS mathematics into single-pass loops (`cycle.py`), and excised double-array lookups across `inventory.py` and `village.py`. Memory iteration now utilizes `dict.fromkeys()` and immutable `tuple()` casting to reduce algorithmic drag.
+- **Cognitive Ergonomics:** Refactored heavy, unreadable list comprehensions (`brain/mind.py`) into clean iterative loops, and aligned massive tuple-trigger blocks (`council.py`) into strict, mathematically readable columns. Excised dead code (`check_pareidolia`) and ghost variables (`metabolism.py`).
+- **Dry State Management:** Streamlined verbose state clamping, duplicated variable lookups, and repetitive initialization blocks across `genesis.py`, `endocrine.py`, and `architect.py`. The engine now trusts `safe_get` to handle nulls natively instead of wrapping it in redundant `if/else` paranoia.
+
+**Fixed**
+
+- **Thread Safety & I/O Fractures (Core):** Deployed `RLock` threading wrappers in `core.py` to seal fatal event-loss vulnerabilities in the `EventBus` and redundant read/write race conditions during `LoreManifest` cache generation. 
+- **Silent Logic Bombs:** Fixed a mathematical anomaly in `lattice.py` where a perfect frictionless state (`0.0`) evaluated to falsy and was forcefully overwritten to `1.0`. Fixed the Symbiont Voice dilution penalty in `symbiosis.py` that artificially silenced voices due to un-normalized arrays. Woke up functionally dead code in `TheRedTeam` (`council.py`) by resolving an un-lowered uppercase string trigger.
+- **Vulnerable UX Formatting:** Routed blind `.format()` string generation across the `drivers`, `body`, and `machine` layers through the `ux_format` safety strut to prevent terminal crash loops when JSON lore values drift or drop brackets.
+- **UI Clipping & String Smashing:** Repaired the terminal formatting visual tear in the Projector's UI health bar by explicitly clamping filled variables before calculating empty space. Resolved the string-smashing output bug in the `Theremin` by dynamically appending to an array and joining with spacing.
+- **Dictionary Null-Pointers:** Switched `LEARNED_VOCAB` (`lexicon.py`) to a `defaultdict(dict)` to prevent runtime KeyError crashes on missing sub-dictionary access. Intercepted JSON `null` poisoning in `village.py` death eulogies with strict Boolean `or` fallbacks.
+
+---
+
+### **BONEAMANITA 20.0.4 "The Ephemeralization Pass"**
 
 **Changed**
 

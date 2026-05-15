@@ -202,8 +202,8 @@ class SemanticEndocrinologist:
     def assess(self, clean_words: List[str], physics: Any) -> SemanticSignal:
         if not clean_words:
             return SemanticSignal()
-        graph_ref = getattr(self.mem, "graph", {}) if self.mem else {}
-        cortical_set = set(getattr(self.mem, "cortical_stack", [])) if self.mem else set()
+        graph_ref = getattr(self.mem, "graph", {})
+        cortical_set = set(getattr(self.mem, "cortical_stack", []))
         word_count = len(clean_words)
         novel_count = 0
         hits = 0

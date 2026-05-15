@@ -160,7 +160,8 @@ class TheAkashicRecord:
     @staticmethod
     def _get_dominant_force(vector_dict: Dict, default: str) -> str:
         safe_vector = vector_dict if isinstance(vector_dict, dict) else {}
-        return max((k for k, v in safe_vector.items() if v is not None), key=safe_vector.get, default=default)
+        clean_vector = {k: v for k, v in safe_vector.items() if v is not None}
+        return max(clean_vector, key=clean_vector.get) if clean_vector else default
 
     @staticmethod
     def _extract_dominant_trigram(physics: Any) -> str:

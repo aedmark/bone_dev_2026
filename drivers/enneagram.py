@@ -31,7 +31,7 @@ class EnneagramDriver:
         weights_cfg = self.weights
         if not isinstance(weights_cfg, dict) or len(weights_cfg) < 2:
             return "NARRATOR", "ACTIVE", "The persona matrix is fractured. Retreating to the baseline Narrator."
-        scores = {k: 0.0 for k in weights_cfg.keys()}
+        scores = dict.fromkeys(weights_cfg, 0.0)
         if "NARRATOR" in scores:
             scores["NARRATOR"] += 2.0
         if p_zone == safe_get(getattr(self.cfg, "SANCTUARY", {}), "ZONE", "SANCTUARY") or (

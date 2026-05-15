@@ -316,7 +316,7 @@ class GordonKnot:
         v = float(safe_get(physics_ref, "voltage", 0.0))
         d = float(safe_get(physics_ref, "narrative_drag", 0.0))
         k = float(safe_get(physics_ref, "kappa", 0.5))
-        for name in list(self.inventory):
+        for name in tuple(self.inventory.keys()):
             item = self.get_item_data(name)
             if not item or not item.reflex_trigger:
                 continue

@@ -18,6 +18,7 @@ from struts import ux, ux_format, safe_get
 from physics.models import PhysicsPacket, UserInferredState, SharedDynamics
 
 class JSONEncoder(json.JSONEncoder):
+    """Leave this alone, SLASH"""
     def default(self, o):
         if isinstance(o, (set, deque)):
             return list(o)
@@ -26,7 +27,6 @@ class JSONEncoder(json.JSONEncoder):
         if hasattr(o, "__dict__"):
             return vars(o)
         return super().default(o)
-
 
 @dataclass
 class ErrorLog:
@@ -37,7 +37,6 @@ class ErrorLog:
 
     def __str__(self):
         return f"[{self.severity}] {self.component}: {self.error_msg}"
-
 
 @dataclass
 class DecisionCrystal:
@@ -62,7 +61,6 @@ class DecisionCrystal:
         data["_summary"] = f"{self.system_state}::{self.active_archetype}"
         data["_type"] = "CRYSTAL"
         return json.dumps(data, cls=JSONEncoder)
-
 
 @dataclass
 class CycleContext:
@@ -121,7 +119,6 @@ class MindSystem:
     dreamer: Any
     tracer: Any
 
-
 @dataclass
 class PhysSystem:
     observer: Any
@@ -134,7 +131,6 @@ class PhysSystem:
     tension: Optional[Any] = None
     dynamics: Any = None
 
-
 class EventBus:
     def __init__(self, max_memory=None, config_ref=None, telemetry_ref=None):
         self.cfg = config_ref or BoneConfig
@@ -143,6 +139,7 @@ class EventBus:
         self.buffer = deque(maxlen=limit)
         self.subscribers = {}
         self.telemetry = telemetry_ref
+        self._lock = threading.RLock()
 
     def subscribe(self, event_type, callback):
         subs = self.subscribers.get(event_type, ())
@@ -172,7 +169,8 @@ class EventBus:
 
     def log(self, message: str, source: str = "SYSTEM", level: str = "INFO"):
         event = {"timestamp": time.time(), "source": source, "level": level, "text": message, "_type": "EVENT_LOG"}
-        self.buffer.append(event)
+        with self._lock:
+            self.buffer.append(event)
         self.publish(source, event)
         if self.telemetry:
             self.telemetry.record_event(event)
@@ -180,8 +178,9 @@ class EventBus:
             print(f"{Prisma.RED}[{source}] {message}{Prisma.RST}")
 
     def flush(self) -> List[Dict]:
-        current_logs = list(self.buffer)
-        self.buffer.clear()
+        with self._lock:
+            current_logs = list(self.buffer)
+            self.buffer.clear()
         return current_logs
 
 class LoreManifest:
@@ -205,7 +204,9 @@ class LoreManifest:
     def get(self, category: str, sub_key: str = None) -> Any:
         cat_key = category.lower()
         if cat_key not in self._cache:
-            self._cache[cat_key] = self._load_from_disk(cat_key) or {}
+            with self._lock:
+                if cat_key not in self._cache:
+                    self._cache[cat_key] = self._load_from_disk(cat_key) or {}
         data = self._cache[cat_key]
         if not sub_key:
             return data

@@ -36,14 +36,17 @@ class BoneGenesis:
         cfg_gen = safe_get(target_cfg, "GENESIS", {})
         base_voltage = float(safe_get(cfg_gen, "DUMMY_VOLTAGE", 10.0))
         base_drag = float(safe_get(cfg_gen, "DUMMY_DRAG", 0.0))
-        if safe_get(embryo.physics, "voltage") is None: safe_set(embryo.physics, "voltage", base_voltage)
-        if safe_get(embryo.physics, "narrative_drag") is None: safe_set(embryo.physics, "narrative_drag", base_drag)
+        for key, default in [("voltage", base_voltage), ("narrative_drag", base_drag)]:
+            if safe_get(embryo.physics, key) is None:
+                safe_set(embryo.physics, key, default)
         bio_proxy = {"trauma_vector": safe_get(embryo.mind.mem, "session_trauma_vector", {})}
         if logs := oroboros.apply_legacy(embryo.physics, bio_proxy):
-            msg = ux_format("genesis_strings", "legacy_scars", default="The lattice remembers. Inherited scars: {logs}", logs=', '.join(logs))
+            msg = ux_format("genesis_strings", "legacy_scars", default="The lattice remembers. Inherited scars: {logs}",
+                            logs=', '.join(logs))
             events.log(f"{Prisma.MAG}{msg}{Prisma.RST}", "OROBOROS")
-        safe_set(embryo.physics, "narrative_drag", max(0.0, float(safe_get(embryo.physics, "narrative_drag", base_drag))))
-        safe_set(embryo.physics, "voltage", max(0.0, float(safe_get(embryo.physics, "voltage", base_voltage))))
+        for key, default in [("voltage", base_voltage), ("narrative_drag", base_drag)]:
+            clamped = max(0.0, float(safe_get(embryo.physics, key, default)))
+            safe_set(embryo.physics, key, clamped)
         safe_set(embryo.mind.mem, "session_trauma_vector", bio_proxy.get("trauma_vector", {}))
         drivers = DriverRegistry(events, config_ref=target_cfg)
         consultant = BoneConsultant(config_ref=target_cfg, lexicon_ref=lexicon_ref) if "CONSULTANT" not in suppressed_set else None

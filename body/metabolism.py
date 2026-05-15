@@ -6,7 +6,7 @@ from collections import Counter
 from typing import Dict, List, Any, Tuple, TYPE_CHECKING
 from body.models import MitochondrialState, MetabolicReceipt
 from core import Prisma, LoreManifest
-from struts import ux, safe_get
+from struts import ux, ux_format, safe_get
 from presets import BoneConfig
 
 if TYPE_CHECKING:
@@ -59,7 +59,6 @@ class MitochondrialForge:
             return tmpl
 
     def _trigger_anaerobic_bypass(self, raw_cost: float) -> MetabolicReceipt:
-        health_burn = 2.0
         self.state.ros_buildup += 2.0
         self.adjust_atp(-20.0, "Anaerobic Burn")
         if self.events and (msg := ux("mito_forge", "anaerobic_bypass")):
@@ -211,8 +210,7 @@ class MitochondrialForge:
             del inherited_scars[healed_scar]
             g_pool -= 1
             fallback = "Epigenetic Plasticity Achieved. Ancestral scar '{healed_scar}' permanently erased. (-1 Glimmer)"
-            msg_template = ux("mito_forge", "scar_healed") or fallback
-            msg = msg_template.format(healed_scar=healed_scar)
+            msg = ux_format("mito_forge", "scar_healed", default=fallback, healed_scar=healed_scar)
             if self.events:
                 self.events.log(f"{Prisma.MAG}✨ [MITO]: {msg}{Prisma.RST}", "BIO_HEAL")
             return True, g_pool, msg

@@ -342,13 +342,14 @@ class TownHall:
     @staticmethod
     def diagnose_condition(session_data: dict, _host_health: Any = None, soul: Any = None, config_ref=None) -> Tuple[
         str, str]:
+        from struts import ux_format
         trauma = session_data.get("trauma_vector") or {}
         if soul and float(safe_get(soul, "obsession_neglect", 0.0)) > _cfg_val(config_ref, "VILLAGE", "TOWN_NEGLECT_CRIT", 8.0):
-            return "HIGH_DRAG", (ux("village_strings", "town_guilt") or "").format(
-                obsession=safe_get(soul, "current_obsession", "work"))
-        if trauma and trauma[max(trauma, key=trauma.get)] > _cfg_val(config_ref, "VILLAGE", "TOWN_TRAUMA_CRIT", 0.6):
-            return "HIGH_TRAUMA", (ux("village_strings", "town_trauma") or "").format(
-                trauma=max(trauma, key=trauma.get))
+            return "HIGH_DRAG", ux_format("village_strings", "town_guilt", obsession=safe_get(soul, "current_obsession", "work"))
+        if trauma:
+            max_t_key = max(trauma, key=trauma.get)
+            if trauma[max_t_key] > _cfg_val(config_ref, "VILLAGE", "TOWN_TRAUMA_CRIT", 0.6):
+                return "HIGH_TRAUMA", ux_format("village_strings", "town_trauma", trauma=max_t_key)
         meta_data = session_data.get("meta") or {}
         if meta_data.get("final_health", 50) < _cfg_val(config_ref, "VILLAGE", "TOWN_HEALTH_CRIT", 30):
             return "HIGH_TRAUMA", ux("village_strings", "town_critical") or "The lattice is fractured. We are holding it together with sheer will."
@@ -378,19 +379,18 @@ class DeathGen:
             death_data = DeathGen._FALLBACK_PROTOCOLS
         cause = DeathGen._determine_cause(packet, mito_state, trauma_vector, config_ref)
         verdict_type = DeathGen._determine_verdict_type(packet, cause, config_ref)
-        causes_dict = death_data.get("CAUSES", {})
-        verdicts_dict = death_data.get("VERDICTS", {})
-        prefix = random.choice(death_data.get("PREFIXES", ["Alas."]))
-        causes = causes_dict.get(cause, causes_dict.get("DEFAULT", ["Error"]))
-        verdicts = verdicts_dict.get(verdict_type, verdicts_dict.get("DEFAULT", ["Done."]))
+        causes_dict = death_data.get("CAUSES") or {}
+        verdicts_dict = death_data.get("VERDICTS") or {}
+        prefix = random.choice(death_data.get("PREFIXES") or ["Alas."])
+        causes = causes_dict.get(cause) or causes_dict.get("DEFAULT") or ["Error"]
+        verdicts = verdicts_dict.get(verdict_type) or verdicts_dict.get("DEFAULT") or ["Done."]
         return f"{prefix} CAUSE: {random.choice(causes)}. {random.choice(verdicts)}", cause
 
     @staticmethod
     def _determine_cause(p: PhysicsPacket, mito_state: Any, trauma_vector: Dict = None, config_ref=None) -> str:
         if trauma_vector and sum(trauma_vector.values()) > _cfg_val(config_ref, "VILLAGE", "DEATH_TRAUMA_CRIT", 50.0):
             return "TRAUMA"
-        if float(safe_get(mito_state, "atp_pool", safe_get(mito_state, "atp", 0.0))) <= _cfg_val(config_ref, "BIO",
-                                                                                                 "ATP_STARVATION", 0.0):
+        if float(safe_get(mito_state, "atp_pool", safe_get(mito_state, "atp", 0.0))) <= _cfg_val(config_ref, "BIO", "ATP_STARVATION", 0.0):
             return "STARVATION"
         if (p.chi * p.m_a) > p.i_c:
             return "APOPTOSIS"
@@ -430,7 +430,6 @@ class TheTherapist:
             self.events.log(f"{Prisma.VIOLET}{msg}{Prisma.RST}", "THERAPY")
             return True, msg
         return False, ""
-
 
 class TheGraveDigger:
     def __init__(self, inventory_ref, events_ref, config_ref=None):

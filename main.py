@@ -414,7 +414,10 @@ class BoneAmanita:
             try:
                 world_state = safe_get(self.cortex.gather_state({"physics": self.active_physics}), "world", {})
                 orbit_data = safe_get(world_state, "orbit", ["Void"])
-                loc = orbit_data[0] if isinstance(orbit_data, list) and orbit_data else orbit_data
+                if isinstance(orbit_data, list) and orbit_data:
+                    loc = str(orbit_data[0])
+                else:
+                    loc = str(orbit_data) if orbit_data else "Void"
             except Exception as e:
                 self.events.log(f"Cortex harvest failed during death sequence: {e}", "WARN")
             buf = getattr(self.cortex, "dialogue_buffer", [])
@@ -477,16 +480,12 @@ class BoneAmanita:
             self._apply_boot_mode()
             if self.cortex:
                 self.cortex.restore_context(history)
-                loc = self.embryo.continuity.get("location", "Unknown") if self.embryo.continuity else "Unknown"
-                last_scene = "Silence."
-                if self.cortex and self.cortex.dialogue_buffer:
-                    last_scene = self.cortex.dialogue_buffer[-1]
-                elif self.embryo.continuity:
-                    last_scene = self.embryo.continuity.get("last_output", "Silence.")
+                cont = self.embryo.continuity or {}
+                loc = cont.get("location", "Unknown")
+                last_scene = self.cortex.dialogue_buffer[-1] if self.cortex.dialogue_buffer else cont.get("last_output", "Silence.")
                 msg_resume = ux("main_strings", "resuming_timeline")
                 msg_restored = ux("main_strings", "timeline_restored")
-                resume_text = msg_resume.format(loc=loc, last_scene=last_scene)
-                return {"ui": resume_text, "logs": [msg_restored]}
+                return {"ui": msg_resume.format(loc=loc, last_scene=last_scene), "logs": [msg_restored]}
         msg_synth = ux("main_strings", "synth_reality")
         self.events.log(f"{Prisma.GRY}{msg_synth}{Prisma.RST}", "SYS")
         scenarios = LoreManifest.get_instance().get("scenarios") or {}
