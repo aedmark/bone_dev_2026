@@ -1,9 +1,4 @@
-"""spores/network.py
-
-The Central Nervous System for the entire biological and memory substrate
-of the engine. It binds the disparate subsystems (biome, genetics, memory, IO)
-into a cohesive feedback loop.
-"""
+"""spores/network.py"""
 
 import random
 import time
@@ -433,7 +428,6 @@ class MycelialNetwork:
         return len(self.graph)
 
     def autoload_last_spore(self):
-        """Called on boot to seamlessly link the current instance to its immediate predecessor."""
         files = self.loader.list_spores()
         if not files:
             if msg := ux("spore_strings", "net_no_ancestor"):

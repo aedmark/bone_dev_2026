@@ -28,10 +28,8 @@ class RandomTest(BoneTestCase):
             self.assertIn("CRITICAL FAILURE", result.get("logs", []), "Engine did not log the critical failure.")
 
             logs = self.engine.events.flush()
-            self.assertTrue(
-                any("CYCLE CRASH" in str(log) for log in logs),
-                "Event bus failed to broadcast the cycle crash.",
-            )
+            self.assertTrue(any("CYCLE CRASH" in str(log) for log in logs),
+                            "Event bus failed to broadcast the cycle crash.", )
 
     def test_decoupled_json_configs(self):
             manifest = LoreManifest.get_instance()

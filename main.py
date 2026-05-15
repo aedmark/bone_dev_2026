@@ -1,4 +1,5 @@
 """main.py"""
+
 import os
 import time
 import random
@@ -24,7 +25,6 @@ from constants import Prisma, RealityLayer
 from mechanics.terminal import typewriter, SessionGuardian
 from mechanics.setup import ConfigWizard
 from mechanics.tools import TheSubstrate
-
 
 @dataclass
 class HostStats:
@@ -220,7 +220,6 @@ class BoneAmanita:
         return phys
 
     def apply_absolute_friction(self, phys=None):
-        """Standardizes the halting of narrative momentum across the physics layer."""
         phys = phys or self.active_physics
         safe_set(phys, "narrative_drag", 999.0)
         return phys
@@ -286,7 +285,6 @@ class BoneAmanita:
         return None
 
     def _update_host_stats(self, packet, turn_start):
-        """Calculates the temporal efficiency of the underlying hardware layer."""
         self.observer.clock_out(turn_start)
         cfg = getattr(self.config, "MAIN", None)
         phys_vec = safe_get(packet.get("physics", {}), "vector", {})
@@ -298,9 +296,6 @@ class BoneAmanita:
         self.host_stats.efficiency_index = min(1.0, efficiency)
 
     def _pre_flight_checks(self, user_message: str, clean_in: str, is_system: bool) -> Optional[Dict[str, Any]]:
-        """
-        The Checkpoint Council evaluates the mathematics of the request before token generation.
-        """
         active_phys = self.active_physics
         if not is_system:
             if any(prion in clean_in for prion in self._SEMANTIC_PRIONS):
@@ -347,10 +342,6 @@ class BoneAmanita:
         return None
 
     def process_turn(self, user_message: str, is_system: bool = False) -> Dict[str, Any]:
-        """
-        The Core Engine Loop. Takes raw input, passes it through the immune checks,
-        spins up the cortex, subtracts metabolic costs, and returns the formatted UI.
-        """
         turn_start = self.observer.clock_in()
         now = time.time()
         self.current_time_delta = (now - self.last_turn_end) if not is_system else 0.0
@@ -399,7 +390,6 @@ class BoneAmanita:
         return snapshot
 
     def _execute_zen_flush(self) -> Dict[str, Any]:
-        """A dedicated somatic reflex to bypass the loop and clear systemic toxicity."""
         self.cortex.purge_context()
         safe_set(self.active_physics, "narrative_drag", 0.0)
         self.stamina = getattr(self.config, "MAX_STAMINA", 100.0)
@@ -413,7 +403,6 @@ class BoneAmanita:
                 "metrics": self.get_metrics()}
 
     def trigger_death(self, last_phys) -> Dict:
-        """Handles structural failure by mutating trauma into legacy variables and halting."""
         self.bio.mito.adapt(0)
         mito_state_dict = vars(self.bio.mito.state)
         immune_data = list(self.bio.immune.active_antibodies)
@@ -461,10 +450,6 @@ class BoneAmanita:
                 "efficiency": self.host_stats.efficiency_index, }
 
     def _ethical_audit(self):
-        """
-        Evaluates the buildup of trauma. If the engine is holding too much contradictory friction,
-        it physically vents it to prevent permanent damage.
-        """
         cfg = getattr(self.config, "MAIN", object())
         audit_freq = getattr(cfg, "ETHICAL_AUDIT_FREQ", 3)
         bypass_ratio = getattr(cfg, "ETHICAL_HEALTH_BYPASS", 0.3)
@@ -488,7 +473,6 @@ class BoneAmanita:
         return False
 
     def engage_cold_boot(self) -> Optional[Dict[str, Any]]:
-        """Handles waking the engine from zero-state or quicksaves."""
         if self.tick_count > 0:
             return None
         if os.path.exists("saves/quicksave.json"):
@@ -539,7 +523,6 @@ class BoneAmanita:
         if hasattr(self, "orchestrator") and self.orchestrator:
             self.orchestrator.shutdown()
         self.chronos.perform_shutdown()
-
 
 if __name__ == "__main__":
     sys_config = ConfigWizard.load_or_create()

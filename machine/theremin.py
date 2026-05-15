@@ -1,14 +1,11 @@
-"""machine/theremin.py
+"""machine/theremin.py"""
 
-The Theremin is the simulation's stagnation detector.
-It monitors the conversation for the moment when a dynamic,
-complex exchange flattens out into a repetitive or highly predictable loop.
-"""
+from typing import Tuple, Optional
 
-from typing import Tuple, Optional, Any
 from core import LoreManifest
-from struts import ux, safe_get, safe_set
 from presets import BoneConfig
+from struts import ux, safe_get, safe_set
+
 
 class TheTheremin:
     def __init__(self, config_ref=None):
@@ -22,15 +19,10 @@ class TheTheremin:
         self.logs = self._load_logs()
 
     def _load_logs(self):
-        """Loads the poetic narrative strings for reporting Theremin events to the user."""
         manifest = LoreManifest.get_instance(config_ref=self.cfg).get("PHYSICS_STRINGS") or {}
         return manifest.get("THEREMIN_LOGS", {})
 
     def listen(self, physics: dict, governor_mode: str = "COURTYARD") -> Tuple[bool, float, Optional[str], Optional[str]]:
-        """
-        The core observation loop. Evaluates the physical/semantic state of the prompt
-        to calculate if the conversation is flowing freely or calcifying into a rut.
-        """
         counts = safe_get(physics, "counts", {})
         voltage = float(safe_get(physics, "voltage", 0.0))
         turb = float(safe_get(physics, "turbulence", 0.0))
@@ -97,7 +89,6 @@ class TheTheremin:
         return self.is_stuck, resin_flow, theremin_msg, critical_event
 
     def get_readout(self):
-        """Generates a brief status report of the Theremin's current read."""
         status = "STUCK" if self.is_stuck else "FLOW"
         msg = ux("machine_strings", "theremin_readout")
         return msg.format(resin=self.decoherence_buildup, status=status)

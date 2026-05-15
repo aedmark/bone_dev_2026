@@ -8,7 +8,6 @@ from tests.base import BoneTestCase
 from main import BoneAmanita
 from presets import BoneConfig
 
-
 class ArchitectureTests(BoneTestCase):
     def test_arch_type_agnostic_physics(self):
         print("\n--- ARCH 1: Type-Agnostic Physics ---")
@@ -61,11 +60,8 @@ class ArchitectureTests(BoneTestCase):
     def test_immune_system_malformed_physics_resilience(self):
         print("\n--- Malformed Physics Resilience ---")
         engine = BoneAmanita({})
-
-        # A completely fractured physics packet missing all expected keys
         fractured_phys = {"random_key": 42, "string_val": "broken"}
         try:
-            # The immune system should safely default to 0.0s and 1.0s without throwing KeyErrors
             result = engine._evaluate_immune_response(user_message="test", active_phys=fractured_phys)
             self.assertIsNone(result, "[FAIL] Immune system falsely flagged fractured physics as an anomaly.")
             print("  [SUCCESS] Immune system mathematically survived a fractured physics packet.")

@@ -1,7 +1,4 @@
-"""machine/crucible.py
-
-Thermal regulator and safety valve of the physics engine.
-"""
+"""machine/crucible.py"""
 
 import math
 from typing import Tuple, Optional, Any
@@ -20,15 +17,10 @@ class TheCrucible:
         self.instability_index = 0.0
 
     def dampener_status(self):
-        """Reports the remaining stock of circuit breakers."""
         msg = ux("machine_strings", "crucible_dampener_status") or "Crucible Dampeners available: {charges}"
         return msg.format(charges=self.dampener_charges)
 
     def dampen(self, voltage_spike: float, stability_index: float) -> Tuple[bool, str, float]:
-        """
-        The Circuit Breaker. Attempts to absorb a dangerous spike in system chaos.
-        If successful, it consumes a charge and reduces the incoming voltage.
-        """
         if self.dampener_charges <= 0:
             return False, ux("physics_strings", "crucible_damper_empty") or "", 0.0
         if voltage_spike > self.dampener_tolerance:
@@ -37,7 +29,6 @@ class TheCrucible:
             factor, reason = 0.4, ux("machine_strings", "dampen_reason_instability") or "Instability"
         else:
             return False, ux("physics_strings", "crucible_holding") or "", 0.0
-
         self.dampener_charges -= 1
         reduction = voltage_spike * factor
         msg_template = ux("physics_strings", "crucible_damper_hit") or "[CRUCIBLE]: Absorbed -{reduction:.1f} Voltage. Reason: {reason}"
@@ -45,23 +36,16 @@ class TheCrucible:
         return True, msg, reduction
 
     def audit_fire(self, physics: Any) -> Tuple[str, float, Optional[str]]:
-        """
-        Evaluates current system voltage against structural integrity, adjusting 'narrative drag'
-        to maintain equilibrium. Returns the new state, the applied adjustment, and an optional narrative log.
-        """
         current_drag = float(safe_get(physics, "narrative_drag", 0.0))
         if math.isinf(current_drag) or current_drag > 900.0:
             return "LOCKED", 0.0, ux("physics_strings", "crucible_holding") or ""
-
         voltage = float(safe_get(physics, "voltage", 0.0))
         structure = float(safe_get(physics, "kappa", 0.0))
         ideal_voltage = structure * 20.0
         delta = voltage - ideal_voltage
-
         self.instability_index = (self.instability_index * 0.7) + (delta * 0.3)
         if abs(self.instability_index) < 0.1:
             self.instability_index = 0.0
-
         adjustment = self.instability_index * 0.5
         if current_drag < 1.0 and adjustment < 0:
             adjustment *= 0.1

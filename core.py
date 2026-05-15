@@ -1,9 +1,4 @@
-"""core.py
-
-This module houses the base primitives for state management, event routing,
-telemetry, and reality-layer scoping. It is strictly decoupled from LLM execution
-to ensure metabolic stability even if the cognitive layers crash.
-"""
+"""core.py"""
 
 import glob
 import json
@@ -119,7 +114,6 @@ class CycleContext:
                 {"phase": phase, "metric": metric, "initial": initial, "final": final, "delta": delta, "reason": reason,
                  "timestamp": time.time(), })
 
-
 @dataclass
 class MindSystem:
     mem: Any
@@ -191,9 +185,6 @@ class EventBus:
         return current_logs
 
 class LoreManifest:
-    """
-    The lazy-loaded, singleton data cache. We only load files from the disk when requested.
-    """
     _instance = None
     _lock = threading.Lock()
 
@@ -261,7 +252,6 @@ class LoreManifest:
         cat_key = category.lower()
         if self._cache.pop(cat_key, None) is not None:
             print(f"{Prisma.CYN}[LORE]: Flushed '{cat_key}'.{Prisma.RST}")
-
 
 class TheObserver:
     def __init__(self, config_ref=None):

@@ -1,13 +1,4 @@
-"""
-inventory.py
-
-The Physical Constraint and Object Lifecycle Module.
-This module governs the 'GordonKnot'—the inventory and object interaction system.
-It enforces the physical reality of the narrative, ensuring actions cannot be
-taken without the requisite tools, and dynamically generates objects based on
-the metabolic and physical state of the active environment.
-
-"""
+"""inventory.py"""
 
 import random
 import re
@@ -65,9 +56,7 @@ class GordonKnot:
         self.load_config()
 
     def apply_filters(self, user_message: str, active_physics: dict) -> str:
-        """Applies inventory-based mutations to the raw user input before processing."""
         has_comb = any("CUT_THE_CRAP" in (self.get_item_data(i).passive_traits if self.get_item_data(i) else []) for i in self.inventory)
-
         if has_comb:
             try:
                 current_chi = float(safe_get(active_physics, "entropy", safe_get(active_physics, "chi", 0.5)))
@@ -111,7 +100,6 @@ class GordonKnot:
         return None
 
     def load_config(self):
-        """Hydrates the inventory ruleset and registries from the Lore Manifest."""
         data = LoreManifest.get_instance().get("GORDON") or (
             LoreManifest.get_raw("gordon.json") if hasattr(LoreManifest, "get_raw") else {})
         self.action_coupling = data.get("ACTION_COUPLING", {})
@@ -213,7 +201,6 @@ class GordonKnot:
         return f"{Prisma.GRN}{msg.format(item=tool_name)}{Prisma.RST}"
 
     def safe_remove_item(self, item_name: str) -> bool:
-        """Attempts to remove an item, failing gracefully if it does not exist."""
         try:
             self.inventory.remove(item_name.upper())
             return True

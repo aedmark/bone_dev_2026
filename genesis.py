@@ -1,8 +1,4 @@
-"""
-genesis.py
-
-Brings the engine from a static configuration state into a living, metabolizing instance.
-"""
+"""genesis.py"""
 
 from typing import Dict, Any, Set
 from brain.akashic import TheAkashicRecord

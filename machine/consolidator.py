@@ -3,10 +3,6 @@
 from constants import Prisma
 
 class TheConsolidator:
-    """
-    Listens for positive resonance and structural engagement, bridging the gap
-    between short-term interaction and permanent synaptic reinforcement.
-    """
     def __init__(self, events_ref, memory_ref, akashic_ref):
         self.events = events_ref
         self.memory = memory_ref
@@ -19,7 +15,6 @@ class TheConsolidator:
         self.events.subscribe("SYNTAX_CORRECTED", self._on_syntax_corrected)
 
     def _on_syntax_corrected(self, payload):
-        """Compiles a failed LLM generation and its correction into a permanent Few-Shot weight."""
         triplet = payload.get("triplet")
         if not triplet: return
         from core import LoreManifest
@@ -38,7 +33,6 @@ class TheConsolidator:
             self.events.log(f"{Prisma.RED}Failed to save syntactic weights: {e}{Prisma.RST}", "ERROR")
 
     def _on_shadow_engaged(self, payload):
-        """When a user explores an adjacent shadow concept, strengthen the physical link."""
         source = payload.get("source", "core")
         target = payload.get("target")
         if not target:
@@ -48,7 +42,6 @@ class TheConsolidator:
         self.events.log(f"{Prisma.CYN}{msg}{Prisma.RST}", "MEMORY")
 
     def _on_resonance_achieved(self, payload):
-        """When profound connection happens, extract the paradigm and grant an Epigenetic Boon."""
         result = payload.get("result", "Unknown Paradigm")
         msg = payload.get("msg", "Resonance stabilized.")
         self.akashic.record_glimmer(concept=result, paradigm=msg)

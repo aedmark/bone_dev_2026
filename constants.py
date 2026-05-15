@@ -1,9 +1,4 @@
-"""
-constants.py
-
-This module defines the structural primitives, visual vocabulary, and dimensional
-boundaries that the rest of the engine relies upon.
-"""
+"""constants.py"""
 
 import re
 from enum import Enum

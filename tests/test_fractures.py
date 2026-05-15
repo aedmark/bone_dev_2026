@@ -150,9 +150,7 @@ class FractureEngineTest(BoneTestCase):
             self.engine.phys = PhysicsPacket()
         self.engine.phys.narrative_drag = 15.0
         self.engine.bio.mito.state.atp_pool = 50.0
-        cmd_proc = CommandProcessor(self.engine,
-                                    prisma_ref=MagicMock(),
-                                    config_ref=self.engine.config)
+        cmd_proc = CommandProcessor(self.engine, prisma_ref=MagicMock(), config_ref=self.engine.config)
         cmd_proc.interface.log = MagicMock()
         result = cmd_proc.execute("/shuffle")
         self.assertTrue(result, "[FAIL] /shuffle command was not recognized.")

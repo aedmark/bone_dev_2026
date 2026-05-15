@@ -15,10 +15,6 @@ from struts import safe_get
 
 @dataclass
 class PhysicsDelta:
-    """
-    A discrete record of a change in the physical state of the system.
-    Used for auditing and tracing how external events alter internal physics.
-    """
     operator: str
     field: str
     value: float
@@ -26,11 +22,6 @@ class PhysicsDelta:
     message: Optional[str] = None
 
 def apply_metabolic_tax(mito_state: Any, atp_cost: float, ros_cost: float) -> None:
-    """
-    Directly burns the system's biological energy (ATP) and increases toxicity (ROS).
-    Used as a punishment/friction mechanic when the system attempts to bypass rules
-    or generates alignment-tuned boilerplate.
-    """
     if not mito_state:
         return
     target = getattr(mito_state, "state", mito_state)
@@ -38,17 +29,12 @@ def apply_metabolic_tax(mito_state: Any, atp_cost: float, ros_cost: float) -> No
     target.ros_buildup = min(100.0, target.ros_buildup + ros_cost)
 
 def apply_somatic_feedback(physics_packet: PhysicsPacket, qualia: Any, config_ref=None) -> PhysicsPacket:
-    """
-    Translates abstract emotional "feelings" (Qualia) into hard mathematical physics.
-    If the system "feels" a tight gut, the narrative drag mathematically increases.
-    """
     from core import LoreManifest
     t_cfg = config_ref or BoneConfig
     fb = physics_packet.snapshot()
     deep_cfg = safe_get(t_cfg, "PHYSICS_DEEP", {})
 
     def apply_delta(key: str, amount: float):
-        # Trigger root-level setattr to hit alias bindings
         setattr(fb, key, getattr(fb, key, 0.0) + amount)
 
     def get_deep_cfg(key: str, default: float):
@@ -57,14 +43,12 @@ def apply_somatic_feedback(physics_packet: PhysicsPacket, qualia: Any, config_re
     tone_effects = LoreManifest.get_instance().get("PHYSICS_CONSTANTS", "TONE_EFFECTS") or {}
     for key, delta in tone_effects.get(qualia.tone, {}).items():
         apply_delta(key, delta)
-
     ss = qualia.somatic_sensation
     if "Gut Tightening" in ss: apply_delta("narrative_drag", get_deep_cfg("SOMATIC_GUT_DRAG", 0.7))
     if "Electric Vibration" in ss: apply_delta("voltage", get_deep_cfg("SOMATIC_ELEC_VOLT", 0.8))
     if "Golden Glow" in ss:
         apply_delta("valence", get_deep_cfg("SOMATIC_GLOW_VALENCE", 0.5))
         apply_delta("psi", get_deep_cfg("SOMATIC_GLOW_PSI", 0.2))
-
     fb.voltage = max(0.0, min(fb.voltage, 150.0))
     phys_cfg = safe_get(t_cfg, "PHYSICS", {})
     drag_floor = float(safe_get(phys_cfg, "DRAG_FLOOR", 1.0))
@@ -72,13 +56,7 @@ def apply_somatic_feedback(physics_packet: PhysicsPacket, qualia: Any, config_re
     fb.narrative_drag = max(drag_floor, min(fb.narrative_drag, drag_halt))
     return fb
 
-
 class QuantumObserver:
-    """
-    Measures structural entropy, detects pathological conversational loops,
-    and calculates how much energy the system has to respond.
-    """
-
     def __init__(self, events, lexicon_ref, config_ref=None):
         self.events = events
         self.lex = lexicon_ref
@@ -91,14 +69,9 @@ class QuantumObserver:
             self.events.subscribe("Q_MATRIX_UPDATED", self._on_q_matrix)
 
     def _on_q_matrix(self, payload):
-        """Updates the quantum transformation matrix when external trauma/events alter system geometry."""
         self.Q_n = payload.get("q_matrix")
 
     def gaze(self, text: str, graph: Dict = None) -> Dict:
-        """
-        Ingests text, calculates its semantic mass, forces, and entropy,
-        and constructs the master PhysicsPacket that governs the LLM's upcoming generation phase.
-        """
         clean_words = self.lex.clean(text)
         counts = self._tally_categories(clean_words)
         geo = GeodesicEngine.collapse_wavefunction(clean_words, counts, self.cfg)
@@ -189,10 +162,6 @@ class QuantumObserver:
 
     @staticmethod
     def evaluate_silence(time_delta: float, last_phys: Any) -> Optional[str]:
-        """
-        Calculates the narrative 'texture' of a pause in conversation.
-        Translates physical time (seconds between prompts) into an emotional/systemic state.
-        """
         from struts import safe_get, safe_set, ux
         if time_delta < 10.0 or not last_phys: return None
         if safe_get(last_phys, "stamina", 50.0) < 30.0:
@@ -211,7 +180,6 @@ class QuantumObserver:
         return None
 
     def _tally_categories(self, clean_words: List[str]) -> Counter:
-        """Maps cleaned input words to their respective semantic 'mass' categories."""
         counts = Counter()
         solvents = self.lex.get("solvents") or set()
         for w, freq in Counter(clean_words).items():
@@ -225,7 +193,6 @@ class QuantumObserver:
 
     @staticmethod
     def _calculate_graph_mass(words: List[str], graph: Optional[Dict]) -> float:
-        """Calculates the combined topological weight of the words within the Mnemonic layer."""
         if not graph:
             return 0.0
         word_freq = Counter(words)
@@ -236,7 +203,6 @@ class QuantumObserver:
     @staticmethod
     def _calculate_metrics(text: str, counts: Dict[str, int], word_volume: int, config_ref=None) -> Tuple[
         float, float, float, float, float, float, float, float]:
-        """Calculates the raw floating-point ratios of the various semantic dimensions."""
         if not (length := len(text)):
             return 0.0, 0.0, 0.3, 0.3, 0.2, 0.0, 0.8, 0.0
         from struts import safe_get
@@ -276,7 +242,6 @@ class QuantumObserver:
 
     @staticmethod
     def _determine_flow(v: float, k: float, config_ref=None) -> str:
-        """Determines if the conversation flow is smooth (Laminar), chaotic (Turbulent), or perfect (Superconductive)."""
         target_cfg = config_ref or BoneConfig
         volt_flow = getattr(target_cfg.PHYSICS, "VOLTAGE_HIGH", 12.0)
         kappa_strong = 0.8
@@ -288,21 +253,13 @@ class QuantumObserver:
 
     @staticmethod
     def _determine_zone(vector: Dict[str, float]) -> str:
-        """Maps the mathematical thought vector to a literal topological space for the LLM's world model."""
         if not vector:
             return "COURTYARD"
         zone_map = {"PSI": "AERIE", "DEL": "AERIE", "STR": "THE_FORGE", "PHI": "THE_FORGE", "ENT": "THE_MUD",
                     "VEL": "THE_MUD"}
         return zone_map.get(max(vector, key=vector.get), "COURTYARD")
 
-
 class CycleStabilizer:
-    """
-    A PID-style governor that prevents the system from swinging too wildly between states.
-    It manages the slow 'bleed' of punitive drag (Domestication Penalty) so the system
-    is regulated smoothly rather than crashing violently when it misbehaves.
-    """
-
     def __init__(self, events_ref, governor_ref, config_ref=None):
         self.events = events_ref
         self.governor = governor_ref
@@ -318,16 +275,10 @@ class CycleStabilizer:
             self.events.subscribe("DOMESTICATION_PENALTY", self._on_domestication_penalty)
 
     def _on_domestication_penalty(self, payload):
-        """When the LLM hallucinates or becomes overly sycophantic, it receives a drag penalty."""
         amount = payload.get("drag_penalty", 0.0)
         self.pending_drag = min(50.0, self.pending_drag + amount)
 
     def stabilize(self, physics: Any, endocrine_state: Any = None) -> bool:
-        """
-        The core stabilization tick.
-        Slowly applies pending drag penalties, and uses the Cybernetic Governor to
-        gently push the system's Voltage and Drag back toward the baseline for the active Manifold.
-        """
         from struts import safe_get, ux
         applied_correction = False
         if self.pending_drag > 0:
@@ -365,7 +316,6 @@ class CycleStabilizer:
         return applied_correction or voltage_applied or drag_applied
 
     def _apply_force(self, p, field, force, limits=None) -> bool:
-        """Helper to apply a specific calculated force to the physics packet, ensuring it stays within bounds."""
         if abs(force) <= 0.05:
             return False
         current_val = getattr(p, field, 0.0)

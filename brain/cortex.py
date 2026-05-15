@@ -1,9 +1,5 @@
-"""cortex.py
-The Global Workspace and LLM Interface.
-This module takes the biological parameters from `mind.py`, compiles the
-context window, enforces the Lexical Firewall, and executes the actual API
-calls to the underlying neural network.
-"""
+"""cortex.py"""
+
 import random
 import re
 import time
@@ -21,10 +17,8 @@ from mechanics.pragmatics import ThePragmatist
 from presets import BoneConfig, BonePresets
 from struts import safe_get, safe_set, ux
 
-
 @dataclass
 class CortexServices:
-    """A struct to pass the physical, biological, and memory layers into the Global Workspace."""
     events: EventBus
     lore: Any
     lexicon: Any
@@ -38,13 +32,7 @@ class CortexServices:
     village: Any = None
     config_ref: Any = None
 
-
 class TheCortex:
-    """
-    The Global Workspace.
-    Handles the primary generation loop, DSPy Affective auditing, Lexical firewalls,
-    and context compilation.
-    """
     LEXICAL_PURGE_PATTERN = re.compile(
         r"(?im)^\s*(that makes sense|i understand|you bring up|great point|good point|certainly|absolutely|i hear you|yes, )[.,!]*\s*")
     ROLE_MAP = {"CONVERSATION": ("CONVERSATIONALIST", "The Conversationalist"),
@@ -75,7 +63,7 @@ class TheCortex:
         self.composer = PromptComposer(self.svc.lore, config_ref=self.cfg)
         self.validator = ResponseValidator(self.svc.lore, config_ref=self.cfg)
         self.pragmatist = ThePragmatist(events_ref=self.events)
-        from mechanics.tools import DSPyCritic
+        from mechanics.dspycritic import DSPyCritic
         self.dspy_critic = DSPyCritic(config_ref=self.cfg)
         if safe_get(self.cfg, "WEIGHT_CLASS", "HEAVYWEIGHT") == "LIGHTWEIGHT":
             self.dspy_critic.enabled = False
@@ -97,20 +85,11 @@ class TheCortex:
     def from_engine(cls, engine_ref, llm_client=None):
         target_cfg = getattr(engine_ref, "config", BoneConfig)
         symbiosis_mgr = getattr(engine_ref, "symbiosis", None) or SymbiosisManager(engine_ref.events)
-        services = CortexServices(
-            events=engine_ref.events,
-            lore=LoreManifest.get_instance(config_ref=target_cfg),
-            lexicon=engine_ref.lex,
-            inventory=getattr(engine_ref.village, "gordon", None) if hasattr(engine_ref, "village") else None,
-            consultant=engine_ref.consultant,
-            orchestrator=engine_ref.orchestrator,
-            symbiosis=symbiosis_mgr,
-            mind_memory=engine_ref.mind.mem,
-            bio=engine_ref.bio,
-            host_stats=engine_ref.host_stats,
-            village=engine_ref.village,
-            config_ref=target_cfg
-        )
+        services = CortexServices(events=engine_ref.events, lore=LoreManifest.get_instance(config_ref=target_cfg),
+            lexicon=engine_ref.lex, inventory=getattr(engine_ref.village, "gordon", None) if hasattr(engine_ref, "village") else None,
+            consultant=engine_ref.consultant, orchestrator=engine_ref.orchestrator,
+            symbiosis=symbiosis_mgr, mind_memory=engine_ref.mind.mem, bio=engine_ref.bio,
+            host_stats=engine_ref.host_stats, village=engine_ref.village, config_ref=target_cfg)
         instance = cls(services, llm_client)
         instance.active_mode = getattr(engine_ref, "boot_mode", "ADVENTURE").upper()
         if instance.active_mode not in BonePresets.MODES:
@@ -126,7 +105,6 @@ class TheCortex:
         pass
 
     def purge_context(self):
-        """Executes a hard flush of the active context window."""
         self.last_shadow_nodes = []
         self.dialogue_buffer.clear()
         self.last_physics.clear()
@@ -136,10 +114,6 @@ class TheCortex:
             self.events.log("[APOPTOSIS] Context array purged. Stateless bedrock re-established.", "SYS", )
 
     def process_context(self, ctx: Any) -> Dict[str, Any]:
-        """
-        The Master Generation Loop (Inverted).
-        Now invoked *during* the CognitionPhase of the GeodesicOrchestrator.
-        """
         user_input = ctx.input_text
         is_system = getattr(ctx, "is_system_event", False)
         if self.navigator:
@@ -228,7 +202,6 @@ class TheCortex:
                 beth_index = eng.governor.calculate_coupling(phi=min(1.0, dimension / 2.0), resonance_delta=resonance_delta, user_exhaustion=user_exhaust)
                 phys_state["beth_index"] = beth_index
                 phys_state["macro_policy"] = eng.governor.get_policy_shift()
-
         f_drag = float(safe_get(phys_state, "narrative_drag", 0.0))
         chi_val = float(safe_get(phys_state, "chi", safe_get(phys_state, "entropy", 0.0)))
         m_a = float(safe_get(phys_state, "m_a", 0.0))
@@ -251,8 +224,7 @@ class TheCortex:
                     self.svc.mind_memory.record_scar("Cortex Counterfactual Toxicity", phys_state)
                 self.svc.bio.mito.state.ros_buildup += simulated_ros
                 self.svc.bio.mito.adjust_atp(-10.0, "Cortex Counterfactual Toxicity")
-                sim_result["ui"] = (sim_result.get("ui",
-                                                   "") + f"\n\n{Prisma.RED}{reject_msg}{Prisma.RST}\n{Prisma.VIOLET}{scar_msg}{Prisma.RST}").strip()
+                sim_result["ui"] = (sim_result.get("ui", "") + f"\n\n{Prisma.RED}{reject_msg}{Prisma.RST}\n{Prisma.VIOLET}{scar_msg}{Prisma.RST}").strip()
                 sim_result["type"] = "COUNTERFACTUAL_REJECTION"
                 return sim_result
         modifiers = self.svc.symbiosis.get_prompt_modifiers(phys_state)
@@ -408,7 +380,6 @@ class TheCortex:
         self.ballast_active = False
         eng_ref = getattr(self.svc.orchestrator, "eng", None)
         sub = getattr(eng_ref, "substrate", None)
-
         for log in extracted_logs:
             if sub and isinstance(log, str) and log.startswith("[SUBSTRATE_QUEUE]"):
                 try:

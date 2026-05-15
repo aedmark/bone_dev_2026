@@ -1,29 +1,15 @@
-"""
-akashic.py
-
-The Persistent Epigenetic Layer.
-This module handles long-term, cross-session memory.
-"""
+"""brain/akashic.py"""
 
 import json
 import os
 import uuid
 from typing import Any, Dict, List, Optional, Set, Tuple
-
 from constants import Prisma
 from core import JSONEncoder, LoreManifest
 from presets import BoneConfig
 from struts import ux, safe_get, safe_set
 
-
 class TheAkashicRecord:
-    """
-    The DNA Hard Drive of the Hypervisor.
-    Manages the long-term evolution of the LLM by tracking which words it uses,
-    which archetypes work well together, and which architectural boundaries
-    caused previous system failures.
-    """
-
     def __init__(self, lore_manifest: Optional["LoreManifest"] = None, events_ref=None, config_ref=None):
         self.cfg = config_ref or BoneConfig
         self.discovered_words: Dict[str, str] = {}
@@ -46,7 +32,6 @@ class TheAkashicRecord:
         self._load_mythos_state()
 
     def setup_listeners(self, event_bus):
-        """Connects the Akashic Record to the global event bus to passively observe the system."""
         event_bus.subscribe("MYTHOLOGY_UPDATE", self._on_mythology_update)
         event_bus.subscribe("LENS_INTERACTION", self._on_lens_interaction)
         event_bus.subscribe("FORGE_SUCCESS", self._on_forge_event)
@@ -54,12 +39,10 @@ class TheAkashicRecord:
         event_bus.subscribe("SYSTEM_STARVING", self._on_system_starving)
         event_bus.subscribe("TRAUMA_EVENT", self._on_trauma_event)
         event_bus.subscribe("GLIMMER_FORMED", self._on_glimmer_event)
-
         if msg := ux("akashic_strings", "listening"):
             print(f"{Prisma.GRY}{msg}{Prisma.RST}")
 
     def _on_system_starving(self, _payload):
-        """Emergency interrupt when ATP hits 0."""
         yield_val, msg = self.trigger_autophagy()
         if msg:
             print(f"{Prisma.CYN}{msg}{Prisma.RST}")
@@ -101,15 +84,10 @@ class TheAkashicRecord:
             return 0.0, ux("akashic_strings", "autophagy_failed") or "Starvation threshold. No matter left to consume."
         if self.events:
             self.events.publish("AUTOPHAGY_EVENT", {"node": target, "atp_gained": yield_val})
-
         self.save_all()
         return yield_val, msg
 
     def record_scar(self, concept: str, p: Any):
-        """
-        When the system experiences a structural collapse or massive logic failure,
-        it logs the exact physical/dimensional coordinates of the failure.
-        """
         cfg = safe_get(self.cfg, "AKASHIC", {})
         cfg_defaults = safe_get(cfg, "DEFAULT_SCAR_COORDS", {})
         axis_map = {
@@ -135,14 +113,12 @@ class TheAkashicRecord:
             self.events.publish("SCAR_RECORDED", {"concept": concept, "coords": coords})
 
     def _mutate_epigenetics(self, category_key: str, axiom: str, max_items: int, log_msg: str, log_color: str):
-        """Helper function to cleanly modify System Prompts without redundant cognitive load."""
         try:
             prompts = self.lore.get("SYSTEM_PROMPTS") or {}
             epigenetic_list = prompts.setdefault("GLOBAL_BASELINE", {}).setdefault(category_key, [])
             if not isinstance(epigenetic_list, list):
                 epigenetic_list = []
                 prompts["GLOBAL_BASELINE"][category_key] = epigenetic_list
-
             if axiom not in epigenetic_list:
                 epigenetic_list.append(axiom)
                 if len(epigenetic_list) > max_items:
@@ -156,48 +132,38 @@ class TheAkashicRecord:
                 self.events.log(f"{Prisma.RED}Failed to mutate system_prompts ({category_key}): {e}{Prisma.RST}", "SYS")
 
     def record_glimmer(self, concept: str, paradigm: str):
-        """
-        Crystallizes a successful interaction pattern into a permanent structural boon.
-        The opposite of a scar. Hardcodes a successful behavior into the base prompt.
-        """
         axiom = f"STRUCTURAL SUCCESS [{concept.upper()}]: The system achieved deep resonance using this paradigm: '{paradigm}'. Prioritize this geometry in future calculations."
         max_epi = int(safe_get(self.cfg_akashic, "MAX_EPIGENETIC_BOONS", 10))
         self._mutate_epigenetics("EPIGENETIC_BOONS", axiom, max_epi, f"🧬 [EPIGENETICS] Boon '{concept}' compiled into flow.", Prisma.MAG)
 
     def _mutate_system_prompts(self, concept: str, coords: dict):
-        """Physically rewrites the baseline instructions of the LLM to avoid past trauma."""
         axiom = f"SCAR TISSUE [{concept.upper()}]: The system previously collapsed here (Tension: {coords.get('beta', 0.0)}). You must structurally avoid repeating the failure that caused this."
         max_epi = int(safe_get(self.cfg_akashic, "MAX_EPIGENETIC_SCARS", 10))
         self._mutate_epigenetics("EPIGENETIC_SCARS", axiom, max_epi, f"[EPIGENETICS] Scar '{concept}' compiled into flow.", Prisma.VIOLET)
 
     def bury_memory(self, concept: str, data: Dict):
-        """Pushes a concept into deep storage, making it eligible for autophagy later."""
         self.subconscious_strata.append({"concept": concept, "data": data})
         max_strata = int(safe_get(self.cfg_akashic, "MAX_SUBCONSCIOUS_CAPACITY", 100))
         if len(self.subconscious_strata) > max_strata:
             self.subconscious_strata.pop(0)
 
     def _on_lens_interaction(self, payload):
-        """Tracks which archetypes (voices) are speaking simultaneously."""
         lenses = payload.get("lenses", [])
         if lenses:
             self.record_interaction(lenses)
 
     def _on_forge_event(self, payload):
-        """Tracks user-driven synthesis events."""
         if not payload:
             return
         self.track_successful_forge(payload.get("ingredient"), payload.get("catalyst"), payload.get("result"))
 
     @staticmethod
     def _get_dominant_force(vector_dict: Dict, default: str) -> str:
-        """Helper to find the highest value in a force/physics dictionary."""
         safe_vector = vector_dict if isinstance(vector_dict, dict) else {}
         return max((k for k, v in safe_vector.items() if v is not None), key=safe_vector.get, default=default)
 
     @staticmethod
     def _extract_dominant_trigram(physics: Any) -> str:
-        """Translates pure physics metrics into an I-Ching Trigram for mythological resonance."""
         vector = safe_get(physics, "vector", {})
         dom = TheAkashicRecord._get_dominant_force(vector, "KAN")
         constants = LoreManifest.get_instance().get("PHYSICS_CONSTANTS") or {}
@@ -209,7 +175,6 @@ class TheAkashicRecord:
         return fallbacks.get(dom, default_trigram)
 
     def _on_mythology_update(self, payload):
-        """Records new words or checks for mythological resonance during a turn."""
         if not payload: return
         if (word := payload.get("word")) and (category := payload.get("category")):
             self.register_word(word, category)
@@ -219,15 +184,12 @@ class TheAkashicRecord:
             active_lens = payload.get("lens", "OBSERVER")
             resonances = (self.lore.get("NARRATIVE_DATA") or {}).get("_META_RESONANCE_", [])
             valid_resonance = next((r for r in resonances if
-                                    r.get("trigram") == trigram and (r.get("lens") or r.get("soul")) == active_lens),
-                                   None)
+                r.get("trigram") == trigram and (r.get("lens") or r.get("soul")) == active_lens), None)
             if valid_resonance and self.events:
-                self.events.publish("RESONANCE_ACHIEVED",
-                                    {"result": valid_resonance["result"], "msg": valid_resonance["msg"]})
+                self.events.publish("RESONANCE_ACHIEVED", {"result": valid_resonance["result"], "msg": valid_resonance["msg"]})
 
     @staticmethod
     def calculate_manifold_shift(theta: str, e: Dict[str, float]) -> Dict[str, float]:
-        """Calculates how a specific archetype (theta) warps the underlying physics space."""
         theta_upper = theta.upper()
         c = (LoreManifest.get_instance().get("PHYSICS_CONSTANTS", "MANIFOLD_SHIFTS") or {})
         bias = c.get("BIAS_LENSES", {}).get(theta_upper, 0.0)
@@ -243,7 +205,6 @@ class TheAkashicRecord:
             self.store_ghost_echo(payload)
 
     def forge_new_item(self, vector: Dict[str, float]) -> Tuple[str, Dict]:
-        """Generates a permanent digital artifact based on the physical state of the conversation."""
         dominant_force = self._get_dominant_force(vector, "CHI")
         item_gen_data = self.lore.get("ITEM_GENERATION") or {}
         prefixes = item_gen_data.get("PREFIXES", {})
@@ -269,14 +230,12 @@ class TheAkashicRecord:
         return new_name, new_data
 
     def save_all(self):
-        """Master save routine to persist epigenetic traits to disk."""
         self.save_to_disk("discovered_words", self.discovered_words)
         self._save_user_state()
         msg = ux("akashic_strings", "mythos_persisted")
         print(f"{Prisma.GRY}{msg}{Prisma.RST}")
 
     def _save_user_state(self):
-        """Serializes current states, turning tuple keys into strings for JSON compatibility."""
         state = {
             "lens_cooccurrence": {f"{k[0]}|{k[1]}": v for k, v in self.lens_cooccurrence.items()},
             "recipe_candidates": {f"{k[0]}|{k[1]}": v for k, v in self.recipe_candidates.items()},
@@ -306,7 +265,6 @@ class TheAkashicRecord:
             print(f"{Prisma.RED}{msg.format(category=category, error=e)}{Prisma.RST}")
 
     def _load_mythos_state(self):
-        """Restores the LLM's long-term memory on startup."""
         data = {}
         if os.path.exists(self.state_path):
             try:
@@ -364,10 +322,6 @@ class TheAkashicRecord:
                 print(f"{Prisma.RED}[AKASHIC] Failed to load discovered words: {e}. Keeping current state.{Prisma.RST}")
 
     def record_interaction(self, lenses_active: list, ingredients_used: Optional[list] = None):
-        """
-        Tracks simultaneous voices. If two archetypes speak together enough times
-        it triggers a hybridization event to fuse them.
-        """
         if len(lenses_active) >= 2:
             key = tuple(sorted(lenses_active[:2]))
             self.lens_cooccurrence[key] = self.lens_cooccurrence.get(key, 0) + 1
@@ -378,7 +332,6 @@ class TheAkashicRecord:
                 self.ingredient_affinity[item] = (self.ingredient_affinity.get(item, 0) + 1)
 
     def track_successful_forge(self, ingredient_name, catalyst_type, result_item):
-        """Tracks repeated combinations until they are verified as a 'known recipe'."""
         if not ingredient_name or not catalyst_type:
             return
         recipe_key = (ingredient_name, catalyst_type)
@@ -396,9 +349,6 @@ class TheAkashicRecord:
             self._crystallize_recipe(ingredient_name, catalyst_type, result_item)
 
     def _hybridize_lenses(self, lens_a: str, lens_b: str):
-        """
-        Fuses two archetypes that frequently co-occur into a new, permanent system prompt
-        """
         if lens_a == lens_b:
             return
 
@@ -430,7 +380,6 @@ class TheAkashicRecord:
             self.events.publish("SOUL_MUTATION", {"new_archetype": new_name})
 
     def _crystallize_recipe(self, ingredient, catalyst, result_item):
-        """Permanently saves a user-discovered recipe into the Lore manifest."""
         self.known_recipes.add((ingredient, catalyst))
         msg_template = (ux("akashic_strings", "recipe_msg") or "Forged {result_item} from {ingredient}.")
         new_recipe = {
@@ -449,7 +398,6 @@ class TheAkashicRecord:
         print(f"{Prisma.CYN}{msg}{Prisma.RST}")
 
     def propose_new_category(self, word_list, category_name):
-        """Allows the system to invent entirely new lexical categories on the fly."""
         lexicon_data = self.lore.get("LEXICON") or {}
         target_list = lexicon_data.setdefault(category_name, [])
         new_words = list(set(word_list) - set(target_list))
@@ -466,7 +414,6 @@ class TheAkashicRecord:
                     self.events.publish("MYTHOLOGY_UPDATE", {"word": w, "category": category_name})
 
     def store_ghost_echo(self, memory_data: Dict):
-        """Archives phantom signals to be referenced by liminal spaces later."""
         self.shadow_stock.append(memory_data)
         if len(self.shadow_stock) > self.MAX_SHADOW_CAPACITY:
             self.shadow_stock.pop(0)
@@ -474,7 +421,6 @@ class TheAkashicRecord:
         print(f"{Prisma.VIOLET}{msg}{Prisma.RST}")
 
     def register_word(self, word: str, category: str) -> bool:
-        """Adds a discovered word to the system's global vocabulary."""
         if self.discovered_words.get(word) == category:
             return False
         lexicon_data = self.lore.get("LEXICON") or {}
@@ -488,8 +434,7 @@ class TheAkashicRecord:
             bloat_limit = int(safe_get(self.cfg_akashic, "BLOAT_THRESHOLD", 50))
             exempt_categories = safe_get(self.cfg_akashic, "BLOAT_EXEMPT_CATEGORIES", ["heavy"])
             if len(lexicon_data[category]) == bloat_limit + 1 and category not in exempt_categories:
-                bloat_msg = ux("akashic_strings", "lexicon_bloat",
-                               default="[WARNING] Lexicon category '{category}' is bloated.")
+                bloat_msg = ux("akashic_strings", "lexicon_bloat", default="[WARNING] Lexicon category '{category}' is bloated.")
                 print(bloat_msg.format(category=category))
             return True
         return False

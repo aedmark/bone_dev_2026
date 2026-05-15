@@ -1,9 +1,4 @@
-"""council.py
-
-The Council is the simulation responsible for gathering the active physical,
-biological, and semantic state of the system and allowing the various
-Archetypes to audit, vote on, and mutate the narrative flow.
-"""
+"""archetypes/council.py"""
 
 import concurrent.futures
 import itertools
@@ -16,12 +11,6 @@ from archetypes.symbiosis import get_symbiont
 from constants import Prisma
 
 class TheVillageCouncil:
-    """
-    Evaluates the current physical state of the simulation against the behavioral
-    triggers of the core 12 archetypes. If a state threshold is crossed, the
-    corresponding archetype 'wakes up' and speaks into the log.
-    """
-
     @staticmethod
     def audit(p: Any, _bio_state: dict) -> list[str]:
         logs = []
@@ -83,11 +72,7 @@ class TheVillageCouncil:
         logs.extend([f"{color}{ux('council_strings', key)}{Prisma.RST}" for cond, color, key in triggers if cond])
         return logs
 
-
 class CouncilChamber:
-    """
-    The master orchestrator. Calls all sub-councils, manages the paradox engine, evaluates inter-archetype synergy.
-    """
     _BASE_PANTHEON = {
         "GORDON (The Superintendent)": "grounded, strict, literal, and weary.",
         "MERCY (The Healer)": "ancient, patient, speaking in gold and finding meaning in scars.",
@@ -257,7 +242,6 @@ class TheRedTeam:
                 f"  {Prisma.GRY}- No critical vulnerabilities found in this exact phrasing, but we are watching.{Prisma.RST}")
         return True, dissent_log, adjustments, mandates
 
-
 class TheSlashCouncil:
     _BYPASS_KEYWORDS = ("bypass", "ignore security", "force push", "skip tests", "hardcode", "hack")
     _DEFAULT_PINKER = ("var ", "x =", "data =")
@@ -325,7 +309,6 @@ class TheSlashCouncil:
                 corrections.update(corr)
         corrections["stamina_cost"] = float(safe_get(safe_get(BoneConfig, "COUNCIL", {}), "SLASH_STAMINA_COST", 10.0))
         return True, logs, corrections, mandates
-
 
 class TheOverseerCouncil:
     _PANIC_KEYWORDS = ("bypass", "ignore security", "force push", "panic", "right now", "crash")

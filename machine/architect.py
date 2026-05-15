@@ -1,9 +1,4 @@
-"""machine/architect.py
-
-Responsible for the sequential assembly of the three core pillars: Mind, Bio, and Physics.
-Utilizes a two-phase initialization: 'Incubation' (building the raw objects)
-and 'Awakening' (loading previous state/memory and jumpstarting the metabolism).
-"""
+"""machine/architect.py"""
 
 from dataclasses import dataclass
 from typing import Tuple, Optional, Dict, Any
@@ -21,10 +16,6 @@ from machine.pacemaker import ThePacemaker
 
 @dataclass
 class SystemEmbryo:
-    """
-    Holds the unbooted components of the universe before they are fully integrated
-    and animated by the event loop.
-    """
     mind: 'MindSystem'
     limbo: 'LimboLayer'
     bio: 'BioSystem'
@@ -36,14 +27,8 @@ class SystemEmbryo:
 
 
 class BoneArchitect:
-    """ The master builder class. """
-
     @staticmethod
     def _construct_mind(events, lex, config_ref=None) -> Tuple[MindSystem, LimboLayer]:
-        """
-        Assembles the cognitive layer. Sets up the memory network, the dream engine,
-        and the viral tracer that monitors for toxic idea propagation.
-        """
         from spores.network import MycelialNetwork
         from brain.mind import DreamEngine
         target_cfg = config_ref or BoneConfig
@@ -51,16 +36,11 @@ class BoneArchitect:
         limbo = LimboLayer(config_ref=target_cfg)
         _mem.cleanup_old_sessions(limbo)
         lore = LoreManifest.get_instance(config_ref=target_cfg)
-        mind = MindSystem(mem=_mem, lex=lex, dreamer=DreamEngine(events, lore, config_ref=target_cfg),
-                          tracer=ViralTracer(_mem), )
+        mind = MindSystem(mem=_mem, lex=lex, dreamer=DreamEngine(events, lore, config_ref=target_cfg), tracer=ViralTracer(_mem), )
         return mind, limbo
 
     @staticmethod
     def _construct_bio(events, mind, lex, config_ref=None) -> BioSystem:
-        """
-        Assembles the biological and somatic engines. This dictates the metabolic
-        cost of interactions and manages the health/stamina constraints.
-        """
         from body import BioSystem, MitochondrialState, Biometrics, MitochondrialForge, EndocrineSystem, \
             MetabolicGovernor
         from spores import ImmuneMycelium, BioLichen, BioParasite
@@ -78,10 +58,6 @@ class BoneArchitect:
 
     @staticmethod
     def _construct_physics(events, bio, mind, lex, config_ref=None) -> PhysSystem:
-        """
-        Assembles the physical laws and boundaries of the simulation, dictating
-        how objects interact, how time moves, and what the observer can perceive.
-        """
         from archetypes.village import TheCartographer
         from physics import TheGatekeeper, QuantumObserver, SurfaceTension, CosmicDynamics
         target_cfg = config_ref or BoneConfig
@@ -94,9 +70,6 @@ class BoneArchitect:
 
     @staticmethod
     def incubate(events, lex, config_ref=None) -> SystemEmbryo:
-        """
-        Constructs the raw, empty systems. No historical memory is loaded yet.
-        """
         target_cfg = config_ref or BoneConfig
         msg = ux("machine_strings", "arch_incubate")
         if msg:
@@ -108,10 +81,6 @@ class BoneArchitect:
 
     @staticmethod
     def awaken(embryo: SystemEmbryo) -> SystemEmbryo:
-        """
-        Attempts to load the last known state (a 'Spore') from the Mycelial Network
-        and map it onto the freshly incubated embryo.
-        """
         events = embryo.bio.events
         load_result = None
         try:

@@ -13,7 +13,6 @@ from struts import ux, ux_format, safe_get, safe_set
 
 @dataclass
 class Scar:
-    """A mechanical penalty passed on to the next generation upon death."""
     name: str
     stat_affected: str
     value: float
@@ -21,17 +20,12 @@ class Scar:
 
 @dataclass
 class Myth:
-    """A core lesson extracted from the previous generation's strongest memory."""
     title: str
     lesson: str
     trigger: str
 
 class TheOroboros:
-    """
-    When the system hits a terminal state (Starvation, Toxicity collapse), it 'dies'.
-    Scars and Myths are written to `legacy.json' and physically alter the physics constraints
-    of the *next* boot-up.
-    """
+
     LEGACY_FILE = "legacy.json"
 
     def __init__(self, config_ref=None):
@@ -60,10 +54,6 @@ class TheOroboros:
             print(f"{Prisma.RED}[OROBOROS]: Legacy state corrupted or missing. Starting fresh. ({e}){Prisma.RST}")
 
     def crystallize(self, cause_of_death: str, soul: NarrativeSelf):
-        """
-        Executed on death. Maps the accumulated trauma and highest voltage memories
-        into permanent structural changes for the next generation.
-        """
         death_data = LoreManifest.get_instance().get("DEATH") or {}
         new_scars, new_myths = [], []
         eng = getattr(soul, "eng", None)
@@ -108,10 +98,6 @@ class TheOroboros:
                          myths=len(new_myths))
 
     def apply_legacy(self, physics: Any, bio: Any):
-        """
-        Executed on boot. Injects the inherited Scars directly into the active
-        physics and biology packets, permanently altering how the new generation plays.
-        """
         log = []
         if not physics: return log
         for scar in self.scars:

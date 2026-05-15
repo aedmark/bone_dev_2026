@@ -1,4 +1,5 @@
 """physics/geodesics.py"""
+
 import math
 from dataclasses import dataclass
 from typing import Dict, List
@@ -6,11 +7,6 @@ from presets import BoneConfig
 
 @dataclass
 class GeodesicVector:
-    """
-    The physical manifestation of a thought or prompt.
-    Instead of just viewing input as a string of text, the system treats it as a
-    physical object with these structural properties.
-    """
     tension: float
     compression: float
     coherence: float
@@ -18,20 +14,12 @@ class GeodesicVector:
     dimensions: Dict[str, float]
 
 class GeodesicEngine:
-    """
-    The core semantic physics engine.
-    Translates raw word counts and semantic categories into physical forces and multi-dimensional vectors.
-    """
     _DIM_ORDER = ("VEL", "STR", "ENT", "PHI", "PSI", "BET", "DEL", "E")
     _MASS_KEYS = ("heavy", "kinetic", "constructive", "abstract", "play", "social", "explosive", "void", "liminal",
                   "meat", "harvest", "pareidolia", "crisis_term")
 
     @staticmethod
     def collapse_wavefunction(clean_words: List[str], counts: Dict[str, int], config_ref=None) -> GeodesicVector:
-        """
-        Takes a raw, unstructured cloud of semantic data (the prompt) and collapses it
-        into a definitive, physical state vector that the system can react to.
-        """
         target_cfg = config_ref or BoneConfig
         volume = max(1, len(clean_words))
         masses = GeodesicEngine._weigh_mass(counts)
@@ -42,16 +30,11 @@ class GeodesicEngine:
 
     @staticmethod
     def _weigh_mass(counts: Dict[str, int]) -> Dict[str, float]:
-        """Maps raw semantic categories into float mass values."""
         return {k: float(counts.get(k, 0)) for k in GeodesicEngine._MASS_KEYS}
 
     @staticmethod
     def _calculate_forces(masses: Dict[str, float], counts: Dict[str, int], volume: int, config_ref=None) -> Dict[
         str, float]:
-        """
-        The heavy lifting of the physics engine. Calculates how the different
-        types of semantic mass interact to create tension and drag.
-        """
         from struts import safe_get
         t_cfg = config_ref or BoneConfig
         cfg = safe_get(t_cfg, "PHYSICS", {})
@@ -102,10 +85,6 @@ class GeodesicEngine:
 
     @staticmethod
     def _calculate_dimensions(masses, forces, counts, volume) -> Dict[str, float]:
-        """
-        Translates the physical masses into the 8 core dimensions of the system's mind state.
-        Returns a normalized vector where each axis is clamped between 0.0 and 1.0.
-        """
         inv_vol = 1.0 / volume
         base_mass = 0.1
         clamp = GeodesicEngine._clamp
@@ -123,10 +102,6 @@ class GeodesicEngine:
 
     @staticmethod
     def apply_path_reflection(dimensions: Dict[str, float], q_matrix: List[List[float]]) -> Dict[str, float]:
-        """
-        Allows environmental states (like trauma or high voltage) to warp the thought vector
-        via matrix multiplication. Bends the path of the thought based on the system's current geometry.
-        """
         v = [dimensions.get(k, 0.0) for k in GeodesicEngine._DIM_ORDER]
         v_new = [sum(row[j] * v[j] for j in range(len(v))) for row in q_matrix]
         return {k: round(abs(val), 3) for k, val in zip(GeodesicEngine._DIM_ORDER, v_new)}
