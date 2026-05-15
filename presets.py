@@ -97,7 +97,7 @@ class BoneConfig:
         "THE OBSERVER": {"VOID": 0.5, "ABSTRACT": 0.2},}
 
     TRAUMA_VECTOR = {"THERMAL": 0.0, "CRYO": 0.0, "SEPTIC": 0.0, "BARIC": 0.0}
-    VERSION = "20.0.1"
+    VERSION = "20.1.0"
     VERBOSE_LOGGING = True
 
     MAX_HEALTH = 100.0
@@ -156,6 +156,8 @@ class BoneConfig:
             if sector not in tuning_data:
                 tuning_data[sector] = {}
         cls._TEMPLATE_DATA = tuning_data
+        for sector_name, properties in tuning_data.items():
+            setattr(cls, sector_name, type('ConfigSector', (object,), copy.deepcopy(properties))())
 
     def __init__(self):
         for sector_name, properties in self._TEMPLATE_DATA.items():

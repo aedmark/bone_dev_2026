@@ -1,7 +1,27 @@
 # CHANGELOG.md
 -----------------------------------------------------------
 
-### **BONEAMANITA 20.1.0 "The Tensegrity Pass"**
+### **BONEAMANITA 20.1.0 "The Ephemeralization Pass"**
+
+**Changed**
+
+- **Architectural Ephemeralization (Presets):** Purged the `_ConfigNode` dynamic proxy bureaucracy in `presets.py`. Configuration now initializes using explicit, static class-level dictionary templates, eliminating the metabolic cost of deep `dir()` reflection during boot.
+- **Daemon Tensegrity (Cycle):** The `GeodesicOrchestrator` no longer blocks the main heartbeat during REM sleep. Dream generation and background autopoiesis are now safely offloaded to the async pool, allowing the system to wake instantly.
+- **Hot-Loop Friction (Core & Cycle):** Cached the `LoreManifest` singleton lock in the `ArchetypeArbiter` to prevent redundant locking, and hoisted inline `PhysicsPacket` imports out of the core execution loop to completely zero out compounding cognitive drag.
+- **Stagnation Valve (Main):** Introduced a strict timeout boundary on the orchestrator's output queue. If the daemon thread collapses silently, the main thread will now cascade into a catchable, graceful crash instead of hanging indefinitely.
+- **Topological Decoupling (Main & Chronos):** Erased hardcoded save paths and redundant nested `getattr` hunts. `main.py` now trusts `ChronosKeeper` to report its own state geometry, and Chronos directly queries the established `active_physics` leverage point instead of digging through the engine.
+- **Direct Mutation (Genesis):** Eliminated the bureaucratic proxy-dictionary math during Oroboros legacy karma application. The system now mutates the `embryo.physics` object directly and gracefully clamps biological boundaries post-execution.
+
+**Fixed**
+
+- **Static Tensegrity Restored (Presets):** Re-attached the static configuration sectors to the `BoneConfig` class definition. This restored the structural leverage for static methods like `TheVillageCouncil.audit()`, fixing a false-negative failure in `test_fracture_false_cohesion`.
+- **Linter Hallucinations (Cycle):** Silenced aggressive static-analysis false positives by structurally asserting `Optional[Exception]` in `_generate_crash_report` and flattening the traceback formatting logic.
+- **Uninitialized Biological Clocks (Cycle):** Instantiated the `last_rem_tick` baseline properly in the orchestrator's constructor, ensuring a stable, traceable biological clock from the moment of ignition.
+- **Object Mutation Mocks (Tests):** Updated `test_presets.py` to correctly apply `setattr()` logic when mocking legacy physics, aligning the tests with the newly enforced, strongly-typed `PhysSystem` object.
+
+---
+
+### **BONEAMANITA 20.0.3 "The Tensegrity Pass"**
 
 **Changed**
 

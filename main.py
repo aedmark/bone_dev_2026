@@ -5,7 +5,6 @@ import time
 import traceback
 from dataclasses import dataclass
 from typing import Dict, Any, Optional, Tuple
-
 from archetypes.council import CouncilChamber
 from body import SomaticLoop
 from brain.composer import LLMInterface
@@ -25,11 +24,9 @@ from presets import BoneConfig, BonePresets
 from protocols import ChronosKeeper, GriefProtocol
 from struts import ux, safe_get, safe_set
 
-
 @dataclass
 class HostStats:
     efficiency_index: float
-
 
 class BoneAmanita:
     events: EventBus
