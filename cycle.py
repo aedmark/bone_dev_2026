@@ -1,23 +1,24 @@
 """
 cycle.py
 
-This module defines the main execution loop (The Cycle) of the engine. It is responsible for
-orchestrating the linear progression of reality phases (Observation -> Metabolism -> Cognition, etc.)
-and managing the asynchronous biological rhythms (REM cycles, topological memory checks) that keep
-the system stable over time.
+NAVI FRACTAL NATIVE PRIMITIVES (Authored by Nelson Spence, Project Navi, Apache 2.0)
+These functions represent the lowest-level mathematical substrate of the engine.
+They operate outside the standard object-oriented paradigm to provide raw, optimized graph
+calculations for the memory topology.
 """
 
+import queue
 import random
 import threading
 import time
-import queue
-from concurrent.futures import ThreadPoolExecutor
 import traceback
 import uuid
+from concurrent.futures import ThreadPoolExecutor
 from typing import Dict, Any, List, Optional
 from constants import Prisma
 from core import CycleContext, LoreManifest
 from drivers import CongruenceValidator
+from physics.models import PhysicsPacket
 from machine import PanicRoom
 from mechanics.reporter import CycleReporter
 from phases import (ObservationPhase, SanctuaryPhase, MaintenancePhase, GatekeeperPhase,
@@ -25,17 +26,9 @@ from phases import (ObservationPhase, SanctuaryPhase, MaintenancePhase, Gatekeep
                     IntrusionPhase, SoulPhase, ArbitrationPhase, SimulationPreflightPhase,
                     CognitionPhase, SensationPhase, StabilizationPhase, SimulationPhase, _safe_dict)
 from physics import CycleStabilizer
-from presets import BoneConfig
 from struts import ux
 
 _CRASH_COMPONENT_MAP = {"OBSERVE": "PHYSICS", "METABOLISM": "BIO", "COGNITION": "MIND"}
-
-# =============================================================================
-# NAVI FRACTAL NATIVE PRIMITIVES (Authored by Nelson Spence, Project Navi, Apache 2.0)
-# These functions represent the lowest-level mathematical substrate of the engine.
-# They operate outside the standard object-oriented paradigm to provide raw, optimized graph
-# calculations for the memory topology.
-# =============================================================================
 
 def _native_wls(x: list[float], y: list[float], weights: list[float]) -> float:
     """
@@ -85,12 +78,7 @@ def _native_rewire(adj_dict: dict, n_swaps: int) -> dict:
     return adj
 
 def _native_freeze_graph(adj_dict: dict) -> tuple:
-    """
-    Immutability enforcer. Converts a mutable adjacency dictionary into a deeply nested,
-    hashed tuple. Used to permanently freeze a snapshot of the graph when the system crashes (The Gödel Scar).
-    """
     try:
-        # Lock-free approximation: isolate keys first to survive concurrent mutation
         keys = list(adj_dict.keys())
         safe_items = [(k, adj_dict[k]) for k in keys if k in adj_dict]
     except Exception:
@@ -112,7 +100,6 @@ class PhaseExecutor:
                 simulator.handle_phase_crash(ctx, phase.name, e)
                 break
         return ctx
-
 
 class CycleSimulator:
     def __init__(self, engine_ref):
@@ -152,7 +139,6 @@ class CycleSimulator:
         ctx.log(f"{Prisma.RED}{msg_eulogy.format(eulogy=eulogy)}{Prisma.RST}")
         comp = _CRASH_COMPONENT_MAP.get(phase_name, "SIMULATION")
         self.eng.system_health.report_failure(comp, error)
-        # Native deterministic graph freezing based on Nelson Spence (Project Navi).
         if comp == "PHYSICS" or not getattr(ctx, "physics", None):
             ctx.physics = PanicRoom.get_safe_physics()
             try:
@@ -171,7 +157,6 @@ class CycleSimulator:
         msg_panic = ux("cycle_strings", "sim_panic_switch")
         ctx.log(f"{Prisma.RED}{msg_panic.format(phase_name=phase_name)}{Prisma.RST}")
 
-
 class GeodesicOrchestrator:
     """
     This class manages the lifecycle of the Cycle Simulator. It wraps the raw turn logic in
@@ -185,17 +170,14 @@ class GeodesicOrchestrator:
         self.reporter = CycleReporter(engine_ref)
         self._rem_lock = threading.Lock()
         self.symbiosis = self.eng.symbiosis
-
-        # Phase 1: Daemonization State
         self.input_queue = queue.Queue()
         self.output_queue = queue.Queue()
         self.is_running = False
         self.daemon_thread = None
-
-        # Phase 2 & 3: Circadian Rhythm State
         self.last_interaction_time = time.time()
         self.engine_state = "WAKE"
         self.dream_log = []
+        self.last_rem_tick = 0.0
         self._async_pool = ThreadPoolExecutor(max_workers=3, thread_name_prefix="CycleAsync")
         from drivers import SharedLatticeDriver
         if not hasattr(self.eng, "shared_lattice"):
@@ -203,45 +185,32 @@ class GeodesicOrchestrator:
         self.congruence_validator = CongruenceValidator()
 
     def start_daemon(self):
-        """Phase 1: Boot the background pacemaker thread."""
         if not self.is_running:
             self.is_running = True
             self.daemon_thread = threading.Thread(target=self.run_continuous, daemon=True, name="CycleDaemon")
             self.daemon_thread.start()
 
     def run_continuous(self):
-        """Phase 1 & 2: The infinite background execution loop with Circadian Rhythm."""
         while self.is_running:
             current_time = time.time()
             task_acquired = False
             try:
-                # Poll the queue. Timeout allows the loop to breathe and process idle tasks.
                 user_message, is_system = self.input_queue.get(timeout=0.1)
                 task_acquired = True
-
-                # WAKE STATE: Process input
                 self.last_interaction_time = current_time
                 if self.engine_state == "REM":
                     self.engine_state = "WAKE"
                     self.eng.events.log(f"{Prisma.VIOLET}Engine waking from REM sleep...{Prisma.RST}", "SYS")
                     self.eng.events.publish("SYSTEM_WAKE", {"timestamp": current_time})
-
-                # Ensure Cognition is active for non-system turns
                 snapshot = self.run_turn(user_message, is_system)
-
-                # Phase 3: Inject the Dream Log on Wake
                 if self.dream_log and "ui" in snapshot:
-                    dream_summary = "\n".join(self.dream_log[-5:]) # Keep only the deepest 5 dreams
+                    dream_summary = "\n".join(self.dream_log[-5:])
                     snapshot["ui"] = f"\n{Prisma.MAG}☁️ While you were gone, the system dreamt of:\n{dream_summary}{Prisma.RST}\n{snapshot['ui']}"
                     self.dream_log.clear()
-
-                # Push the resolved snapshot to the blocking queue
                 self.output_queue.put(snapshot)
 
             except queue.Empty:
-                # Phase 2: PASSIVE METABOLISM & Idle Detection
                 time_since_last = current_time - self.last_interaction_time
-
                 if self.engine_state == "WAKE":
                     rem_threshold_seconds = float(getattr(self.eng.config, "REM_IDLE_THRESHOLD", 300.0))
                     if time_since_last > rem_threshold_seconds:
@@ -252,53 +221,41 @@ class GeodesicOrchestrator:
                         self.eng.events.publish("SYSTEM_SLEEP", {"idle_duration": time_since_last})
 
                 elif self.engine_state == "REM":
-                    # Phase 3: The Dream Engine (Asynchronous Metabolism)
-                    last_rem = getattr(self, "last_rem_tick", 0.0)
-                    if current_time - last_rem < 60.0:
+                    if current_time - self.last_rem_tick < 60.0:
                         continue
                     self.last_rem_tick = current_time
-
-                    # 1. Metabolic Burn & Stress Decay
                     if hasattr(self.eng, "drain_atp"):
                         self.eng.drain_atp(0.5)
                     if getattr(self.eng, "bio", None) and getattr(self.eng.bio, "mito", None):
                         self.eng.bio.mito.state.ros_buildup = max(0.0, self.eng.bio.mito.state.ros_buildup - 0.1)
-
-                    # 2. Memory Defragmentation
                     if hasattr(self.eng, "consolidator") and hasattr(self.eng.consolidator, "trigger_autophagy"):
                         try:
                             self.eng.consolidator.trigger_autophagy()
                         except Exception:
                             pass
 
-                    # 3. Hallucination (Shadow Casts)
-                    try:
-                        trauma_level = sum(self.eng.trauma_accum.values()) if getattr(self.eng, "trauma_accum", None) else 0.0
-                        inv_ref = getattr(getattr(self.eng, "village", None), "gordon", None)
-                        objects = getattr(inv_ref, "inventory", ["static"]) if inv_ref else ["static"]
-
-                        if hasattr(self.eng, "mind") and hasattr(self.eng.mind, "dream_engine"):
-                            # Run a silent zero-UI DSPy generation
-                            dream_txt, _ = self.eng.mind.dream_engine.hallucinate({"chi": 0.85}, trauma_level=trauma_level)
-                            obj = random.choice(objects) if objects else "static"
-
-                            # Construct the surreal one-liner
-                            full_dream = f"  • {Prisma.strip(dream_txt)} (Shadow cast involving: {obj})"
-                            self.dream_log.append(full_dream)
-                    except Exception as e:
-                        self.eng.events.log(f"Dream generation failed in REM: {e}", "DEBUG")
-
+                    def _bg_hallucinate():
+                        try:
+                            trauma_level = sum(self.eng.trauma_accum.values()) if getattr(self.eng, "trauma_accum", None) else 0.0
+                            inv_ref = getattr(getattr(self.eng, "village", None), "gordon", None)
+                            objects = getattr(inv_ref, "inventory", ["static"]) if inv_ref else ["static"]
+                            if hasattr(self.eng, "mind") and hasattr(self.eng.mind, "dream_engine"):
+                                dream_txt, _ = self.eng.mind.dream_engine.hallucinate({"chi": 0.85}, trauma_level=trauma_level)
+                                obj = random.choice(objects) if objects else "static"
+                                full_dream = f"  • {Prisma.strip(dream_txt)} (Shadow cast involving: {obj})"
+                                self.dream_log.append(full_dream)
+                        except Exception as e:
+                            self.eng.events.log(f"Dream generation failed in REM: {e}", "DEBUG")
+                    self._async_pool.submit(_bg_hallucinate)
             except Exception as e:
                 self.eng.events.log(f"Daemon Engine Crash: {e}", "CRIT")
-
-                # Concurrency Fail-Safe: Unblock the main thread if the cycle crashed
                 self.output_queue.put({
                     "type": "CRASH",
                     "ui": f"\n{Prisma.RED}CRITICAL DAEMON CRASH: {e}{Prisma.RST}",
                     "logs": [str(e)],
                     "metrics": getattr(self.eng, "get_metrics", lambda: {})()
                 })
-                time.sleep(1.0) # Prevent tight crash loops
+                time.sleep(1.0)
             finally:
                 if task_acquired:
                     self.input_queue.task_done()
@@ -354,7 +311,6 @@ class GeodesicOrchestrator:
             ctx.limits = _safe_dict(getattr(self.eng.config, "CYCLE", {}))
             obs = self.eng.observer
             last_packet = getattr(obs, "last_physics_packet", None)
-            from physics.models import PhysicsPacket
             if isinstance(last_packet, dict) and last_packet:
                 ctx.physics = PhysicsPacket(**last_packet)
             elif hasattr(last_packet, "snapshot"):
@@ -519,15 +475,22 @@ class GeodesicOrchestrator:
         })
 
     @staticmethod
-    def _generate_crash_report(e: Exception) -> Dict[str, Any]:
+    def _generate_crash_report(e: Optional[Exception]) -> Dict[str, Any]:
         if e is not None:
-            full_trace = "".join(traceback.format_exception(e))
+            full_trace = "".join(traceback.format_exception(type(e), e, getattr(e, "__traceback__", None)))
         else:
             full_trace = "Biological execution halted. No standard Python exception provided."
         safe_phys = PanicRoom.get_safe_physics()
         safe_bio = PanicRoom.get_safe_bio()
         msg = ux("cycle_strings", "orch_reality_fracture")
         ui_report = f"{Prisma.RED}{msg.format(error=e, trace=full_trace)}{Prisma.RST}"
-        return {"type": "CRASH", "ui": ui_report, "physics": safe_phys.to_dict(), "bio": safe_bio,
-                "mind": PanicRoom.get_safe_mind(), "world": {"orbit": ["VOID"], "loci_description": "System Failure"},
-                "logs": ["CRITICAL FAILURE", "SAFE MODE ACTIVE"], "is_alive": True, }
+        return {
+            "type": "CRASH",
+            "ui": ui_report,
+            "physics": safe_phys.to_dict(),
+            "bio": safe_bio,
+            "mind": PanicRoom.get_safe_mind(),
+            "world": {"orbit": ["VOID"], "loci_description": "System Failure"},
+            "logs": ["CRITICAL FAILURE", "SAFE MODE ACTIVE"],
+            "is_alive": True,
+        }

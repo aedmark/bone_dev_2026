@@ -36,19 +36,14 @@ class BoneGenesis:
         cfg_gen = safe_get(target_cfg, "GENESIS", {})
         base_voltage = float(safe_get(cfg_gen, "DUMMY_VOLTAGE", 10.0))
         base_drag = float(safe_get(cfg_gen, "DUMMY_DRAG", 0.0))
-        dummy_phys = {"narrative_drag": base_drag, "voltage": base_voltage}
+        if safe_get(embryo.physics, "voltage") is None: safe_set(embryo.physics, "voltage", base_voltage)
+        if safe_get(embryo.physics, "narrative_drag") is None: safe_set(embryo.physics, "narrative_drag", base_drag)
         bio_proxy = {"trauma_vector": safe_get(embryo.mind.mem, "session_trauma_vector", {})}
-        if logs := oroboros.apply_legacy(dummy_phys, bio_proxy):
+        if logs := oroboros.apply_legacy(embryo.physics, bio_proxy):
             msg = ux_format("genesis_strings", "legacy_scars", default="The lattice remembers. Inherited scars: {logs}", logs=', '.join(logs))
             events.log(f"{Prisma.MAG}{msg}{Prisma.RST}", "OROBOROS")
-            applied_drag = float(dummy_phys.get("narrative_drag", base_drag)) - base_drag
-            if applied_drag != 0.0:
-                current_drag = float(safe_get(embryo.physics, "narrative_drag", base_drag))
-                safe_set(embryo.physics, "narrative_drag", max(0.0, current_drag + applied_drag))
-            volt_penalty = base_voltage - float(dummy_phys.get("voltage", base_voltage))
-            if volt_penalty > 0.0:
-                current_volt = float(safe_get(embryo.physics, "voltage", base_voltage))
-                safe_set(embryo.physics, "voltage", max(0.0, current_volt - volt_penalty))
+        safe_set(embryo.physics, "narrative_drag", max(0.0, float(safe_get(embryo.physics, "narrative_drag", base_drag))))
+        safe_set(embryo.physics, "voltage", max(0.0, float(safe_get(embryo.physics, "voltage", base_voltage))))
         safe_set(embryo.mind.mem, "session_trauma_vector", bio_proxy.get("trauma_vector", {}))
         drivers = DriverRegistry(events, config_ref=target_cfg)
         consultant = BoneConsultant(config_ref=target_cfg, lexicon_ref=lexicon_ref) if "CONSULTANT" not in suppressed_set else None

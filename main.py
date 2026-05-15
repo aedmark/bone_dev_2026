@@ -1,30 +1,30 @@
 """main.py"""
 
-import os
-import time
 import random
+import time
 import traceback
-import uuid
 from dataclasses import dataclass
 from typing import Dict, Any, Optional, Tuple
+
+from archetypes.council import CouncilChamber
 from body import SomaticLoop
+from brain.composer import LLMInterface
 from brain.cortex import TheCortex
 from brain.mind import NoeticLoop
-from brain.composer import LLMInterface
-from mechanics.commands import CommandProcessor
-from presets import BoneConfig, BonePresets
+from constants import Prisma, RealityLayer
 from core import EventBus, SystemHealth, TheObserver, LoreManifest, TelemetryService, RealityStack, CyberneticGovernor
-from struts import ux, safe_get, safe_set
-from archetypes.council import CouncilChamber
 from cycle import GeodesicOrchestrator
 from genesis import BoneGenesis
+from mechanics.commands import CommandProcessor
 from mechanics.lexicon import LexiconService
-from physics import ZoneInertia, NaviSADProtocol
-from protocols import ChronosKeeper, GriefProtocol
-from constants import Prisma, RealityLayer
-from mechanics.terminal import typewriter, SessionGuardian
 from mechanics.setup import ConfigWizard
+from mechanics.terminal import typewriter, SessionGuardian
 from mechanics.tools import TheSubstrate
+from physics import ZoneInertia, NaviSADProtocol
+from presets import BoneConfig, BonePresets
+from protocols import ChronosKeeper, GriefProtocol
+from struts import ux, safe_get, safe_set
+
 
 @dataclass
 class HostStats:
@@ -53,7 +53,6 @@ class BoneAmanita:
         self.config.WEIGHT_CLASS = self.sys_config.get("WEIGHT_CLASS", "HEAVYWEIGHT")
         self.navi_sad = NaviSADProtocol()
         self.events = EventBus(config_ref=self.config)
-        self.kernel_hash = str(uuid.uuid4())[:8].upper()
         self.cmd = CommandProcessor(self, Prisma, config_ref=self.config)
         self.user_name = self.sys_config.get("user_name", "TRAVELER")
         self.boot_mode = self.sys_config.get("boot_mode", "ADVENTURE").upper()
@@ -317,8 +316,7 @@ class BoneAmanita:
                 return self._generate_halt(
                     "Dual-Path divergence detected. The architecture is mathematically brittle. Applying absolute friction.")
             if lock := self.symbiosis.analyze_user_biology(user_message, self.phys or {}):
-                return {"type": "SYSTEM_HALT", "ui": f"\n{Prisma.VIOLET}{lock}{Prisma.RST}", "logs": [lock],
-                        "metrics": self.get_metrics(), }
+                return self._generate_halt(lock, color=Prisma.VIOLET, level="SYS")
             if self.village.gordon:
                 self.village.gordon.mode = self.boot_mode
                 if violation := self.village.gordon.enforce_object_action_coupling(
@@ -363,7 +361,7 @@ class BoneAmanita:
                 user_message = self.village.gordon.apply_filters(user_message, self.active_physics)
         try:
             self.orchestrator.input_queue.put((user_message, is_system))
-            snapshot = self.orchestrator.output_queue.get()
+            snapshot = self.orchestrator.output_queue.get(timeout=getattr(self.config, "ORCHESTRATOR_TIMEOUT", 45.0))
         except Exception as e:
             full_trace = traceback.format_exc()
             self.events.log(f"ORCHESTRATOR COLLAPSE: {e}\n{full_trace}", "CRIT")
@@ -475,14 +473,13 @@ class BoneAmanita:
     def engage_cold_boot(self) -> Optional[Dict[str, Any]]:
         if self.tick_count > 0:
             return None
-        if os.path.exists("saves/quicksave.json"):
+        success, history = self.resume_checkpoint()
+        if success:
             msg_pod = ux("main_strings", "stasis_pod")
             self.events.log(f"{Prisma.GRY}{msg_pod}{Prisma.RST}", "SYS")
-            success, history = self.resume_checkpoint()
-            if success:
-                self._apply_boot_mode()
-                if self.cortex:
-                    self.cortex.restore_context(history)
+            self._apply_boot_mode()
+            if self.cortex:
+                self.cortex.restore_context(history)
                 loc = self.embryo.continuity.get("location", "Unknown") if self.embryo.continuity else "Unknown"
                 last_scene = "Silence."
                 if self.cortex and self.cortex.dialogue_buffer:

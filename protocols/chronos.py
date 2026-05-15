@@ -4,10 +4,11 @@ import json
 import os
 import time
 from typing import Dict, Tuple, Any
-from struts import ux, safe_get
-from presets import BoneConfig
+
 from constants import Prisma
-from core import LoreManifest
+from presets import BoneConfig
+from struts import ux, safe_get
+
 
 class ChronosKeeper:
     def __init__(self, engine_ref):
@@ -16,11 +17,9 @@ class ChronosKeeper:
         self.CRASH_DIR = "crashes"
 
     def _build_continuity_packet(self) -> Dict[str, Any]:
-        loc = "Void"
-        if getattr(self.eng, "phys", None) and getattr(self.eng.phys, "observer", None):
-            if last_pkt := getattr(self.eng.phys.observer, "last_physics_packet", None):
-                space = safe_get(last_pkt, "space", {}) or {}
-                loc = safe_get(last_pkt, "zone", safe_get(space, "zone", "Void"))
+        active_phys = getattr(self.eng, "active_physics", {})
+        space = safe_get(active_phys, "space", {}) or {}
+        loc = safe_get(active_phys, "zone", safe_get(space, "zone", "Void"))
         last_speech = "Silence."
         if getattr(self.eng, "cortex", None) and getattr(self.eng.cortex, "dialogue_buffer", None):
             last_speech = self.eng.cortex.dialogue_buffer[-1]
@@ -71,8 +70,6 @@ class ChronosKeeper:
                 self._restore_village_state(data["village_data"])
             if "continuity" in data:
                 self.eng.embryo.continuity = data["continuity"]
-                if "inventory" in data["continuity"] and getattr(self.eng.village, "gordon", None):
-                    self.eng.village.gordon.inventory = data["continuity"]["inventory"]
             restored_history = data.get("chat_history", [])
             msg2 = ux("protocol_strings", "chronos_resume_success")
             print(f"{Prisma.GRN}{msg2}{Prisma.RST}")
@@ -90,17 +87,11 @@ class ChronosKeeper:
         try:
             msg2 = ux("protocol_strings", "chronos_freezing")
             print(f"{Prisma.GRY}{msg2}{Prisma.RST}")
-            bio = getattr(self.eng, "bio", None)
-            phys = getattr(self.eng, "phys", None)
-            bio_dict = bio.to_dict() if hasattr(bio, "to_dict") else {}
+            bio_dict = self.eng.bio.to_dict() if getattr(self.eng, "bio", None) and hasattr(self.eng.bio, "to_dict") else {}
             mito_traits = bio_dict.get("mito", {})
-            immune = getattr(bio, "immune", None)
-            immune_data = list(immune.active_antibodies) if immune and hasattr(immune, "active_antibodies") else []
-            atlas = {}
-            if phys and getattr(phys, "nav", None):
-                nav_sys = phys.nav
-                atlas = nav_sys.to_dict() if hasattr(nav_sys, "to_dict") else {}
+            immune_data = list(self.eng.bio.immune.active_antibodies) if getattr(self.eng, "bio", None) and hasattr(self.eng.bio, "immune") else []
 
+            atlas = self.eng.phys.nav.to_dict() if getattr(self.eng, "phys", None) and hasattr(self.eng.phys, "nav") else {}
             soul_data = self.eng.soul.to_dict() if getattr(self.eng, "soul", None) else {}
             if getattr(self.eng, "mind", None) and getattr(self.eng.mind, "mem", None):
                 self.eng.mind.mem.save(health=getattr(self.eng, "health", 0.0),

@@ -431,18 +431,18 @@ class ArchetypeArbiter:
             return "THE CENSOR", "COUNCIL", ux("core_strings", "arb_martial_law") or "[COUNCIL]: Martial Law. Lockdown initiated."
         if "FORCE_MODE" in mandate_types:
             return "THE MACHINE", "COUNCIL", ux("core_strings", "arb_bureaucratic") or "[COUNCIL]: Bureaucratic Override active."
-
         if soul_archetype and "/" in soul_archetype:
             msg = ux_format("core_strings", "arb_diamond", soul_archetype=soul_archetype,
                             default=f"Gestalt Resonance: {soul_archetype}")
             return soul_archetype, "SOUL", msg
+        manifest = LoreManifest.get_instance()
         if trigram:
-            meta_resonance = LoreManifest.get_instance().get("NARRATIVE_DATA", "_META_RESONANCE_") or []
+            meta_resonance = manifest.get("NARRATIVE_DATA", "_META_RESONANCE_") or []
             for r in meta_resonance:
                 if r.get("trigram") == trigram.get("name") and r.get("lens", physics_lens) == physics_lens and r.get(
                         "soul", soul_archetype) == soul_archetype:
                     return r["result"], r.get("source", "COSMIC"), r.get("msg") or ux("core_strings", "arb_resonance") or "Cosmic Resonance."
-        loud_lenses = LoreManifest.get_instance().get("COUNCIL_DATA", "LOUD_LENSES") or ("THE MANIC", "THE VOID")
+        loud_lenses = manifest.get("COUNCIL_DATA", "LOUD_LENSES") or ("THE MANIC", "THE VOID")
         if physics_lens in loud_lenses:
             msg = ux_format("core_strings", "arb_loud", physics_lens=physics_lens,
                             default=f"Physics Override: {physics_lens}")

@@ -6,10 +6,6 @@ import os
 from typing import Dict, Any, List
 from struts import ux
 
-class _ConfigNode:
-    def __repr__(self):
-        return f"ConfigNode({vars(self)})"
-
 class BonePresets:
     ZEN_GARDEN = {"PHYSICS.VOLTAGE_FLOOR": 1.0,
         "PHYSICS.VOLTAGE_MAX": 25.0,
@@ -142,6 +138,8 @@ class BoneConfig:
     MODEL = "mistral-nemo"
     OLLAMA_MODEL_ID = "llama3"
 
+    _TEMPLATE_DATA = {}
+
     @classmethod
     def _load_class_defaults(cls):
         base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -157,23 +155,11 @@ class BoneConfig:
         for sector in core_sectors:
             if sector not in tuning_data:
                 tuning_data[sector] = {}
-        for sector_name, properties in tuning_data.items():
-            node = getattr(cls, sector_name, _ConfigNode())
-            for key, val in properties.items():
-                setattr(node, key, val)
-            setattr(cls, sector_name, node)
+        cls._TEMPLATE_DATA = tuning_data
 
     def __init__(self):
-        for name in dir(self.__class__):
-            if not name.startswith("__") and not callable(getattr(self.__class__, name)):
-                val = getattr(self.__class__, name)
-                if isinstance(val, _ConfigNode):
-                    clone = _ConfigNode()
-                    for k, v in vars(val).items():
-                        setattr(clone, k, copy.deepcopy(v) if isinstance(v, (dict, list, set)) else v)
-                    setattr(self, name, clone)
-                else:
-                    setattr(self, name, copy.deepcopy(val) if isinstance(val, (dict, list, set)) else val)
+        for sector_name, properties in self._TEMPLATE_DATA.items():
+            setattr(self, sector_name, type('ConfigSector', (object,), copy.deepcopy(properties))())
 
     def load_preset(self, preset_dict: Dict[str, Any]) -> List[str]:
         logs = []
