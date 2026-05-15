@@ -1,19 +1,12 @@
 """drivers/lattice.py"""
+
 import time
 from typing import List, Any
 from constants import Prisma
 from physics.models import UserInferredState, SharedDynamics, PhysicsPacket
 from struts import ux, safe_get
 
-
 class SharedLatticeDriver:
-    """
-    The SharedLatticeDriver governs the 'Co-Metabolism' of the system.
-    It tracks the user's inferred state and compares it to the system's physical state.
-    It calculates Resonance (Phi), measures the weight of Silence, and allows the
-    machine to physically carry the cognitive load when the user is exhausted.
-    """
-
     def __init__(self):
         self.u = UserInferredState()
         self.shared = SharedDynamics()
@@ -21,18 +14,12 @@ class SharedLatticeDriver:
 
     @staticmethod
     def _get_f(obj, *keys, default=0.0):
-        """Helper to safely extract float values from deeply nested dynamic objects."""
         for k in keys:
             if (val := safe_get(obj, k)) is not None:
                 return float(val)
         return float(default)
 
-    def infer_and_couple(self, text: str, sys_phys: PhysicsPacket, input_phys: Any,
-                         atp_pool: float) -> tuple[List[str], float]:
-        """
-        The core synchronization loop. It calculates the friction of the user's input,
-        measures how aligned the human and machine are, and categorizes the silence between prompts.
-        """
+    def infer_and_couple(self, text: str, sys_phys: PhysicsPacket, input_phys: Any, atp_pool: float) -> tuple[List[str], float]:
         logs = []
         atp_deduction = 0.0
         now = time.time()

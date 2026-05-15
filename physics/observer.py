@@ -1,4 +1,5 @@
 """physics/observer.py"""
+
 import math
 import time
 from collections import Counter, deque
@@ -74,10 +75,8 @@ def apply_somatic_feedback(physics_packet: PhysicsPacket, qualia: Any, config_re
 
 class QuantumObserver:
     """
-    The 'Eye' of the system.
-    It 'gazes' at the user's prompt and collapses it into a concrete, multidimensional
-    PhysicsPacket. It measures structural entropy, detects pathological conversational loops,
-    and calculates how much energy (Viability) the system has to respond.
+    Measures structural entropy, detects pathological conversational loops,
+    and calculates how much energy the system has to respond.
     """
 
     def __init__(self, events, lexicon_ref, config_ref=None):
@@ -97,7 +96,7 @@ class QuantumObserver:
 
     def gaze(self, text: str, graph: Dict = None) -> Dict:
         """
-        The core observation loop. Ingests text, calculates its semantic mass, forces, and entropy,
+        Ingests text, calculates its semantic mass, forces, and entropy,
         and constructs the master PhysicsPacket that governs the LLM's upcoming generation phase.
         """
         clean_words = self.lex.clean(text)
@@ -107,7 +106,11 @@ class QuantumObserver:
             geo.dimensions = GeodesicEngine.apply_path_reflection(geo.dimensions, self.Q_n)
         self.voltage_history.append(geo.tension)
         avg_voltage = round(sum(self.voltage_history) / len(self.voltage_history), 2)
-        entropy, beta, scope, depth, connectivity, resonance, silence, loop_quotient = self._calculate_metrics(text,counts,len(clean_words),self.cfg)
+        metrics = self._calculate_metrics(text, counts, len(clean_words), self.cfg)
+        entropy, beta = metrics["entropy"], metrics["beta"]
+        scope, depth = metrics["scope"], metrics["depth"]
+        connectivity, resonance = metrics["connectivity"], metrics["resonance"]
+        silence, loop_quotient = metrics["silence"], metrics["loop_quotient"]
         v_hist = list(self.voltage_history)
         if len(v_hist) >= 3:
             true_chaos = _native_permutation_entropy(v_hist, window_size=3)
@@ -267,8 +270,9 @@ class QuantumObserver:
         if length < get_cfg("SILENCE_SHORT_LIMIT", 10):
             silence = max(silence, get_cfg("SILENCE_MIN", 0.8))
         loop_quotient = min(1.0, beta_index * depth * get_cfg("LQ_SCALAR", 1.5))
-        return (round(e_metric, 3), round(beta_index, 3), round(scope, 3), round(depth, 3), round(connectivity, 3),
-                round(resonance, 3), round(silence, 3), round(loop_quotient, 3),)
+        return {"entropy": round(e_metric, 3), "beta": round(beta_index, 3), "scope": round(scope, 3),
+                "depth": round(depth, 3), "connectivity": round(connectivity, 3), "resonance": round(resonance, 3),
+                "silence": round(silence, 3), "loop_quotient": round(loop_quotient, 3)}
 
     @staticmethod
     def _determine_flow(v: float, k: float, config_ref=None) -> str:
@@ -345,13 +349,12 @@ class CycleStabilizer:
         self.last_tick_time = now
         if not self.governor:
             return applied_correction
-        energy = getattr(physics, "energy", physics)
-        space = getattr(physics, "space", physics)
         manifold_key = safe_get(physics, "manifold", "DEFAULT")
         cfg = self.manifolds.get(manifold_key, self.manifolds.get("DEFAULT", {"voltage": 10.0, "drag": 1.0}))
         target_v, target_d = cfg.get("voltage", 10.0), cfg.get("drag", 1.0)
-        if safe_get(space, "flow_state", "LAMINAR") in ("SUPERCONDUCTIVE", "FLOW_BOOST"):
-            target_v, target_d = safe_get(energy, "voltage", target_v), max(0.1, target_d * 0.5)
+        if safe_get(physics, "flow_state", "LAMINAR") in ("SUPERCONDUCTIVE", "FLOW_BOOST"):
+            target_v = float(safe_get(physics, "voltage", target_v))
+            target_d = max(0.1, target_d * 0.5)
         self.governor.recalibrate(target_v, target_d)
         v_force, d_force = self.governor.regulate(physics, dt=dt, endocrine_state=endocrine_state)
         phys_cfg = safe_get(self.cfg, "PHYSICS", {})

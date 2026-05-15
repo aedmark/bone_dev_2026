@@ -1,6 +1,6 @@
 """phases/base.py"""
-from core import CycleContext
 
+from core import CycleContext
 
 def _safe_dict(obj):
     """
@@ -12,7 +12,6 @@ def _safe_dict(obj):
     """
     return obj.to_dict() if hasattr(
         obj, "to_dict") else (obj if isinstance(obj, dict) else {})
-
 
 def _deep_update(target_object, source_dict):
     """
@@ -35,7 +34,6 @@ def _deep_update(target_object, source_dict):
                 target_object[key] = value
             else:
                 setattr(target_object, key, value)
-
 
 class SimulationPhase:
     """

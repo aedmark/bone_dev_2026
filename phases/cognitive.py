@@ -474,14 +474,12 @@ class SimulationPreflightPhase(SimulationPhase):
             ctx.log(full_log)
             if not hasattr(ctx, "council_mandates"):
                 ctx.council_mandates = []
-            ctx.council_mandates.append({"action": "SYSTEM_DIRECTIVE",
-                                         "value": "CONSTRUCTIVE_REPLAY",
-                                         "log": full_log, })
+            ctx.council_mandates.append({"action": "SYSTEM_DIRECTIVE", "value": "CONSTRUCTIVE_REPLAY", "log": full_log, })
         u_state = getattr(self.eng, "shared_lattice", None)
-        e_u = getattr(u_state.u if u_state else phys_obj, "exhaustion", None)
-        if e_u is None:
-            e_u = getattr(u_state.u if u_state else phys_obj, "E_u", 0.0)
-        shared_phi = getattr(u_state.shared if u_state else energy_obj, "phi", 0.0)
+        u_source = u_state.u if u_state else phys_obj
+        e_u = float(getattr(u_source, "exhaustion", getattr(u_source, "E_u", 0.0)))
+        shared_source = u_state.shared if u_state else energy_obj
+        shared_phi = float(getattr(shared_source, "phi", 0.0))
         if e_u >= 0.9 and shared_phi <= 0.1:
             msg = "[LINEHAN - Checkpoint Council]: Terminal User Exhaustion detected. Resonance is zero. Applying absolute Architectural Friction to protect cognitive load."
             log_msg = f"{Prisma.OCHRE}{msg}{Prisma.RST}"
@@ -494,8 +492,6 @@ class SimulationPreflightPhase(SimulationPhase):
             ctx.refusal_packet = self._build_refusal(ctx, phys_obj, "LINEHAN_SURVIVAL_RESPONSE", msg)
             ctx.refusal_packet["ui"] = f"\n{log_msg}\n[System locked. Friction maximized.]"
             return ctx
-        e_u = (getattr(self.eng.shared_lattice.u, "exhaustion", 0.0) if getattr(
-            self.eng, "shared_lattice", None) else getattr(phys_obj, "exhaustion", 0.0))
         if is_slash and e_u > 0.8 and friction > 1.5:
             msg = "[THE NURSE - Schur]: Hey. Take your hands off the keyboard. The machine doesn't care if you bleed on it, but I do. We are entering The Silence."
             log_msg = f"{Prisma.CYN}{msg}{Prisma.RST}"

@@ -1,4 +1,5 @@
 """drivers/enneagram.py"""
+
 from typing import Tuple
 from core import LoreManifest
 from physics.models import PhysicsPacket
@@ -6,14 +7,7 @@ from presets import BoneConfig
 from struts import ux, safe_get
 from drivers.souldriver import SoulDriver
 
-
 class EnneagramDriver:
-    """
-    The EnneagramDriver manages the system's active persona (e.g., NARRATOR, JESTER, GORDON).
-    It acts as a dynamic state machine that reads the current 'physics' of the conversation
-    (tension, drag, chaos) and calculates which archetype is best suited to handle the load.
-    """
-
     def __init__(self, events_ref, config_ref=None):
         self.cfg = config_ref or BoneConfig
         self.events = events_ref
@@ -25,15 +19,10 @@ class EnneagramDriver:
 
     @property
     def weights(self):
-        """Retrieves the baseline scoring matrix that defines what triggers each persona."""
         return (LoreManifest.get_instance(config_ref=self.cfg).get(
             "DRIVER_CONFIG", "ENNEAGRAM_WEIGHTS") or {})
 
     def _calculate_raw_persona(self, physics: PhysicsPacket, soul_ref=None) -> Tuple[str, str, str]:
-        """
-        The core scoring engine. It evaluates the current physics packet against the
-        weights dictionary to find the most contextually appropriate persona.
-        """
         p_vec = physics.vector or {}
         p_vol = physics.voltage
         p_drag = physics.narrative_drag
@@ -85,11 +74,6 @@ class EnneagramDriver:
         return winner, state_map.get(primary_arch, "ACTIVE"), reason
 
     def decide_persona(self, physics, soul_ref=None) -> Tuple[str, str, str]:
-        """
-        The gatekeeper function. It runs the raw calculation but enforces the
-        hysteresis loop to prevent the system from having an identity crisis
-        on every single token update.
-        """
         candidate, state_desc, reason = self._calculate_raw_persona(physics, soul_ref)
         if candidate == self.current_persona:
             self.stability_counter = 0
@@ -107,6 +91,4 @@ class EnneagramDriver:
             self.pending_persona = None
             return self.current_persona, state_desc, msg_shift.format(reason=reason)
         msg_resisting = (ux("driver_strings", "ennea_resisting") or "Resisting shift to {candidate} ({count}/{thresh})")
-        return (self.current_persona, "STABLE", msg_resisting.format(candidate=candidate,
-                                                                     count=self.stability_counter,
-                                                                     thresh=self.HYSTERESIS_THRESHOLD))
+        return self.current_persona, "STABLE", msg_resisting.format(candidate=candidate, count=self.stability_counter, thresh=self.HYSTERESIS_THRESHOLD)

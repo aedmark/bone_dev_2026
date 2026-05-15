@@ -1,6 +1,25 @@
 # CHANGELOG.md
 -----------------------------------------------------------
 
+### **BONEAMANITA 20.1.0 "The Tensegrity Pass"**
+
+**Changed**
+
+- **Lexical & Protocol Tensegrity:** Stripped paranoid `getattr` calls and nested dictionary dives across `mechanics`, `spores`, `physics`, and `protocols`. The engine now inherently trusts the `PhysicsPacket` architecture and established `safe_get` boundaries.
+- **Cognitive Ergonomics:** Flattened deeply nested logic, inline Walrus (`:=`) operators, and complex ternary blocks across the `soul`, `drivers`, and `phases` layers to permanently reduce maintainer cognitive load.
+- **Demeter Defense:** Decoupled the Checkpoint Council, bootloader, and command interfaces from deep biological state traversal. Interactions now natively route through explicit top-level boundaries (e.g., `to_dict()`, `expend_glimmer()`, `apply_filters()`).
+- **Epigenetic Consolidation:** Unified redundant mutation functions in `TheAkashicRecord` into a single, lean `_mutate_epigenetics` handler.
+
+**Fixed**
+
+- **The Time-Bomb:** Defused a fatal `NameError` crash loop in `CongruenceValidator` by importing the missing `math` module and resolving brittle set unions before they could detonate.
+- **Death-Loop Crash:** Fortified legacy manifest parsing in `TheOroboros` to gracefully handle malformed or missing death data without throwing terminal `IndexError` exceptions.
+- **Live Organ Transplants:** Stripped unauthorized module dependency injections from `commands.py`, forcing the command layer to strictly signal the engine state rather than rewriting `mechanics.reporter` live.
+- **Signature Compliance:** Aligned `BoneJSONEncoder.default()` with standard `JSONEncoder` library specifications to enforce linguistic purity and eliminate static linting friction.
+- **Positional Brittleness:** Eradicated fragile tuple-unpacking in `QuantumObserver` and `BoneArchitect.awaken`, replacing them with resilient dictionary routing and explicit assignments.
+
+---
+
 ### **BONEAMANITA 20.0.2 "The Ephemeralization Pass"**
 
 **Changed**
