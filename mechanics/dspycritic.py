@@ -1,6 +1,6 @@
 """/tools/dspycritic.py"""
 
-from typing import Any
+from typing import Any, cast, Callable
 from constants import Prisma
 
 try:
@@ -58,9 +58,9 @@ class DSPyCritic:
                 else:
                     self.lm = dspy.LM(model=model_name)
                 dspy.settings.configure(lm=self.lm)
-                self.judge = cast(Callable, dspy.ChainOfThought(AssessFaithfulness))
-                self.evolver = cast(Callable, dspy.ChainOfThought(EvolveSystemPrompt))
-                self.compressor = cast(Callable, dspy.ChainOfThought(CompressAxioms))
+                self.judge = cast(Callable, cast(object, dspy.ChainOfThought(AssessFaithfulness)))
+                self.evolver = cast(Callable, cast(object, dspy.ChainOfThought(EvolveSystemPrompt)))
+                self.compressor = cast(Callable, cast(object, dspy.ChainOfThought(CompressAxioms)))
                 from physics.maths import NaviSADProtocol
                 self.navi_sad = NaviSADProtocol(history_size=5)
                 print(f"{Prisma.CYN}[DSPy]: Real-Time Critic Online. Model: {model_name} via {provider}{Prisma.RST}")
