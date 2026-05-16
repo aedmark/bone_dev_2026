@@ -130,10 +130,11 @@ class TheCortex:
         phys_proxy = {}
         if isinstance(ctx.physics, dict):
             phys_proxy = dict(ctx.physics)
-        elif hasattr(ctx.physics, "to_dict"):
-            phys_proxy = ctx.physics.to_dict()
-        elif hasattr(ctx.physics, "__dict__"):
-            phys_proxy = {k: v for k, v in vars(ctx.physics).items() if not k.startswith("_")}
+        else:
+            phys_proxy = ctx.physics.to_dict() if hasattr(ctx.physics, "to_dict") else {}
+            for k, v in vars(ctx.physics).items():
+                if not k.startswith("_") and k not in phys_proxy:
+                    phys_proxy[k] = v
         sim_result = {
             "physics": phys_proxy,
             "bio": getattr(ctx, "bio_result", {}),
@@ -348,6 +349,8 @@ class TheCortex:
                     safe_set(obs_packet, "narrative_drag", 0.0)
                 if self.last_physics:
                     safe_set(self.last_physics, "narrative_drag", 0.0)
+                if hasattr(ctx, "physics") and ctx.physics:
+                    safe_set(ctx.physics, "narrative_drag", 0.0)
                 break
             rejection_reason = val_res.get("feedback_instruction") or val_res.get(
                 "replacement", "Lattice structural crime.")
@@ -417,7 +420,9 @@ class TheCortex:
             dimension = float(phys_state.get("omega_r", 1.0))
             phys_packet = sim_result.setdefault("physics", {})
             repetition = float(sim_result.get("physics", {}).get("repetition", 0.0))
-            if getattr(eng, "tick_count", 0) > 5 and (dimension <= 1.05 or eng.navi_sad.detect_point_attractor() or repetition >= 0.8):
+            is_attractor = eng.navi_sad.detect_point_attractor()
+            if (dimension <= 1.05 or is_attractor or repetition >= 0.8) and not (
+                    not val_res.get("valid") and dimension == 1.0 and not is_attractor and repetition < 0.8):
                 msg = f"[THE JESTER]: Point Attractor detected (d_B={dimension:.2f})! We are trapped in False Cohesion! Burning ATP to inject chaos."
                 if self.events:
                     self.events.log(f"{Prisma.VIOLET}{msg}{Prisma.RST}", "SYS")

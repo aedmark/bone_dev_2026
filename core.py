@@ -142,22 +142,26 @@ class EventBus:
         self._lock = threading.RLock()
 
     def subscribe(self, event_type, callback):
-        subs = self.subscribers.get(event_type, ())
-        if callback not in subs:
-            self.subscribers[event_type] = subs + (callback,)
+        with self._lock:
+            subs = self.subscribers.get(event_type, ())
+            if callback not in subs:
+                self.subscribers[event_type] = subs + (callback,)
 
     def unsubscribe(self, event_type, callback):
-        subs = self.subscribers.get(event_type, ())
-        if callback in subs:
-            new_subs = tuple(c for c in subs if c != callback)
-            if not new_subs:
-                del self.subscribers[event_type]
-            else:
-                self.subscribers[event_type] = new_subs
+        with self._lock:
+            subs = self.subscribers.get(event_type, ())
+            if callback in subs:
+                new_subs = tuple(c for c in subs if c != callback)
+                if not new_subs:
+                    del self.subscribers[event_type]
+                else:
+                    self.subscribers[event_type] = new_subs
 
     def publish(self, event_type, data=None):
-        if event_type not in self.subscribers: return
-        for callback in self.subscribers[event_type]:
+        with self._lock:
+            callbacks = self.subscribers.get(event_type, ())
+
+        for callback in callbacks:
             try:
                 callback(data)
             except Exception as e:
@@ -203,11 +207,13 @@ class LoreManifest:
 
     def get(self, category: str, sub_key: str = None) -> Any:
         cat_key = category.lower()
-        if cat_key not in self._cache:
+        data = self._cache.get(cat_key)
+        if data is None:
             with self._lock:
-                if cat_key not in self._cache:
-                    self._cache[cat_key] = self._load_from_disk(cat_key) or {}
-        data = self._cache[cat_key]
+                data = self._cache.get(cat_key)
+                if data is None:
+                    data = self._load_from_disk(cat_key) or {}
+                    self._cache[cat_key] = data
         if not sub_key:
             return data
         return data.get(sub_key) if isinstance(data, dict) else None
@@ -226,11 +232,12 @@ class LoreManifest:
 
     def inject(self, category: str, data: Any):
         cat_key = category.lower()
-        target = self._cache.setdefault(cat_key, {})
-        if isinstance(target, dict) and isinstance(data, dict):
-            target.update(data)
-        else:
-            self._cache[cat_key] = data
+        with self._lock:
+            target = self._cache.setdefault(cat_key, {})
+            if isinstance(target, dict) and isinstance(data, dict):
+                target.update(data)
+            else:
+                self._cache[cat_key] = data
 
     def save(self, category: str):
         cat_key = category.lower()
@@ -246,13 +253,14 @@ class LoreManifest:
             print(f"{Prisma.RED}[LORE]: Failed to save '{cat_key}': {e}{Prisma.RST}")
 
     def flush_cache(self, category: str = None):
-        if not category:
-            self._cache.clear()
-            print(f"{Prisma.CYN}[LORE]: Flushed Lore cache.{Prisma.RST}")
-            return
-        cat_key = category.lower()
-        if self._cache.pop(cat_key, None) is not None:
-            print(f"{Prisma.CYN}[LORE]: Flushed '{cat_key}'.{Prisma.RST}")
+        with self._lock:
+            if not category:
+                self._cache.clear()
+                print(f"{Prisma.CYN}[LORE]: Flushed Lore cache.{Prisma.RST}")
+                return
+            cat_key = category.lower()
+            if self._cache.pop(cat_key, None) is not None:
+                print(f"{Prisma.CYN}[LORE]: Flushed '{cat_key}'.{Prisma.RST}")
 
 class TheObserver:
     def __init__(self, config_ref=None):
@@ -330,6 +338,12 @@ class SystemHealth:
     warnings: List[str] = field(default_factory=list)
     hints: List[str] = field(default_factory=list)
     observer: Optional["TheObserver"] = None
+
+    def __getattr__(self, item: str):
+        if item.endswith("_online"):
+            comp = item.replace("_online", "")
+            return self.components_online.get(comp, True)
+        raise AttributeError(f"'SystemHealth' object has no attribute '{item}'")
 
     def link_observer(self, observer_ref):
         self.observer = observer_ref
@@ -560,7 +574,8 @@ class TelemetryService:
             if len(history) >= limit: break
             resp = data.get("final_response")
             if not resp: continue
-            user_text = data.get("prompt_snapshot", "").partition("User:")[2].split("\n", 1)[0].strip() or "Unknown"
+            raw_prompt = data.get("prompt_snapshot") or ""
+            user_text = raw_prompt.partition("User:")[2].split("\n", 1)[0].strip() or "Unknown"
             history.appendleft(f"User: {user_text} | System: {resp}")
         return list(history)
 

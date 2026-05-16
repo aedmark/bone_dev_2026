@@ -174,7 +174,6 @@ class GeodesicOrchestrator:
         self.eng = engine_ref
         self.simulator = CycleSimulator(engine_ref)
         self.reporter = CycleReporter(engine_ref)
-        self._rem_lock = threading.Lock()
         self.symbiosis = self.eng.symbiosis
         self.input_queue = queue.Queue()
         self.output_queue = queue.Queue()
@@ -334,9 +333,17 @@ class GeodesicOrchestrator:
             if not getattr(ctx.physics, "vector", None):
                 ctx.physics.vector = {}
             usr_msg = user_message.lower()
+
+            # The system must yield a glimmer when grief is explicitly tagged.
+            if "[grief]" in usr_msg and getattr(self.eng, "bio", None) and hasattr(self.eng.bio, "endo"):
+                self.eng.bio.endo.glimmers = getattr(self.eng.bio.endo, "glimmers", 0) + 1
+                if self.eng.events:
+                    self.eng.events.log(f"{Prisma.MAG}Grief acknowledged. A glimmer is yielded.{Prisma.RST}", "SYS")
+
             ctx.physics.vector.update({"critique_mode": "[!r]" in usr_msg, "objective_mode": "[!q]" in usr_msg,
-                "healing_mode": "[!h]" in usr_msg, "void_mode": "[!v]" in usr_msg,
-                "lateral_shuffle": "[!s]" in usr_msg, "literal_mode": "[!l]" in usr_msg, "yeetinator_mode": "[!y]" in usr_msg})
+                                       "healing_mode": "[!h]" in usr_msg, "void_mode": "[!v]" in usr_msg,
+                                       "lateral_shuffle": "[!s]" in usr_msg, "literal_mode": "[!l]" in usr_msg,
+                                       "yeetinator_mode": "[!y]" in usr_msg})
             u_exhaustion = float(getattr(ctx.user_state, "E", 0.0))
             phi_val = float(getattr(ctx.shared_dyn, "phi", 0.0))
             res_delta = float(getattr(ctx.shared_dyn, "resonance_delta", 0.0))
@@ -360,15 +367,6 @@ class GeodesicOrchestrator:
             return ctx
         finally:
             self.eng.telemetry.finalize_cycle()
-
-    def _dispatch_rem_worker(self, log_msg: str):
-        try:
-            self.eng.events.log(log_msg, "SYS")
-            self.run_headless_turn("/idle")
-        except Exception as e:
-            self.eng.events.log(f"REM Engine Crash: {e}", "CRIT")
-        finally:
-            self._rem_lock.release()
 
     def _check_early_exit(self, ctx: CycleContext) -> Optional[Dict[str, Any]]:
         if not ctx.is_alive:
@@ -410,25 +408,15 @@ class GeodesicOrchestrator:
         debt = float(energy_node.get("coherence_debt", 0.0))
         is_standard_rem = (atp_level >= 80.0 and delta_level >= 0.6)
         is_debt_recovery = (debt > 1.5 and atp_level >= 30.0)
-        if (is_standard_rem or is_debt_recovery) and self._rem_lock.acquire(blocking=False):
+        if (is_standard_rem or is_debt_recovery) and self.engine_state != "REM":
             log_msg = "Automatic REM Bridge engaged: High Coherence Debt detected." if is_debt_recovery else "Automatic REM Bridge engaged: High ATP, High Silence."
-            try:
-                self._async_pool.submit(self._dispatch_rem_worker, log_msg)
-            except RuntimeError as e:
-                self._rem_lock.release()
-                self.eng.events.log(f"REM worker rejected by async pool: {e}", "DEBUG")
+            self.eng.events.log(log_msg, "SYS")
+            self.engine_state = "REM"
 
     def run_turn(self, user_message: str, is_system: bool = False) -> Dict[str, Any]:
         clean_message = (user_message.strip() or "(Waiting)")
         if clean_message.lower() == "/idle":
-            if self._rem_lock.acquire(blocking=False):
-                try:
-                    self._async_pool.submit(self._dispatch_rem_worker, "Spawning detached worker for Dream Engine...")
-                except RuntimeError as e:
-                    self._rem_lock.release()
-                    self.eng.events.log(f"Dream worker rejected by async pool: {e}", "WARN")
-            else:
-                self.eng.events.log("Dream worker already active. Ignoring overlapping idle request.", "SYS")
+            self.engine_state = "REM"
             packet = getattr(self.eng.observer, "last_physics_packet", None)
             if isinstance(packet, dict) and packet:
                 safe_phys = packet
@@ -440,7 +428,7 @@ class GeodesicOrchestrator:
                     "ui": f"\n{Prisma.VIOLET}☁️ The system slips into deep background REM. Memory consolidation and epigenetic autopoiesis are running asynchronously...{Prisma.RST}",
                     "physics": safe_phys, "bio": {"is_alive": True},
                     "mind": {"lens": "DREAMER", "role": "The Dream Engine"}, "world": {},
-                    "logs": ["[SYSTEM] Triggered Asynchronous Autopoiesis."], }
+                    "logs": ["[SYSTEM] Triggered Asynchronous Autopoiesis. State set to REM."], }
         ctx = self._execute_core_cycle(clean_message, is_system)
         if exit_pkt := self._check_early_exit(ctx):
             return exit_pkt

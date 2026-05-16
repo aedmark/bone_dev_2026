@@ -182,6 +182,14 @@ class PhysicsPacket:
             except (TypeError, ValueError):
                 value = 0.0
         if key in self._BASE_FIELDS:
+            if key == "energy":
+                value = self._safe_init(EnergyState, value)
+            elif key == "matter":
+                value = self._safe_init(MaterialState, value)
+            elif key == "space":
+                value = self._safe_init(SpatialState, value)
+            elif key == "drag_profile" and value is not None:
+                value = self._safe_init(DragProfile, value)
             super().__setattr__(key, value)
             return
         if key in self._ALIAS_MAP:

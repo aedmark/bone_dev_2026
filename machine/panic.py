@@ -11,15 +11,6 @@ class PanicRoom:
     @staticmethod
     def get_safe_physics():
         safe_packet = PhysicsPacket.void_state()
-        safe_packet.voltage = 0.0
-        safe_packet.narrative_drag = 0.0
-        safe_packet.exhaustion = 0.0
-        safe_packet.beta_index = 0.0
-        safe_packet.psi = 0.0
-        safe_packet.chi = 0.0
-        safe_packet.entropy = 0.0
-        safe_packet.valence = 0.0
-        safe_packet.kappa = 0.0
         safe_packet.vector = PanicRoom._SAFE_VECTOR.copy()
         manifest_words = ux("machine_strings", "panic_clean_words")
         safe_packet.clean_words = (manifest_words if isinstance(manifest_words, list) else ["white", "room", "safe", "mode"])
@@ -44,11 +35,9 @@ class PanicRoom:
 
     @staticmethod
     def get_safe_mind():
-        return {
-            "lens": "GORDON",
-            "role": "Panic Room Overseer",
-            "thought": ux("machine_strings",
-                          "panic_mind_thought") or "I am maintaining the boundaries. The core is safe."
+        return {"lens": "GORDON", "role": "Panic Room Overseer",
+            "thought": ux("machine_strings", "panic_mind_thought") or
+                "I am maintaining the boundaries. The core is safe."
         }
 
     @staticmethod

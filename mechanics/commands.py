@@ -431,9 +431,10 @@ class CommandProcessor:
         return self._cmd_rest(parts)
 
     def _cmd_grief(self, _parts):
-        if hasattr(self.interface.eng, "grief"):
+        grief_ref = getattr(self.interface.eng, "grief", None) or getattr(getattr(self.interface.eng, "village", None), "grief", None)
+        if grief_ref:
             shared_lattice = getattr(self.interface.eng, "shared_lattice", None)
-            wake_msg = self.interface.eng.grief.attend_wake(
+            wake_msg = grief_ref.attend_wake(
                 shared_lattice, getattr(self.interface.eng, "phys", None))
             self.interface.log(wake_msg)
         else:

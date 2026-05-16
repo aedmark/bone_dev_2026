@@ -210,7 +210,9 @@ class BoneAmanita:
     @property
     def active_physics(self) -> Dict[str, Any]:
         phys = getattr(self.observer, "last_physics_packet", None) or getattr(self.cortex, "last_physics", None)
-        if not isinstance(phys, dict):
+        if hasattr(phys, "to_dict"):
+            phys = phys.to_dict()
+        elif not isinstance(phys, dict):
             phys = {}
         self.observer.last_physics_packet = phys
         return phys
@@ -220,20 +222,20 @@ class BoneAmanita:
         safe_set(phys, "narrative_drag", 999.0)
         return phys
 
-    def _unpack_anatomy(self, anatomy):
+    def _unpack_anatomy(self, anatomy: Dict[str, Any]):
         from types import SimpleNamespace
-        self.akashic = anatomy.get("akashic")
-        self.embryo = anatomy.get("embryo")
-        self.soul = anatomy.get("soul")
-        self.oroboros = anatomy.get("oroboros")
-        self.drivers = anatomy.get("drivers")
-        self.symbiosis = anatomy.get("symbiosis")
-        self.consultant = anatomy.get("consultant", None)
-        self.consolidator = anatomy.get("consolidator")
+        self.embryo = anatomy["embryo"]
+        self.soul = anatomy["soul"]
+        self.symbiosis = anatomy["symbiosis"]
+        self.oroboros = anatomy["oroboros"]
         self.phys = self.embryo.physics
         self.mind = self.embryo.mind
         self.bio = self.embryo.bio
         self.shimmer = getattr(self.embryo, "shimmer", None)
+        self.akashic = anatomy.get("akashic")
+        self.drivers = anatomy.get("drivers")
+        self.consultant = anatomy.get("consultant")
+        self.consolidator = anatomy.get("consolidator")
         if self.bio:
             self.bio.setup_listeners()
         v = anatomy.get("village", {})
@@ -299,7 +301,7 @@ class BoneAmanita:
             matched_pattern = next((p for p in self._DESTRUCTIVE_PATTERNS if p in clean_in), None)
             if matched_pattern:
                 if "#override" in clean_in:
-                    if self.bio and getattr(self.bio, "expend_glimmer", lambda: False)():
+                    if self.bio and hasattr(self.bio, "expend_glimmer") and self.bio.expend_glimmer():
                         self.events.log("OVERRIDE ACCEPTED. Glimmer paid.", "SYS")
                     else:
                         self.apply_absolute_friction(active_phys)
@@ -348,6 +350,8 @@ class BoneAmanita:
                 self.observer.clock_out(turn_start)
                 return zen_packet
         if pre_flight_halt := self._pre_flight_checks(user_message, clean_in, is_system):
+            if self.health <= 0.0:
+                return self.trigger_death(self.active_physics)
             return pre_flight_halt
         if not is_system:
             if self.cmd.execute(user_message):
