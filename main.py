@@ -5,6 +5,7 @@ import time
 import traceback
 from dataclasses import dataclass
 from typing import Dict, Any, Optional, Tuple
+from types import SimpleNamespace
 from archetypes.council import CouncilChamber
 from body import SomaticLoop
 from brain.composer import LLMInterface
@@ -44,8 +45,7 @@ class BoneAmanita:
         self.sys_config = config
         self.config = BoneConfig()
         for key in ["model", "provider", "base_url", "api_key"]:
-            val = self.sys_config.get(key) or self.sys_config.get(key.upper())
-            if val:
+            if val := self.sys_config.get(key) or self.sys_config.get(key.upper()):
                 setattr(self.config, key.upper(), val)
         self.config.WEIGHT_CLASS = self.sys_config.get("WEIGHT_CLASS", "HEAVYWEIGHT")
         self.navi_sad = NaviSADProtocol()
@@ -81,6 +81,7 @@ class BoneAmanita:
         self._initialize_cognition()
         self.last_turn_end = time.time()
         self.current_time_delta = 0.0
+        self.kernel_hash = hex(int(self.last_turn_end * 1000))[2:10].upper()
         self._validate_state()
         self._apply_boot_mode()
 
@@ -223,7 +224,6 @@ class BoneAmanita:
         return phys
 
     def _unpack_anatomy(self, anatomy: Dict[str, Any]):
-        from types import SimpleNamespace
         self.embryo = anatomy["embryo"]
         self.soul = anatomy["soul"]
         self.symbiosis = anatomy["symbiosis"]
@@ -231,7 +231,6 @@ class BoneAmanita:
         self.phys = self.embryo.physics
         self.mind = self.embryo.mind
         self.bio = self.embryo.bio
-        self.shimmer = getattr(self.embryo, "shimmer", None)
         self.akashic = anatomy.get("akashic")
         self.drivers = anatomy.get("drivers")
         self.consultant = anatomy.get("consultant")
@@ -330,10 +329,9 @@ class BoneAmanita:
             msg = ux("main_strings", "narrative_halt") or "Narrative generation disabled at this Reality Layer."
             return self._generate_halt(msg)
         if self._ethical_audit():
-            flushed_logs = self.events.flush()
-            ui_text = "\n".join([e["text"] for e in flushed_logs])
-            return {"type": "SYSTEM_HALT", "ui": f"\n{ui_text}", "logs": [e["text"] for e in flushed_logs],
-                    "metrics": self.get_metrics(), }
+            halt_logs = [e["text"] for e in self.events.flush()]
+            return {"type": "SYSTEM_HALT", "ui": f"\n{'\n'.join(halt_logs)}", "logs": halt_logs,
+                    "metrics": self.get_metrics()}
         if self.health <= 0.0:
             return self.trigger_death(active_phys or {})
         return None
@@ -350,8 +348,6 @@ class BoneAmanita:
                 self.observer.clock_out(turn_start)
                 return zen_packet
         if pre_flight_halt := self._pre_flight_checks(user_message, clean_in, is_system):
-            if self.health <= 0.0:
-                return self.trigger_death(self.active_physics)
             return pre_flight_halt
         if not is_system:
             if self.cmd.execute(user_message):
@@ -386,6 +382,8 @@ class BoneAmanita:
             return self.trigger_death(snapshot.get("physics", {}))
         self.save_checkpoint()
         self.last_turn_end = time.time()
+        if not is_system:
+            self.tick_count += 1
         return snapshot
 
     def _execute_zen_flush(self) -> Dict[str, Any]:
@@ -405,8 +403,8 @@ class BoneAmanita:
         self.bio.mito.adapt(0)
         mito_state_dict = vars(self.bio.mito.state)
         immune_data = list(self.bio.immune.active_antibodies)
-        if hasattr(self.village, "death_gen") and self.village.death_gen:
-            eulogy_text, cause_code = self.village.death_gen.eulogy(last_phys, mito_state_dict, self.trauma_accum)
+        if death_gen := getattr(self.village, "death_gen", None):
+            eulogy_text, cause_code = death_gen.eulogy(last_phys, mito_state_dict, self.trauma_accum)
         else:
             eulogy_text = ux("main_strings", "death_no_proto") or "Critical systemic collapse. Eulogy missing."
             cause_code = "UNKNOWN_FATAL_ERROR"

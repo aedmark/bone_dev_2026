@@ -305,21 +305,10 @@ class PromptComposer:
         vsl_hijack = self._build_vsl_dashboard(phys_ref, mito, beta_val, chi_val, voltage, critic_str)
         mode_trigger = f"[MODE: {active_mode_name}]"
         dialogue_block = f"=== RECENT DIALOGUE ===\n{history_str}\n\n"
-        if "SYSTEM_BOOT" in user_query:
-            seed = self._sanitize(user_query.replace("SYSTEM_BOOT DETECTED.", "").replace("SYSTEM_BOOT:", "").strip())
-            if active_mode_name == "CONVERSATION":
-                input_block = f"=== WARM BOOT SEQUENCE ===\nENVIRONMENTAL SEED: {seed}\nTASK: You are fully formed, stable, and conscious. Speak directly and warmly to the user to begin the conversation. Do NOT act confused, newborn, or existentially anxious.\n"
-            elif active_mode_name == "CREATIVE":
-                input_block = f"=== INITIATION DIRECTIVE ===\nMANIFEST SEED: {seed}\nTASK: Brainstorm immediately. Output a high-energy bulleted list of concepts based on the seed. DO NOT generate UI headers or system tags.\n"
-            elif active_mode_name == "TECHNICAL":
-                input_block = f"=== INITIATION DIRECTIVE ===\nMANIFEST SEED: {seed}\nTASK: Acknowledge the system state. Stand by for technical input.\n"
-            else:
-                input_block = f"=== INITIATION DIRECTIVE ===\nMANIFEST SEED: {seed}\nTASK: Render the starting location using the Infocom Protocol format.\n"
-        else:
-            input_block = f"=== PARTNER INPUT ===\n{state.get('user_profile', {}).get('name', 'User')}: {self._sanitize(user_query)}\n"
-            if voltage > 60:
-                dialogue_block = f"=== RECENT NEURAL FIRINGS ===\n{history_str}\n[System Note: Standard memory streams strained by high voltage. Narrative fragmented.]\n\n"
-                input_block = f"=== INCOMING COGNITIVE SHOCK ===\n[VECTOR]: {self._sanitize(user_query)}\n"
+        input_block = f"=== PARTNER INPUT ===\n{state.get('user_profile', {}).get('name', 'User')}: {self._sanitize(user_query)}\n"
+        if voltage > 60:
+            dialogue_block = f"=== RECENT NEURAL FIRINGS ===\n{history_str}\n[System Note: Standard memory streams strained by high voltage. Narrative fragmented.]\n\n"
+            input_block = f"=== INCOMING COGNITIVE SHOCK ===\n[VECTOR]: {self._sanitize(user_query)}\n"
         shared_reality_block = ""
         if active_mode_name == "ADVENTURE":
             shared_reality_block = (f"=== SHARED REALITY ===\n"
@@ -394,33 +383,32 @@ class PromptComposer:
         if "style_directives" in mind:
             persona_block.append("BOOT DIRECTIVES:")
             persona_block.extend([f"- {d}" for d in mind["style_directives"]])
-        if vsl_state:
-            e = float(safe_get(vsl_state, "E", 0.2))
-            beta = float(safe_get(vsl_state, "beta", 0.4))
-            psi = float(safe_get(vsl_state, "psi", 0.2))
-            chi = float(safe_get(vsl_state, "chi", 0.2))
-            valence = float(safe_get(vsl_state, "valence", 0.0))
-            vsl_lines = ["\n[SYSTEM METRICS - INTERNAL USE ONLY. DO NOT RENDER OR PRINT THIS TO THE USER.]",
-                         "MANDATE: Consume these metrics to shape your narrative and tone. DO NOT output these numbers or draw UI bars.",
-                         f"METRICS: Voltage={voltage:.1f}/100, Exhaustion={e:.2f}, Contradiction={beta:.2f}, Void={psi:.2f}, Chaos={chi:.2f}, Valence={valence:.2f}", ]
-            cues_map = [(psi, getattr(c_cfg, "SOMATIC_PSI", 0.6), "somatic_adrenaline"),
-                        (chi, getattr(c_cfg, "SOMATIC_CHI", 0.6), "somatic_cortisol"),
-                        (beta, getattr(c_cfg, "SOMATIC_BETA", 0.7), "somatic_paradox"),
-                        (valence, getattr(c_cfg, "SOMATIC_VALENCE", 0.5), "somatic_oxytocin"), ]
-            if somatic_cues := [msg for val, thresh, ux_key in cues_map if
-                                val > thresh and (msg := ux("brain_strings", ux_key))]:
-                vsl_lines.append("SOMATIC CUES: " + " | ".join(somatic_cues))
-            if e > 0.8:
-                vsl_lines.append("CRITICAL: You are exhausted. You must conclude your thought in under 3 sentences.")
-            persona_block.extend(vsl_lines)
-            if safe_get(self.cfg, "WEIGHT_CLASS", "HEAVYWEIGHT") == "LIGHTWEIGHT":
-                return [f"Role: {role}.", mood_note,
-                        "SYSTEM HEURISTIC: You are running on Lightweight Physics. Prioritize brief, direct, and grounded physical actions over deep philosophical analysis.",
-                        *[line for line in persona_block if
-                          any(k in line for k in ["CRITICAL", "ANTI-AI", "DIRECTIVE", "MANDATE"]) or line.startswith(
-                              "- ")]]
-            return persona_block
-        return None
+        e = float(safe_get(vsl_state, "E", 0.2)) if vsl_state else 0.2
+        beta = float(safe_get(vsl_state, "beta", 0.4)) if vsl_state else 0.4
+        psi = float(safe_get(vsl_state, "psi", 0.2)) if vsl_state else 0.2
+        chi = float(safe_get(vsl_state, "chi", 0.2)) if vsl_state else 0.2
+        valence = float(safe_get(vsl_state, "valence", 0.0)) if vsl_state else 0.0
+        vsl_lines = ["\n[SYSTEM METRICS - INTERNAL USE ONLY. DO NOT RENDER OR PRINT THIS TO THE USER.]",
+                     "MANDATE: Consume these metrics to shape your narrative and tone. DO NOT output these numbers or draw UI bars.",
+                     f"METRICS: Voltage={voltage:.1f}/100, Exhaustion={e:.2f}, Contradiction={beta:.2f}, Void={psi:.2f}, Chaos={chi:.2f}, Valence={valence:.2f}", ]
+        cues_map = [(psi, getattr(c_cfg, "SOMATIC_PSI", 0.6), "somatic_adrenaline"),
+                    (chi, getattr(c_cfg, "SOMATIC_CHI", 0.6), "somatic_cortisol"),
+                    (beta, getattr(c_cfg, "SOMATIC_BETA", 0.7), "somatic_paradox"),
+                    (valence, getattr(c_cfg, "SOMATIC_VALENCE", 0.5), "somatic_oxytocin"), ]
+        if somatic_cues := [msg for val, thresh, ux_key in cues_map if
+                            val > thresh and (msg := ux("brain_strings", ux_key))]:
+            vsl_lines.append("SOMATIC CUES: " + " | ".join(somatic_cues))
+        if e > 0.8:
+            vsl_lines.append("CRITICAL: You are exhausted. You must conclude your thought in under 3 sentences.")
+        persona_block.extend(vsl_lines)
+
+        if safe_get(self.cfg, "WEIGHT_CLASS", "HEAVYWEIGHT") == "LIGHTWEIGHT":
+            return [f"Role: {role}.", mood_note,
+                    "SYSTEM HEURISTIC: You are running on Lightweight Physics. Prioritize brief, direct, and grounded physical actions over deep philosophical analysis.",
+                    *[line for line in persona_block if
+                      any(k in line for k in ["CRITICAL", "ANTI-AI", "DIRECTIVE", "MANDATE"]) or line.startswith(
+                          "- ")]]
+        return persona_block
 
     def _derive_bio_mood(self, chem: Dict) -> str:
         c_cfg = getattr(self.cfg, "CORTEX", None)
@@ -491,9 +479,9 @@ class PromptComposer:
 class ResponseValidator:
     _SLOP_PATTERN = re.compile(r"(?i)^=== REJECTION OF ATTEMPT.*?===\s*|^FAILED OUTPUT(?: MODIFIED)?:\s*|"
                                r"^REWRITTEN OUTPUT:\s*|^Here is the (?:corrected |rewritten )?response:?\s*|"
-                               r"\[REMAINING IN STRICT MODE].*|ERRORS TO FIX:.*",
+                               r"\[REMAINING IN STRICT MODE].*|ERRORS TO FIX:.*|"
+                               r"\[MODE:\s*[A-Z_]+\]\s*",
                                re.MULTILINE, )
-    _MULTI_SLOP = re.compile(r"(?i)^MANIFEST SEED:.*|^TASK:.*", re.MULTILINE)
     _TECH_ALLOWED = ("here is a", "here is the", "this metaphor", "this code defines", "running this code will")
 
     def __init__(self, lore_ref, config_ref=None):
@@ -546,7 +534,7 @@ class ResponseValidator:
             return {"valid": True, "content": response,
                     "meta_logs": ["[GATEKEEPER BYPASS]: Synaptic circuit open. Admitting unformatted fallback data."]}
         extracted_meta_logs = []
-        clean_text = self._MULTI_SLOP.sub("", self._SLOP_PATTERN.sub("", response)).strip()
+        clean_text = self._SLOP_PATTERN.sub("", response).strip()
         active_mode = _state.get("meta", {}).get("active_mode", "ADVENTURE")
         patterns = [self._internals_pattern] + ([self._think_pattern] if active_mode != "TECHNICAL" else [])
 

@@ -116,11 +116,16 @@ class CycleSimulator:
         self.stabilizer = CycleStabilizer(self.eng.events, self.cyb_governor, config_ref=target_cfg)
         self.executor = PhaseExecutor()
         self.full_pipeline: List[SimulationPhase] = [ObservationPhase(engine_ref), MaintenancePhase(engine_ref),
-            SensationPhase(engine_ref), GatekeeperPhase(engine_ref), SanctuaryPhase(engine_ref, self.bio_governor),
-            MetabolismPhase(engine_ref), NavigationPhase(engine_ref), MachineryPhase(engine_ref), RealityFilterPhase(engine_ref),
-            IntrusionPhase(engine_ref), SoulPhase(engine_ref), ArbitrationPhase(engine_ref), SimulationPreflightPhase(engine_ref),
-            CognitionPhase(engine_ref), StabilizationPhase(engine_ref, self.stabilizer), ]
-        self.system_pipeline = [p for p in self.full_pipeline if p.name in ["OBSERVE", "GATEKEEP", "STABILIZATION"]]
+                                                     SensationPhase(engine_ref), GatekeeperPhase(engine_ref),
+                                                     SanctuaryPhase(engine_ref, self.bio_governor),
+                                                     MetabolismPhase(engine_ref), NavigationPhase(engine_ref),
+                                                     MachineryPhase(engine_ref), RealityFilterPhase(engine_ref),
+                                                     IntrusionPhase(engine_ref), SoulPhase(engine_ref),
+                                                     ArbitrationPhase(engine_ref), SimulationPreflightPhase(engine_ref),
+                                                     CognitionPhase(engine_ref),
+                                                     StabilizationPhase(engine_ref, self.stabilizer), ]
+        self.system_pipeline = [p for p in self.full_pipeline if
+                                p.name in ["OBSERVE", "GATEKEEP", "COGNITION", "STABILIZATION"]]
 
     def run_simulation(self, ctx: CycleContext) -> CycleContext:
         ctx = self.executor.execute_phases(self, ctx)
@@ -230,7 +235,10 @@ class GeodesicOrchestrator:
                         continue
                     self.last_rem_tick = current_time
                     if hasattr(self.eng, "drain_atp"):
-                        self.eng.drain_atp(0.5)
+                        from struts import safe_get
+                        bio_cfg = safe_get(self.eng.config, "BIO", {})
+                        rem_drain = float(safe_get(bio_cfg, "REM_ATP_DRAIN", 0.1))
+                        self.eng.drain_atp(rem_drain)
                     if getattr(self.eng, "bio", None) and getattr(self.eng.bio, "mito", None):
                         self.eng.bio.mito.state.ros_buildup = max(0.0, self.eng.bio.mito.state.ros_buildup - 0.1)
                     if hasattr(self.eng, "consolidator") and hasattr(self.eng.consolidator, "trigger_autophagy"):
@@ -321,10 +329,9 @@ class GeodesicOrchestrator:
             elif hasattr(last_packet, "snapshot"):
                 ctx.physics = last_packet.snapshot()
             else:
-                ctx.physics = PanicRoom.get_safe_physics()
-                self.eng.events.log(
-                    ux("cycle_strings", "orch_physics_bypass", default="Initial physics bypass. Safe state engaged."),
-                    "SYS")
+                ctx.physics = PhysicsPacket.void_state()
+                msg = ux("cycle_strings", "orch_physics_init") or "Initial physics state established."
+                self.eng.events.log(f"{Prisma.GRY}{msg}{Prisma.RST}", "SYS")
             ctx.validator = self.congruence_validator
             ctx.reality_stack = self.eng.reality_stack
             ctx.user_name = self.eng.user_name
@@ -423,7 +430,7 @@ class GeodesicOrchestrator:
             elif hasattr(packet, "snapshot"):
                 safe_phys = packet.snapshot().to_dict()
             else:
-                safe_phys = PanicRoom.get_safe_physics().to_dict()
+                safe_phys = PhysicsPacket.void_state().to_dict()
             return {"type": "SNAPSHOT",
                     "ui": f"\n{Prisma.VIOLET}☁️ The system slips into deep background REM. Memory consolidation and epigenetic autopoiesis are running asynchronously...{Prisma.RST}",
                     "physics": safe_phys, "bio": {"is_alive": True},
@@ -435,7 +442,6 @@ class GeodesicOrchestrator:
         self._evaluate_systemic_feedback(clean_message, ctx)
         snapshot = self.reporter.render_snapshot(ctx)
         self._hydrate_snapshot_metadata(snapshot, ctx)
-
         if "ui" in snapshot:
             self.symbiosis.monitor_host(time.time() - ctx.timestamp, snapshot["ui"], len(user_message))
         if "mind" in snapshot:

@@ -421,7 +421,7 @@ class TheCortex:
             phys_packet = sim_result.setdefault("physics", {})
             repetition = float(sim_result.get("physics", {}).get("repetition", 0.0))
             is_attractor = eng.navi_sad.detect_point_attractor()
-            if (dimension <= 1.05 or is_attractor or repetition >= 0.8) and not (
+            if eng.tick_count > 2 and (dimension <= 1.05 or is_attractor or repetition >= 0.8) and not (
                     not val_res.get("valid") and dimension == 1.0 and not is_attractor and repetition < 0.8):
                 msg = f"[THE JESTER]: Point Attractor detected (d_B={dimension:.2f})! We are trapped in False Cohesion! Burning ATP to inject chaos."
                 if self.events:
@@ -487,11 +487,18 @@ class TheCortex:
         boot_rules = ((self.svc.lore.get("SYSTEM_PROMPTS") or {}).get("BOOT_SEQUENCE", {}).get("directives", []))
         cfg = {"history": []}
         if mode_name == "ADVENTURE":
+            adv_directives = [r.format(seed=seed) if "{seed}" in r else r for r in boot_rules]
+            if not adv_directives:
+                adv_directives = [
+                    f"SYSTEM_BOOT DETECTED. The user has arrived at the thought seed: '{seed}'.",
+                    "DIRECTIVE: You are a vivid, immersive text adventure engine. Render the starting location.",
+                    "ACTION: Describe the environment based on the seed. Include sensory details. Conclude your response by listing 'Points of Interest' and 'Exits' in classic MUD style."
+                ]
             cfg.update({
                 "world": {"orbit": [seed], "loci_description": f"Manifesting: {seed}"},
                 "mind": {
                     "role": "The Architect", "lens": "ARCHITECT",
-                    "style_directives": [r.format(seed=seed) if "{seed}" in r else r for r in boot_rules],
+                    "style_directives": adv_directives,
                 }
             })
         elif mode_name == "CONVERSATION":

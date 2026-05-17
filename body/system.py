@@ -85,10 +85,10 @@ class BioSystem:
         return []
 
     def _on_neural_shift(self, payload):
-
         state = payload.get("state", "NEUTRAL")
-        bio_cfg = getattr(self.config_ref or BoneConfig, "BIO", None)
-        shifts = getattr(bio_cfg, "NEURAL_SHIFTS", {}) if bio_cfg else {}
+        bio_cfg = safe_get(self.config_ref or BoneConfig, "BIO", {})
+        shifts = safe_get(bio_cfg, "NEURAL_SHIFTS", {})
+
         if state == "PANIC":
             cfg = shifts.get("PANIC", {"adr": 0.3, "cor": 0.2})
             self.endo.adrenaline = min(1.0, self.endo.adrenaline + cfg.get("adr", 0.3))
@@ -218,6 +218,6 @@ class SomaticLoop:
     def _package_result(self, resp_status, logs, chem_state=None, enzyme="NONE", qualia=None):
         atp_val = self.bio.mito.state.atp_pool
         stam_val = self.bio.biometrics.stamina if self.bio.biometrics else 100.0
-        return {"respiration": resp_status, "is_alive": resp_status in ("RESPIRING", "ANAEROBIC"), "logs": logs,
+        return {"respiration": resp_status, "is_alive": resp_status not in ("NECROSIS", "APOPTOSIS", "FATAL"), "logs": logs,
                 "chemistry": chem_state or {}, "enzyme": enzyme, "atp": atp_val, "stamina": stam_val,
                 "qualia": qualia, }

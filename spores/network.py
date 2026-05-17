@@ -311,22 +311,25 @@ class MycelialNetwork:
 
     def _process_lineage(self, data):
         session_source = data.get("session_id", "UNKNOWN_ANCESTOR")
-        timestamp = data.get("meta", {}).get("timestamp", 0)
+        timestamp = (data.get("meta") or {}).get("timestamp", 0)
         time_ago = int((time.time() - timestamp) / 3600)
-        trauma_summary = {k: v for k, v in data.get("trauma_vector", {}).items() if v > 0.1}
-        mutation_count = sum(len(v) for v in data.get("mutations", {}).values())
+        trauma_raw = data.get("trauma_vector") or {}
+        trauma_summary = {k: v for k, v in trauma_raw.items() if v > 0.1}
+        mutations_raw = data.get("mutations") or {}
+        mutation_count = sum(len(v) if v else 0 for v in mutations_raw.values())
         self.lineage_log.append(
             {"source": session_source, "age_hours": time_ago, "trauma": trauma_summary, "mutations": mutation_count,
              "loaded_at": time.time(), })
 
     def _process_mutations(self, data):
-        mutations = data.get("mutations", {})
+        mutations = data.get("mutations") or {}
         if not mutations:
             return
         accepted_count = 0
         if not self.lex:
             return
         for cat, words in mutations.items():
+            if not words: continue
             for w in words:
                 current_cat = self.lex.get_current_category(w)
                 if not current_cat or current_cat == "unknown":
@@ -338,7 +341,7 @@ class MycelialNetwork:
                 self.events.log(f"{Prisma.CYN}{msg.format(count=accepted_count)}{Prisma.RST}")
 
     def _extract_legacy_traits(self, data):
-        self.village_legacy = data.get("village_data", {})
+        self.village_legacy = data.get("village_data") or {}
         if "joy_legacy" in data and isinstance(data["joy_legacy"], dict):
             joy = data["joy_legacy"]
             clade = LiteraryReproduction.JOY_CLADE.get(joy.get("flavor"))
@@ -348,18 +351,18 @@ class MycelialNetwork:
                 for stat, ancestral_bonus in clade.get("buff", {}).items():
                     if hasattr(self.cfg, stat):
                         setattr(self.cfg, stat, ancestral_bonus)
-        if "seeds" in data:
+        if seeds_data := data.get("seeds"):
             self.seeds = []
-            for s_data in data["seeds"]:
-                new_seed = ParadoxSeed(s_data["q"], set())
+            for s_data in seeds_data:
+                new_seed = ParadoxSeed(s_data.get("q", ""), set())
                 new_seed.maturity = s_data.get("m", 0.0)
                 new_seed.bloomed = s_data.get("b", False)
                 self.seeds.append(new_seed)
-        return (data.get("mitochondria", {}),
-                set(data.get("antibodies", [])),
-                data.get("soul_legacy", {}),
-                data.get("continuity", None),
-                data.get("world_atlas", {}),)
+        return (data.get("mitochondria") or {},
+                set(data.get("antibodies") or []),
+                data.get("soul_legacy") or {},
+                data.get("continuity"),
+                data.get("world_atlas") or {},)
 
     def save(self, health: float, stamina: float, mutations: dict, trauma_accum: dict,
              joy_history: List[Dict[str, Any]], mitochondria_traits=None, antibodies=None, soul_data=None,
