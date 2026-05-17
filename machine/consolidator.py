@@ -13,6 +13,12 @@ class TheConsolidator:
         self.events.subscribe("SHADOW_ENGAGED", self._on_shadow_engaged)
         self.events.subscribe("RESONANCE_ACHIEVED", self._on_resonance_achieved)
         self.events.subscribe("SYNTAX_CORRECTED", self._on_syntax_corrected)
+        self.events.subscribe("MEMORY_BURIED", self._on_memory_buried)
+
+    def _on_memory_buried(self, payload):
+        fossil = payload.get("fossil")
+        if fossil and self.akashic:
+            self.akashic.bury_memory(fossil.get("word", "Unknown"), fossil)
 
     def _on_syntax_corrected(self, payload):
         triplet = payload.get("triplet")

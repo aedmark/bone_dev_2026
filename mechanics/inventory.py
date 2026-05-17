@@ -84,7 +84,7 @@ class GordonKnot:
                     msg = ux("gordon_strings", "premise_loc")
                     return f"{Prisma.SLATE}{msg.format(loc=required_loc, zone=current_zone)}{Prisma.RST}"
         for action, req_objs in self.action_coupling.items():
-            if action in tokens and re.search(
+            if all(w in tokens for w in action.split()) and re.search(
                     rf"\b(?:i\s+(?:will\s+)?{action}|to\s+{action}|{action}\s+(?:the|a|an|my|some|it|this|that)|{action}ing)\b|^{action}\b",
                     text,
             ):
@@ -150,8 +150,8 @@ class GordonKnot:
         lost_loot = normalize_loot(raw_lost)
         logs = []
         if new_loot:
-            tokens = set(re.findall(r'\b\w+\b', user_input.lower()))
-            has_intent = any(verb in tokens for verb in self.acquisition_verbs)
+            lower_input = user_input.lower()
+            has_intent = any(re.search(rf"\b{re.escape(verb)}\b", lower_input) for verb in self.acquisition_verbs)
             if has_intent:
                 for item in new_loot:
                     logs.append(self.acquire(item))
@@ -280,22 +280,32 @@ class GordonKnot:
         if any(p in combined_text for p in self.abandonment_phrases) or any(
                 r in sys_text.lower() for r in self.refusal_markers):
             return None
+
         valid_triggers = [t for t in self.loot_triggers if t in combined_text]
-        if not valid_triggers:
-            return None
-        present_candidates = []
-        for name in self.registry.keys():
-            if name.upper() not in self.inventory:
-                clean = name.lower().replace("_", " ")
-                if clean in combined_text and re.search(rf"\b{re.escape(clean)}\b", combined_text):
-                    present_candidates.append((name, clean))
-        if not present_candidates:
-            return None
-        for t in sorted(valid_triggers, key=len, reverse=True):
-            t_escaped = re.escape(t)
-            for name, clean in present_candidates:
-                if re.search(rf"\b{t_escaped}\b.*?\b{re.escape(clean)}\b", combined_text, re.IGNORECASE):
-                    return name
+        if valid_triggers:
+            present_candidates = []
+            for name in self.registry.keys():
+                if name.upper() not in self.inventory:
+                    clean = name.lower().replace("_", " ")
+                    if clean in combined_text and re.search(rf"\b{re.escape(clean)}\b", combined_text):
+                        present_candidates.append((name, clean))
+            if present_candidates:
+                for t in sorted(valid_triggers, key=len, reverse=True):
+                    t_escaped = re.escape(t)
+                    for name, clean in present_candidates:
+                        if re.search(rf"\b{t_escaped}\b.*?\b{re.escape(clean)}\b", combined_text, re.IGNORECASE):
+                            return name
+
+        lower_user = user_text.lower()
+        for verb in self.acquisition_verbs:
+            match = re.search(
+                rf"\b{re.escape(verb)}\s+(?:the|a|an|some|my)?\s*([a-z0-9\'\-]+(?:\s+[a-z0-9\'\-]+){{0,2}})",
+                lower_user)
+            if match:
+                extracted = match.group(1).strip()
+                if len(extracted) > 2 and extracted not in ("it", "this", "that", "them", "him", "her"):
+                    return extracted.upper().replace(" ", "_")
+
         return None
 
     def consume(self, item_name: str) -> Tuple[bool, str]:

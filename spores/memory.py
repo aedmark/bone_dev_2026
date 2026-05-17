@@ -89,16 +89,19 @@ class SubconsciousStrata:
     def bury(self, fossil_data: Dict, config_ref=None):
         try:
             from struts import safe_get
-            fossil_data = _billy_mitchell_protocol(fossil_data)
+            clean_fossil = _billy_mitchell_protocol(fossil_data)
             target_cfg = config_ref or BoneConfig
             cfg = safe_get(target_cfg, "SPORES", {})
             max_idx = int(safe_get(cfg, "MAX_INDEX_SIZE", 1000))
             if len(self.index) > max_idx:
                 self._prune_strata()
             with open(self.filepath, "a", encoding="utf-8") as f:
-                fossil_data["buried_at"] = time.time()
-                f.write(json.dumps(fossil_data, cls=JSONEncoder) + "\n")
-            self.index[fossil_data["word"]] = fossil_data
+                clean_fossil["buried_at"] = time.time()
+                f.write(json.dumps(clean_fossil, cls=JSONEncoder) + "\n")
+            self.index[clean_fossil["word"]] = clean_fossil
+            word = clean_fossil["word"]
+            mass = clean_fossil.get("mass", 1.0)
+            fossil_data = clean_fossil # update local reference for matrix maths below
             word = fossil_data["word"]
             mass = fossil_data.get("mass", 1.0)
             K = _word_to_vector(word)
@@ -272,6 +275,8 @@ class MemoryCore:
             "death_tick": current_tick,
         }
         self.subconscious.bury(fossil_data, config_ref=self.cfg)
+        if hasattr(self, "events") and self.events:
+            self.events.publish("MEMORY_BURIED", {"fossil": fossil_data})
         del self.graph[victim]
         for node_data in self.graph.values():
             node_data["edges"].pop(victim, None)

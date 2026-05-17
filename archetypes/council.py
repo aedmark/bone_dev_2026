@@ -191,6 +191,8 @@ class CouncilChamber:
             if not (voice and hasattr(voice, "opine")):
                 continue
             score, comment = voice.opine(clean_words, voltage)
+            if score == 0.0:
+                continue
             if score > float(safe_get(cfg, "VOTE_YEA_THRESHOLD", 1.2)):
                 votes["YEA"] += 1
                 transcript.append(f"{voice.color}[{voice.name}]: {comment}{Prisma.RST}")

@@ -72,6 +72,8 @@ class QuantumObserver:
         self.Q_n = payload.get("q_matrix")
 
     def gaze(self, text: str, graph: Dict = None) -> Dict:
+        if "SYSTEM_BOOT" in text:
+            text = ""
         clean_words = self.lex.clean(text)
         counts = self._tally_categories(clean_words)
         geo = GeodesicEngine.collapse_wavefunction(clean_words, counts, self.cfg)
@@ -201,10 +203,10 @@ class QuantumObserver:
         )
 
     @staticmethod
-    def _calculate_metrics(text: str, counts: Dict[str, int], word_volume: int, config_ref=None) -> Tuple[
-        float, float, float, float, float, float, float, float]:
+    def _calculate_metrics(text: str, counts: Dict[str, int], word_volume: int, config_ref=None) -> Dict[str, float]:
         if not (length := len(text)):
-            return 0.0, 0.0, 0.3, 0.3, 0.2, 0.0, 0.8, 0.0
+            return {"entropy": 0.0, "beta": 0.0, "scope": 0.3, "depth": 0.3,
+                    "connectivity": 0.2, "resonance": 0.0, "silence": 0.8, "loop_quotient": 0.0}
         from struts import safe_get
         cfg = safe_get(config_ref or BoneConfig, "PHYSICS", {})
 

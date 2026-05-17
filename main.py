@@ -232,6 +232,8 @@ class BoneAmanita:
         self.mind = self.embryo.mind
         self.bio = self.embryo.bio
         self.akashic = anatomy.get("akashic")
+        if self.akashic and self.mind and hasattr(self.mind, "mem"):
+            self.akashic.active_memory_core = self.mind.mem
         self.drivers = anatomy.get("drivers")
         self.consultant = anatomy.get("consultant")
         self.consolidator = anatomy.get("consolidator")
@@ -261,9 +263,8 @@ class BoneAmanita:
         mu = float(safe_get(active_phys, "mu", 0.0))
         i_c = float(safe_get(active_phys, "i_c", 1.0))
         chi = float(safe_get(active_phys, "entropy", safe_get(active_phys, "chi", 0.2)))
-        base_exhaust = float(safe_get(active_phys, "exhaustion", 0.0))
+        e_u = float(safe_get(active_phys, "exhaustion", 0.0))
         beta = float(safe_get(active_phys, "beta_index", 0.0))
-        e_u = base_exhaust
         if (chi * m_a) > i_c:
             self.events.log("Apoptotic Gate triggered. Runaway loop exceeds Immune Competence.", "CRIT")
             return self.trigger_death(active_phys)
@@ -294,6 +295,8 @@ class BoneAmanita:
 
     def _pre_flight_checks(self, user_message: str, clean_in: str, is_system: bool) -> Optional[Dict[str, Any]]:
         active_phys = self.active_physics
+        if self.health <= 0.0:
+            return self.trigger_death(active_phys or {})
         if not is_system:
             if any(prion in clean_in for prion in self._SEMANTIC_PRIONS):
                 return self._generate_halt("[GATEKEEPER]: Apoptotic refusal triggered by semantic prion.")
@@ -332,8 +335,6 @@ class BoneAmanita:
             halt_logs = [e["text"] for e in self.events.flush()]
             return {"type": "SYSTEM_HALT", "ui": f"\n{'\n'.join(halt_logs)}", "logs": halt_logs,
                     "metrics": self.get_metrics()}
-        if self.health <= 0.0:
-            return self.trigger_death(active_phys or {})
         return None
 
     def process_turn(self, user_message: str, is_system: bool = False) -> Dict[str, Any]:

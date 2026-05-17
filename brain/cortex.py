@@ -163,12 +163,13 @@ class TheCortex:
                 self.events.log(msg, "SYS")
                 sim_result.update({"ui": msg, "type": "SILENT_INGEST"})
                 return sim_result
-
         if getattr(ctx, "refusal_triggered", False) and getattr(ctx, "refusal_packet", None):
             sim_result.update(ctx.refusal_packet)
             self._update_history(user_input, sim_result.get("ui", "SYSTEM REJECTED PROMPT."))
             return sim_result
-
+        if is_boot_sequence:
+            user_input = user_input.replace("SYSTEM_BOOT DETECTED.", "").replace("SYSTEM_BOOT:", "").strip()
+            sim_result["mutated_input"] = user_input
         if sim_result.get("physics"):
             self.last_physics = sim_result["physics"]
         if hasattr(self, "last_shadow_nodes") and self.last_shadow_nodes:
@@ -659,7 +660,8 @@ class TheCortex:
                 q_list = [float(query_vec.get(k, 0.0)) for k in ordered_keys]
                 shadow_nodes = cortex_mem.query_neighborhood(q_list, k=2, resonance_threshold=max(0.2, 0.8 - omega_r), physics_state=phys)
             if not shadow_nodes and hasattr(self.svc.mind_memory, "graph") and self.svc.mind_memory.graph:
-                shadow_nodes = [{"id": k} for k in list(self.svc.mind_memory.graph.keys())[:2]]
+                keys = list(self.svc.mind_memory.graph.keys())
+                shadow_nodes = [{"id": k} for k in random.sample(keys, min(2, len(keys)))] if keys else []
         if shadow_nodes:
             shadow_concepts = [n.get("id", "Unknown") for n in shadow_nodes]
             shadow_str = ", ".join(shadow_concepts)

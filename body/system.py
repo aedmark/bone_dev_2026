@@ -159,8 +159,19 @@ class SomaticLoop:
             return self._package_result("NECROSIS", ["Critical: Biological interface disconnected."])
         max_health = float(safe_get(self.cfg, "MAX_HEALTH", 100.0))
         max_stamina = float(safe_get(self.cfg, "MAX_STAMINA", 100.0))
-        b.health = max(0.0, min(max_health, health))
-        b.stamina = max(0.0, min(max_stamina, stamina))
+        voltage = float(safe_get(phys, "voltage", 0.0))
+        entropy = float(safe_get(phys, "chi", safe_get(phys, "entropy", 0.0)))
+        is_crisis = voltage > 85.0 or entropy > 0.85
+
+        if not is_crisis:
+            b.health = max(0.0, min(max_health, health + 3.0))
+            b.stamina = max(0.0, min(max_stamina, stamina + 10.0))
+            if self.bio.mito.state.atp_pool < 20.0:
+                self.bio.mito.adjust_atp(15.0, "Emergency Vagus Nerve Support")
+        else:
+            b.health = max(0.0, min(max_health, health))
+            b.stamina = max(0.0, min(max_stamina, stamina))
+            logs.append(f"{Prisma.RED}CRITICAL: Systemic crisis detected (V={voltage:.1f}, E={entropy:.2f}). Vagus nerve support severed.{Prisma.RST}")
         self.bio.apply_environmental_entropy(phys)
         modifier = self.regulator.get_metabolic_modifier(phys, logs)
         delta_silence = float(safe_get(phys, "silence", 0.0))

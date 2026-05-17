@@ -313,8 +313,6 @@ class GeodesicOrchestrator:
         cycle_id = str(uuid.uuid4())[:8]
         self.eng.telemetry.start_cycle(cycle_id)
         try:
-            if not is_system:
-                self.eng.tick_count += 1
             ctx = CycleContext(input_text=user_message, is_system_event=is_system)
             ctx.trace_id = cycle_id
             ctx.time_delta = self.eng.current_time_delta

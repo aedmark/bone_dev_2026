@@ -3,7 +3,7 @@
     "boot_mode": "ADVENTURE",
     "provider": "ollama",
     "base_url": "http://127.0.0.1:11434/v1/chat/completions",
-    "model": "mistral-nemo",
+    "model": "hermes3",
     "WEIGHT_CLASS": "HEAVYWEIGHT",
-    "default_ui_depth": "CORE"
+    "default_ui_depth": "DEEP"
 }

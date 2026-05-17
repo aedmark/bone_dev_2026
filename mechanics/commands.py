@@ -5,7 +5,7 @@ import shlex
 from typing import Dict, Callable, List, Optional
 from presets import BonePresets, BoneConfig
 from core import LoreManifest
-from struts import ux
+from struts import ux, safe_get
 from constants import RealityLayer
 
 class CommandStateInterface:
