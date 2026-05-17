@@ -1,7 +1,7 @@
 # CHANGELOG.md
 -----------------------------------------------------------
 
-### **BONEAMANITA 20.1.0 "The Substrate Optimization Pass"**
+### **BONEAMANITA 20.0.5 "The Substrate Optimization Pass"**
 
 **Changed**
 

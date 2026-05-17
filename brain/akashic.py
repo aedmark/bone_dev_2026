@@ -66,7 +66,8 @@ class TheAkashicRecord:
             victim_data = active_strata.index.pop(target)
             mass = float(safe_get(victim_data, "mass", 1.0))
             yield_val = min(50.0, 10.0 + (mass * 2.5))
-            active_strata._prune_strata()
+            if hasattr(active_strata, "_prune_strata"):
+                active_strata._prune_strata()
             if bio_cfg:
                 current_tax = float(safe_get(bio_cfg, "DEPTH_TAX_MULT", 1.0))
                 safe_set(bio_cfg, "DEPTH_TAX_MULT", max(0.5, current_tax - 0.02))

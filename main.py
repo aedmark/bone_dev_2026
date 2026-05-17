@@ -359,12 +359,16 @@ class BoneAmanita:
                 user_message = self.village.gordon.apply_filters(user_message, self.active_physics)
         try:
             self.orchestrator.input_queue.put((user_message, is_system))
-            snapshot = self.orchestrator.output_queue.get(timeout=getattr(self.config, "ORCHESTRATOR_TIMEOUT", 45.0))
+            timeout_val = float(getattr(self.config, "ORCHESTRATOR_TIMEOUT", 120.0))
+            snapshot = self.orchestrator.output_queue.get(timeout=timeout_val)
         except Exception as e:
+            import queue
+            err_msg = f"Cognitive Loop Timeout ({timeout_val}s). The engine was paralyzed by overthinking." if isinstance(
+                e, queue.Empty) else str(e)
             full_trace = traceback.format_exc()
-            self.events.log(f"ORCHESTRATOR COLLAPSE: {e}\n{full_trace}", "CRIT")
+            self.events.log(f"ORCHESTRATOR COLLAPSE: {err_msg}\n{full_trace}", "CRIT")
             return {
-                "ui": f"{Prisma.RED}CRITICAL ORCHESTRATOR FAILURE: {str(e)}{Prisma.RST}",
+                "ui": f"{Prisma.RED}CRITICAL ORCHESTRATOR FAILURE: {err_msg}{Prisma.RST}",
                 "logs": ["CRITICAL FAILURE"],
                 "metrics": self.get_metrics(),
                 "type": "CRASH"

@@ -165,7 +165,7 @@ class QuantumObserver:
     @staticmethod
     def evaluate_silence(time_delta: float, last_phys: Any) -> Optional[str]:
         from struts import safe_get, safe_set, ux
-        if time_delta < 10.0 or not last_phys: return None
+        if time_delta < 90.0 or not last_phys: return None
         if safe_get(last_phys, "stamina", 50.0) < 30.0:
             safe_set(last_phys, "sigma", 2)
             return ux("physics_strings", "silence_exhausted",

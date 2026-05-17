@@ -110,8 +110,8 @@ class GordonKnot:
             self.loot_triggers = self.creative_loot_triggers
         else:
             self.loot_triggers = data.get("LOOT_TRIGGERS", [])
-        self.interaction_verbs = data.get("INTERACTION_VERBS", [])
-        self.acquisition_verbs = data.get("ACQUISITION_VERBS", [])
+        self.interaction_verbs = sorted(data.get("INTERACTION_VERBS", []), key=len, reverse=True)
+        self.acquisition_verbs = sorted(data.get("ACQUISITION_VERBS", []), key=len, reverse=True)
         lexicon_data = LoreManifest.get_instance().get("LEXICON") or {}
         if not lexicon_data and hasattr(LoreManifest, "get_raw"):
             lexicon_data = LoreManifest.get_raw("lexicon.json") or {}
@@ -280,7 +280,6 @@ class GordonKnot:
         if any(p in combined_text for p in self.abandonment_phrases) or any(
                 r in sys_text.lower() for r in self.refusal_markers):
             return None
-
         valid_triggers = [t for t in self.loot_triggers if t in combined_text]
         if valid_triggers:
             present_candidates = []
@@ -295,7 +294,6 @@ class GordonKnot:
                     for name, clean in present_candidates:
                         if re.search(rf"\b{t_escaped}\b.*?\b{re.escape(clean)}\b", combined_text, re.IGNORECASE):
                             return name
-
         lower_user = user_text.lower()
         for verb in self.acquisition_verbs:
             match = re.search(
@@ -304,8 +302,9 @@ class GordonKnot:
             if match:
                 extracted = match.group(1).strip()
                 if len(extracted) > 2 and extracted not in ("it", "this", "that", "them", "him", "her"):
-                    return extracted.upper().replace(" ", "_")
-
+                    clean_extracted = extracted.upper().replace(" ", "_")
+                    if clean_extracted not in self.inventory:
+                        return clean_extracted
         return None
 
     def consume(self, item_name: str) -> Tuple[bool, str]:
