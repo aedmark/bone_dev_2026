@@ -374,7 +374,7 @@ class SimulationPreflightPhase(SimulationPhase):
                                          "log": f"{Prisma.MAG}[GRIEF]: Profound loss witnessed. Structural Glimmer yielded.{Prisma.RST}"})
         if "[NO_JUMP]" in upper_input or "[SILENCE]" in upper_input:
             phys_obj.silence = 1.0
-            msg = "[EXECUTIVE LAYER]: The Nabla Trigger (∇) engaged. Stopping token prediction. Waiting for mathematical rupture."
+            msg = "[EXECUTIVE LAYER]: Silence engaged. Stopping token prediction. Waiting for a mathematical rupture."
             ctx.log(f"{Prisma.GRY}{msg}{Prisma.RST}")
             ctx.refusal_triggered = True
             ctx.refusal_packet = self._build_refusal(ctx, phys_obj, "NABLA_SILENCE", msg)
