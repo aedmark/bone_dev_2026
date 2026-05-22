@@ -1,6 +1,25 @@
 # CHANGELOG.md
 -----------------------------------------------------------
 
+### **BONEAMANITA 20.1.0 "The Temporal Determinism Pass"**
+
+**Added**
+
+- **Timeline Integrity (Chronos):** Re-weaponized the phantom `kernel_hash` to act as a permanent Boot Fingerprint. `ChronosKeeper` now mathematically verifies this hash during save hydration to detect and log temporal fractures.
+- **Telemetry Anchoring:** `DecisionCrystal` and `TelemetryService` now natively stamp all trace files and system event logs with the active session's `kernel_hash`, permanently eliminating cross-session data bleed.
+- **Quantum Determinism (The Dream Seed):** Cold-boot scenarios, `DreamEngine` LLM hallucinations, and `GordonKnot` physical item synthesis are now bound to the `kernel_hash` RNG seed, ensuring perfect determinism within a single lifecycle.
+
+**Changed**
+
+- **Structural Assertiveness:** Stripped heavy, deeply nested `hasattr`/`isinstance` paranoid checks from `main.py` (death/boot sequences) and `cycle.py` (active physics polling). The engine now trusts its own architectural guarantees.
+- **REM Daemon Optimization:** Flattened the monolithic `run_continuous` hot-loop in `GeodesicOrchestrator`. Autopoiesis, ATP drain, and background dreaming logic have been isolated into clean, scalable class methods.
+
+**Fixed**
+
+- **Cascading Panic Room Crash:** Mended a severed variable reference (`obs` to `self.eng.observer`) in the core cycle handoff. This resolves a critical pipeline collapse that previously wiped the `macro_policy` and falsely triggered the `PanicRoom` failsafe.
+- **Silent Data Destructor:** `LoreManifest` now strictly quarantines corrupt JSON data to `.corrupt.bak` extensions upon load, preventing the engine from persisting blank dictionaries and permanently erasing functional lore files on exit.
+- **System Health Exploits:** Closed a dangerous loop in `SystemHealth`'s dynamic attribute parser. Queries now normalize to lowercase and explicitly reject unmapped components rather than defaulting to a false `True` state.
+
 ### **BONEAMANITA 20.0.5 "The Substrate Optimization Pass"**
 
 **Changed**

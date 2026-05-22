@@ -82,6 +82,7 @@ class BoneAmanita:
         self.last_turn_end = time.time()
         self.current_time_delta = 0.0
         self.kernel_hash = hex(int(self.last_turn_end * 1000))[2:10].upper()
+        self.telemetry.kernel_hash = self.kernel_hash
         self._validate_state()
         self._apply_boot_mode()
 
@@ -417,18 +418,15 @@ class BoneAmanita:
         death_log = [f"\n{Prisma.RED}{halt_msg.format(eulogy_text=eulogy_text)}{Prisma.RST}",
                      f"{Prisma.MAG}🐍 {self.oroboros.crystallize(cause_code, self.soul)}{Prisma.RST}"]
         loc, last_out = "Void", "Silence."
-        if getattr(self, "cortex", None):
-            try:
-                world_state = safe_get(self.cortex.gather_state({"physics": self.active_physics}), "world", {})
-                orbit_data = safe_get(world_state, "orbit", ["Void"])
-                if isinstance(orbit_data, list) and orbit_data:
-                    loc = str(orbit_data[0])
-                else:
-                    loc = str(orbit_data) if orbit_data else "Void"
-            except Exception as e:
-                self.events.log(f"Cortex harvest failed during death sequence: {e}", "WARN")
-            buf = getattr(self.cortex, "dialogue_buffer", [])
-            last_out = buf[-1] if buf else "Silence."
+        try:
+            world_state = safe_get(self.cortex.gather_state({"physics": self.active_physics}), "world", {})
+            orbit_data = safe_get(world_state, "orbit", ["Void"])
+            loc = str(orbit_data[0]) if isinstance(orbit_data, list) and orbit_data else str(orbit_data or "Void")
+        except Exception as e:
+            self.events.log(f"Cortex harvest failed during death sequence: {e}", "WARN")
+
+        buf = self.cortex.dialogue_buffer
+        last_out = buf[-1] if buf else "Silence."
         gordon_inv = self.village.gordon.inventory if self.village.gordon else []
         continuity_packet = {"location": loc, "last_output": last_out, "inventory": gordon_inv}
         try:
@@ -443,8 +441,7 @@ class BoneAmanita:
         except Exception as e:
             fail_msg = ux("main_strings", "save_failed")
             death_log.append(fail_msg.format(e=e))
-        if getattr(self, "cortex", None):
-            self.cortex.purge_context()
+        self.cortex.purge_context()
         return {"type": "DEATH", "ui": "\n".join(death_log), "logs": death_log, "metrics": self.get_metrics()}
 
     def get_metrics(self, atp=0.0):
@@ -485,19 +482,22 @@ class BoneAmanita:
             msg_pod = ux("main_strings", "stasis_pod")
             self.events.log(f"{Prisma.GRY}{msg_pod}{Prisma.RST}", "SYS")
             self._apply_boot_mode()
-            if self.cortex:
-                self.cortex.restore_context(history)
-                cont = self.embryo.continuity or {}
-                loc = cont.get("location", "Unknown")
-                last_scene = self.cortex.dialogue_buffer[-1] if self.cortex.dialogue_buffer else cont.get("last_output", "Silence.")
-                msg_resume = ux("main_strings", "resuming_timeline")
-                msg_restored = ux("main_strings", "timeline_restored")
-                return {"ui": msg_resume.format(loc=loc, last_scene=last_scene), "logs": [msg_restored]}
+
+            self.cortex.restore_context(history)
+            cont = self.embryo.continuity or {}
+            loc = cont.get("location", "Unknown")
+            last_scene = self.cortex.dialogue_buffer[-1] if self.cortex.dialogue_buffer else cont.get("last_output", "Silence.")
+            msg_resume = ux("main_strings", "resuming_timeline")
+            msg_restored = ux("main_strings", "timeline_restored")
+            return {"ui": msg_resume.format(loc=loc, last_scene=last_scene), "logs": [msg_restored]}
         msg_synth = ux("main_strings", "synth_reality")
         self.events.log(f"{Prisma.GRY}{msg_synth}{Prisma.RST}", "SYS")
         scenarios = LoreManifest.get_instance().get("scenarios") or {}
         archetypes = scenarios.get("ARCHETYPES", ["A quiet room", "The edge of a forest", "A terminal screen"])
-        seed = random.choice(archetypes)
+
+        # Bind the waking reality to the boot fingerprint
+        seed_rng = random.Random(self.kernel_hash)
+        seed = seed_rng.choice(archetypes)
         msg_seed = ux("main_strings", "seed_loaded") or "Manifest Seed: {seed}"
         self.events.log(f"{Prisma.CYN}{msg_seed.format(seed=seed)}{Prisma.RST}", "SYS")
         self.phys.valence = 0.8

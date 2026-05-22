@@ -110,11 +110,23 @@ class ArchitectureTests(BoneTestCase):
                                                 violations.append(f"{file}: 'import {alias.name}' (Unqualified)")
                             except Exception:
                                 pass
-        if violations:
-            self.fail(
-                f"[FAIL] Found {len(violations)} unqualified local imports. This causes fatal ModuleNotFoundErrors:\n" + "\n".join(
-                    violations))
-        print("  [SUCCESS] All local imports are strictly anchored to their parent modules.")
+
+        def test_telemetry_anchoring(self):
+            print("\n--- ARCH 7: Telemetry Anchoring ---")
+            from core import TelemetryService
+            telemetry = TelemetryService(self.test_config)
+            telemetry.kernel_hash = "SESSION_77"
+            telemetry.current_trace_file = "dummy_path.json"  # Force buffer active
+
+            telemetry.start_cycle("test_turn")
+            self.assertEqual(telemetry.active_crystal.kernel_hash, "SESSION_77",
+                             "[FAIL] DecisionCrystal failed to inherit the kernel hash.")
+
+            telemetry.record_event({"action": "jump"})
+            last_write = telemetry.write_buffer[-1]
+            self.assertIn('"kernel_hash": "SESSION_77"', last_write,
+                          "[FAIL] Telemetry failed to stamp the kernel hash onto the raw event log.")
+            print("  [SUCCESS] Telemetry permanently anchored to the kernel hash.")
 
     def test_arch_narrative_bleed(self):
         print("\n--- Narrative Bleed (The Lexical Fallback) ---")

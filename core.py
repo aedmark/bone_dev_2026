@@ -41,6 +41,7 @@ class ErrorLog:
 @dataclass
 class DecisionCrystal:
     decision_id: str = field(default_factory=lambda: str(uuid.uuid4())[:8])
+    kernel_hash: str = "UNKNOWN"
     timestamp: float = field(default_factory=time.time)
     leverage_metrics: Dict[str, float] = field(default_factory=dict)
     prompt_snapshot: str = ""
@@ -227,7 +228,9 @@ class LoreManifest:
             with open(filepath, "r", encoding="utf-8") as f:
                 return json.load(f)
         except Exception as e:
-            print(f"{Prisma.RED}[LORE]: Corrupt JSON in '{category}': {e}{Prisma.RST}")
+            backup_path = f"{filepath}.corrupt.bak"
+            os.rename(filepath, backup_path)
+            print(f"{Prisma.RED}[LORE]: Corrupt JSON in '{category}': {e}. Quarantined to {backup_path}.{Prisma.RST}")
             return None
 
     def inject(self, category: str, data: Any):
@@ -341,9 +344,11 @@ class SystemHealth:
 
     def __getattr__(self, item: str):
         if item.endswith("_online"):
-            comp = item.replace("_online", "")
-            return self.components_online.get(comp, True)
-        raise AttributeError(f"'SystemHealth' object has no attribute '{item}'")
+            comp = item.replace("_online", "").lower()
+            if comp in self.components_online:
+                return self.components_online[comp]
+            raise AttributeError(f"Health query rejected. Mystery component: '{comp}'")
+        raise AttributeError(f"'SystemHealth cannot find '{item}'")
 
     def link_observer(self, observer_ref):
         self.observer = observer_ref
@@ -475,6 +480,7 @@ class TelemetryService:
         self.MAX_ERRORS = cfg_core.get("TELEMETRY_MAX_ERRORS", 5)
         self.write_buffer: List[str] = []
         self.active_crystal = None
+        self.kernel_hash = "UNKNOWN"
         self.disabled = False
         self.crystals_logged = 0
         self._lock = threading.Lock()
@@ -493,6 +499,7 @@ class TelemetryService:
         if self.disabled or not self.current_trace_file:
             return
         try:
+            event_dict["kernel_hash"] = self.kernel_hash
             serialized = json.dumps(event_dict, cls=JSONEncoder)
             self._buffer_line(serialized)
         except (TypeError, ValueError) as e:
@@ -511,7 +518,7 @@ class TelemetryService:
             if self.active_crystal.decision_id == trace_id:
                 return
             self.finalize_cycle()
-        self.active_crystal = DecisionCrystal(decision_id=trace_id)
+        self.active_crystal = DecisionCrystal(decision_id=trace_id, kernel_hash=self.kernel_hash)
 
     def log_crystal(self, crystal: DecisionCrystal):
         if self.disabled:

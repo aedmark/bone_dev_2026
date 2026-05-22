@@ -253,6 +253,10 @@ class GordonKnot:
         prefixes = bp.get("PREFIXES", {}).get(archetype, fb.get("PREFIX", ["Strange"]))
         suffixes = bp.get("SUFFIXES", {}).get(archetype, fb.get("SUFFIX", ["of Mystery"]))
         bases_dict = bp.get("BASES", {})
+        k_hash = getattr(getattr(self.events, "telemetry", None), "kernel_hash", "UNKNOWN")
+        seed_val = f"{k_hash}_{len(self.registry)}_{physics_vector.get(dom_dim, 0.0)}"
+        rng = random.Random(seed_val)
+
         if self.mode in ["CREATIVE", "CONVERSATION"]:
             base_cat = bp.get("CREATIVE_BASE_CAT", "ABSTRACT")
             bases = bases_dict.get(base_cat, fb.get("BASE", ["Concept"]))
@@ -261,10 +265,10 @@ class GordonKnot:
             suffixes = overrides.get("SUFFIXES") or suffixes
         else:
             adv_cats = bp.get("ADVENTURE_CATEGORIES", ["TOOL", "JUNK", "ARTIFACT"])
-            bases = bases_dict.get(random.choice(adv_cats), fb.get("BASE", ["Object"]))
-        base = random.choice(bases)
-        prefix = random.choice(prefixes)
-        suffix = random.choice(suffixes)
+            bases = bases_dict.get(rng.choice(adv_cats), fb.get("BASE", ["Object"]))
+        base = rng.choice(bases)
+        prefix = rng.choice(prefixes)
+        suffix = rng.choice(suffixes)
         full_name = f"{prefix} {base} {suffix}"
         clean_id = full_name.upper().replace(" ", "_")
         clamped_value = min(100.0, round(physics_vector.get(dom_dim, 0.0) * 10, 1))

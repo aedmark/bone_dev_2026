@@ -230,36 +230,15 @@ class GeodesicOrchestrator:
                             "SYS")
                         self.eng.events.publish("SYSTEM_SLEEP", {"idle_duration": time_since_last})
 
+
                 elif self.engine_state == "REM":
+
                     if current_time - self.last_rem_tick < 60.0:
                         continue
-                    self.last_rem_tick = current_time
-                    if hasattr(self.eng, "drain_atp"):
-                        from struts import safe_get
-                        bio_cfg = safe_get(self.eng.config, "BIO", {})
-                        rem_drain = float(safe_get(bio_cfg, "REM_ATP_DRAIN", 0.1))
-                        self.eng.drain_atp(rem_drain)
-                    if getattr(self.eng, "bio", None) and getattr(self.eng.bio, "mito", None):
-                        self.eng.bio.mito.state.ros_buildup = max(0.0, self.eng.bio.mito.state.ros_buildup - 0.1)
-                    if hasattr(self.eng, "consolidator") and hasattr(self.eng.consolidator, "trigger_autophagy"):
-                        try:
-                            self.eng.consolidator.trigger_autophagy()
-                        except Exception:
-                            pass
 
-                    def _bg_hallucinate():
-                        try:
-                            trauma_level = sum(self.eng.trauma_accum.values()) if getattr(self.eng, "trauma_accum", None) else 0.0
-                            inv_ref = getattr(getattr(self.eng, "village", None), "gordon", None)
-                            objects = getattr(inv_ref, "inventory", ["static"]) if inv_ref else ["static"]
-                            if hasattr(self.eng, "mind") and hasattr(self.eng.mind, "dream_engine"):
-                                dream_txt, _ = self.eng.mind.dream_engine.hallucinate({"chi": 0.85}, trauma_level=trauma_level)
-                                obj = random.choice(objects) if objects else "static"
-                                full_dream = f"  • {Prisma.strip(dream_txt)} (Shadow cast involving: {obj})"
-                                self.dream_log.append(full_dream)
-                        except Exception as e:
-                            self.eng.events.log(f"Dream generation failed in REM: {e}", "DEBUG")
-                    self._async_pool.submit(_bg_hallucinate)
+                    self.last_rem_tick = current_time
+
+                    self._process_rem_tick()
             except Exception as e:
                 self.eng.events.log(f"Daemon Engine Crash: {e}", "CRIT")
                 self.output_queue.put({
@@ -272,6 +251,36 @@ class GeodesicOrchestrator:
             finally:
                 if task_acquired:
                     self.input_queue.task_done()
+
+    def _process_rem_tick(self):
+        """REM logic: Handles Autopoiesis, ATP drain, and Hallucinations."""
+        from struts import safe_get
+        bio_cfg = safe_get(self.eng.config, "BIO", {})
+        self.eng.drain_atp(float(safe_get(bio_cfg, "REM_ATP_DRAIN", 0.1)))
+
+        if hasattr(self.eng.bio, "mito"):
+            self.eng.bio.mito.state.ros_buildup = max(0.0, self.eng.bio.mito.state.ros_buildup - 0.1)
+
+        if self.eng.consolidator and hasattr(self.eng.consolidator, "trigger_autophagy"):
+            try:
+                self.eng.consolidator.trigger_autophagy()
+            except Exception:
+                pass
+
+        def _bg_hallucinate():
+            try:
+                trauma_level = sum(self.eng.trauma_accum.values()) if self.eng.trauma_accum else 0.0
+                gordon = getattr(self.eng.village, "gordon", None)
+                objects = gordon.inventory if gordon and hasattr(gordon, "inventory") else ["static"]
+
+                if hasattr(self.eng.mind, "dream_engine"):
+                    dream_txt, _ = self.eng.mind.dream_engine.hallucinate({"chi": 0.85}, trauma_level=trauma_level)
+                    self.dream_log.append(
+                        f"  • {Prisma.strip(dream_txt)} (Shadow cast involving: {random.choice(objects)})")
+            except Exception as e:
+                self.eng.events.log(f"Dream generation failed in REM: {e}", "DEBUG")
+
+        self._async_pool.submit(_bg_hallucinate)
 
     def _verify_semantic_topology(self, ctx: CycleContext):
         """
@@ -320,12 +329,9 @@ class GeodesicOrchestrator:
             ctx.user_state = lattice.u
             ctx.shared_dyn = lattice.shared
             ctx.limits = _safe_dict(getattr(self.eng.config, "CYCLE", {}))
-            obs = self.eng.observer
-            last_packet = getattr(obs, "last_physics_packet", None)
-            if isinstance(last_packet, dict) and last_packet:
-                ctx.physics = PhysicsPacket(**last_packet)
-            elif hasattr(last_packet, "snapshot"):
-                ctx.physics = last_packet.snapshot()
+            phys_dict = self.eng.active_physics
+            if phys_dict:
+                ctx.physics = PhysicsPacket(**phys_dict)
             else:
                 ctx.physics = PhysicsPacket.void_state()
                 msg = ux("cycle_strings", "orch_physics_init") or "Initial physics state established."
@@ -338,13 +344,10 @@ class GeodesicOrchestrator:
             if not getattr(ctx.physics, "vector", None):
                 ctx.physics.vector = {}
             usr_msg = user_message.lower()
-
-            # The system must yield a glimmer when grief is explicitly tagged.
             if "[grief]" in usr_msg and getattr(self.eng, "bio", None) and hasattr(self.eng.bio, "endo"):
                 self.eng.bio.endo.glimmers = getattr(self.eng.bio.endo, "glimmers", 0) + 1
                 if self.eng.events:
                     self.eng.events.log(f"{Prisma.MAG}Grief acknowledged. A glimmer is yielded.{Prisma.RST}", "SYS")
-
             ctx.physics.vector.update({"critique_mode": "[!r]" in usr_msg, "objective_mode": "[!q]" in usr_msg,
                                        "healing_mode": "[!h]" in usr_msg, "void_mode": "[!v]" in usr_msg,
                                        "lateral_shuffle": "[!s]" in usr_msg, "literal_mode": "[!l]" in usr_msg,
@@ -358,8 +361,8 @@ class GeodesicOrchestrator:
             post_logs = [e["text"] for e in self.eng.events.flush()]
             ctx.logs.extend(post_logs)
             self._verify_semantic_topology(ctx)
-            if obs:
-                obs.last_physics_packet = ctx.physics.snapshot()
+            if getattr(self.eng, "observer", None):
+                self.eng.observer.last_physics_packet = ctx.physics.snapshot()
             return ctx
         except Exception as e:
             full_trace = traceback.format_exc()
@@ -422,13 +425,7 @@ class GeodesicOrchestrator:
         clean_message = (user_message.strip() or "(Waiting)")
         if clean_message.lower() == "/idle":
             self.engine_state = "REM"
-            packet = getattr(self.eng.observer, "last_physics_packet", None)
-            if isinstance(packet, dict) and packet:
-                safe_phys = packet
-            elif hasattr(packet, "snapshot"):
-                safe_phys = packet.snapshot().to_dict()
-            else:
-                safe_phys = PhysicsPacket.void_state().to_dict()
+            safe_phys = self.eng.active_physics or PhysicsPacket.void_state().to_dict()
             return {"type": "SNAPSHOT",
                     "ui": f"\n{Prisma.VIOLET}☁️ The system slips into deep background REM. Memory consolidation and epigenetic autopoiesis are running asynchronously...{Prisma.RST}",
                     "physics": safe_phys, "bio": {"is_alive": True},

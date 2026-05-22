@@ -23,8 +23,12 @@ class ChronosKeeper:
         last_speech = "Silence."
         if getattr(self.eng, "cortex", None) and getattr(self.eng.cortex, "dialogue_buffer", None):
             last_speech = self.eng.cortex.dialogue_buffer[-1]
-        return {"location": loc, "last_output": last_speech,
-                "inventory": self.eng.village.gordon.inventory if getattr(self.eng.village, "gordon", None) else [], }
+        return {
+            "location": loc,
+            "last_output": last_speech,
+            "inventory": self.eng.village.gordon.inventory if getattr(self.eng.village, "gordon", None) else [],
+            "kernel_hash": getattr(self.eng, "kernel_hash", "UNKNOWN"),
+        }
 
     def save_checkpoint(self, history: list = None) -> str:
         try:
@@ -70,6 +74,12 @@ class ChronosKeeper:
                 self._restore_village_state(data["village_data"])
             if "continuity" in data:
                 self.eng.embryo.continuity = data["continuity"]
+                saved_hash = data["continuity"].get("kernel_hash", "UNKNOWN")
+                current_hash = getattr(self.eng, "kernel_hash", "UNKNOWN")
+                if saved_hash != "UNKNOWN" and saved_hash != current_hash:
+                    print(f"{Prisma.VIOLET}[CHRONOS] Temporal fracture detected. Bridging timeline [{saved_hash}] into [{current_hash}].{Prisma.RST}")
+                else:
+                    print(f"{Prisma.GRY}[CHRONOS] Timeline absolute. Kernel Hash [{current_hash}] locked.{Prisma.RST}")
             restored_history = data.get("chat_history", [])
             msg2 = ux("protocol_strings", "chronos_resume_success")
             print(f"{Prisma.GRN}{msg2}{Prisma.RST}")

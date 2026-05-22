@@ -292,8 +292,10 @@ class DreamEngine:
                 index.extend(g.get("concept", "Forgotten Echo") for g in recent_shadows if "concept" in g)
             if len(index) >= 2:
                 ghost1, ghost2 = random.sample(index, 2)
-                prompt = (f"SYSTEM_INSTRUCTION: You are the autonomous dream-engine of a cybernetic organism. "
-                          f"Your task is to defragment two dead, cannibalized concepts: [{ghost1.upper()}] and [{ghost2.upper()}]. "
+                k_hash = getattr(self.eng, "kernel_hash", "UNKNOWN")
+                prompt = (
+                    f"SYSTEM_INSTRUCTION: You are the autonomous dream-engine of a cybernetic organism (Boot Hash: {k_hash}). "
+                    f"Your task is to defragment two dead, cannibalized concepts: [{ghost1.upper()}] and [{ghost2.upper()}]. "
                           f"Synthesize them into a single, highly surreal, abstract image. "
                           f"DO NOT explain the dream. DO NOT use UI tags. Output ONLY the 2-3 sentence narrative description of the dream.")
                 try:
@@ -336,7 +338,8 @@ class DreamEngine:
             sources = flat or ["The void stares back."]
         if self.llm:
             lore_sample = ", ".join(random.sample(sources, min(3, len(sources))))
-            prompt = (f"SYSTEM_INSTRUCTION: You are the dream-engine of a cybernetic orgnaism. "
+            k_hash = getattr(self.eng, "kernel_hash", "UNKNOWN")
+            prompt = (f"SYSTEM_INSTRUCTION: You are the dream-engine of a cybernetic organism (Boot Hash: {k_hash}). "
                       f"Generate a surreal 2-sentence {dream_type.lower()} involving '{residue}'. "
                       f"Use this lore as thematic inspiration: [{lore_sample}]. "
                       f"DO NOT explain the dream. Output ONLY the narrative description.")
@@ -381,8 +384,9 @@ class DreamEngine:
         txt = None
         if self.llm:
             lore_sample = ", ".join(random.sample(templates, min(3, len(templates))))
+            k_hash = getattr(self.eng, "kernel_hash", "UNKNOWN")
             prompt = (
-                f"SYSTEM_INSTRUCTION: You are a cybernetic hallucination engine. The system is experiencing high entropy (Chaos: {active_chi:.2f}). "
+                f"SYSTEM_INSTRUCTION: You are a cybernetic hallucination engine bound to Boot Hash [{k_hash}]. The system is experiencing high entropy (Chaos: {active_chi:.2f}). "
                 f"Generate a 1-sentence surreal {category.lower()} hallucination. "
                 f"Thematic inspiration: [{lore_sample}]. "
                 f"DO NOT explain it. Output ONLY the raw hallucination.")
