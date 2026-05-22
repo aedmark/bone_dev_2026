@@ -212,12 +212,14 @@ class BoneAmanita:
 
     @property
     def active_physics(self) -> Dict[str, Any]:
-        phys_obj = getattr(self.observer, "last_physics_packet", None) or getattr(self.cortex, "last_physics", None)
-        if hasattr(phys_obj, "to_dict"):
-            return phys_obj.to_dict()
-        if isinstance(phys_obj, dict):
-            return phys_obj.copy()
-        return {}
+        """The mutability is the point."""
+        phys = getattr(self.observer, "last_physics_packet", None) or getattr(self.cortex, "last_physics", None)
+        if hasattr(phys, "to_dict"):
+            phys = phys.to_dict()
+        elif not isinstance(phys, dict):
+            phys = {}
+        self.observer.last_physics_packet = phys
+        return phys
 
     def apply_absolute_friction(self, phys=None):
         phys = phys or self.active_physics
@@ -256,18 +258,19 @@ class BoneAmanita:
                 "metrics": self.get_metrics()}
 
     def _evaluate_immune_response(self, user_message: str, active_phys: Any) -> Optional[Dict[str, Any]]:
+        """The paranoia is intentional."""
         if not active_phys:
             return None
-        nav_drag = float(active_phys.get("narrative_drag", 0.0))
+        nav_drag = float(safe_get(active_phys, "narrative_drag", 0.0))
         m_a = self.navi_sad.calculate_malignancy_factor(user_message, nav_drag)
-        active_phys["m_a"] = m_a
-        mu = float(active_phys.get("mu", 0.0))
-        i_c = float(active_phys.get("i_c", 1.0))
-        chi = float(active_phys.get("entropy", active_phys.get("chi", 0.2)))
-        e_u = float(active_phys.get("exhaustion", 0.0))
-        beta = float(active_phys.get("beta_index", 0.0))
+        safe_set(active_phys, "m_a", m_a)
+        mu = float(safe_get(active_phys, "mu", 0.0))
+        i_c = float(safe_get(active_phys, "i_c", 1.0))
+        chi = float(safe_get(active_phys, "entropy", safe_get(active_phys, "chi", 0.2)))
+        e_u = float(safe_get(active_phys, "exhaustion", 0.0))
+        beta = float(safe_get(active_phys, "beta_index", 0.0))
         if (chi * m_a) > i_c:
-            self.events.log("Apoptotic Gate triggered. Runaway loop exceeds Immune Competence.", "CRIT")
+            self.events.log("Apoptotic Gate HALT!: Runaway loop exceeds Immune Competence.", "CRIT")
             return self.trigger_death(active_phys)
         if m_a > 0.8 and mu < 0.2:
             self.apply_absolute_friction(active_phys)

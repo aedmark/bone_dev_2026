@@ -383,10 +383,10 @@ class PromptComposer:
         if "style_directives" in mind:
             persona_block.append("BOOT DIRECTIVES:")
             persona_block.extend([f"- {d}" for d in mind["style_directives"]])
-        e = float(safe_get(vsl_state, "E", 0.2)) if vsl_state else 0.2
-        beta = float(safe_get(vsl_state, "beta", 0.4)) if vsl_state else 0.4
+        e = float(safe_get(vsl_state, "exhaustion", safe_get(vsl_state, "E", 0.2))) if vsl_state else 0.2
+        beta = float(safe_get(vsl_state, "contradiction", safe_get(vsl_state, "beta_index", 0.4))) if vsl_state else 0.4
         psi = float(safe_get(vsl_state, "psi", 0.2)) if vsl_state else 0.2
-        chi = float(safe_get(vsl_state, "chi", 0.2)) if vsl_state else 0.2
+        chi = float(safe_get(vsl_state, "entropy", safe_get(vsl_state, "chi", 0.2))) if vsl_state else 0.2
         valence = float(safe_get(vsl_state, "valence", 0.0)) if vsl_state else 0.0
         vsl_lines = ["\n[SYSTEM METRICS - INTERNAL USE ONLY. DO NOT RENDER OR PRINT THIS TO THE USER.]",
                      "MANDATE: Consume these metrics to shape your narrative and tone. DO NOT output these numbers or draw UI bars.",

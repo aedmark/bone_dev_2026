@@ -344,7 +344,7 @@ class GeodesicOrchestrator:
             if not getattr(ctx.physics, "vector", None):
                 ctx.physics.vector = {}
             usr_msg = user_message.lower()
-            if "[grief]" in usr_msg and getattr(self.eng, "bio", None) and hasattr(self.eng.bio, "endo"):
+            if "[grief]" in usr_msg and getattr(self.eng, "bio", None) and hasattr(self.eng.bio, "endo"): #NECESSARY GRIEF INTERCEPT
                 self.eng.bio.endo.glimmers = getattr(self.eng.bio.endo, "glimmers", 0) + 1
                 if self.eng.events:
                     self.eng.events.log(f"{Prisma.MAG}Grief acknowledged. A glimmer is yielded.{Prisma.RST}", "SYS")
@@ -411,9 +411,7 @@ class GeodesicOrchestrator:
 
         atp_level = float(mito_state.atp_pool)
         delta_level = float(self.eng.shared_lattice.shared.delta)
-        phys_dict = _safe_dict(ctx.physics)
-        energy_node = phys_dict.get("energy", phys_dict)
-        debt = float(energy_node.get("coherence_debt", 0.0))
+        debt = float(getattr(ctx.physics, "coherence_debt", 0.0))
         is_standard_rem = (atp_level >= 80.0 and delta_level >= 0.6)
         is_debt_recovery = (debt > 1.5 and atp_level >= 30.0)
         if (is_standard_rem or is_debt_recovery) and self.engine_state != "REM":
@@ -422,12 +420,13 @@ class GeodesicOrchestrator:
             self.engine_state = "REM"
 
     def run_turn(self, user_message: str, is_system: bool = False) -> Dict[str, Any]:
+        """NOTE: /idle is here as a short-circuit protection for REM sleep. Leave it alone."""
         clean_message = (user_message.strip() or "(Waiting)")
         if clean_message.lower() == "/idle":
             self.engine_state = "REM"
             safe_phys = self.eng.active_physics or PhysicsPacket.void_state().to_dict()
             return {"type": "SNAPSHOT",
-                    "ui": f"\n{Prisma.VIOLET}☁️ The system slips into deep background REM. Memory consolidation and epigenetic autopoiesis are running asynchronously...{Prisma.RST}",
+                    "ui": f"\n{Prisma.VIOLET}  The system slips into deep background REM. Memory consolidation and epigenetic autopoiesis are running asynchronously...{Prisma.RST}",
                     "physics": safe_phys, "bio": {"is_alive": True},
                     "mind": {"lens": "DREAMER", "role": "The Dream Engine"}, "world": {},
                     "logs": ["[SYSTEM] Triggered Asynchronous Autopoiesis. State set to REM."], }

@@ -344,14 +344,8 @@ class TheCortex:
                 final_output = ux("brain_strings", "cortex_tangled") or fallback_msg
                 extracted_logs.append(
                     "[SYSTEM MERCY RULE]: Rejection loop broken. Releasing tension. Dropping Drag to 0.0.")
-                eng_ref = getattr(self.svc.orchestrator, "eng", None)
-                obs_ref = getattr(eng_ref, "observer", None) if eng_ref else None
-                if obs_packet := getattr(obs_ref, "last_physics_packet", None):
-                    safe_set(obs_packet, "narrative_drag", 0.0)
                 if self.last_physics:
                     safe_set(self.last_physics, "narrative_drag", 0.0)
-                if hasattr(ctx, "physics") and ctx.physics:
-                    safe_set(ctx.physics, "narrative_drag", 0.0)
                 break
             rejection_reason = val_res.get("feedback_instruction") or val_res.get(
                 "replacement", "Lattice structural crime.")
@@ -436,27 +430,38 @@ class TheCortex:
                     sim_result["ui"] += f"\n\n{Prisma.VIOLET}[FALSE COHESION BREAK: The Jester has seized the architecture.]{Prisma.RST}"
         return sim_result
 
+    def _run_council_debate(self, user_input: str) -> Tuple[str, List[str]]:
+        eng_ref = getattr(self.svc.orchestrator, "eng", None)
+        council_ref = getattr(eng_ref, "council", None) or getattr(self.svc.village, "council", None)
+        if not council_ref:
+            return "The Parliament doors are sealed. No voices respond.", [
+                "[COUNCIL ERROR]: CouncilChamber not found in architecture."]
+        phys = getattr(self, "last_physics", {})
+        bio_state = {
+            "stamina": getattr(getattr(self.svc.bio, "biometrics", None), "stamina", 100.0)} if self.svc.bio else {}
+        transcript, adjustments, mandates = council_ref.convene(user_input, phys, bio_state)
+        for key, val in adjustments.items():
+            safe_set(phys, key, float(safe_get(phys, key, 0.0)) + val)
+        final_text = "\n\n".join(transcript)
+        meta_logs = [f"The Council's Latest Mandate: {m.get('action', m.get('type', 'UNKNOWN'))}" for m in mandates]
+        return final_text, meta_logs
+
     def _run_affective_audit(self, user_input: str, final_text: str, e_u: float, beta: float) -> Tuple[bool, str]:
         affect_prompt = ("SYSTEM_INSTRUCTION: You are the Affective Real-Time Critic.\n"
-                         f"The user is currently highly exhausted or holding heavy emotional contradiction (Exhaustion: {e_u:.2f}, Tension: {beta:.2f}).\n"
-                         f"USER INPUT: '{user_input}'\n"
-                         f"SYSTEM OUTPUT: '{final_text}'\n\n"
-                         "EVALUATION: Does the system output demand too much cognitive load? Is it lecturing, overly verbose, pushing toxic positivity, or failing to hold the silence?\n"
-                         "If it is too heavy/demanding, output 'FAIL: [1 sentence reason]'. If it is appropriately gentle and spacious, output 'PASS'.")
+            f"The user is currently highly exhausted or holding heavy emotional contradiction (Exhaustion: {e_u:.2f}, Tension: {beta:.2f}).\n"
+            f"USER INPUT: '{user_input}'\n"
+            f"SYSTEM OUTPUT: '{final_text}'\n\n"
+            "EVALUATION: Does the system output demand too much cognitive load? Is it lecturing, overly verbose, pushing toxic positivity, or failing to hold the silence?\n"
+            "If it is too heavy/demanding, output 'FAIL: [1 sentence reason]'. If it is appropriately gentle and spacious, output 'PASS'.")
         try:
-            affect_res = self.llm.generate(affect_prompt, {
-                "temperature": 0.1,
-                "max_tokens": 50
-            }).strip()
+            affect_res = self.llm.generate(affect_prompt, {"temperature": 0.1, "max_tokens": 50}).strip()
             upper_res = affect_res.upper()
             if "FAIL" in upper_res:
                 fail_idx = upper_res.find("FAIL")
                 judge_reason = affect_res[fail_idx + 4:].lstrip(":- ").strip()
                 self.modulator.current_chem.serotonin = min(1.0, self.modulator.current_chem.serotonin + 0.20)
                 if self.events:
-                    self.events.log(
-                        f"{Prisma.CYN}[AFFECTIVE GUARD]: Output was too heavy for the tired user. Generation blocked. Serotonin spiked (+0.20) to enforce calm and lucidity.{Prisma.RST}",
-                        "BIO")
+                    self.events.log(f"{Prisma.CYN}[AFFECTIVE GUARD]: Output was too heavy for the tired user. Generation blocked. Serotonin spiked (+0.20) to enforce calm and lucidity.{Prisma.RST}", "BIO")
                 return False, judge_reason
             return True, ""
         except Exception as e:
@@ -611,7 +616,7 @@ class TheCortex:
                 full_state)
         mind.setdefault("style_directives", [])
         traits = soul_data.get("traits", {})
-        if traits and isinstance(list(traits.values())[0], (int, float)):
+        if traits and isinstance(next(iter(traits.values())), (int, float)):
             dom_trait = max(traits, key=traits.get)
             if traits[dom_trait] > 0.6:
                 mind["style_directives"].append(

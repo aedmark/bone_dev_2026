@@ -333,9 +333,8 @@ class DreamEngine:
         if not sources:
             sources = self.dream_lore.get(subtype.upper(), ["You stare into the static."])
         if isinstance(sources, dict):
-            flat = []
-            for v in sources.values(): flat.extend(v if isinstance(v, list) else [v])
-            sources = flat or ["The void stares back."]
+            sources = [item for v in sources.values() for item in (v if isinstance(v, list) else [v])] or [
+                "The void stares back."]
         if self.llm:
             lore_sample = ", ".join(random.sample(sources, min(3, len(sources))))
             k_hash = getattr(self.eng, "kernel_hash", "UNKNOWN")
@@ -371,9 +370,7 @@ class DreamEngine:
         category = "NIGHTMARES" if trauma_level > 0.5 else "SURREAL"
         templates = self.dream_lore.get(category, [])
         if isinstance(templates, dict):
-            flat = []
-            for v in templates.values(): flat.extend(v if isinstance(v, list) else [v])
-            templates = flat
+            templates = [item for v in templates.values() for item in (v if isinstance(v, list) else [v])]
         if not templates:
             return "The walls breathe.", 0.1
         from mechanics.tools import TheTclWeaver

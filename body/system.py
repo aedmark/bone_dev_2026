@@ -105,8 +105,7 @@ class BioSystem:
             self.mito.adjust_atp(shifts.get("MANIC", {}).get("atp", -10.0), "Neural Overclock")
 
     def apply_environmental_entropy(self, physics_packet):
-        matter = safe_get(physics_packet, "matter", physics_packet)
-        vector = safe_get(matter, "vector", {}) or {}
+        vector = safe_get(physics_packet, "vector", {}) or {}
         ent_val = vector.get("ENT", 0.0)
         phi_val = vector.get("PHI", 0.0)
         em_field = math.hypot(ent_val, phi_val)

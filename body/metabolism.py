@@ -76,7 +76,7 @@ class MitochondrialForge:
         base_cost = safe_get(cfg, "BASE_ATP_YIELD", 2.0) + (voltage * safe_get(cfg, "VOLTAGE_TAX_MULT", 0.05))
         cognitive_load_tax = (depth * safe_get(cfg, "DEPTH_TAX_MULT", 2.0)) + (
                 connectivity * safe_get(cfg, "CONN_TAX_MULT", 3.0))
-        chaos_index = safe_get(physics_packet, "chi", safe_get(physics_packet, "entropy", 0.0))
+        chaos_index = float(safe_get(physics_packet, "entropy", safe_get(physics_packet, "chi", 0.0)))
         if chaos_index > safe_get(cfg, "CHAOS_TAX_THRESHOLD", 0.6):
             chaos_tax = safe_get(cfg, "CHAOS_TAX_MULT", 8.0) * chaos_index
             cognitive_load_tax += chaos_tax
