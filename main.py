@@ -3,6 +3,7 @@
 import random
 import time
 import traceback
+import queue
 from dataclasses import dataclass
 from typing import Dict, Any, Optional, Tuple
 from types import SimpleNamespace
@@ -211,13 +212,12 @@ class BoneAmanita:
 
     @property
     def active_physics(self) -> Dict[str, Any]:
-        phys = getattr(self.observer, "last_physics_packet", None) or getattr(self.cortex, "last_physics", None)
-        if hasattr(phys, "to_dict"):
-            phys = phys.to_dict()
-        elif not isinstance(phys, dict):
-            phys = {}
-        self.observer.last_physics_packet = phys
-        return phys
+        phys_obj = getattr(self.observer, "last_physics_packet", None) or getattr(self.cortex, "last_physics", None)
+        if hasattr(phys_obj, "to_dict"):
+            return phys_obj.to_dict()
+        if isinstance(phys_obj, dict):
+            return phys_obj.copy()
+        return {}
 
     def apply_absolute_friction(self, phys=None):
         phys = phys or self.active_physics
@@ -258,14 +258,14 @@ class BoneAmanita:
     def _evaluate_immune_response(self, user_message: str, active_phys: Any) -> Optional[Dict[str, Any]]:
         if not active_phys:
             return None
-        nav_drag = float(safe_get(active_phys, "narrative_drag", 0.0))
+        nav_drag = float(active_phys.get("narrative_drag", 0.0))
         m_a = self.navi_sad.calculate_malignancy_factor(user_message, nav_drag)
-        safe_set(active_phys, "m_a", m_a)
-        mu = float(safe_get(active_phys, "mu", 0.0))
-        i_c = float(safe_get(active_phys, "i_c", 1.0))
-        chi = float(safe_get(active_phys, "entropy", safe_get(active_phys, "chi", 0.2)))
-        e_u = float(safe_get(active_phys, "exhaustion", 0.0))
-        beta = float(safe_get(active_phys, "beta_index", 0.0))
+        active_phys["m_a"] = m_a
+        mu = float(active_phys.get("mu", 0.0))
+        i_c = float(active_phys.get("i_c", 1.0))
+        chi = float(active_phys.get("entropy", active_phys.get("chi", 0.2)))
+        e_u = float(active_phys.get("exhaustion", 0.0))
+        beta = float(active_phys.get("beta_index", 0.0))
         if (chi * m_a) > i_c:
             self.events.log("Apoptotic Gate triggered. Runaway loop exceeds Immune Competence.", "CRIT")
             return self.trigger_death(active_phys)
@@ -362,10 +362,12 @@ class BoneAmanita:
             self.orchestrator.input_queue.put((user_message, is_system))
             timeout_val = float(getattr(self.config, "ORCHESTRATOR_TIMEOUT", 120.0))
             snapshot = self.orchestrator.output_queue.get(timeout=timeout_val)
+        except queue.Empty:
+            err_msg = f"Cognitive Loop Timeout ({timeout_val}s). The engine was paralyzed by overthinking."
+            full_trace = traceback.format_exc()
+            self.events.log(f"ORCHESTRATOR COLLAPSE: {err_msg}\n{full_trace}", "CRIT")
         except Exception as e:
-            import queue
-            err_msg = f"Cognitive Loop Timeout ({timeout_val}s). The engine was paralyzed by overthinking." if isinstance(
-                e, queue.Empty) else str(e)
+            err_msg = str(e)
             full_trace = traceback.format_exc()
             self.events.log(f"ORCHESTRATOR COLLAPSE: {err_msg}\n{full_trace}", "CRIT")
             return {
@@ -419,9 +421,9 @@ class BoneAmanita:
                      f"{Prisma.MAG}🐍 {self.oroboros.crystallize(cause_code, self.soul)}{Prisma.RST}"]
         loc, last_out = "Void", "Silence."
         try:
-            world_state = safe_get(self.cortex.gather_state({"physics": self.active_physics}), "world", {})
-            orbit_data = safe_get(world_state, "orbit", ["Void"])
-            loc = str(orbit_data[0]) if isinstance(orbit_data, list) and orbit_data else str(orbit_data or "Void")
+            world_state = self.cortex.gather_state({"physics": self.active_physics}).get("world", {})
+            orbit_data = world_state.get("orbit", ["Void"])
+            loc = str(orbit_data[0]) if isinstance(orbit_data, list) and orbit_data else str(orbit_data)
         except Exception as e:
             self.events.log(f"Cortex harvest failed during death sequence: {e}", "WARN")
 
