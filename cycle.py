@@ -349,9 +349,9 @@ class GeodesicOrchestrator:
                 if self.eng.events:
                     self.eng.events.log(f"{Prisma.MAG}Grief acknowledged. A glimmer is yielded.{Prisma.RST}", "SYS")
             ctx.physics.vector.update({"critique_mode": "[!r]" in usr_msg, "objective_mode": "[!q]" in usr_msg,
-                                       "healing_mode": "[!h]" in usr_msg, "void_mode": "[!v]" in usr_msg,
-                                       "lateral_shuffle": "[!s]" in usr_msg, "literal_mode": "[!l]" in usr_msg,
-                                       "yeetinator_mode": "[!y]" in usr_msg})
+                    "healing_mode": "[!h]" in usr_msg, "void_mode": "[!v]" in usr_msg,
+                    "lateral_shuffle": "[!s]" in usr_msg, "literal_mode": "[!l]" in usr_msg,
+                    "yeetinator_mode": "[!y]" in usr_msg})
             u_exhaustion = float(getattr(ctx.user_state, "E", 0.0))
             phi_val = float(getattr(ctx.shared_dyn, "phi", 0.0))
             res_delta = float(getattr(ctx.shared_dyn, "resonance_delta", 0.0))

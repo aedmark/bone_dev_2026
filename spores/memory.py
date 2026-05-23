@@ -18,7 +18,6 @@ def _billy_mitchell_protocol(data: Any) -> Any:
     if isinstance(data, str):
         return re.sub(r'[\u200B-\u200D\uFEFF\u202A-\u202E]', '', data)
     elif isinstance(data, dict):
-        # We must recursively sanitize the keys as well as the values.
         return {_billy_mitchell_protocol(k): _billy_mitchell_protocol(v) for k, v in data.items()}
     elif isinstance(data, list):
         return [_billy_mitchell_protocol(i) for i in data]
@@ -99,11 +98,9 @@ class SubconsciousStrata:
                 clean_fossil["buried_at"] = time.time()
                 f.write(json.dumps(clean_fossil, cls=JSONEncoder) + "\n")
             self.index[clean_fossil["word"]] = clean_fossil
-            word = clean_fossil["word"]
-            mass = clean_fossil.get("mass", 1.0)
-            fossil_data = clean_fossil # update local reference for matrix maths below
+            fossil_data = clean_fossil
             word = fossil_data["word"]
-            mass = fossil_data.get("mass", 1.0)
+            mass = float(fossil_data.get("mass", 1.0))
             K = _word_to_vector(word)
             V = _word_to_vector(word + "_val")
             scale = min(1.0, mass / 10.0)
@@ -267,13 +264,8 @@ class MemoryCore:
         victim, data, score = min(candidates, key=lambda x: x[2])
         mass = sum(data["edges"].values())
         lifespan = current_tick - data.get("strata", {}).get("birth_tick", current_tick)
-        fossil_data = {
-            "word": victim,
-            "mass": round(mass, 2),
-            "lifespan": lifespan,
-            "edges": data["edges"],
-            "death_tick": current_tick,
-        }
+        fossil_data = {"word": victim, "mass": round(mass, 2), "lifespan": lifespan, "edges": data["edges"],
+                       "death_tick": current_tick, }
         self.subconscious.bury(fossil_data, config_ref=self.cfg)
         if hasattr(self, "events") and self.events:
             self.events.publish("MEMORY_BURIED", {"fossil": fossil_data})
