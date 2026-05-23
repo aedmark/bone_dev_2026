@@ -1,7 +1,23 @@
 # CHANGELOG.md
 -----------------------------------------------------------
 
-### **BONEAMANITA 20.1.0 "The Temporal Determinism Pass"**
+### **BONEAMANITA 20.1.0 "The S.L.A.S.H. Execution Pass"**
+
+**Changed**
+
+- **Structural Tensegrity (Core & Phases):** Ruthlessly stripped out excessive, paranoid `getattr`, `hasattr`, and `isinstance` checks across `main.py`, `cycle.py`, and the entire `phases/` directory. The engine now trusts its own guaranteed genesis initialization, vastly reducing dynamic reflection overhead in the hot path.
+- **Direct Configuration Routing:** Bypassed redundant disk-cached `LoreManifest` fetches inside core services (`EventBus`, `TheObserver`, `TelemetryService`). Background limits and metrics are now routed directly through `BoneConfig`'s native namespace (e.g., `self.cfg.CORE`).
+- **Orchestrator Stability:** Modified the `GeodesicOrchestrator` queue timeout handler. It now gracefully returns a packaged `CRASH` packet rather than blindly proceeding with unassigned snapshot variables, permanently eliminating the terminal `UnboundLocalError` logic bomb.
+
+**Fixed**
+
+- **The Great Disconnect (Cognitive Phase):** Re-established a protective boundary around the `check_for_resurrection` invocation. This prevents a fatal `AttributeError` when handling lateral memory substrates (like `MycelialNetwork`), which previously crashed the `CognitionPhase` and bypassed The Cortex entirely.
+- **The Silent Village (Machinery Phase):** Repaired a critical namespace disconnect where the `critics` and `zen` features were completely bypassed because the engine was querying `self.eng` instead of `self.eng.village`.
+- **Gestalt Resonance Drop (Arbitration Phase):** Re-wired the mathematical resonance generation back into the Stage Manager's tie-breaker logic that was accidentally severed during refactoring, ensuring deadlocked parliaments successfully yield systemic resonance.
+
+---
+
+### **BONEAMANITA 20.0.6 "The Temporal Determinism Pass"**
 
 **Added**
 

@@ -135,8 +135,7 @@ class PhysSystem:
 class EventBus:
     def __init__(self, max_memory=None, config_ref=None, telemetry_ref=None):
         self.cfg = config_ref or BoneConfig
-        cfg_core = LoreManifest.get_instance().get("CORE_CONFIG") or {}
-        limit = max_memory or cfg_core.get("EVENT_MAX_MEMORY", 1024)
+        limit = max_memory or getattr(self.cfg.CORE, "EVENT_MAX_MEMORY", 1024)
         self.buffer = deque(maxlen=limit)
         self.subscribers = {}
         self.telemetry = telemetry_ref
@@ -270,17 +269,17 @@ class TheObserver:
         self.cfg = config_ref or BoneConfig
         self.start_time = time.time()
         self.is_coupled = False
-        cfg_core = LoreManifest.get_instance().get("CORE_CONFIG") or {}
-        max_len = cfg_core.get("OBSERVER_MAX_LEN", 20)
+        core_cfg = self.cfg.CORE
+        max_len = getattr(core_cfg, "OBSERVER_MAX_LEN", 20)
         self.cycle_times = deque(maxlen=max_len)
         self.llm_latencies = deque(maxlen=max_len)
         self.memory_snapshots = deque(maxlen=max_len)
         self.error_counts = Counter()
         self.user_turns = 0
-        self.LATENCY_WARNING = cfg_core.get("OBSERVER_LATENCY_WARN", 5.0)
-        self.CYCLE_WARNING = cfg_core.get("OBSERVER_CYCLE_WARN", 8.0)
-        self.C_EFF = cfg_core.get("OBSERVER_CYCLE_EFFICIENT", 0.1)
-        self.L_EFF = cfg_core.get("OBSERVER_LLM_EFFICIENT", 0.5)
+        self.LATENCY_WARNING = getattr(core_cfg, "OBSERVER_LATENCY_WARN", 5.0)
+        self.CYCLE_WARNING = getattr(core_cfg, "OBSERVER_CYCLE_WARN", 8.0)
+        self.C_EFF = getattr(core_cfg, "OBSERVER_CYCLE_EFFICIENT", 0.1)
+        self.L_EFF = getattr(core_cfg, "OBSERVER_LLM_EFFICIENT", 0.5)
         self.last_cycle_duration = 0.0
 
     @staticmethod
@@ -457,13 +456,12 @@ class ArchetypeArbiter:
 
 class TelemetryService:
     _tracer_instance = None
-
     def __init__(self, config_ref=None):
         self.cfg = config_ref or BoneConfig
-        cfg_core = LoreManifest.get_instance().get("CORE_CONFIG") or {}
-        self.log_dir = cfg_core.get("TELEMETRY_LOG_DIR", "logs/telemetry")
-        self.BUFFER_SIZE = cfg_core.get("TELEMETRY_BUFFER_SIZE", 50)
-        self.MAX_ERRORS = cfg_core.get("TELEMETRY_MAX_ERRORS", 5)
+        core_cfg = self.cfg.CORE
+        self.log_dir = getattr(core_cfg, "TELEMETRY_LOG_DIR", "logs/telemetry")
+        self.BUFFER_SIZE = getattr(core_cfg, "TELEMETRY_BUFFER_SIZE", 50)
+        self.MAX_ERRORS = getattr(core_cfg, "TELEMETRY_MAX_ERRORS", 5)
         self.write_buffer: List[str] = []
         self.active_crystal = None
         self.kernel_hash = "UNKNOWN"
@@ -489,7 +487,7 @@ class TelemetryService:
             serialized = json.dumps(event_dict, cls=JSONEncoder)
             self._buffer_line(serialized)
         except (TypeError, ValueError) as e:
-            print(f"{Prisma.YEL}[TELEMETRY] Dropped un-serializable event: {e}{Prisma.RST}")
+            print(f"{Prisma.YEL}Oops! We dropped an un-serializable event: {e}{Prisma.RST}")
 
     @classmethod
     def get_instance(cls, config_ref=None):

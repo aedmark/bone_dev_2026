@@ -41,9 +41,9 @@ class BoneGenesis:
             msg = ux_format("genesis_strings", "legacy_scars", default="The lattice remembers. Inherited scars: {logs}", logs=', '.join(logs))
             events.log(f"{Prisma.MAG}{msg}{Prisma.RST}", "OROBOROS")
 
-        for key, default in [("voltage", base_voltage), ("narrative_drag", base_drag)]:
-            clamped = max(0.0, float(safe_get(embryo.physics, key, default)))
-            safe_set(embryo.physics, key, clamped)
+        safe_set(embryo.physics, "voltage", max(0.0, float(safe_get(embryo.physics, "voltage", base_voltage))))
+        safe_set(embryo.physics, "narrative_drag",
+                 max(0.0, float(safe_get(embryo.physics, "narrative_drag", base_drag))))
         drivers = DriverRegistry(events, config_ref=target_cfg)
         consultant = BoneConsultant(config_ref=target_cfg, lexicon_ref=lexicon_ref) if "CONSULTANT" not in suppressed_set else None
         symbiosis = SymbiosisManager(events, config_ref=target_cfg)

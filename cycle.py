@@ -84,13 +84,10 @@ def _native_rewire(adj_dict: dict, n_swaps: int) -> dict:
     return adj
 
 def _native_freeze_graph(adj_dict: dict) -> tuple:
-    if not isinstance(adj_dict, dict):
-        return ()
     try:
-        safe_items = list(adj_dict.items())
-    except Exception:
+        return tuple((k, tuple(sorted(neighbors, key=str))) for k, neighbors in sorted(adj_dict.items(), key=lambda x: str(x[0])))
+    except (AttributeError, RuntimeError):
         return ()
-    return tuple((k, tuple(sorted(neighbors, key=str))) for k, neighbors in sorted(safe_items, key=lambda x: str(x[0])))
 
 class PhaseExecutor:
     def execute_phases(self, simulator, ctx):
@@ -111,7 +108,7 @@ class CycleSimulator:
     def __init__(self, engine_ref):
         self.eng = engine_ref
         self.cyb_governor = self.eng.governor
-        self.bio_governor = getattr(self.eng.bio, "governor")
+        self.bio_governor = self.eng.bio.governor
         target_cfg = self.eng.config
         self.stabilizer = CycleStabilizer(self.eng.events, self.cyb_governor, config_ref=target_cfg)
         self.executor = PhaseExecutor()
@@ -145,7 +142,7 @@ class CycleSimulator:
         ctx.log(f"{Prisma.RED}{msg_eulogy.format(eulogy=eulogy)}{Prisma.RST}")
         comp = _CRASH_COMPONENT_MAP.get(phase_name, "SIMULATION")
         self.eng.system_health.report_failure(comp, error)
-        if comp == "PHYSICS" or not getattr(ctx, "physics", None):
+        if comp == "PHYSICS" or not ctx.physics:
             ctx.physics = PanicRoom.get_safe_physics()
             try:
                 mem_graph = self.eng.mind.mem.hippocampus.get_graph()
@@ -169,7 +166,6 @@ class GeodesicOrchestrator:
     telemetry, threading, and continuous feedback mechanisms to ensure the engine acts like a
     living organism rather than a static command-line tool.
     """
-
     def __init__(self, engine_ref):
         self.eng = engine_ref
         self.simulator = CycleSimulator(engine_ref)
@@ -217,22 +213,17 @@ class GeodesicOrchestrator:
             except queue.Empty:
                 time_since_last = current_time - self.last_interaction_time
                 if self.engine_state == "WAKE":
-                    rem_threshold_seconds = float(getattr(self.eng.config, "REM_IDLE_THRESHOLD", 300.0))
+                    rem_threshold_seconds = self.eng.config.REM_IDLE_THRESHOLD
                     if time_since_last > rem_threshold_seconds:
                         self.engine_state = "REM"
                         self.eng.events.log(
                             f"{Prisma.VIOLET}Idle threshold ({rem_threshold_seconds}s) crossed. Engine transitioning to REM sleep...{Prisma.RST}",
                             "SYS")
                         self.eng.events.publish("SYSTEM_SLEEP", {"idle_duration": time_since_last})
-
-
                 elif self.engine_state == "REM":
-
                     if current_time - self.last_rem_tick < 60.0:
                         continue
-
                     self.last_rem_tick = current_time
-
                     self._process_rem_tick()
             except Exception as e:
                 self.eng.events.log(f"Daemon Engine Crash: {e}", "CRIT")
@@ -249,14 +240,11 @@ class GeodesicOrchestrator:
 
     def _process_rem_tick(self):
         """REM logic: Handles Autopoiesis, ATP drain, and Hallucinations."""
-        bio_cfg = getattr(self.eng.config, "BIO", None)
-        rem_atp_drain = getattr(bio_cfg, "REM_ATP_DRAIN", 0.1) if bio_cfg else 0.1
-        self.eng.drain_atp(float(rem_atp_drain))
-
+        rem_atp_drain = self.eng.config.BIO.REM_ATP_DRAIN
+        self.eng.drain_atp(rem_atp_drain)
         if mito_state := self.eng._mito_state:
             mito_state.ros_buildup = max(0.0, mito_state.ros_buildup - 0.1)
-
-        if self.eng.consolidator and hasattr(self.eng.consolidator, "trigger_autophagy"):
+        if self.eng.consolidator:
             try:
                 self.eng.consolidator.trigger_autophagy()
             except Exception:
@@ -321,7 +309,7 @@ class GeodesicOrchestrator:
             lattice = self.eng.shared_lattice
             ctx.user_state = lattice.u
             ctx.shared_dyn = lattice.shared
-            ctx.limits = _safe_dict(getattr(self.eng.config, "CYCLE", {}))
+            ctx.limits = _safe_dict(self.eng.config.CYCLE)
             phys_dict = self.eng.active_physics
             if phys_dict:
                 ctx.physics = PhysicsPacket(**phys_dict)
@@ -334,11 +322,11 @@ class GeodesicOrchestrator:
             ctx.user_name = self.eng.user_name
             ctx.council_mandates = []
             ctx.timestamp = time.time()
-            if not getattr(ctx.physics, "vector", None):
+            if not ctx.physics.vector:
                 ctx.physics.vector = {}
             usr_msg = user_message.lower()
             if "[grief]" in usr_msg:  # NECESSARY GRIEF INTERCEPT
-                self.eng.bio.endo.glimmers = getattr(self.eng.bio.endo, "glimmers", 0) + 1
+                self.eng.bio.endo.glimmers += 1
                 self.eng.events.log(f"{Prisma.MAG}Grief acknowledged. A glimmer is yielded.{Prisma.RST}", "SYS")
             ctx.physics.vector.update({"critique_mode": "[!r]" in usr_msg, "objective_mode": "[!q]" in usr_msg,
                     "healing_mode": "[!h]" in usr_msg, "void_mode": "[!v]" in usr_msg,
@@ -353,7 +341,7 @@ class GeodesicOrchestrator:
             post_logs = [e["text"] for e in self.eng.events.flush()]
             ctx.logs.extend(post_logs)
             self._verify_semantic_topology(ctx)
-            if getattr(self.eng, "observer", None):
+            if self.eng.observer:
                 self.eng.observer.last_physics_packet = ctx.physics.snapshot()
             return ctx
         except Exception as e:
@@ -383,7 +371,7 @@ class GeodesicOrchestrator:
             return
         lattice = self.eng.shared_lattice
         mem = self.eng.mind.mem
-        cortex = getattr(self.eng, "cortex", None)
+        cortex = self.eng.cortex
 
         def _bg_wls_check(msg_str):
             try:
@@ -396,7 +384,6 @@ class GeodesicOrchestrator:
                             self.eng.events.log(f"{Prisma.CYN}[MNEMONIC] High Right-Brain Coherence (\u03a9r={lattice.shared.omega_r:.2f}). Semantic topology is rich. Lowering lateral ATP costs.{Prisma.RST}", "SYS")
             except Exception as e:
                 self.eng.events.log(f"Async WLS Heuristic Error: {e}", "DEBUG")
-
         if clean_message != "(Waiting)":
             if cortex and self.eng.tick_count % 3 == 0:
                 self._async_pool.submit(_bg_wls_check, clean_message)
