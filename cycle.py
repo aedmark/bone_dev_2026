@@ -249,12 +249,12 @@ class GeodesicOrchestrator:
 
     def _process_rem_tick(self):
         """REM logic: Handles Autopoiesis, ATP drain, and Hallucinations."""
-        from struts import safe_get
-        bio_cfg = safe_get(self.eng.config, "BIO", {})
-        self.eng.drain_atp(float(safe_get(bio_cfg, "REM_ATP_DRAIN", 0.1)))
+        bio_cfg = getattr(self.eng.config, "BIO", None)
+        rem_atp_drain = getattr(bio_cfg, "REM_ATP_DRAIN", 0.1) if bio_cfg else 0.1
+        self.eng.drain_atp(float(rem_atp_drain))
 
-        if hasattr(self.eng.bio, "mito"):
-            self.eng.bio.mito.state.ros_buildup = max(0.0, self.eng.bio.mito.state.ros_buildup - 0.1)
+        if mito_state := self.eng._mito_state:
+            mito_state.ros_buildup = max(0.0, mito_state.ros_buildup - 0.1)
 
         if self.eng.consolidator and hasattr(self.eng.consolidator, "trigger_autophagy"):
             try:
@@ -285,10 +285,8 @@ class GeodesicOrchestrator:
             return
         mem = self.eng.mind.mem
         actual_graph = mem.hippocampus.get_graph()
-        if not actual_graph or len(actual_graph) <= 5 or not hasattr(actual_graph, "adj"):
-            return
-        actual_adj = actual_graph.adj
-        if not actual_adj:
+        actual_adj = getattr(actual_graph, "adj", None)
+        if not actual_adj or len(actual_adj) <= 5:
             return
 
         def _bg_topology_check(adj_copy):
@@ -339,10 +337,9 @@ class GeodesicOrchestrator:
             if not getattr(ctx.physics, "vector", None):
                 ctx.physics.vector = {}
             usr_msg = user_message.lower()
-            if "[grief]" in usr_msg and getattr(self.eng, "bio", None) and hasattr(self.eng.bio, "endo"): #NECESSARY GRIEF INTERCEPT
+            if "[grief]" in usr_msg:  # NECESSARY GRIEF INTERCEPT
                 self.eng.bio.endo.glimmers = getattr(self.eng.bio.endo, "glimmers", 0) + 1
-                if self.eng.events:
-                    self.eng.events.log(f"{Prisma.MAG}Grief acknowledged. A glimmer is yielded.{Prisma.RST}", "SYS")
+                self.eng.events.log(f"{Prisma.MAG}Grief acknowledged. A glimmer is yielded.{Prisma.RST}", "SYS")
             ctx.physics.vector.update({"critique_mode": "[!r]" in usr_msg, "objective_mode": "[!q]" in usr_msg,
                     "healing_mode": "[!h]" in usr_msg, "void_mode": "[!v]" in usr_msg,
                     "lateral_shuffle": "[!s]" in usr_msg, "literal_mode": "[!l]" in usr_msg,
@@ -390,17 +387,18 @@ class GeodesicOrchestrator:
 
         def _bg_wls_check(msg_str):
             try:
-                radii_data = cortex.get_local_mass_radius(msg_str)
-                if radii_data and lattice:
-                    local_d = _native_wls(radii_data["log_r"], radii_data["log_m"], radii_data["weights"])
-                    lattice.shared.omega_r = min(1.0, local_d / 2.0)
-                    if local_d > 1.5:
-                        self.eng.events.log(f"{Prisma.CYN}[MNEMONIC] High Right-Brain Coherence (\u03a9r={lattice.shared.omega_r:.2f}). Semantic topology is rich. Lowering lateral ATP costs.{Prisma.RST}", "SYS")
+                if hasattr(cortex, "get_local_mass_radius"):
+                    radii_data = cortex.get_local_mass_radius(msg_str)
+                    if radii_data and lattice:
+                        local_d = _native_wls(radii_data["log_r"], radii_data["log_m"], radii_data["weights"])
+                        lattice.shared.omega_r = min(1.0, local_d / 2.0)
+                        if local_d > 1.5:
+                            self.eng.events.log(f"{Prisma.CYN}[MNEMONIC] High Right-Brain Coherence (\u03a9r={lattice.shared.omega_r:.2f}). Semantic topology is rich. Lowering lateral ATP costs.{Prisma.RST}", "SYS")
             except Exception as e:
                 self.eng.events.log(f"Async WLS Heuristic Error: {e}", "DEBUG")
 
         if clean_message != "(Waiting)":
-            if cortex and hasattr(cortex, "get_local_mass_radius") and self.eng.tick_count % 3 == 0:
+            if cortex and self.eng.tick_count % 3 == 0:
                 self._async_pool.submit(_bg_wls_check, clean_message)
             return
 

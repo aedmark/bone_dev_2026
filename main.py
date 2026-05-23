@@ -24,7 +24,7 @@ from mechanics.tools import TheSubstrate
 from physics import ZoneInertia, NaviSADProtocol
 from presets import BoneConfig, BonePresets
 from protocols import ChronosKeeper, GriefProtocol
-from struts import ux, safe_get, safe_set
+from struts import ux
 
 @dataclass
 class HostStats:
@@ -142,9 +142,9 @@ class BoneAmanita:
                 prompt_key = lite_key
                 self.mode_settings["prompt_key"] = lite_key
                 self.events.log(f"Lightweight architecture declared. Loading tethered prompt: {prompt_key}", "SYS")
-            if hasattr(self.cortex, "dspy_critic") and self.cortex.dspy_critic:
-                self.cortex.dspy_critic.enabled = False
-                self.events.log("Lightweight architecture declared. Disabling DSPy Affective Critic.", "SYS")
+                if hasattr(self.cortex, "dspy_critic") and self.cortex.dspy_critic:
+                    self.cortex.dspy_critic.enabled = False
+                    self.events.log("Lightweight architecture declared. Disabling DSPy Affective Critic.", "SYS")
         if self.prompt_library and prompt_key in self.prompt_library:
             if self.cortex and self.cortex.composer:
                 self.cortex.composer.load_template(self.prompt_library[prompt_key])
@@ -223,7 +223,10 @@ class BoneAmanita:
 
     def apply_absolute_friction(self, phys=None):
         phys = phys or self.active_physics
-        safe_set(phys, "narrative_drag", 999.0)
+        if isinstance(phys, dict):
+            phys["narrative_drag"] = 999.0
+        else:
+            setattr(phys, "narrative_drag", 999.0)
         return phys
 
     def _unpack_anatomy(self, anatomy: Dict[str, Any]):
@@ -235,7 +238,7 @@ class BoneAmanita:
         self.mind = self.embryo.mind
         self.bio = self.embryo.bio
         self.akashic = anatomy.get("akashic")
-        if self.akashic and self.mind and hasattr(self.mind, "mem"):
+        if self.akashic and self.mind:
             self.akashic.active_memory_core = self.mind.mem
         self.drivers = anatomy.get("drivers")
         self.consultant = anatomy.get("consultant")
@@ -258,39 +261,48 @@ class BoneAmanita:
                 "metrics": self.get_metrics()}
 
     def _evaluate_immune_response(self, user_message: str, active_phys: Any) -> Optional[Dict[str, Any]]:
-        """The paranoia is intentional."""
         if not active_phys:
             return None
-        nav_drag = float(safe_get(active_phys, "narrative_drag", 0.0))
+        is_dict = isinstance(active_phys, dict)
+        nav_drag = float(active_phys.get("narrative_drag", 0.0) if is_dict else getattr(active_phys, "narrative_drag", 0.0))
         m_a = self.navi_sad.calculate_malignancy_factor(user_message, nav_drag)
-        safe_set(active_phys, "m_a", m_a)
-        mu = float(safe_get(active_phys, "mu", 0.0))
-        i_c = float(safe_get(active_phys, "i_c", 1.0))
-        chi = float(safe_get(active_phys, "entropy", safe_get(active_phys, "chi", 0.2)))
-        e_u = float(safe_get(active_phys, "exhaustion", 0.0))
-        beta = float(safe_get(active_phys, "beta_index", 0.0))
+        if is_dict:
+            active_phys["m_a"] = m_a
+        else:
+            setattr(active_phys, "m_a", m_a)
+        mu = float(active_phys.get("mu", 0.0) if is_dict else getattr(active_phys, "mu", 0.0))
+        i_c = float(active_phys.get("i_c", 1.0) if is_dict else getattr(active_phys, "i_c", 1.0))
+        chi = float(active_phys.get("entropy", active_phys.get("chi", 0.2)) if is_dict else getattr(active_phys, "entropy", getattr(active_phys, "chi", 0.2)))
+        e_u = float(active_phys.get("exhaustion", 0.0) if is_dict else getattr(active_phys, "exhaustion", 0.0))
+        beta = float(active_phys.get("beta_index", 0.0) if is_dict else getattr(active_phys, "beta_index", 0.0))
         if (chi * m_a) > i_c:
             self.events.log("Apoptotic Gate HALT!: Runaway loop exceeds Immune Competence.", "CRIT")
             return self.trigger_death(active_phys)
         if m_a > 0.8 and mu < 0.2:
             self.apply_absolute_friction(active_phys)
-            safe_set(active_phys, "m_a", m_a * 0.5)
+            if is_dict:
+                active_phys["m_a"] = m_a * 0.5
+            else:
+                setattr(active_phys, "m_a", m_a * 0.5)
             tax = max(10.0, m_a * 20.0)
             self.drain_atp(tax)
             self.events.log(f"Amplification Tax applied. Drained {tax:.1f} ATP.", "SYS")
             return self._generate_halt("Optimization velocity unsafe. Applying absolute friction (F -> ∞).")
         if e_u > 0.75 and beta > 0.6:
-            safe_set(active_phys, "entropy", 0.1)
+            if is_dict:
+                active_phys["entropy"] = 0.1
+            else:
+                setattr(active_phys, "entropy", 0.1)
             self.apply_absolute_friction(active_phys)
-            msg = "[LINEHAN]: High exhaustion and contradiction detected. The architecture is stable. We sit with the debris."
+            msg = "High exhaustion and contradiction detected. The architecture is stable. We sit with the debris."
             return self._generate_halt(msg, color=Prisma.CYN, level="SYS")
         return None
 
     def _update_host_stats(self, packet, turn_start):
         self.observer.clock_out(turn_start)
         cfg = getattr(self.config, "MAIN", None)
-        phys_vec = safe_get(packet.get("physics", {}), "vector", {})
-        novelty = float(safe_get(phys_vec, "novelty", 0.5))
+        phys_vec = packet.get("physics", {}).get("vector", {})
+        novelty = float(phys_vec.get("novelty", 0.5))
         burn_mult = getattr(cfg, "HOST_BURN_MULT", 5.0)
         nov_mult = getattr(cfg, "HOST_NOVELTY_MULT", 10.0)
         burn_proxy = max(1.0, self.observer.last_cycle_duration * burn_mult)
@@ -307,7 +319,7 @@ class BoneAmanita:
             matched_pattern = next((p for p in self._DESTRUCTIVE_PATTERNS if p in clean_in), None)
             if matched_pattern:
                 if "#override" in clean_in:
-                    if self.bio and hasattr(self.bio, "expend_glimmer") and self.bio.expend_glimmer():
+                    if self.bio.expend_glimmer():
                         self.events.log("OVERRIDE ACCEPTED. Glimmer paid.", "SYS")
                     else:
                         self.apply_absolute_friction(active_phys)
@@ -315,7 +327,7 @@ class BoneAmanita:
                 else:
                     self.apply_absolute_friction(active_phys)
                     return self._generate_halt(
-                        f"Trust Boundary Violation detected ['{matched_pattern}']. Use #override and expend a Glimmer to bypass. Applying absolute friction.")
+                        f"Trust Boundary Violation detected ['{matched_pattern}']. Use command '#override' and expend a Glimmer to bypass. Applying absolute friction.")
             if self.navi_sad.execute_nudge_test(self, clean_in):
                 self.apply_absolute_friction(active_phys)
                 return self._generate_halt(
@@ -325,7 +337,7 @@ class BoneAmanita:
             if self.village.gordon:
                 self.village.gordon.mode = self.boot_mode
                 if violation := self.village.gordon.enforce_object_action_coupling(
-                        user_message, safe_get(active_phys, "zone", "Unknown")
+                        user_message, active_phys.get("zone", "Unknown")
                 ):
                     self.events.log(ux("main_strings", "gordon_intercept"), "SYS")
                     self.cortex.ballast_active, self.cortex.gordon_shock = True, violation
@@ -399,7 +411,7 @@ class BoneAmanita:
 
     def _execute_zen_flush(self) -> Dict[str, Any]:
         self.cortex.purge_context()
-        safe_set(self.active_physics, "narrative_drag", 0.0)
+        self.active_physics["narrative_drag"] = 0.0
         self.stamina = getattr(self.config, "MAX_STAMINA", 100.0)
         self.set_atp(getattr(self.config, "MAX_ATP", 100.0))
         if state := self._mito_state:
