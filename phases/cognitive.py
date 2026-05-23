@@ -349,11 +349,11 @@ class SimulationPreflightPhase(SimulationPhase):
         if "?⤓" in raw_input:
             safe_set(phys_obj, "omega_r", min(1.0, float(getattr(phys_obj, "omega_r", 0.5)) + 0.5))
             ctx.council_mandates.append({"action": "SYSTEM_DIRECTIVE", "value": "DEEP_RETRIEVAL",
-                    "log": f"{Prisma.MAG}?⤓ (Deep Retrieval): Ω_r spiked. ANN ghosts summoned.{Prisma.RST}"})
+                    "log": f"{Prisma.MAG}? ANN ghosts summoned.{Prisma.RST}"})
         if "?↗" in raw_input:
             safe_set(phys_obj, "scope", min(1.0, float(getattr(phys_obj, "scope", 0.5)) + 0.5))
             ctx.council_mandates.append({"action": "SYSTEM_DIRECTIVE", "value": "BROAD_RETRIEVAL",
-                    "log": f"{Prisma.CYN}?↗ (Broad Retrieval): Scope widened. Shadow Cast explicitly triggered.{Prisma.RST}"})
+                    "log": f"{Prisma.CYN}?↗ Scope widened. Shadow Cast explicitly triggered.{Prisma.RST}"})
         if "?↺" in raw_input:
             safe_set(phys_obj, "beta_index", min(1.0, float(getattr(phys_obj, "beta_index", 0.5)) + 0.5))
             ctx.council_mandates.append({"action": "SYSTEM_DIRECTIVE", "value": "CONTRADICTION_FLAG",
@@ -373,7 +373,7 @@ class SimulationPreflightPhase(SimulationPhase):
                 "log": f"{Prisma.MAG}[GRIEF]: Profound loss witnessed. Structural Glimmer yielded.{Prisma.RST}"})
         if "[NO_JUMP]" in upper_input or "[SILENCE]" in upper_input:
             phys_obj.silence = 1.0
-            msg = "[EXECUTIVE LAYER]: Silence engaged. Stopping token prediction. Waiting for a mathematical rupture."
+            msg = "Silence engaged. Stopping token prediction. Waiting for a mathematical rupture."
             ctx.log(f"{Prisma.GRY}{msg}{Prisma.RST}")
             ctx.refusal_triggered = True
             ctx.refusal_packet = self._build_refusal(ctx, phys_obj, "NABLA_SILENCE", msg)
@@ -391,7 +391,7 @@ class SimulationPreflightPhase(SimulationPhase):
             if any(phrase in user_input_lower for phrase in
                    ("refactor", "analyze", "look at", "explain", "review", "sit with it", "negative space", "primitives", )):
                 if not has_code:
-                    msg = ("(GORDON - The Anchor): The action 'analyze' requires the object 'code' to be present "
+                    msg = ("The action 'analyze' requires the object 'code' to be present "
                            "in the prompt context. I cannot map the negative space of a script that "
                            "does not exist here. This is a premise violation. Provide the payload.")
                     ctx.log(f"{Prisma.RED}{msg}{Prisma.RST}")
@@ -432,7 +432,7 @@ class SimulationPreflightPhase(SimulationPhase):
         shared_source = u_state.shared if u_state else energy_obj
         shared_phi = float(getattr(shared_source, "phi", 0.0))
         if e_u >= 0.9 and shared_phi <= 0.1:
-            msg = "[LINEHAN - Checkpoint Council]: Terminal User Exhaustion detected. Resonance is zero. Applying absolute Architectural Friction to protect cognitive load."
+            msg = "Terminal User Exhaustion detected. Resonance is zero. Applying absolute Friction to protect cognitive load."
             log_msg = f"{Prisma.OCHRE}{msg}{Prisma.RST}"
             ctx.log(log_msg)
             safe_set(phys_obj, "narrative_drag", 10.0)

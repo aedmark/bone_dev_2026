@@ -116,16 +116,11 @@ class CycleSimulator:
         self.stabilizer = CycleStabilizer(self.eng.events, self.cyb_governor, config_ref=target_cfg)
         self.executor = PhaseExecutor()
         self.full_pipeline: List[SimulationPhase] = [ObservationPhase(engine_ref), MaintenancePhase(engine_ref),
-                                                     SensationPhase(engine_ref), GatekeeperPhase(engine_ref),
-                                                     SanctuaryPhase(engine_ref, self.bio_governor),
-                                                     MetabolismPhase(engine_ref), NavigationPhase(engine_ref),
-                                                     MachineryPhase(engine_ref), RealityFilterPhase(engine_ref),
-                                                     IntrusionPhase(engine_ref), SoulPhase(engine_ref),
-                                                     ArbitrationPhase(engine_ref), SimulationPreflightPhase(engine_ref),
-                                                     CognitionPhase(engine_ref),
-                                                     StabilizationPhase(engine_ref, self.stabilizer), ]
-        self.system_pipeline = [p for p in self.full_pipeline if
-                                p.name in ["OBSERVE", "GATEKEEP", "COGNITION", "STABILIZATION"]]
+            SensationPhase(engine_ref), GatekeeperPhase(engine_ref), SanctuaryPhase(engine_ref, self.bio_governor),
+            MetabolismPhase(engine_ref), NavigationPhase(engine_ref), MachineryPhase(engine_ref), RealityFilterPhase(engine_ref),
+            IntrusionPhase(engine_ref), SoulPhase(engine_ref), SimulationPreflightPhase(engine_ref), ArbitrationPhase(engine_ref),
+            CognitionPhase(engine_ref), StabilizationPhase(engine_ref, self.stabilizer), ]
+        self.system_pipeline = [p for p in self.full_pipeline if p.name in ["OBSERVE", "GATEKEEP", "COGNITION", "STABILIZATION"]]
 
     def run_simulation(self, ctx: CycleContext) -> CycleContext:
         ctx = self.executor.execute_phases(self, ctx)
@@ -157,7 +152,7 @@ class CycleSimulator:
                 if mem_graph and hasattr(mem_graph, "adj"):
                     ctx.physics.space.godel_scar = _native_freeze_graph(mem_graph.adj)
                     self.eng.events.log(
-                        f"{Prisma.VIOLET}[PANIC ROOM] System state safely loaded. Mnemonic structure frozen into Gödel Scar.{Prisma.RST}", "SYS")
+                        f"{Prisma.VIOLET}System state safely loaded. Mnemonic structure frozen into Gödel Scar.{Prisma.RST}", "SYS")
             except AttributeError:
                 pass
         if comp == "BIO":
@@ -215,7 +210,7 @@ class GeodesicOrchestrator:
                 snapshot = self.run_turn(user_message, is_system)
                 if self.dream_log and "ui" in snapshot:
                     dream_summary = "\n".join(self.dream_log[-5:])
-                    snapshot["ui"] = f"\n{Prisma.MAG}☁️ While you were gone, the system dreamt of:\n{dream_summary}{Prisma.RST}\n{snapshot['ui']}"
+                    snapshot["ui"] = f"\n{Prisma.MAG}While you were gone, the system dreamt of:\n{dream_summary}{Prisma.RST}\n{snapshot['ui']}"
                     self.dream_log.clear()
                 self.output_queue.put(snapshot)
 
