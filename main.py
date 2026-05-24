@@ -97,12 +97,14 @@ class BoneAmanita:
             self.prompt_library = {}
 
     def _initialize_cognition(self):
+        """Builds the Cortex first, then starts the Orchestrator daemon so it can safely bind to the Cortex"""
         self.soma = SomaticLoop(self.bio, self.mind.mem, self.lex, self.events)
         self.noetic = NoeticLoop(self.mind, self.bio, self.events)
         self.orchestrator = GeodesicOrchestrator(self)
-        self.orchestrator.start_daemon()
         llm_args = {k: getattr(self.config, k.upper()) for k in ["provider", "base_url", "api_key", "model"] if hasattr(self.config, k.upper())}
         self.cortex = TheCortex.from_engine(self, llm_client=LLMInterface(events_ref=self.events, config_ref=self.config, **llm_args))
+        self.orchestrator.cortex = self.cortex
+        self.orchestrator.start_daemon()
         self.mind.mem.lex = self.lex
         for c in ("parasite", "memory_core", "lichen"):
             if sub := getattr(self.mind.mem, c, None):
@@ -338,11 +340,9 @@ class BoneAmanita:
 
     def process_turn(self, user_message: str, is_system: bool = False) -> Dict[str, Any]:
         turn_start = self.observer.clock_in()
-        now = time.time()
-        self.current_time_delta = (now - self.last_turn_end) if not is_system else 0.0
-        clean_in = ""
+        self.current_time_delta = 0.0 if is_system else (time.time() - self.last_turn_end)
+        clean_in = "" if is_system else user_message.lower().strip()
         if not is_system:
-            clean_in = user_message.lower().strip()
             if clean_in in ("/flush", "/zen", "[zen]"):
                 zen_packet = self._execute_zen_flush()
                 self.observer.clock_out(turn_start)
@@ -435,8 +435,8 @@ class BoneAmanita:
     def get_metrics(self, atp=0.0):
         if atp <= 0.0 and (state := self._mito_state):
             atp = state.atp_pool
-        return {"health": max(0.0, float(self.health)), "stamina": max(0.0, float(self.stamina)),
-                "atp": max(0.0, float(atp)), "tick": self.tick_count,
+        return {"health": max(0.0, self.health), "stamina": max(0.0, self.stamina),
+                "atp": max(0.0, atp), "tick": self.tick_count,
                 "efficiency": self.host_stats.efficiency_index, }
 
     def _ethical_audit(self):
