@@ -5,7 +5,7 @@ import random
 import time
 from collections import Counter, deque
 from typing import Dict, List, Any, Tuple, Optional, Deque
-from struts import ux
+from struts import ux, safe_get
 from presets import BoneConfig
 from constants import Prisma
 
