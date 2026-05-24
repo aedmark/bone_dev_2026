@@ -408,11 +408,12 @@ class PromptComposer:
         if "style_directives" in mind:
             persona_block.append("BOOT DIRECTIVES:")
             persona_block.extend([f"- {d}" for d in mind["style_directives"]])
-        e = float(phys_ref.get("exhaustion", phys_ref.get("E", 0.2)) if is_pr_dict else getattr(phys_ref, "exhaustion", getattr(phys_ref, "E", 0.2))) if vsl_state else 0.2
-        beta = float(phys_ref.get("contradiction", phys_ref.get("beta_index", 0.4)) if is_pr_dict else getattr(phys_ref, "contradiction", getattr(phys_ref, "beta_index", 0.4))) if vsl_state else 0.4
-        psi = float(phys_ref.get("psi", 0.2) if is_pr_dict else getattr(phys_ref, "psi", 0.2)) if vsl_state else 0.2
-        chi = float(phys_ref.get("chi", phys_ref.get("entropy", 0.2)) if is_pr_dict else getattr(phys_ref, "chi", getattr(phys_ref, "entropy", 0.2))) if vsl_state else 0.2
-        valence = float(phys_ref.get("valence", 0.0) if is_pr_dict else getattr(phys_ref, "valence", 0.0)) if vsl_state else 0.0
+        safe_phys = phys_ref if is_pr_dict else (vars(phys_ref) if phys_ref else {})
+        e = float(safe_phys.get("exhaustion", safe_phys.get("E", 0.2)))
+        beta = float(safe_phys.get("contradiction", safe_phys.get("beta_index", 0.4)))
+        psi = float(safe_phys.get("psi", 0.2))
+        chi = float(safe_phys.get("chi", safe_phys.get("entropy", 0.2)))
+        valence = float(safe_phys.get("valence", 0.0))
         vsl_lines = ["\n[SYSTEM METRICS - INTERNAL USE ONLY. DO NOT RENDER OR PRINT THIS TO THE USER.]",
                      "MANDATE: Consume these metrics to shape your narrative and tone. DO NOT output these numbers or draw UI bars.",
                      f"METRICS: Voltage={voltage:.1f}/100, Exhaustion={e:.2f}, Contradiction={beta:.2f}, Void={psi:.2f}, Chaos={chi:.2f}, Valence={valence:.2f}", ]
@@ -511,7 +512,7 @@ class ResponseValidator:
     _SLOP_PATTERN = re.compile(r"(?i)^=== REJECTION OF ATTEMPT.*?===\s*|^FAILED OUTPUT(?: MODIFIED)?:\s*|"
                                r"^REWRITTEN OUTPUT:\s*|^Here is the (?:corrected |rewritten )?response:?\s*|"
                                r"\[REMAINING IN STRICT MODE].*|ERRORS TO FIX:.*|"
-                               r"\[MODE:\s*[A-Z_]+\]\s*",
+                               r"\[MODE:\s*[A-Z_]+\]\s*|</?assistant>\s*",
                                re.MULTILINE, )
     _TECH_ALLOWED = ("here is a", "here is the", "this metaphor", "this code defines", "running this code will")
 
@@ -548,7 +549,8 @@ class ResponseValidator:
         self._toxic_regex = re.compile(
             rf"(?i){'|'.join(map(re.escape, self.toxic_keywords))}") if self.toxic_keywords else None
         self._think_pattern = re.compile(
-            r"<(?:think|thought)>(.*?)(?:</(?:think|thought)>|$)", re.DOTALL | re.IGNORECASE, )
+            r"<(?:think|thought|system_thinking)>(.*?)(?:</(?:think|thought|system_thinking)>|$)",
+            re.DOTALL | re.IGNORECASE, )
         self._internals_pattern = re.compile(r"<system_telemetry>(.*?)(?:</system_telemetry>|$)",
                                              re.DOTALL | re.IGNORECASE, )
         self._file_pattern = re.compile(r'<write_file\s+path=["\'](.*?)["\']\s*>(.*?)</write_file>',
@@ -568,24 +570,20 @@ class ResponseValidator:
         clean_text = self._SLOP_PATTERN.sub("", response).strip()
         active_mode = _state.get("meta", {}).get("active_mode", "ADVENTURE")
         patterns = [self._internals_pattern] + ([self._think_pattern] if active_mode != "TECHNICAL" else [])
-
-        def _extract_thought(match):
-            extracted_meta_logs.extend(
-                f"[THOUGHT]: {line.strip()}" for line in match.group(1).split("\n") if line.strip())
-            return ""
-
         for pattern in patterns:
-            clean_text = pattern.sub(_extract_thought, clean_text)
-
-        def _extract_file(match):
+            for match in pattern.finditer(clean_text):
+                extracted_meta_logs.extend(
+                    f"[THOUGHT]: {line.strip()}" for line in match.group(1).split("\n") if line.strip())
+            clean_text = pattern.sub("", clean_text)
+        for match in self._file_pattern.finditer(clean_text):
             safe_content = match.group(2).strip().replace("\n", "|||NEWLINE|||")
             extracted_meta_logs.append(f"[SUBSTRATE_QUEUE] {match.group(1).strip()}:::{safe_content}")
-            return ""
-
-        clean_text = self._file_pattern.sub(_extract_file, clean_text)
+        clean_text = self._file_pattern.sub("", clean_text)
         for pattern, replacement in self.scrub_patterns:
             clean_text = pattern.sub(replacement, clean_text)
         clean_lines = []
+        bracket_pat = re.compile(r"^\[[A-Z0-9_ -]+\]$")
+        assign_pat = re.compile(r"^[A-Z_]+\s*=\s*[0-9./]+$")
         for line in clean_text.splitlines():
             sl = line.strip()
             if not sl:
@@ -593,8 +591,7 @@ class ResponseValidator:
                 continue
             if self._meta_regex and self._meta_regex.search(sl): continue
             if self._toxic_regex and self._toxic_regex.search(sl): continue
-            if sl == "[]" or re.match(r"^\[[A-Z0-9_ -]+\]$", sl): continue
-            if re.match(r"^[A-Z_]+\s*=\s*[0-9./]+$", sl): continue
+            if sl == "[]" or bracket_pat.match(sl) or assign_pat.match(sl): continue
             clean_lines.append(line)
         sanitized_response = "\n".join(clean_lines).strip()
         low_resp, errors_found = sanitized_response.lower(), []

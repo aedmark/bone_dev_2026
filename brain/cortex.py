@@ -132,14 +132,7 @@ class TheCortex:
         is_cfg_dict = isinstance(self.cfg, dict)
         c_cfg = self.cfg.get("CORTEX", {}) if is_cfg_dict else getattr(self.cfg, "CORTEX", {})
         context_limit = int(c_cfg.get("MAX_INPUT_CHARS", 15000) if isinstance(c_cfg, dict) else getattr(c_cfg, "MAX_INPUT_CHARS", 15000))
-        phys_proxy = {}
-        if isinstance(ctx.physics, dict):
-            phys_proxy = dict(ctx.physics)
-        else:
-            phys_proxy = ctx.physics.to_dict() if hasattr(ctx.physics, "to_dict") else {}
-            for k, v in vars(ctx.physics).items():
-                if not k.startswith("_") and k not in phys_proxy:
-                    phys_proxy[k] = v
+        phys_proxy = dict(ctx.physics) if isinstance(ctx.physics, dict) else (ctx.physics.to_dict() if hasattr(ctx.physics, "to_dict") else {k: v for k, v in vars(ctx.physics).items() if not k.startswith("_")})
         sim_result = {
             "physics": phys_proxy,
             "bio": getattr(ctx, "bio_result", {}),

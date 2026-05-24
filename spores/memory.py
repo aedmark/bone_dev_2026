@@ -14,9 +14,10 @@ import re
 from typing import Any
 from spores.spore_utils import _identity, _word_to_vector, _mat_mul, _reorthogonalize, _householder
 
+_ZERO_WIDTH_RE = re.compile(r'[\u200B-\u200D\uFEFF\u202A-\u202E]')
 def _billy_mitchell_protocol(data: Any) -> Any:
     if isinstance(data, str):
-        return re.sub(r'[\u200B-\u200D\uFEFF\u202A-\u202E]', '', data)
+        return _ZERO_WIDTH_RE.sub('', data)
     elif isinstance(data, dict):
         return {_billy_mitchell_protocol(k): _billy_mitchell_protocol(v) for k, v in data.items()}
     elif isinstance(data, list):
@@ -251,7 +252,7 @@ class MemoryCore:
     def cannibalize(self, current_tick, preserve_current=None) -> Tuple[Optional[str], str]:
         protected = set(self.cortical_stack)
         if preserve_current:
-            protected.update(preserve_current if isinstance(preserve_current, list) else [preserve_current])
+            protected.update(preserve_current) if isinstance(preserve_current, list) else protected.add(preserve_current)
         candidates = []
         for k, v in self.graph.items():
             if k not in protected and not v.get("is_diamond", False):
@@ -263,7 +264,7 @@ class MemoryCore:
             return None, ux("spore_strings", "core_lock") or ""
         victim, data, score = min(candidates, key=lambda x: x[2])
         mass = sum(data["edges"].values())
-        lifespan = current_tick - data.get("strata", {}).get("birth_tick", current_tick)
+        lifespan = current_tick - (data.get("strata") or {}).get("birth_tick", current_tick)
         fossil_data = {"word": victim, "mass": round(mass, 2), "lifespan": lifespan, "edges": data["edges"],
                        "death_tick": current_tick, }
         self.subconscious.bury(fossil_data, config_ref=self.cfg)

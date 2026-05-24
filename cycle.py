@@ -76,10 +76,10 @@ def _native_rewire(adj_dict: dict, n_swaps: int) -> dict:
         adj[v].discard(u)
         adj[x].discard(y)
         adj[y].discard(x)
-        adj.setdefault(a1, set()).add(b1)
-        adj.setdefault(b1, set()).add(a1)
-        adj.setdefault(a2, set()).add(b2)
-        adj.setdefault(b2, set()).add(a2)
+        adj[a1].add(b1)
+        adj[b1].add(a1)
+        adj[a2].add(b2)
+        adj[b2].add(a2)
         edges[i1], edges[i2] = (min(a1, b1), max(a1, b1)), (min(a2, b2), max(a2, b2))
     return adj
 
@@ -250,20 +250,20 @@ class GeodesicOrchestrator:
             except Exception:
                 pass
 
-        def _bg_hallucinate():
-            try:
-                trauma_level = sum(self.eng.trauma_accum.values()) if self.eng.trauma_accum else 0.0
-                gordon = getattr(self.eng.village, "gordon", None)
-                objects = gordon.inventory if gordon and hasattr(gordon, "inventory") else ["static"]
+        trauma_level = sum(self.eng.trauma_accum.values()) if self.eng.trauma_accum else 0.0
+        gordon = getattr(self.eng.village, "gordon", None)
+        objects = gordon.inventory if gordon and hasattr(gordon, "inventory") and gordon.inventory else ["static"]
 
+        def _bg_hallucinate(trauma, objs):
+            try:
                 if hasattr(self.eng.mind, "dream_engine"):
-                    dream_txt, _ = self.eng.mind.dream_engine.hallucinate({"chi": 0.85}, trauma_level=trauma_level)
+                    dream_txt, _ = self.eng.mind.dream_engine.hallucinate({"chi": 0.85}, trauma_level=trauma)
                     self.dream_log.append(
-                        f"  • {Prisma.strip(dream_txt)} (Shadow cast involving: {random.choice(objects)})")
+                        f"  • {Prisma.strip(dream_txt)} (Shadow cast involving: {random.choice(objs)})")
             except Exception as e:
                 self.eng.events.log(f"Dream generation failed in REM: {e}", "DEBUG")
 
-        self._async_pool.submit(_bg_hallucinate)
+        self._async_pool.submit(_bg_hallucinate, trauma_level, objects)
 
     def _verify_semantic_topology(self, ctx: CycleContext):
         """
@@ -328,10 +328,15 @@ class GeodesicOrchestrator:
             if "[grief]" in usr_msg:  # NECESSARY GRIEF INTERCEPT
                 self.eng.bio.endo.glimmers += 1
                 self.eng.events.log(f"{Prisma.MAG}Grief acknowledged. A glimmer is yielded.{Prisma.RST}", "SYS")
-            ctx.physics.vector.update({"critique_mode": "[!r]" in usr_msg, "objective_mode": "[!q]" in usr_msg,
-                    "healing_mode": "[!h]" in usr_msg, "void_mode": "[!v]" in usr_msg,
-                    "lateral_shuffle": "[!s]" in usr_msg, "literal_mode": "[!l]" in usr_msg,
-                    "yeetinator_mode": "[!y]" in usr_msg})
+
+            base_tags = {"critique_mode": False, "objective_mode": False, "healing_mode": False, "void_mode": False,
+                         "lateral_shuffle": False, "literal_mode": False, "yeetinator_mode": False}
+            if "[!" in usr_msg:
+                base_tags.update({"critique_mode": "[!r]" in usr_msg, "objective_mode": "[!q]" in usr_msg,
+                                  "healing_mode": "[!h]" in usr_msg, "void_mode": "[!v]" in usr_msg,
+                                  "lateral_shuffle": "[!s]" in usr_msg, "literal_mode": "[!l]" in usr_msg,
+                                  "yeetinator_mode": "[!y]" in usr_msg})
+            ctx.physics.vector.update(base_tags)
             u_exhaustion = float(getattr(ctx.user_state, "E", 0.0))
             phi_val = float(getattr(ctx.shared_dyn, "phi", 0.0))
             res_delta = float(getattr(ctx.shared_dyn, "resonance_delta", 0.0))

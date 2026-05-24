@@ -30,25 +30,16 @@ class ChemicalState:
         cfg_obj = self.config_ref or BoneConfig
         cfg = cfg_obj.get("CORTEX", {}) if isinstance(cfg_obj, dict) else getattr(cfg_obj, "CORTEX", {})
         is_dict = isinstance(cfg, dict)
-        rest_dop = float(cfg.get("RESTING_DOPAMINE", 0.2) if is_dict else getattr(cfg, "RESTING_DOPAMINE", 0.2))
-        rest_cor = float(cfg.get("RESTING_CORTISOL", 0.1) if is_dict else getattr(cfg, "RESTING_CORTISOL", 0.1))
-        rest_adr = float(cfg.get("RESTING_ADRENALINE", 0.1) if is_dict else getattr(cfg, "RESTING_ADRENALINE", 0.1))
-        rest_ser = float(cfg.get("RESTING_SEROTONIN", 0.2) if is_dict else getattr(cfg, "RESTING_SEROTONIN", 0.2))
-        self.dopamine += (rest_dop - self.dopamine) * safe_rate
-        self.cortisol += (rest_cor - self.cortisol) * safe_rate
-        self.adrenaline += (rest_adr - self.adrenaline) * safe_rate
-        self.serotonin += (rest_ser - self.serotonin) * safe_rate
+        for attr, key, default in [("dopamine", "RESTING_DOPAMINE", 0.2), ("cortisol", "RESTING_CORTISOL", 0.1),
+                                   ("adrenaline", "RESTING_ADRENALINE", 0.1), ("serotonin", "RESTING_SEROTONIN", 0.2)]:
+            target = float(cfg.get(key, default) if is_dict else getattr(cfg, key, default))
+            setattr(self, attr, getattr(self, attr) + (target - getattr(self, attr)) * safe_rate)
 
     def mix(self, new_state: Dict[str, float], weight: float = 0.5):
         inv_w = 1.0 - weight
-        if (val := new_state.get("DOP", new_state.get("dopamine"))) is not None:
-            self.dopamine = (self.dopamine * inv_w) + (val * weight)
-        if (val := new_state.get("COR", new_state.get("cortisol"))) is not None:
-            self.cortisol = (self.cortisol * inv_w) + (val * weight)
-        if (val := new_state.get("ADR", new_state.get("adrenaline"))) is not None:
-            self.adrenaline = (self.adrenaline * inv_w) + (val * weight)
-        if (val := new_state.get("SER", new_state.get("serotonin"))) is not None:
-            self.serotonin = (self.serotonin * inv_w) + (val * weight)
+        for short_k, long_k in [("DOP", "dopamine"), ("COR", "cortisol"), ("ADR", "adrenaline"), ("SER", "serotonin")]:
+            if (val := new_state.get(short_k, new_state.get(long_k))) is not None:
+                setattr(self, long_k, (getattr(self, long_k) * inv_w) + (val * weight))
 
 class NeurotransmitterModulator:
     def __init__(self, bio_ref, events_ref=None, config_ref=None):
@@ -278,10 +269,9 @@ class DreamEngine:
                 new_axiom = self.dspy_critic.evolve_prompt(current_state_str, trauma_str)
                 if new_axiom:
                     active_mode = str(
-                        self.eng.get("boot_mode", "CONVERSATION") if isinstance(self.eng, dict) else getattr(self.eng, "boot_mode", "CONVERSATION")).upper() if self.eng else "CONVERSATION"
+                        getattr(self.eng, "boot_mode", "CONVERSATION")).upper() if self.eng else "CONVERSATION"
                     try:
-                        disk_prompts = (
-                            self.eng.get("prompt_library", None) if isinstance(self.eng, dict) else getattr(self.eng, "prompt_library", None)) if self.eng else None
+                        disk_prompts = getattr(self.eng, "prompt_library", None) if self.eng else None
                         disk_prompts = disk_prompts or self.lore.get("SYSTEM_PROMPTS", {})
                         base_data = disk_prompts.setdefault("GLOBAL_BASELINE", {})
                         dirs = base_data.setdefault("EVOLVED_AXIOMS", [])

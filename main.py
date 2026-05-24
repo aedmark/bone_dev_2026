@@ -101,11 +101,8 @@ class BoneAmanita:
         self.noetic = NoeticLoop(self.mind, self.bio, self.events)
         self.orchestrator = GeodesicOrchestrator(self)
         self.orchestrator.start_daemon()
-        llm_args = {k.lower(): v for k, v in self.sys_config.items() if
-                    k.lower() in ["provider", "base_url", "api_key", "model"]}
-        self.cortex = TheCortex.from_engine(self,
-                                            llm_client=LLMInterface(events_ref=self.events, config_ref=self.config,
-                                                                    **llm_args))
+        llm_args = {k: getattr(self.config, k.upper()) for k in ["provider", "base_url", "api_key", "model"] if hasattr(self.config, k.upper())}
+        self.cortex = TheCortex.from_engine(self, llm_client=LLMInterface(events_ref=self.events, config_ref=self.config, **llm_args))
         self.mind.mem.lex = self.lex
         for c in ("parasite", "memory_core", "lichen"):
             if sub := getattr(self.mind.mem, c, None):
@@ -363,16 +360,9 @@ class BoneAmanita:
             self.orchestrator.input_queue.put((user_message, is_system))
             timeout_val = float(getattr(self.config, "ORCHESTRATOR_TIMEOUT", 120.0))
             snapshot = self.orchestrator.output_queue.get(timeout=timeout_val)
-        except queue.Empty:
-            err_msg = f"Cognitive Loop Timeout ({timeout_val}s). The engine was paralyzed by overthinking."
-            full_trace = traceback.format_exc()
-            self.events.log(f"ORCHESTRATOR COLLAPSE: {err_msg}\n{full_trace}", "CRIT")
-            return {"ui": f"{Prisma.RED}CRITICAL ORCHESTRATOR FAILURE: {err_msg}{Prisma.RST}",
-                    "logs": ["CRITICAL FAILURE"], "metrics": self.get_metrics(), "type": "CRASH"}
-        except Exception as e:
-            err_msg = str(e)
-            full_trace = traceback.format_exc()
-            self.events.log(f"ORCHESTRATOR COLLAPSE: {err_msg}\n{full_trace}", "CRIT")
+        except (queue.Empty, Exception) as e:
+            err_msg = f"Cognitive Loop Timeout ({timeout_val}s). The engine was paralyzed by overthinking." if isinstance(e, queue.Empty) else str(e)
+            self.events.log(f"ORCHESTRATOR COLLAPSE: {err_msg}\n{traceback.format_exc()}", "CRIT")
             return {"ui": f"{Prisma.RED}CRITICAL ORCHESTRATOR FAILURE: {err_msg}{Prisma.RST}",
                     "logs": ["CRITICAL FAILURE"], "metrics": self.get_metrics(), "type": "CRASH"}
         if snapshot.get("type") in self._TERMINAL_STATES:
@@ -420,8 +410,8 @@ class BoneAmanita:
         loc, last_out = "Void", "Silence."
         try:
             world_state = self.cortex.gather_state({"physics": self.active_physics}).get("world", {})
-            orbit_data = world_state.get("orbit", ["Void"])
-            loc = str(orbit_data[0]) if isinstance(orbit_data, list) and orbit_data else str(orbit_data)
+            orbit_data = world_state.get("orbit") or ["Void"]
+            loc = str(orbit_data[0]) if isinstance(orbit_data, list) else str(orbit_data)
         except Exception as e:
             self.events.log(f"Cortex harvest failed during death sequence: {e}", "WARN")
 

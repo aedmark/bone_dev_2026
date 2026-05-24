@@ -149,13 +149,11 @@ class EventBus:
 
     def unsubscribe(self, event_type, callback):
         with self._lock:
-            subs = self.subscribers.get(event_type, ())
-            if callback in subs:
-                new_subs = tuple(c for c in subs if c != callback)
-                if not new_subs:
-                    del self.subscribers[event_type]
-                else:
+            if event_type in self.subscribers:
+                if new_subs := tuple(c for c in self.subscribers[event_type] if c != callback):
                     self.subscribers[event_type] = new_subs
+                else:
+                    del self.subscribers[event_type]
 
     def publish(self, event_type, data=None):
         with self._lock:
@@ -328,9 +326,9 @@ class TheObserver:
         return sum(self.llm_latencies) / max(1, len(self.llm_latencies))
 
     def get_report(self):
-        status_msg = self.pass_judgment(self.avg_cycle, self.avg_llm)
-        return {"uptime_sec": int(self.uptime), "turns": self.user_turns, "avg_cycle_sec": round(self.avg_cycle, 2),
-                "avg_llm_sec": round(self.avg_llm, 2), "status": status_msg, "errors": dict(self.error_counts),
+        c_avg, l_avg = self.avg_cycle, self.avg_llm
+        return {"uptime_sec": int(self.uptime), "turns": self.user_turns, "avg_cycle_sec": round(c_avg, 2),
+                "avg_llm_sec": round(l_avg, 2), "status": self.pass_judgment(c_avg, l_avg), "errors": dict(self.error_counts),
                 "graph_size": self.memory_snapshots[-1] if self.memory_snapshots else 0}
 
 @dataclass
@@ -483,9 +481,8 @@ class TelemetryService:
         if self.disabled or not self.current_trace_file:
             return
         try:
-            event_dict["kernel_hash"] = self.kernel_hash
-            serialized = json.dumps(event_dict, cls=JSONEncoder)
-            self._buffer_line(serialized)
+            payload = dict(event_dict, kernel_hash=self.kernel_hash)
+            self._buffer_line(json.dumps(payload, cls=JSONEncoder))
         except (TypeError, ValueError) as e:
             print(f"{Prisma.YEL}Oops! We dropped an un-serializable event: {e}{Prisma.RST}")
 

@@ -199,7 +199,7 @@ class BioFeedback:
         v_overload = float(safe_get(cfg, "VOLTAGE_OVERLOAD", 30.0))
         if stamina <= 0:
             if b.health > min_health and self.consecutive_autophagy < 3:
-                b.health -= getattr(cfg, "AUTOPHAGY_BURN", 5.0)
+                b.health -= float(safe_get(cfg, "AUTOPHAGY_BURN", 5.0))
                 self.consecutive_autophagy += 1
                 if msg := ux("bio_feedback", "autophagy"):
                     logs.append(f"{Prisma.MAG}{msg}{Prisma.RST}")
@@ -207,7 +207,7 @@ class BioFeedback:
             if msg := ux("bio_feedback", "fuel_depleted"):
                 logs.append(f"{Prisma.RED}{msg}{Prisma.RST}")
             return "MAUSOLEUM_CLAMP"
-        if stamina > getattr(cfg, "STAMINA_SAFE_THRESHOLD", 30.0):
+        if stamina > float(safe_get(cfg, "STAMINA_SAFE_THRESHOLD", 30.0)):
             self.consecutive_autophagy = max(0, self.consecutive_autophagy - 1)
         m_a = float(safe_get(phys, "m_a", 0.0))
         chi = float(safe_get(phys, "entropy", 1.0))

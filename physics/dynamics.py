@@ -102,12 +102,8 @@ class ZoneInertia:
 
     @staticmethod
     def override_cosmic_drag(cosmic_drag_penalty: float, current_zone: str, config_ref=None) -> float:
-        cfg_obj = config_ref or BoneConfig
-        cfg = cfg_obj.get("PHYSICS", {}) if isinstance(cfg_obj, dict) else getattr(cfg_obj, "PHYSICS", {})
-        low_drag_zones = cfg.get("LOW_DRAG_ZONES", ["AERIE"]) if isinstance(cfg, dict) else getattr(cfg, "LOW_DRAG_ZONES", ["AERIE"])
-        if current_zone in low_drag_zones and cosmic_drag_penalty > 0:
-            return cosmic_drag_penalty * 0.3
-        return cosmic_drag_penalty
+        low_drag = safe_get(safe_get(config_ref or BoneConfig, "PHYSICS", {}), "LOW_DRAG_ZONES", ["AERIE"])
+        return cosmic_drag_penalty * 0.3 if current_zone in low_drag and cosmic_drag_penalty > 0 else cosmic_drag_penalty
 
 class CosmicDynamics:
     def __init__(self, config_ref=None):
@@ -139,11 +135,9 @@ class CosmicDynamics:
             reduction = (psi - 0.5) * 0.2
             new_drag -= reduction
         if new_drag > CRITICAL_DRIFT:
-            if random.random() < 0.3:
-                msg = self.logs.get("GRAVITY", "⚓ GRAVITY").format(drag=new_drag)
-                logs.append(f"{Prisma.GRY}{msg}{Prisma.RST}")
-            pull_strength = (new_drag - CRITICAL_DRIFT) * 0.5
-            new_drag -= pull_strength
+            if random.random() < 0.3 and (msg := self.logs.get("GRAVITY")):
+                logs.append(f"{Prisma.GRY}{msg.format(drag=new_drag)}{Prisma.RST}")
+            new_drag -= (new_drag - CRITICAL_DRIFT) * 0.5
         new_drag = max(drag_floor, new_drag)
         return new_drag, logs
 
