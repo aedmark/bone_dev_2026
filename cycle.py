@@ -26,7 +26,7 @@ from phases import (ObservationPhase, SanctuaryPhase, MaintenancePhase, Gatekeep
                     IntrusionPhase, SoulPhase, ArbitrationPhase, SimulationPreflightPhase,
                     CognitionPhase, SensationPhase, StabilizationPhase, SimulationPhase, _safe_dict)
 from physics import CycleStabilizer
-from struts import ux
+from struts import ux, ux_format
 
 _CRASH_COMPONENT_MAP = {"OBSERVE": "PHYSICS", "METABOLISM": "BIO", "COGNITION": "MIND"}
 
@@ -131,15 +131,15 @@ class CycleSimulator:
         return True
 
     def handle_phase_crash(self, ctx, phase_name, error):
-        msg_crash = ux("cycle_strings", "sim_crash_header")
+        msg_crash = ux_format("cycle_strings", "sim_crash_header", default="!!! CRITICAL {phase_name} CRASH !!!", phase_name=phase_name)
         formatted_trace = traceback.format_exc()
-        self.eng.events.log(f"{Prisma.RED}{msg_crash.format(phase_name=phase_name)}\n{formatted_trace}{Prisma.RST}", "CRIT")
+        self.eng.events.log(f"{Prisma.RED}{msg_crash}\n{formatted_trace}{Prisma.RST}", "CRIT")
         ctx.logs.append("CRITICAL FAILURE")
         narrative = LoreManifest.get_instance().get("narrative_data") or {}
         cathedral_logs = narrative.get("CATHEDRAL_COLLAPSE_LOGS", ["System Failure."])
         eulogy = random.choice(cathedral_logs)
-        msg_eulogy = ux("cycle_strings", "sim_cathedral_collapse")
-        ctx.log(f"{Prisma.RED}{msg_eulogy.format(eulogy=eulogy)}{Prisma.RST}")
+        msg_eulogy = ux_format("cycle_strings", "sim_cathedral_collapse", default="CATHEDRAL COLLAPSE: \"{eulogy}\"", eulogy=eulogy)
+        ctx.log(f"{Prisma.RED}{msg_eulogy}{Prisma.RST}")
         comp = _CRASH_COMPONENT_MAP.get(phase_name, "SIMULATION")
         self.eng.system_health.report_failure(comp, error)
         if comp == "PHYSICS" or not ctx.physics:
@@ -149,7 +149,7 @@ class CycleSimulator:
                 if mem_graph and hasattr(mem_graph, "adj"):
                     ctx.physics.space.godel_scar = _native_freeze_graph(mem_graph.adj)
                     self.eng.events.log(
-                        f"{Prisma.VIOLET}System state safely loaded. Mnemonic structure frozen into Gödel Scar.{Prisma.RST}", "SYS")
+                        f"{Prisma.VIOLET}System state safely loaded. Mnemonic structure frozen into Godel Scar.{Prisma.RST}", "SYS")
             except AttributeError:
                 pass
         if comp == "BIO":
@@ -157,8 +157,8 @@ class CycleSimulator:
             ctx.is_alive = True
         elif comp == "MIND":
             ctx.mind_state = PanicRoom.get_safe_mind()
-        msg_panic = ux("cycle_strings", "sim_panic_switch")
-        ctx.log(f"{Prisma.RED}{msg_panic.format(phase_name=phase_name)}{Prisma.RST}")
+        msg_panic = ux_format("cycle_strings", "sim_panic_switch", default="{phase_name} FAILURE: Switching to Panic Protocol.", phase_name=phase_name)
+        ctx.log(f"{Prisma.RED}{msg_panic}{Prisma.RST}")
 
 class GeodesicOrchestrator:
     """
@@ -249,10 +249,9 @@ class GeodesicOrchestrator:
                 self.eng.consolidator.trigger_autophagy()
             except Exception:
                 pass
-
         trauma_level = sum(self.eng.trauma_accum.values()) if self.eng.trauma_accum else 0.0
-        gordon = getattr(self.eng.village, "gordon", None)
-        objects = gordon.inventory if gordon and hasattr(gordon, "inventory") and gordon.inventory else ["static"]
+        gordon = self.eng.village.gordon
+        objects = gordon.inventory if gordon and gordon.inventory else ["static"]
 
         def _bg_hallucinate(trauma, objs):
             try:
@@ -266,9 +265,7 @@ class GeodesicOrchestrator:
         self._async_pool.submit(_bg_hallucinate, trauma_level, objects)
 
     def _verify_semantic_topology(self, ctx: CycleContext):
-        """
-        Native Maslov-Sneppen rewiring (Project Navi, Apache 2.0).
-        """
+        """ Native Maslov-Sneppen rewiring (Project Navi, Apache 2.0). """
         if self.eng.tick_count % 3 != 0:
             return
         mem = self.eng.mind.mem
@@ -285,7 +282,7 @@ class GeodesicOrchestrator:
                 null_cluster = mem.calculate_clustering(null_adj)
                 if actual_cluster <= (null_cluster * 1.05):
                     self.eng.events.log(
-                        f"{Prisma.RED}[APOPTOSIS] Structural collapse detected. Semantic topology destroyed (Native Maslov-Sneppen matched). Engine flagged for terminal shutdown.{Prisma.RST}",
+                        f"{Prisma.RED}Structural collapse detected. Semantic topology destroyed. Engine is flagged for terminal shutdown.{Prisma.RST}",
                         "BIO")
                     self.eng.health = 0.0
             except Exception as e:
@@ -337,9 +334,9 @@ class GeodesicOrchestrator:
                                   "lateral_shuffle": "[!s]" in usr_msg, "literal_mode": "[!l]" in usr_msg,
                                   "yeetinator_mode": "[!y]" in usr_msg})
             ctx.physics.vector.update(base_tags)
-            u_exhaustion = float(getattr(ctx.user_state, "E", 0.0))
-            phi_val = float(getattr(ctx.shared_dyn, "phi", 0.0))
-            res_delta = float(getattr(ctx.shared_dyn, "resonance_delta", 0.0))
+            u_exhaustion = float(ctx.user_state.E)
+            phi_val = float(ctx.shared_dyn.phi)
+            res_delta = float(ctx.shared_dyn.resonance_delta)
             self.eng.governor.calculate_coupling(phi_val, res_delta, u_exhaustion)
             ctx.physics.macro_policy = self.eng.governor.get_policy_shift()
             ctx = self.simulator.run_simulation(ctx)
@@ -461,15 +458,8 @@ class GeodesicOrchestrator:
             full_trace = "Biological execution halted. No standard Python exception provided."
         safe_phys = PanicRoom.get_safe_physics()
         safe_bio = PanicRoom.get_safe_bio()
-        msg = ux("cycle_strings", "orch_reality_fracture")
-        ui_report = f"{Prisma.RED}{msg.format(error=e, trace=full_trace)}{Prisma.RST}"
-        return {
-            "type": "CRASH",
-            "ui": ui_report,
-            "physics": safe_phys.to_dict(),
-            "bio": safe_bio,
-            "mind": PanicRoom.get_safe_mind(),
-            "world": {"orbit": ["VOID"], "loci_description": "System Failure"},
-            "logs": ["CRITICAL FAILURE", "SAFE MODE ACTIVE"],
-            "is_alive": True,
-        }
+        msg = ux_format("cycle_strings", "orch_reality_fracture", default="\n*** REALITY FRACTURE: {error} ***\n{trace}\n[System stabilized in Safe Mode]", error=e, trace=full_trace)
+        ui_report = f"{Prisma.RED}{msg}{Prisma.RST}"
+        return {"type": "CRASH", "ui": ui_report, "physics": safe_phys.to_dict(), "bio": safe_bio,
+                "mind": PanicRoom.get_safe_mind(), "world": {"orbit": ["VOID"], "loci_description": "System Failure"},
+                "logs": ["CRITICAL FAILURE", "SAFE MODE ACTIVE"], "is_alive": True, }

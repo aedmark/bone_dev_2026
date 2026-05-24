@@ -8,7 +8,21 @@ from physics.models import PhysicsPacket
 from tests.base import BoneTestCase
 from physics.maths import _native_permutation_entropy, _native_detect_false_cohesion, _native_ordinal_pattern, _native_coincidence_length
 
+
 class TopologicalPrimitivesTest(BoneTestCase):
+    def setUp(self):
+        super().setUp()
+        if not getattr(self.engine, "shared_lattice", None):
+            from drivers import SharedLatticeDriver
+            self.engine.shared_lattice = SharedLatticeDriver()
+
+        # Hydrate missing dataclass attributes
+        if not hasattr(self.engine.shared_lattice.u, "E"):
+            setattr(self.engine.shared_lattice.u, "E", 0.0)
+        for attr in ["phi", "resonance_delta"]:
+            if not hasattr(self.engine.shared_lattice.shared, attr):
+                setattr(self.engine.shared_lattice.shared, attr, 0.0)
+
     def test_ordinal_pattern(self):
         self.assertEqual(_native_ordinal_pattern([1.2, 1.8, 1.5]), (0, 2, 1),
                          "[FAIL] Ordinal pattern extraction failed.")

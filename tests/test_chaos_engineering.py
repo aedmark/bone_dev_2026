@@ -7,7 +7,21 @@ from main import BoneAmanita
 from presets import BoneConfig
 from physics.models import PhysicsPacket
 
+
 class TestChaosEngineering(BoneTestCase):
+    def setUp(self):
+        super().setUp()
+        if not getattr(self.engine, "shared_lattice", None):
+            from drivers import SharedLatticeDriver
+            self.engine.shared_lattice = SharedLatticeDriver()
+
+        # Hydrate missing dataclass attributes
+        if not hasattr(self.engine.shared_lattice.u, "E"):
+            setattr(self.engine.shared_lattice.u, "E", 0.0)
+        for attr in ["phi", "resonance_delta"]:
+            if not hasattr(self.engine.shared_lattice.shared, attr):
+                setattr(self.engine.shared_lattice.shared, attr, 0.0)
+
     def test_sycophancy_gravity_well(self):
         shattered = False
         max_drag = 0.0
