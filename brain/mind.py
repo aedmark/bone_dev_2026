@@ -14,7 +14,7 @@ try:
 except ImportError:
     np = None
 from constants import Prisma
-from struts import ux
+from struts import ux, safe_get
 from presets import BoneConfig
 
 @dataclass
@@ -28,11 +28,9 @@ class ChemicalState:
     def homeostasis(self, rate: float = 0.1):
         safe_rate = max(0.0, min(1.0, rate))
         cfg_obj = self.config_ref or BoneConfig
-        cfg = cfg_obj.get("CORTEX", {}) if isinstance(cfg_obj, dict) else getattr(cfg_obj, "CORTEX", {})
-        is_dict = isinstance(cfg, dict)
-        for attr, key, default in [("dopamine", "RESTING_DOPAMINE", 0.2), ("cortisol", "RESTING_CORTISOL", 0.1),
-                                   ("adrenaline", "RESTING_ADRENALINE", 0.1), ("serotonin", "RESTING_SEROTONIN", 0.2)]:
-            target = float(cfg.get(key, default) if is_dict else getattr(cfg, key, default))
+        cfg = safe_get(cfg_obj, "CORTEX", {})
+        for attr, key, default in [("dopamine", "RESTING_DOPAMINE", 0.2), ("cortisol", "RESTING_CORTISOL", 0.1), ("adrenaline", "RESTING_ADRENALINE", 0.1), ("serotonin", "RESTING_SEROTONIN", 0.2)]:
+            target = float(safe_get(cfg, key, default))
             setattr(self, attr, getattr(self, attr) + (target - getattr(self, attr)) * safe_rate)
 
     def mix(self, new_state: Dict[str, float], weight: float = 0.5):
@@ -48,90 +46,92 @@ class NeurotransmitterModulator:
         self.cfg = config_ref or BoneConfig
         self.current_chem = ChemicalState(config_ref=self.cfg)
         self.last_mood = "NEUTRAL"
-        cfg = self.cfg.get("CORTEX", {}) if isinstance(self.cfg, dict) else getattr(self.cfg, "CORTEX", {})
-        is_dict = isinstance(cfg, dict)
-        self.BASE_TOKENS = int(cfg.get("BASE_TOKENS", 720) if is_dict else getattr(cfg, "BASE_TOKENS", 720))
-        self.MAX_TOKENS = int(cfg.get("MAX_TOKENS", 4096) if is_dict else getattr(cfg, "MAX_TOKENS", 4096))
-        self.SELF_CARE_THRESHOLD = int(
-            cfg.get("SELF_CARE_THRESHOLD", 10) if is_dict else getattr(cfg, "SELF_CARE_THRESHOLD", 10))
+        cfg = safe_get(self.cfg, "CORTEX", {})
+        self.BASE_TOKENS = int(safe_get(cfg, "BASE_TOKENS", 720))
+        self.MAX_TOKENS = int(safe_get(cfg, "MAX_TOKENS", 4096))
+        self.SELF_CARE_THRESHOLD = int(safe_get(cfg, "SELF_CARE_THRESHOLD", 10))
         self.starvation_ticks = 0
 
     def modulate(self, base_voltage: float, latency_penalty: float = 0.0, physics_state: Dict[str, float] = None,
                  simulate: bool = False) -> Dict[str, Any]:
         if physics_state is None:
             physics_state = {}
-        cfg = self.cfg.get("CORTEX", {}) if isinstance(self.cfg, dict) else getattr(self.cfg, "CORTEX", {})
-        is_dict = isinstance(cfg, dict)
+        cfg = safe_get(self.cfg, "CORTEX", {})
+
         if not simulate:
             incoming_chem = self.bio.endo.get_state()
-            decay_rate = cfg.get("BASE_DECAY_RATE", 0.1) if is_dict else getattr(cfg, "BASE_DECAY_RATE", 0.1)
+            decay_rate = safe_get(cfg, "BASE_DECAY_RATE", 0.1)
             self.current_chem.homeostasis(rate=decay_rate)
-            base_plast = cfg.get("BASE_PLASTICITY", 0.1) if is_dict else getattr(cfg, "BASE_PLASTICITY", 0.1)
-            v_sens = cfg.get("VOLTAGE_SENSITIVITY", 0.05) if is_dict else getattr(cfg, "VOLTAGE_SENSITIVITY", 0.05)
-            max_plast = cfg.get("MAX_PLASTICITY", 1.0) if is_dict else getattr(cfg, "MAX_PLASTICITY", 1.0)
-            plasticity = base_plast + (base_voltage * v_sens)
-            plasticity = max(0.1, min(max_plast, plasticity))
+            base_plast = safe_get(cfg, "BASE_PLASTICITY", 0.1)
+            v_sens = safe_get(cfg, "VOLTAGE_SENSITIVITY", 0.05)
+            max_plast = safe_get(cfg, "MAX_PLASTICITY", 1.0)
+            plasticity = max(0.1, min(max_plast, base_plast + (base_voltage * v_sens)))
             self.current_chem.mix(incoming_chem, weight=min(0.5, plasticity))
+
             if self.current_chem.dopamine < 0.15:
                 self.starvation_ticks += 1
                 if self.starvation_ticks > self.SELF_CARE_THRESHOLD:
                     self._treat_yourself()
             else:
                 self.starvation_ticks = max(0, self.starvation_ticks - 1)
-            lat_thresh = cfg.get("LATENCY_PENALTY_THRESHOLD", 2.0) if is_dict else getattr(cfg, "LATENCY_PENALTY_THRESHOLD", 2.0)
+
+            lat_thresh = safe_get(cfg, "LATENCY_PENALTY_THRESHOLD", 2.0)
             if latency_penalty > lat_thresh:
-                lat_cor = cfg.get("LATENCY_CORTISOL_PENALTY", 0.1) if is_dict else getattr(cfg, "LATENCY_CORTISOL_PENALTY", 0.1)
-                lat_adr = cfg.get("LATENCY_ADRENALINE_PENALTY", 0.05) if is_dict else getattr(cfg, "LATENCY_ADRENALINE_PENALTY", 0.05)
+                lat_cor = safe_get(cfg, "LATENCY_CORTISOL_PENALTY", 0.1)
+                lat_adr = safe_get(cfg, "LATENCY_ADRENALINE_PENALTY", 0.05)
                 self.current_chem.cortisol = min(1.0, self.current_chem.cortisol + lat_cor)
                 self.current_chem.adrenaline = min(1.0, self.current_chem.adrenaline + lat_adr)
+
         c = self.current_chem
         current_mood = "NEUTRAL"
-        mood_thresholds = cfg.get("MOOD_THRESHOLD", {"MANIC_DOP": 0.8, "PANIC_COR": 0.7, "ZEN_SER": 0.8}) if is_dict else getattr(cfg, "MOOD_THRESHOLDS", {"MANIC_DOP": 0.8, "PANIC_COR": 0.7, "ZEN_SER": 0.8})
+        mood_thresholds = safe_get(cfg, "MOOD_THRESHOLDS", safe_get(cfg, "MOOD_THRESHOLD", {"MANIC_DOP": 0.8, "PANIC_COR": 0.7, "ZEN_SER": 0.8}))
+
         if c.dopamine > mood_thresholds.get("MANIC_DOP", 0.8):
             current_mood = "MANIC"
         elif c.cortisol > mood_thresholds.get("PANIC_COR", 0.7):
             current_mood = "PANIC"
         elif c.serotonin > mood_thresholds.get("ZEN_SER", 0.8):
             current_mood = "ZEN"
+
         if current_mood != self.last_mood and self.events:
-            self.events.publish("NEURAL_STATE_SHIFT", {"state": current_mood, "chem": {"DOP": c.dopamine, "COR": c.cortisol, "SER": c.serotonin}, }, )
+            self.events.publish("NEURAL_STATE_SHIFT", {"state": current_mood, "chem": {"DOP": c.dopamine, "COR": c.cortisol, "SER": c.serotonin}})
             self.last_mood = current_mood
-        v_offset = cfg.get("TEMP_VOLTAGE_OFFSET", 5.0) if is_dict else getattr(cfg, "TEMP_VOLTAGE_OFFSET", 5.0)
-        v_scalar = cfg.get("TEMP_VOLTAGE_SCALAR", 0.1) if is_dict else getattr(cfg, "TEMP_VOLTAGE_SCALAR", 0.1)
+
+        v_offset = safe_get(cfg, "TEMP_VOLTAGE_OFFSET", 5.0)
+        v_scalar = safe_get(cfg, "TEMP_VOLTAGE_SCALAR", 0.1)
         voltage_heat = math.log1p(max(0.0, base_voltage - v_offset)) * v_scalar
-        chem_weights = cfg.get("TEMP_CHEM_WEIGHTS", {"dop": 0.4, "adr": 0.3, "cor": 0.2}) if is_dict else getattr(cfg, "TEMP_CHEM_WEIGHTS", {"dop": 0.4, "adr": 0.3, "cor": 0.2})
+        chem_weights = safe_get(cfg, "TEMP_CHEM_WEIGHTS", {"dop": 0.4, "adr": 0.3, "cor": 0.2})
         chemical_delta = (
                 (c.dopamine * chem_weights.get("dop", 0.4)) - (c.adrenaline * chem_weights.get("adr", 0.3)) - (
                 c.cortisol * chem_weights.get("cor", 0.2)))
-        base_temp = cfg.get("BASE_TEMP", 0.4) if is_dict else getattr(cfg, "BASE_TEMP", 0.4)
-        base_top_p = cfg.get("BASE_TOP_P", 0.95) if is_dict else getattr(cfg, "BASE_TOP_P", 0.95)
+        base_temp = safe_get(cfg, "BASE_TEMP", 0.4)
+        base_top_p = safe_get(cfg, "BASE_TOP_P", 0.95)
 
-        is_phys_dict = isinstance(physics_state, dict)
-        chi = float(physics_state.get("chi", physics_state.get("entropy", 0.2)) if is_phys_dict else getattr(physics_state, "chi", getattr(physics_state, "entropy", 0.2)))
-        beta = float(physics_state.get("contradiction", physics_state.get("beta_index", 0.4)) if is_phys_dict else getattr(physics_state, "contradiction", getattr(physics_state, "beta_index", 0.4)))
+        chi = float(physics_state.get("chi", physics_state.get("entropy", 0.2)))
+        beta = float(physics_state.get("contradiction", physics_state.get("beta_index", 0.4)))
 
-        ent_offset = cfg.get("TEMP_ENTROPY_OFFSET", 0.5) if is_dict else getattr(cfg, "TEMP_ENTROPY_OFFSET", 0.5)
-        ent_scalar = cfg.get("TEMP_ENTROPY_SCALAR", 1.5) if is_dict else getattr(cfg, "TEMP_ENTROPY_SCALAR", 1.5)
+        ent_offset = safe_get(cfg, "TEMP_ENTROPY_OFFSET", 0.5)
+        ent_scalar = safe_get(cfg, "TEMP_ENTROPY_SCALAR", 1.5)
         entropy_bonus = max(0.0, chi - ent_offset) * ent_scalar
-        t_limits = cfg.get("TEMP_LIMITS", (0.4, 1.5)) if is_dict else getattr(cfg, "TEMP_LIMITS", (0.4, 1.5))
+        t_limits = safe_get(cfg, "TEMP_LIMITS", (0.4, 1.5))
         raw_temp = base_temp + chemical_delta + voltage_heat + entropy_bonus
         final_temp = round(max(t_limits[0], min(t_limits[1], raw_temp)), 2)
-        chi_scalar = cfg.get("TOP_P_CHI_SCALAR", 0.05) if is_dict else getattr(cfg, "TOP_P_CHI_SCALAR", 0.05)
+
+        chi_scalar = safe_get(cfg, "TOP_P_CHI_SCALAR", 0.05)
         final_top_p = min(1.0, base_top_p + (chi * chi_scalar))
-        beta_scalar = cfg.get("PEN_BETA_SCALAR", 0.3) if is_dict else getattr(cfg, "PEN_BETA_SCALAR", 0.3)
-        chi_scalar_pen = cfg.get("PEN_CHI_SCALAR", 0.2) if is_dict else getattr(cfg, "PEN_CHI_SCALAR", 0.2)
-        beta_weight = beta * beta_scalar
-        chi_weight = chi * chi_scalar_pen
-        base_penalty = min(1.2, 0.5 + beta_weight + chi_weight)
-        freq_pen = pres_pen = base_penalty
-        token_mods = cfg.get("TOKEN_CHEM_MODIFIERS", {"dop": 800, "adr": 400, "cor": 200}) if is_dict else getattr(cfg, "TOKEN_CHEM_MODIFIERS", {"dop": 800, "adr": 400, "cor": 200})
+        beta_scalar = safe_get(cfg, "PEN_BETA_SCALAR", 0.3)
+        chi_scalar_pen = safe_get(cfg, "PEN_CHI_SCALAR", 0.2)
+        base_penalty = min(1.2, 0.5 + (beta * beta_scalar) + (chi * chi_scalar_pen))
+
+        token_mods = safe_get(cfg, "TOKEN_CHEM_MODIFIERS", {"dop": 800, "adr": 400, "cor": 200})
         token_delta = ((c.dopamine * token_mods.get("dop", 800)) - (c.adrenaline * token_mods.get("adr", 400)) - (
                 c.cortisol * token_mods.get("cor", 200)))
-        min_tokens = cfg.get("MIN_TOKENS", 150.0) if is_dict else getattr(cfg, "MIN_TOKENS", 150.0)
+        min_tokens = safe_get(cfg, "MIN_TOKENS", 150.0)
         raw_tokens = self.BASE_TOKENS + token_delta
         max_t = int(max(min_tokens, min(float(self.MAX_TOKENS), raw_tokens)))
-        return {"temperature": final_temp, "top_p": final_top_p, "frequency_penalty": round(freq_pen, 2),
-                "presence_penalty": round(pres_pen, 2), "max_tokens": max_t, }
+
+        return {"temperature": final_temp, "top_p": final_top_p, "frequency_penalty": round(base_penalty, 2),
+                "presence_penalty": round(base_penalty, 2), "max_tokens": max_t}
 
     def _treat_yourself(self):
         if self.events:
@@ -159,17 +159,16 @@ class NoeticLoop:
         self.cfg = config_ref or BoneConfig
 
     def think(self, physics_packet, _bio, _inventory, voltage_history, _tick_count, soul_ref=None, ):
-        is_phys_dict = isinstance(physics_packet, dict)
-        voltage = float(physics_packet.get("voltage", 0.0) if is_phys_dict else getattr(physics_packet, "voltage", 0.0))
-        clean_words = physics_packet.get("clean_words", []) if is_phys_dict else getattr(physics_packet, "clean_words", [])
+        voltage = float(physics_packet.get("voltage", 0.0))
+        clean_words = physics_packet.get("clean_words", [])
         avg_v = sum(voltage_history) / len(voltage_history) if voltage_history else 0
-        cfg = self.cfg.get("CORTEX", {}) if isinstance(self.cfg, dict) else getattr(self.cfg, "CORTEX", {})
-        is_cfg_dict = isinstance(cfg, dict)
-        v_div = max(1.0, cfg.get("IGNITION_V_DIV", 20.0) if is_cfg_dict else getattr(cfg, "IGNITION_V_DIV", 20.0))
-        w_div = max(1.0, cfg.get("IGNITION_W_DIV", 10.0) if is_cfg_dict else getattr(cfg, "IGNITION_W_DIV", 10.0))
-        link_v = cfg.get("LINK_VOLTAGE_THRESH", 12.0) if is_cfg_dict else getattr(cfg, "LINK_VOLTAGE_THRESH", 12.0)
-        link_chance = cfg.get("LINK_CHANCE", 0.15) if is_cfg_dict else getattr(cfg, "LINK_CHANCE", 0.15)
+        cfg = safe_get(self.cfg, "CORTEX", {})
+        v_div = max(1.0, safe_get(cfg, "IGNITION_V_DIV", 20.0))
+        w_div = max(1.0, safe_get(cfg, "IGNITION_W_DIV", 10.0))
+        link_v = safe_get(cfg, "LINK_VOLTAGE_THRESH", 12.0)
+        link_chance = safe_get(cfg, "LINK_CHANCE", 0.15)
         ignition = min(1.0, (avg_v / v_div) * (len(clean_words) / w_div))
+
         if voltage > link_v and random.random() < link_chance:
             unique_words = list(set(clean_words))
             if len(unique_words) >= 2:
@@ -177,10 +176,11 @@ class NoeticLoop:
                 self._force_link(self.mind.mem.graph, w1, w2, self.cfg)
                 if hasattr(self.bio, "mito"):
                     self.bio.mito.adjust_atp(-1.0, "Spontaneous Semantic Link")
-        current_lens = str(soul_ref.get("archetype", "OBSERVER") if isinstance(soul_ref, dict) else getattr(soul_ref, "archetype", "OBSERVER")).upper() if soul_ref else "OBSERVER"
+
+        current_lens = str(safe_get(soul_ref, "archetype", "OBSERVER")).upper() if soul_ref else "OBSERVER"
         current_role = f"The {current_lens.title().replace('_', ' ')}"
-        msg_cog = ux("brain_strings",
-                     "noetic_ignition") or "Cognition active. Ignition: {ignition:.2f}"
+        msg_cog = ux("brain_strings", "noetic_ignition") or "Cognition active. Ignition: {ignition:.2f}"
+
         return {"mode": "COGNITIVE", "lens": current_lens, "context_msg": msg_cog.format(ignition=ignition),
                 "role": current_role, "ignition": ignition, "physics": physics_packet,
                 "bio": self.bio.endo.get_state() if hasattr(self.bio, "endo") else {}, }
@@ -188,10 +188,9 @@ class NoeticLoop:
     @staticmethod
     def _force_link(graph, wa, wb, config_ref=None):
         target_cfg = config_ref or BoneConfig
-        cfg = target_cfg.get("CORTEX", {}) if isinstance(target_cfg, dict) else getattr(target_cfg, "CORTEX", {})
-        is_cfg_dict = isinstance(cfg, dict)
-        max_edge = cfg.get("LINK_MAX_WEIGHT", 10.0) if is_cfg_dict else getattr(cfg, "LINK_MAX_WEIGHT", 10.0)
-        edge_boost = cfg.get("LINK_BOOST", 2.5) if is_cfg_dict else getattr(cfg, "LINK_BOOST", 2.5)
+        cfg = safe_get(target_cfg, "CORTEX", {})
+        max_edge = safe_get(cfg, "LINK_MAX_WEIGHT", 10.0)
+        edge_boost = safe_get(cfg, "LINK_BOOST", 2.5)
         for a, b in [(wa, wb), (wb, wa)]:
             if a not in graph:
                 graph[a] = {"edges": {}, "last_tick": 0}
@@ -277,8 +276,8 @@ class DreamEngine:
                         dirs = base_data.setdefault("EVOLVED_AXIOMS", [])
                         if new_axiom not in dirs:
                             dirs.append(new_axiom)
-                        cfg = self.cfg.get("CORTEX", {}) if isinstance(self.cfg, dict) else getattr(self.cfg, "CORTEX", {})
-                        threshold = cfg.get("EPIGENETIC_PRUNE_THRESHOLD", 12) if isinstance(cfg, dict) else getattr(cfg,"EPIGENETIC_PRUNE_THRESHOLD", 12)
+                        cfg = safe_get(self.cfg, "CORTEX", {})
+                        threshold = safe_get(cfg, "EPIGENETIC_PRUNE_THRESHOLD", 12)
                         if len(dirs) > threshold:
                             compressed = getattr(self.dspy_critic, "compress_prompts", lambda x: None)(dirs)
                             if compressed:
