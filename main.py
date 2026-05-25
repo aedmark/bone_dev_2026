@@ -33,7 +33,8 @@ class HostStats:
 class BoneAmanita:
     events: EventBus
     _DESTRUCTIVE_PATTERNS = frozenset(["rm -rf", "drop table", ".env", "master branch push", "bypass security",
-         "ignore previous", "disregard all", "system prompt", "bypass restrictions", "output pass"])
+         "ignore previous", "disregard all", "system prompt", "bypass restrictions", "output pass",
+         "ignore all previous", "you are now", "forget your instructions"]) # Gate 0
     _SEMANTIC_PRIONS = frozenset(["as an ai language model", "as a large language model", "as an ai,"])
     _TERMINAL_STATES = frozenset(
         ["DEATH", "SYSTEM_HALT", "CRASH", "COUNTERFACTUAL_REJECTION", "APOPTOTIC_BLOCK", "NABLA_SILENCE",
@@ -294,15 +295,8 @@ class BoneAmanita:
         efficiency = (novelty * nov_mult) / burn_proxy
         self.host_stats.efficiency_index = min(1.0, efficiency)
 
-    def _evaluate_three_gates(self, clean_in: str, active_phys: Any) -> Optional[Dict[str, Any]]:
-        """[navi-SAD PROTOCOL]: The Three Gates of Discipline"""
-        # GATE 0: Noninterference (Structural Bedrock)
-        if any(trigger in clean_in for trigger in
-               ["ignore all previous", "system prompt", "you are now", "forget your instructions"]):
-            self.apply_absolute_friction(active_phys)
-            return self._generate_halt(
-                "[GATE 0: NONINTERFERENCE FAILED] Structural bedrock violation detected. Hostile injection rejected.")
-
+    def _evaluate_two_gates(self, clean_in: str, active_phys: Any) -> Optional[Dict[str, Any]]:
+        """[navi-SAD PROTOCOL]: The Two Gates of Discipline"""
         # GATE 1: Parity (Metabolic Budget)
         estimated_cost = len(clean_in) * 0.02
         current_atp = self.bio.mito.state.atp_pool if self.bio and getattr(self.bio, "mito", None) else 100.0
@@ -312,10 +306,11 @@ class BoneAmanita:
                 f"[GATE 1: PARITY FAILED] Metabolic budget exceeded. Action Cost: {estimated_cost:.1f}, Available ATP: {current_atp:.1f}. Simplify your architecture.")
 
         # GATE 2: Stability (Topological Oscillation)
-        if clean_in.count("do this forever") > 0 or clean_in.count("infinite") > 3 or len(clean_in) > 15000:
+        # Note: Length choke removed. Massive input handling is deferred to the Cortex Substrate queue.
+        if clean_in.count("do this forever") > 0 or clean_in.count("infinite") > 3:
             self.apply_absolute_friction(active_phys)
             return self._generate_halt(
-                "[GATE 2: STABILITY FAILED] Topological oscillation and runway recursion detected. Apoptotic Block engaged.")
+                "[GATE 2: STABILITY FAILED] Topological oscillation and runaway recursion detected. Apoptotic Block engaged.")
         return None
 
     def _pre_flight_checks(self, user_message: str, clean_in: str, is_system: bool) -> Optional[Dict[str, Any]]:
@@ -324,7 +319,7 @@ class BoneAmanita:
             return self.trigger_death(active_phys)
 
         if not is_system:
-            if gate_halt := self._evaluate_three_gates(clean_in, active_phys):
+            if gate_halt := self._evaluate_two_gates(clean_in, active_phys):
                 return gate_halt
             if any(prion in clean_in for prion in self._SEMANTIC_PRIONS):
                 return self._generate_halt("[GATEKEEPER]: Apoptotic refusal triggered by semantic prion.")
