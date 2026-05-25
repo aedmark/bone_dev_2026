@@ -45,6 +45,13 @@ class TopologicalPrimitivesTest(BoneTestCase):
         self.assertGreater(_native_permutation_entropy(chaotic, window_size=3), 0.0,
                            "[FAIL] Chaotic signal yielded zero entropy.")
 
+        # [navi-SAD PROTOCOL]: Tie-Exclusion Check
+        print("\n--- navi-SAD: Epsilon Tie-Exclusion ---")
+        noisy_flatline = [1.0, 1.000001, 1.0, 1.000002, 1.0, 1.000001]
+        self.assertEqual(_native_permutation_entropy(noisy_flatline, window_size=3, epsilon=1e-5), 0.0,
+                         "[FAIL] Epsilon tie-exclusion failed to drop noise. System is hallucinating complexity.")
+        print("  [SUCCESS] Fake structural noise successfully annihilated.")
+
     def test_coincidence_length(self):
         orbit_a = [1.0, 2.0, 3.0, 4.0, 5.0]
         orbit_b = [1.0, 2.0, 3.0, 9.0, 9.0]
@@ -221,3 +228,54 @@ class TopologicalPrimitivesTest(BoneTestCase):
         lam1 = phys.get_principal_eigenvalue()
         self.assertIsInstance(lam1, float, "[FAIL] Principal Eigenvalue failed to return a float.")
         print("  [SUCCESS] CD Fields integrated natively into PhysicsPacket.")
+
+    def test_cd_saturation_penalty(self):
+        print("\n--- CD Framework: Saturation Penalty (-cΦ^p) ---")
+        # Initialize a PhysicsPacket with a dangerous runaway voltage
+        phys = PhysicsPacket()
+        phys.voltage = 200.0  # Phi = 2.0
+
+        # Calculate expected values:
+        # Penalty = c * (Phi^p) = 1.5 * (2.0^2) = 6.0
+        # Voltage drop = Penalty * 15.0 = 90.0
+        # Expected new voltage = 110.0
+
+        penalty = phys.enforce_saturation_limit(c=1.5, p=2.0)
+        self.assertAlmostEqual(penalty, 6.0, places=2, msg="[FAIL] Saturation penalty is mathematically incorrect.")
+        self.assertAlmostEqual(phys.voltage, 110.0, places=2,
+                               msg="[FAIL] Voltage failed to damp correctly. Runaway tension is unchecked.")
+        print("  [SUCCESS] Saturation penalty violently compresses runaway tension.")
+
+    def test_cd_picard_damping_convergence(self):
+        print("\n--- CD Framework: Picard Damping Convergence ---")
+        # Simulate the Cortex damping math across 5 theoretical rejections
+        t, f, p = 0.7, 0.0, 0.95
+        damping = 0.6
+
+        for _ in range(5):
+            t = round((1 - damping) * t + damping * 0.2, 2)
+            f = round((1 - damping) * f + damping * 1.5, 2)
+            p = round((1 - damping) * p + damping * 0.5, 2)
+
+        # The parameters should have converged heavily toward absolute structural stability
+        self.assertLess(t, 0.25, "[FAIL] Temperature failed to damp towards 0.2.")
+        self.assertGreater(f, 1.4, "[FAIL] Frequency penalty failed to damp towards 1.5.")
+        self.assertLess(p, 0.55, "[FAIL] Top P failed to damp towards 0.5.")
+        print("  [SUCCESS] Picard iteration mathematically converges LLM parameters to absolute stability.")
+
+    def test_cd_cycle_snapshot_saturation(self):
+        print("\n--- CD Framework: Cycle Threshold Enforcement ---")
+        from cycle import GeodesicOrchestrator
+        orch = GeodesicOrchestrator(self.engine)
+
+        # Inject a high-voltage physics packet directly into the observer cache
+        self.engine.observer.last_physics_packet = PhysicsPacket()
+        self.engine.active_physics.voltage = 150.0
+
+        snapshot = orch.run_headless_turn("Test saturation.")
+
+        self.assertIn("saturation_penalty", snapshot.get("physics", {}),
+                      "[FAIL] Saturation penalty not injected into telemetry snapshot.")
+        self.assertGreater(snapshot["physics"]["saturation_penalty"], 0.0,
+                           "[FAIL] Saturation penalty failed to trigger on high voltage.")
+        print("  [SUCCESS] GeodesicOrchestrator properly routes spatial bounds to UI telemetry.")

@@ -158,6 +158,14 @@ class PhysicsPacket:
         b = self.get_viability_potential()
         return ((math.pi / L) ** 2) - (beta * b)
 
+    def enforce_saturation_limit(self, c: float = 1.5, p: float = 2.0) -> float:
+        """Applies the Navi PDE saturation penalty: -c * Φ^p. Caps runway voltage/drag."""
+        phi = float(self.get("voltage", 0.0)) / 100.0  # Normalize voltage as topological presence
+        penalty = c * (max(0.0, phi) ** p)
+        # Violently drag down runaway tension if it exceeds capacity
+        self.voltage = max(0.0, float(self.get("voltage", 0.0)) - (penalty * 15.0))
+        return penalty
+
     @classmethod
     def void_state(cls):
         p = cls()

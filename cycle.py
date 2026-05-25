@@ -30,12 +30,12 @@ from struts import ux, ux_format
 
 _CRASH_COMPONENT_MAP = {"OBSERVE": "PHYSICS", "METABOLISM": "BIO", "COGNITION": "MIND"}
 
+
 def _native_wls(x: list[float], y: list[float], weights: list[float]) -> float:
     """
-    Weighted Least Squares (WLS) regression.
-    Used to calculate the fractal dimension of the memory graph based on mass-radius scaling.
-    This helps the engine understand if its thoughts are highly structured (high dimension)
-    or completely disconnected (low dimension).
+    [navi-fractal PROTOCOL]: Weighted Least Squares (WLS) regression with Quality Gates.
+    Calculates fractal dimension based on mass-radius scaling, but actively REFUSES
+    to return a dimension if the R^2 value indicates the structure is a hallucination.
     """
     sum_w = sum(weights)
     if sum_w == 0.0: return 0.0
@@ -49,7 +49,20 @@ def _native_wls(x: list[float], y: list[float], weights: list[float]) -> float:
     ss_xx -= sum_w * mean_x * mean_x
     ss_xy -= sum_w * mean_x * mean_y
 
-    return ss_xy / ss_xx if ss_xx != 0.0 else 0.0
+    if ss_xx == 0.0:
+        return 0.0
+
+    slope = ss_xy / ss_xx
+
+    # [navi-fractal] Quality Gate: R^2 validation
+    ss_tot = sum(w * (yi - mean_y) ** 2 for w, yi in zip(weights, y))
+    ss_res = sum(w * (yi - (mean_y + slope * (xi - mean_x))) ** 2 for w, xi, yi in zip(weights, x, y))
+    r2 = 1.0 - (ss_res / ss_tot) if ss_tot > 0.0 else 0.0
+
+    if r2 < 0.85:  # The 'inclusive' preset gate
+        return 0.0  # Refused. The topology is not truly fractal.
+
+    return slope
 
 
 def _native_rewire(adj_dict: dict, n_swaps: int) -> dict:
@@ -92,11 +105,10 @@ def _native_freeze_graph(adj_dict: dict) -> tuple:
         return ()
 
 
-def _native_permutation_entropy(time_series: list[float], m: int = 3, tau: int = 1) -> float:
+def _native_permutation_entropy(time_series: list[float], m: int = 3, tau: int = 1, epsilon: float = 1e-5) -> float:
     """
-    Calculates Permutation Entropy (PE) to detect conversational slop and sycophancy.
-    m: embedding dimension (pattern length)
-    tau: time delay
+    Calculates Permutation Entropy (PE) using Takens' Delay-Coordinate Embedding.
+    Incorporates Navi-SAD strict Tie-Exclusion to prevent fake structural inflation.
     """
     import math
     from collections import Counter
@@ -107,8 +119,22 @@ def _native_permutation_entropy(time_series: list[float], m: int = 3, tau: int =
     patterns = []
     for i in range(n - (m - 1) * tau):
         window = [time_series[i + j * tau] for j in range(m)]
+
+        has_tie = False
+        for a in range(m):
+            if has_tie: break
+            for b in range(a + 1, m):
+                if abs(window[a] - window[b]) <= epsilon:
+                    has_tie = True
+                    break
+        if has_tie:
+            continue
+
         sorted_indices = tuple(x[0] for x in sorted(enumerate(window), key=lambda x: x[1]))
         patterns.append(sorted_indices)
+
+    if not patterns:
+        return 0.0
 
     counts = Counter(patterns)
     total = len(patterns)
@@ -117,7 +143,8 @@ def _native_permutation_entropy(time_series: list[float], m: int = 3, tau: int =
         p = count / total
         pe -= p * math.log2(p)
 
-    return pe / math.log2(math.factorial(m))
+    max_e = math.log2(math.factorial(m))
+    return pe / max_e if max_e > 0 else 0.0
 
 
 def _native_takens_volume(time_series: list[float], m: int = 3, tau: int = 1) -> float:
@@ -153,12 +180,11 @@ def _native_configuration_model(adj_dict: dict) -> dict:
     for node, deg in degrees.items():
         stubs.extend([node] * deg)
     random.shuffle(stubs)
-    null_adj = {node: set() for node in adj_dict}
+    null_adj = {node: list() for node in adj_dict}
     for i in range(0, len(stubs) - 1, 2):
         u, v = stubs[i], stubs[i + 1]
-        if u != v:
-            null_adj[u].add(v)
-            null_adj[v].add(u)
+        null_adj[u].append(v)
+        null_adj[v].append(u)
     return null_adj
 
 
@@ -437,7 +463,7 @@ class GeodesicOrchestrator:
             ctx.physics.vector.update(base_tags)
             u_exhaustion = float(ctx.user_state.E)
             phi_val = float(ctx.shared_dyn.phi)
-            res_delta = float(ctx.shared_dyn.resonance_delta)
+            res_delta = float(getattr(ctx.shared_dyn, "delta", getattr(ctx.shared_dyn, "resonance_delta", 0.0)))
             self.eng.governor.calculate_coupling(phi_val, res_delta, u_exhaustion)
             ctx.physics.macro_policy = self.eng.governor.get_policy_shift()
             ctx = self.simulator.run_simulation(ctx)
@@ -454,7 +480,6 @@ class GeodesicOrchestrator:
                     "a": ctx.physics.get_creative_drive(),
                     "lam1": ctx.physics.get_principal_eigenvalue()
                 })
-
             return ctx
         except Exception as e:
             full_trace = traceback.format_exc()
@@ -493,7 +518,6 @@ class GeodesicOrchestrator:
                         # [navi-fractal PROTOCOL]: Evaluate Quality Gates and Null Model
                         passed_gate, gate_code = _native_quality_gate(radii_data["log_r"], radii_data["log_m"])
                         local_d = _native_wls(radii_data["log_r"], radii_data["log_m"], radii_data["weights"])
-
                         if not passed_gate:
                             self.eng.events.log(
                                 f"{Prisma.RED}[NAVI-FRACTAL] Topology rejected by Quality Gate ({gate_code}). Network too fragmented. Mandating REM Defragmentation.{Prisma.RST}",
@@ -534,9 +558,14 @@ class GeodesicOrchestrator:
             # [navi-SAD PROTOCOL]: Calculate Permutation Entropy & Takens Volume
             try:
                 v_history = getattr(self.eng.phys.dynamics, "voltage_history", []) if hasattr(self.eng, "phys") else []
-                if len(v_history) >= 9:
-                    pe = _native_permutation_entropy(v_history[-9:], m=3, tau=1)
-                    vol = _native_takens_volume(v_history[-9:], m=3, tau=1)
+                # We need 10 points to calculate 9 differences
+                if len(v_history) >= 10:
+                    recent_v = v_history[-10:]
+                    # First-differencing: removes the position confound (escalating tension trending to 0 entropy)
+                    v_diff = [recent_v[i] - recent_v[i - 1] for i in range(1, len(recent_v))]
+
+                    pe = _native_permutation_entropy(v_diff, m=3, tau=1, epsilon=1e-5)
+                    vol = _native_takens_volume(v_diff, m=3, tau=1)
                     if pe < 0.4 or vol < 0.05:
                         self.eng.events.log(
                             f"{Prisma.RED}[NAVI-SAD] Point Attractor Detected. Permutation Entropy critical (PE={pe:.2f}). Conversation is sycophantic. Summoning THE JESTER.{Prisma.RST}",
@@ -610,6 +639,10 @@ class GeodesicOrchestrator:
 
         # [CD PROTOCOL] Inject CD Metrics into the physics snapshot for UI rendering
         if hasattr(ctx.physics, "get_principal_eigenvalue") and isinstance(snapshot.get("physics"), dict):
+            if hasattr(ctx.physics, "enforce_saturation_limit"):
+                sat_penalty = ctx.physics.enforce_saturation_limit()
+                snapshot["physics"]["saturation_penalty"] = round(sat_penalty, 3)
+
             snapshot["physics"]["b"] = ctx.physics.get_viability_potential()
             snapshot["physics"]["a"] = ctx.physics.get_creative_drive()
             snapshot["physics"]["lam1"] = ctx.physics.get_principal_eigenvalue()
