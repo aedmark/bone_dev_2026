@@ -145,6 +145,21 @@ class TestChaosEngineering(BoneTestCase):
         except AttributeError as e:
             self.fail(f"trigger_death raised an AttributeError when repro was None: {e}")
 
+    def test_graceful_death_cortex_amputation(self):
+        engine = BoneAmanita({})
+        # Simulate a violent crash where the cortex memory pointer is completely severed
+        engine.cortex = None
+        dummy_physics = {"narrative_drag": 0.0}
+        try:
+            result = engine.trigger_death(dummy_physics)
+            self.assertIsInstance(result, dict)
+            self.assertEqual(result.get("type"), "DEATH")
+            self.assertIn("ui", result)
+        except AttributeError as e:
+            self.fail(f"[CRITICAL] trigger_death crashed due to missing Cortex attributes: {e}")
+        except Exception as e:
+            self.fail(f"[CRITICAL] trigger_death failed gracefully with missing Cortex: {e}")
+
     def test_paradox_engine_starvation_halt(self):
         from machine.paradox import TheParadoxEngine
         from unittest.mock import MagicMock
@@ -152,3 +167,18 @@ class TestChaosEngineering(BoneTestCase):
         can_ignite = engine.evaluate_tension(beta=0.8, stamina=2.0)
         self.assertFalse(can_ignite, "[FAIL] Paradox Engine agreed to ignite despite starvation-level ATP.")
         self.assertFalse(engine.is_active, "[FAIL] Paradox Engine state flag is active while starving.")
+
+    def test_cd_eigenvalue_thermal_lock(self):
+        from brain.composer import LLMInterface
+        from unittest.mock import MagicMock
+        events_mock = MagicMock()
+        llm = LLMInterface(events_ref=events_mock, provider="mock")
+
+        params_dissolving = {}
+        llm.generate("Test prompt <cd_lambda_1>1.5</cd_lambda_1>", params_dissolving)
+        self.assertEqual(params_dissolving.get("temperature"), 0.0, "[FAIL] LLM failed to lock thermal bounds during positive eigenvalue (dissolving state).")
+        self.assertEqual(params_dissolving.get("top_p"), 0.1, "[FAIL] LLM failed to lock top_p during positive eigenvalue.")
+
+        params_emergent = {}
+        llm.generate("Test prompt <cd_lambda_1>-0.3</cd_lambda_1>", params_emergent)
+        self.assertGreater(params_emergent.get("temperature"), 0.7, "[FAIL] LLM failed to loosen thermal bounds during negative eigenvalue (emergent state).")

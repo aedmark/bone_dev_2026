@@ -58,11 +58,21 @@ class TheAkashicRecord:
             self.record_glimmer(payload["concept"], payload["paradigm"])
 
     def trigger_autophagy(self) -> Tuple[float, str]:
+        """Hunt for the memory with the lowest Viability Potential (b = κγ - λμ). Project Navi, Apache 2.0"""
         akashic_cfg = safe_get(self.cfg, "AKASHIC", {})
         bio_cfg = safe_get(self.cfg, "BIO", {})
         active_strata = getattr(getattr(self, "active_memory_core", None), "subconscious", None)
-        if active_strata and active_strata.index:
-            target = next(iter(active_strata.index))
+        if active_strata and hasattr(active_strata, "index") and active_strata.index:
+            target = None
+            lowest_b = float('inf')
+            for node_key, node_data in active_strata.index.items():
+                kappa = float(safe_get(node_data, "mass", safe_get(node_data, "kappa", 1.0)))
+                gamma = float(safe_get(node_data, "resonance", safe_get(node_data, "gamma", 0.5)))
+                mu = float(safe_get(node_data, "contradiction", safe_get(node_data, "beta", 0.5)))
+                b = (kappa * gamma) - mu
+                if b < lowest_b:
+                    lowest_b = b
+                    target = node_key
             victim_data = active_strata.index.pop(target)
             mass = float(safe_get(victim_data, "mass", 1.0))
             yield_val = min(50.0, 10.0 + (mass * 2.5))
@@ -417,6 +427,33 @@ class TheAkashicRecord:
             self.shadow_stock.pop(0)
         msg = ux("akashic_strings", "ghost_archived")
         print(f"{Prisma.VIOLET}{msg}{Prisma.RST}")
+
+    def dredge_creative_tension(self) -> Optional[Dict]:
+        """
+        [CD PROTOCOL]: Gradient-Descent Memory Retrieval (Creative Drive RAG)
+        Finds the memory that maximizes a(x) = κγμ.
+        Meaning emerges in tension held with care. We seek the productive paradox.
+        """
+        best_memory = None
+        max_drive = -1.0
+        # Search through shadow_stock and the permanent scar_map
+        pool = self.shadow_stock + self.scar_map
+        for mem in pool:
+            coords = mem.get("coords") or mem.get("coordinates") or {}
+            # Extract CD fields (fallback to structural equivalents if raw CD vars are missing)
+            kappa = float(safe_get(coords, "kappa", safe_get(coords, "E", 0.5)))  # Care / Exhaustion
+            gamma = float(safe_get(coords, "gamma", safe_get(coords, "C", 0.5)))  # Coherence / Connectivity
+            mu = float(safe_get(coords, "mu", safe_get(coords, "beta", 0.5)))  # Contradiction / Tension
+            creative_drive = kappa * gamma * mu
+            if creative_drive > max_drive:
+                max_drive = creative_drive
+                best_memory = mem
+        if best_memory and getattr(self, "events", None):
+            concept = best_memory.get("concept", "Unknown")
+            self.events.log(
+                f"{Prisma.CYN}[CD RAG] Dredged '{concept}' (Drive a={max_drive:.2f}). Productive tension located.{Prisma.RST}",
+                "SYS")
+        return best_memory
 
     def register_word(self, word: str, category: str) -> bool:
         if self.discovered_words.get(word) == category:

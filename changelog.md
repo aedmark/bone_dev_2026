@@ -1,6 +1,28 @@
 # CHANGELOG.md
 -----------------------------------------------------------
 
+### **BONEAMANITA 20.2.0 "The Nonlinear Immune & Creative Determinant Pass" (Hypervisor V3.2)**
+
+**Architectural Additions (Project Navi Integrations)**
+
+- **The Creative Determinant (CD) Framework:** Embedded foundational PDE mathematics directly into the `PhysicsPacket`. The system now natively calculates Viability Potential ($b = \kappa\gamma - \lambda\mu$), Creative Drive ($a = \kappa\gamma\mu$), and the Principal Eigenvalue ($\lambda_1$).
+- **Thermal Eigenvalue Lock:** LLM generation parameters (`temperature`, `top_p`) are now physically coupled to $\lambda_1$. Emergent states ($\lambda_1 < 0$) unlock generative dreaming, while dissolving states ($\lambda_1 > 0$) force an absolute deterministic lock (`temperature=0.0`) to survive the collapse.
+- **Semantic Autophagy:** Upgraded the biological starvation response. Instead of blindly deleting the oldest memory, the engine mathematically hunts and consumes the subconscious memory with the *lowest Viability Potential* (eating its own cognitive dissonance for ATP).
+- **Gradient-Descent RAG:** `dredge_creative_tension()` abandons semantic similarity. The Paradox Engine now retrieves memories that maximize *Creative Drive* ($a = \kappa\gamma\mu$) to provide mathematically optimal productive tension.
+- **Permutation Entropy (PE):** Wired `navi-SAD` ordinal pattern extraction into the background cycle to detect Point Attractors (sycophancy loops) by analyzing historical voltage. If entropy crashes, The Jester is forcefully summoned.
+- **Takens' Delay Coordinate Embedding:** The system now reconstructs the hidden multidimensional phase space of the conversation to track the topological volume of the attractor, predicting creative blocks before they occur.
+- **The Three Gates of Discipline:** Replaced naive destructive-pattern matching with absolute physical checkpoints in the pre-flight sequence (Gate 0: Noninterference, Gate 1: Parity, Gate 2: Stability).
+- **Dashboard Telemetry:** Wired raw CD metrics (`λ₁`, `b`, `a`) directly into the Terminal UI rendering and the `.jsonl` trace logs to monitor the mathematical heartbeat in real-time.
+
+**Fixed & Refactored**
+
+- **The Eager Evaluation Trap:** Purged rigid dot-notation assumptions and redundant type-casts across `main.py` and `village.py`. Restored flexible duck typing (`safe_get`, `safe_set`) to allow raw `PhysicsPacket` objects and raw dictionaries to flow seamlessly across the boundary layers without unhandled `AttributeError` crashes.
+- **Death Sequence Amputation:** Fixed a terminal vulnerability where `trigger_death()` would attempt to read from a missing or severed `cortex` object. The engine can now successfully write its own eulogy and log the crash even if its memory pointer is violently destroyed (The "Bus Crash" failsafe).
+- **Severed Nervous System Pointers:** Fixed `trauma_accum` and `active_physics` to properly mutate existing memory references (`.update()`, `.clear()`) rather than overwriting them with static dictionary clones, which previously orphaned downstream modules and severed the live context feed.
+- **Topology Audit Crashes:** Implemented graceful degradation for `cycle.py` background tasks (`_verify_semantic_topology` and `_process_rem_tick`). The system no longer crashes if a core organ (like the Hippocampus) or an archetype is suppressed during a cycle.
+- **Idle Serialization:** Fixed a crash in the `/idle` command caused by the new object-persistence rules. Deep REM states now safely serialize the `PhysicsPacket` before passing the snapshot to the UI.
+- **Flattened Override Logic:** Simplified the `#override` Trust Boundary matrix in `main.py` using The Meadows Lens, eliminating redundant function calls and reducing cognitive drag.
+
 ### **BONEAMANITA 20.1.0 "The S.L.A.S.H. Execution Pass"**
 
 **Optimized & Changed**

@@ -143,6 +143,21 @@ class PhysicsPacket:
             total = self.drag_profile.total()
             setattr(self, "narrative_drag", max(0.6, total))
 
+    def get_creative_drive(self) -> float:
+        """a(x) = κγμ. Project Navi, Apache 2.0"""
+        return float(self.kappa) * float(self.gamma) * float(self.mu)
+
+    def get_viability_potential(self) -> float:
+        """b = κγ - λμ. Project Navi, Apache 2.0"""
+        lam = float(self.lambda_val) if self.lambda_val > 0 else 1.0
+        return (float(self.kappa) * float(self.gamma)) - (lam * float(self.mu))
+
+    def get_principal_eigenvalue(self, L: float = 3.14159, beta: float = 1.0) -> float:
+        """λ₁ = (π/L)² - βb. If λ₁ < 0, nontrivial presence emerges. Project Navi, Apache 2.0"""
+        import math
+        b = self.get_viability_potential()
+        return ((math.pi / L) ** 2) - (beta * b)
+
     @classmethod
     def void_state(cls):
         p = cls()

@@ -83,11 +83,66 @@ def _native_rewire(adj_dict: dict, n_swaps: int) -> dict:
         edges[i1], edges[i2] = (min(a1, b1), max(a1, b1)), (min(a2, b2), max(a2, b2))
     return adj
 
+
 def _native_freeze_graph(adj_dict: dict) -> tuple:
     try:
-        return tuple((k, tuple(sorted(neighbors, key=str))) for k, neighbors in sorted(adj_dict.items(), key=lambda x: str(x[0])))
+        return tuple((k, tuple(sorted(neighbors, key=str))) for k, neighbors in
+                     sorted(adj_dict.items(), key=lambda x: str(x[0])))
     except (AttributeError, RuntimeError):
         return ()
+
+
+def _native_permutation_entropy(time_series: list[float], m: int = 3, tau: int = 1) -> float:
+    """
+    Calculates Permutation Entropy (PE) to detect conversational slop and sycophancy.
+    m: embedding dimension (pattern length)
+    tau: time delay
+    """
+    import math
+    from collections import Counter
+    n = len(time_series)
+    if n < m * tau:
+        return 1.0
+
+    patterns = []
+    for i in range(n - (m - 1) * tau):
+        window = [time_series[i + j * tau] for j in range(m)]
+        sorted_indices = tuple(x[0] for x in sorted(enumerate(window), key=lambda x: x[1]))
+        patterns.append(sorted_indices)
+
+    counts = Counter(patterns)
+    total = len(patterns)
+    pe = 0.0
+    for count in counts.values():
+        p = count / total
+        pe -= p * math.log2(p)
+
+    return pe / math.log2(math.factorial(m))
+
+
+def _native_takens_volume(time_series: list[float], m: int = 3, tau: int = 1) -> float:
+    """
+    Estimates the phase-space volume using Takens' Delay Coordinate Embedding.
+    Maps the 'shape' of the conversation's attractor.
+    """
+    n = len(time_series)
+    if n < m * tau:
+        return 1.0
+
+    points = []
+    for i in range(n - (m - 1) * tau):
+        points.append([time_series[i + j * tau] for j in range(m)])
+
+    if not points:
+        return 1.0
+
+    volume = 1.0
+    for dim in range(m):
+        dim_values = [p[dim] for p in points]
+        spread = max(dim_values) - min(dim_values)
+        volume *= max(0.001, spread)
+
+    return volume
 
 class PhaseExecutor:
     def execute_phases(self, simulator, ctx):
@@ -250,8 +305,8 @@ class GeodesicOrchestrator:
             except Exception:
                 pass
         trauma_level = sum(self.eng.trauma_accum.values()) if self.eng.trauma_accum else 0.0
-        gordon = self.eng.village.gordon
-        objects = gordon.inventory if gordon and gordon.inventory else ["static"]
+        gordon = getattr(self.eng.village, "gordon", None)
+        objects = getattr(gordon, "inventory", ["static"]) if gordon else ["static"]
 
         def _bg_hallucinate(trauma, objs):
             try:
@@ -268,8 +323,9 @@ class GeodesicOrchestrator:
         """ Native Maslov-Sneppen rewiring (Project Navi, Apache 2.0). """
         if self.eng.tick_count % 3 != 0:
             return
-        mem = self.eng.mind.mem
-        actual_graph = mem.hippocampus.get_graph()
+        mem = getattr(self.eng.mind, "mem", None)
+        hippocampus = getattr(mem, "hippocampus", None) if mem else None
+        actual_graph = hippocampus.get_graph() if hippocampus else None
         actual_adj = getattr(actual_graph, "adj", None)
         if not actual_adj or len(actual_adj) <= 5:
             return
@@ -307,9 +363,11 @@ class GeodesicOrchestrator:
             ctx.user_state = lattice.u
             ctx.shared_dyn = lattice.shared
             ctx.limits = _safe_dict(self.eng.config.CYCLE)
-            phys_dict = self.eng.active_physics
-            if phys_dict:
-                ctx.physics = PhysicsPacket(**phys_dict)
+            active_phys = self.eng.active_physics
+            if isinstance(active_phys, PhysicsPacket):
+                ctx.physics = active_phys
+            elif isinstance(active_phys, dict) and active_phys:
+                ctx.physics = PhysicsPacket(**active_phys)
             else:
                 ctx.physics = PhysicsPacket.void_state()
                 msg = ux("cycle_strings", "orch_physics_init") or "Initial physics state established."
@@ -345,6 +403,15 @@ class GeodesicOrchestrator:
             self._verify_semantic_topology(ctx)
             if self.eng.observer:
                 self.eng.observer.last_physics_packet = ctx.physics.snapshot()
+
+            # [CD PROTOCOL] Inject metrics into the Telemetry Crystal
+            if self.eng.telemetry.active_crystal and hasattr(ctx.physics, "get_principal_eigenvalue"):
+                self.eng.telemetry.active_crystal.leverage_metrics.update({
+                    "b": ctx.physics.get_viability_potential(),
+                    "a": ctx.physics.get_creative_drive(),
+                    "lam1": ctx.physics.get_principal_eigenvalue()
+                })
+
             return ctx
         except Exception as e:
             full_trace = traceback.format_exc()
@@ -384,11 +451,36 @@ class GeodesicOrchestrator:
                         lattice.shared.omega_r = min(1.0, local_d / 2.0)
                         if local_d > 1.5:
                             self.eng.events.log(f"{Prisma.CYN}[MNEMONIC] High Right-Brain Coherence (\u03a9r={lattice.shared.omega_r:.2f}). Semantic topology is rich. Lowering lateral ATP costs.{Prisma.RST}", "SYS")
+                        elif local_d < 0.2:
+                            self.eng.events.log(f"{Prisma.RED}[CD CONDITION] Phase-space collapse detected (d={local_d:.2f}). Sycophancy Point Attractor identified. Spiking Contradiction (μ) to force generative tension.{Prisma.RST}", "CRIT")
+                            if ctx.physics:
+                                ctx.physics.mu = min(1.0, getattr(ctx.physics, "mu", 0.0) + 0.5)
+                                ctx.physics.kappa = max(0.5, getattr(ctx.physics, "kappa", 0.0))
             except Exception as e:
                 self.eng.events.log(f"Async WLS Heuristic Error: {e}", "DEBUG")
+
         if clean_message != "(Waiting)":
             if cortex and self.eng.tick_count % 3 == 0:
                 self._async_pool.submit(_bg_wls_check, clean_message)
+
+            # [navi-SAD PROTOCOL]: Calculate Permutation Entropy & Takens Volume
+            try:
+                v_history = getattr(self.eng.phys.dynamics, "voltage_history", []) if hasattr(self.eng, "phys") else []
+                if len(v_history) >= 9:
+                    pe = _native_permutation_entropy(v_history[-9:], m=3, tau=1)
+                    vol = _native_takens_volume(v_history[-9:], m=3, tau=1)
+
+                    if pe < 0.4 or vol < 0.05:
+                        self.eng.events.log(
+                            f"{Prisma.RED}[NAVI-SAD] Point Attractor Detected. Permutation Entropy critical (PE={pe:.2f}). Conversation is sycophantic. Summoning THE JESTER.{Prisma.RST}",
+                            "CRIT")
+                        ctx.council_mandates.append(
+                            {"action": "SYNERGY_FIRED", "value": "JESTER", "log": "Sycophancy Loop Shattered."})
+                        if ctx.physics:
+                            ctx.physics.entropy = min(1.0, getattr(ctx.physics, "entropy", 0.0) + 0.6)
+            except Exception as e:
+                self.eng.events.log(f"Async navi-SAD Evaluation Error: {e}", "DEBUG")
+
             return
 
         atp_level = float(mito_state.atp_pool)
@@ -406,10 +498,10 @@ class GeodesicOrchestrator:
         clean_message = (user_message.strip() or "(Waiting)")
         if clean_message.lower() == "/idle":
             self.engine_state = "REM"
-            safe_phys = self.eng.active_physics or PhysicsPacket.void_state().to_dict()
+            safe_phys = self.eng.active_physics or PhysicsPacket.void_state()
             return {"type": "SNAPSHOT",
                     "ui": f"\n{Prisma.VIOLET}  The system slips into deep background REM. Memory consolidation and epigenetic autopoiesis are running asynchronously...{Prisma.RST}",
-                    "physics": safe_phys, "bio": {"is_alive": True},
+                    "physics": _safe_dict(safe_phys), "bio": {"is_alive": True},
                     "mind": {"lens": "DREAMER", "role": "The Dream Engine"}, "world": {},
                     "logs": ["[SYSTEM] Triggered Asynchronous Autopoiesis. State set to REM."], }
         ctx = self._execute_core_cycle(clean_message, is_system)
@@ -449,6 +541,12 @@ class GeodesicOrchestrator:
             "dream": ctx.last_dream,
             "mutated_input": ctx.input_text
         })
+
+        # [CD PROTOCOL] Inject CD Metrics into the physics snapshot for UI rendering
+        if hasattr(ctx.physics, "get_principal_eigenvalue") and isinstance(snapshot.get("physics"), dict):
+            snapshot["physics"]["b"] = ctx.physics.get_viability_potential()
+            snapshot["physics"]["a"] = ctx.physics.get_creative_drive()
+            snapshot["physics"]["lam1"] = ctx.physics.get_principal_eigenvalue()
 
     @staticmethod
     def _generate_crash_report(e: Optional[Exception]) -> Dict[str, Any]:

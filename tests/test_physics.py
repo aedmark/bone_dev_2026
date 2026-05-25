@@ -147,13 +147,34 @@ class TopologicalPrimitivesTest(BoneTestCase):
             self.assertGreaterEqual(new_drag, floor, "[FAIL] Gravity engine breached the physical floor.")
 
     def test_zone_inertia_vector_update(self):
-            from physics.dynamics import ZoneInertia
-            zi = ZoneInertia(config_ref=self.engine.config)
-            phys_mock = PhysicsPacket()
-            phys_mock.energy.beta_index = 1.0
-            cosmic_state = ("ORBITAL", 0.0, "msg")
-            zi.stabilize("THE_FORGE", phys_mock, cosmic_state)
-            first_vector = zi.last_vector
-            phys_mock.energy.beta_index = 0.1
-            zi.stabilize("AERIE", phys_mock, cosmic_state)
-            self.assertNotEqual(zi.last_vector, first_vector, "[FAIL] ZoneInertia failed to update topology during a rejected migration.")
+        from physics.dynamics import ZoneInertia
+        zi = ZoneInertia(config_ref=self.engine.config)
+        phys_mock = PhysicsPacket()
+        phys_mock.energy.beta_index = 1.0
+        cosmic_state = ("ORBITAL", 0.0, "msg")
+        zi.stabilize("THE_FORGE", phys_mock, cosmic_state)
+        first_vector = zi.last_vector
+        phys_mock.energy.beta_index = 0.1
+        zi.stabilize("AERIE", phys_mock, cosmic_state)
+        self.assertNotEqual(zi.last_vector, first_vector,
+                            "[FAIL] ZoneInertia failed to update topology during a rejected migration.")
+
+    def test_cd_viability_and_drive(self):
+        print("\n--- CD Framework: Viability & Creative Drive ---")
+        phys = PhysicsPacket()
+        phys.kappa = 0.8
+        phys.gamma = 0.8
+        phys.mu = 0.5
+        phys.lambda_val = 1.0
+
+        b = phys.get_viability_potential()
+        self.assertAlmostEqual(b, (0.8 * 0.8) - (1.0 * 0.5), places=2,
+                               msg="[FAIL] Viability Potential (b) calculation is mathematically incorrect.")
+
+        a = phys.get_creative_drive()
+        self.assertAlmostEqual(a, 0.8 * 0.8 * 0.5, places=2,
+                               msg="[FAIL] Creative Drive (a) calculation is mathematically incorrect.")
+
+        lam1 = phys.get_principal_eigenvalue()
+        self.assertIsInstance(lam1, float, "[FAIL] Principal Eigenvalue failed to return a float.")
+        print("  [SUCCESS] CD Fields integrated natively into PhysicsPacket.")
