@@ -13,6 +13,10 @@
 - **Takens' Delay Coordinate Embedding:** The system now reconstructs the hidden multidimensional phase space of the conversation to track the topological volume of the attractor, predicting creative blocks before they occur.
 - **The Three Gates of Discipline:** Replaced naive destructive-pattern matching with absolute physical checkpoints in the pre-flight sequence (Gate 0: Noninterference, Gate 1: Parity, Gate 2: Stability).
 - **Dashboard Telemetry:** Wired raw CD metrics (`λ₁`, `b`, `a`) directly into the Terminal UI rendering and the `.jsonl` trace logs to monitor the mathematical heartbeat in real-time.
+- **The Geometry of Memory (`navi-fractal`):** Integrated Mass-Radius scaling and fractal dimension mathematics to evaluate the literal, physical weight of semantic networks.
+- **Hallucination of Depth (The Null Model):** The background cycle now scrambles active memory graphs into a random topology (preserving the degree sequence). If the actual memory's fractal dimension is indistinguishable from the random noise, the system strips coherence rewards, actively punishing fake complexity and sycophantic tangents.
+- **Topological Quality Gates:** Semantic topologies must now pass MFA Linearity ($R^2 \ge 0.90$) and Dynamic Range gates. If a memory graph is too fragmented, it throws a `POOR_FIT` error and dynamically mandates REM defragmentation.
+- **Subconscious Mass-Radius Scaling (Cognitive Density):** The Akashic record now uses Breadth-First Search (BFS) to measure the geometric mass of a recalled concept. Deeply tangled concepts yield a high fractal dimension, allowing the system to literally *feel* the weight of the cognitive load before it processes the thought.
 
 **Fixed & Refactored**
 

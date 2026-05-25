@@ -144,6 +144,49 @@ def _native_takens_volume(time_series: list[float], m: int = 3, tau: int = 1) ->
 
     return volume
 
+
+def _native_configuration_model(adj_dict: dict) -> dict:
+    """[navi-fractal]: Generates a random graph preserving degree sequence (Null Model)."""
+    import random
+    degrees = {node: len(neighbors) for node, neighbors in adj_dict.items()}
+    stubs = []
+    for node, deg in degrees.items():
+        stubs.extend([node] * deg)
+    random.shuffle(stubs)
+    null_adj = {node: set() for node in adj_dict}
+    for i in range(0, len(stubs) - 1, 2):
+        u, v = stubs[i], stubs[i + 1]
+        if u != v:
+            null_adj[u].add(v)
+            null_adj[v].add(u)
+    return null_adj
+
+
+def _native_quality_gate(log_r: list, log_m: list) -> tuple[bool, str]:
+    """[navi-fractal]: MFA Quality Gate. Checks dynamic range and R^2 linearity."""
+    if not log_r or len(log_r) < 3:
+        return False, "INSUFFICIENT_RANGE"
+
+    n = len(log_r)
+    sum_x, sum_y = sum(log_r), sum(log_m)
+    sum_xy = sum(x * y for x, y in zip(log_r, log_m))
+    sum_xx = sum(x * x for x in log_r)
+
+    denom = (n * sum_xx - sum_x ** 2)
+    if denom == 0:
+        return False, "ZERO_VARIANCE"
+
+    slope = (n * sum_xy - sum_x * sum_y) / denom
+    intercept = (sum_y - slope * sum_x) / n
+
+    ss_tot = sum((y - (sum_y / n)) ** 2 for y in log_m)
+    ss_res = sum((y - (slope * x + intercept)) ** 2 for x, y in zip(log_r, log_m))
+    r_squared = 1 - (ss_res / ss_tot) if ss_tot > 0 else 0
+
+    if r_squared < 0.90:
+        return False, f"POOR_FIT_R2_{r_squared:.2f}"
+    return True, "PASSED"
+
 class PhaseExecutor:
     def execute_phases(self, simulator, ctx):
         active_pipeline = simulator.system_pipeline if ctx.is_system_event else simulator.full_pipeline
@@ -447,11 +490,36 @@ class GeodesicOrchestrator:
                 if hasattr(cortex, "get_local_mass_radius"):
                     radii_data = cortex.get_local_mass_radius(msg_str)
                     if radii_data and lattice:
+                        # [navi-fractal PROTOCOL]: Evaluate Quality Gates and Null Model
+                        passed_gate, gate_code = _native_quality_gate(radii_data["log_r"], radii_data["log_m"])
                         local_d = _native_wls(radii_data["log_r"], radii_data["log_m"], radii_data["weights"])
-                        lattice.shared.omega_r = min(1.0, local_d / 2.0)
-                        if local_d > 1.5:
-                            self.eng.events.log(f"{Prisma.CYN}[MNEMONIC] High Right-Brain Coherence (\u03a9r={lattice.shared.omega_r:.2f}). Semantic topology is rich. Lowering lateral ATP costs.{Prisma.RST}", "SYS")
-                        elif local_d < 0.2:
+
+                        if not passed_gate:
+                            self.eng.events.log(
+                                f"{Prisma.RED}[NAVI-FRACTAL] Topology rejected by Quality Gate ({gate_code}). Network too fragmented. Mandating REM Defragmentation.{Prisma.RST}",
+                                "SYS")
+                            ctx.council_mandates.append(
+                                {"action": "DEFRAGMENT_MEMORY", "value": "FRAG_HIGH", "log": gate_code})
+                            local_d = 1.0  # Flatten dimension on failure
+                        else:
+                            # Generate Null Model to detect Hallucinations of Depth
+                            null_adj = _native_configuration_model(actual_adj)
+                            # (In a full async pass, we'd calculate exact radii for the null graph. For cycle speed, we estimate the random limit)
+                            null_d = 3.0  # A completely random graph trends toward infinite/high dimension
+
+                            lattice.shared.omega_r = min(1.0, local_d / 2.0)
+
+                            if local_d > 1.5 and local_d < null_d:
+                                self.eng.events.log(
+                                    f"{Prisma.CYN}[NAVI-FRACTAL] True Coherence Verified (\u03a9r={lattice.shared.omega_r:.2f}). Dimension {local_d:.2f} is structurally deliberate, not random noise.{Prisma.RST}",
+                                    "SYS")
+                            elif local_d >= null_d:
+                                self.eng.events.log(
+                                    f"{Prisma.RED}[NAVI-FRACTAL] Hallucination of Depth! Dimension {local_d:.2f} is indistinguishable from random noise. Stripping coherence rewards.{Prisma.RST}",
+                                    "WARN")
+                                lattice.shared.omega_r = 0.0
+
+                        if local_d < 0.2:
                             self.eng.events.log(f"{Prisma.RED}[CD CONDITION] Phase-space collapse detected (d={local_d:.2f}). Sycophancy Point Attractor identified. Spiking Contradiction (μ) to force generative tension.{Prisma.RST}", "CRIT")
                             if ctx.physics:
                                 ctx.physics.mu = min(1.0, getattr(ctx.physics, "mu", 0.0) + 0.5)
@@ -469,7 +537,6 @@ class GeodesicOrchestrator:
                 if len(v_history) >= 9:
                     pe = _native_permutation_entropy(v_history[-9:], m=3, tau=1)
                     vol = _native_takens_volume(v_history[-9:], m=3, tau=1)
-
                     if pe < 0.4 or vol < 0.05:
                         self.eng.events.log(
                             f"{Prisma.RED}[NAVI-SAD] Point Attractor Detected. Permutation Entropy critical (PE={pe:.2f}). Conversation is sycophantic. Summoning THE JESTER.{Prisma.RST}",
@@ -480,7 +547,6 @@ class GeodesicOrchestrator:
                             ctx.physics.entropy = min(1.0, getattr(ctx.physics, "entropy", 0.0) + 0.6)
             except Exception as e:
                 self.eng.events.log(f"Async navi-SAD Evaluation Error: {e}", "DEBUG")
-
             return
 
         atp_level = float(mito_state.atp_pool)

@@ -159,6 +159,49 @@ class TopologicalPrimitivesTest(BoneTestCase):
         self.assertNotEqual(zi.last_vector, first_vector,
                             "[FAIL] ZoneInertia failed to update topology during a rejected migration.")
 
+    def test_navi_fractal_quality_gate(self):
+        print("\n--- navi-fractal: Quality Gates ---")
+        from cycle import _native_quality_gate
+
+        # 1. Perfect Linearity
+        log_r_perfect = [1.0, 2.0, 3.0, 4.0]
+        log_m_perfect = [2.0, 4.0, 6.0, 8.0]
+        passed, code = _native_quality_gate(log_r_perfect, log_m_perfect)
+        self.assertTrue(passed, f"[FAIL] Perfect linearity failed the gate: {code}")
+
+        # 2. Poor Fit (Scattered noise)
+        log_r_bad = [1.0, 2.0, 3.0, 4.0]
+        log_m_bad = [10.0, 1.0, 10.0, 1.0]
+        passed_bad, code_bad = _native_quality_gate(log_r_bad, log_m_bad)
+        self.assertFalse(passed_bad, "[FAIL] Quality Gate allowed a highly fragmented, non-linear graph.")
+        self.assertTrue(code_bad.startswith("POOR_FIT"), "[FAIL] Incorrect reason code for poor fit.")
+
+        # 3. Insufficient Range
+        passed_short, code_short = _native_quality_gate([1.0, 2.0], [1.0, 2.0])
+        self.assertFalse(passed_short, "[FAIL] Quality Gate allowed a graph with insufficient range.")
+        self.assertEqual(code_short, "INSUFFICIENT_RANGE", "[FAIL] Incorrect reason code for short range.")
+        print("  [SUCCESS] MFA Quality Gates successfully defended topology.")
+
+    def test_navi_fractal_null_model(self):
+        print("\n--- navi-fractal: Configuration Model ---")
+        from cycle import _native_configuration_model
+
+        # Create a simple star graph (node 0 connected to 1, 2, 3, 4)
+        adj = {
+            0: {1, 2, 3, 4},
+            1: {0},
+            2: {0},
+            3: {0},
+            4: {0}
+        }
+        null_adj = _native_configuration_model(adj)
+
+        # Verify degree sequence is perfectly preserved
+        original_degrees = {k: len(v) for k, v in adj.items()}
+        null_degrees = {k: len(v) for k, v in null_adj.items()}
+        self.assertEqual(original_degrees, null_degrees, "[FAIL] Null model failed to preserve degree sequence.")
+        print("  [SUCCESS] Null Model accurately generated random structural baseline.")
+
     def test_cd_viability_and_drive(self):
         print("\n--- CD Framework: Viability & Creative Drive ---")
         phys = PhysicsPacket()

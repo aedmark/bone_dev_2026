@@ -428,6 +428,45 @@ class TheAkashicRecord:
         msg = ux("akashic_strings", "ghost_archived")
         print(f"{Prisma.VIOLET}{msg}{Prisma.RST}")
 
+    def measure_cognitive_density(self, start_concept: str) -> float:
+        """
+        [navi-fractal PROTOCOL]: BFS Mass-Radius Subconscious Scaling
+        Measures the geometric weight of a concept. If a thought has a high fractal dimension,
+        it is deeply tangled in trauma/glimmers and requires high cognitive load to process.
+        """
+        adj = {}
+        for mem in self.scar_map + self.shadow_stock:
+            concept = mem.get("concept", "Unknown")
+            links = mem.get("links", [])
+            adj[concept] = set(links)
+            for link in links:
+                if link not in adj: adj[link] = set()
+                adj[link].add(concept)
+
+        if start_concept not in adj or not adj[start_concept]:
+            return 1.0  # Point mass
+
+        # Standard BFS for Mass(Radius)
+        visited = {start_concept}
+        queue = [(start_concept, 0)]
+        mass_at_r = {}
+
+        while queue:
+            node, r = queue.pop(0)
+            mass_at_r[r] = mass_at_r.get(r, 0) + 1
+            for neighbor in adj.get(node, set()):
+                if neighbor not in visited:
+                    visited.add(neighbor)
+                    queue.append((neighbor, r + 1))
+
+        # Estimate d_f ≈ ln(M) / ln(r) for the maximum radius
+        max_r = max(mass_at_r.keys()) if mass_at_r else 0
+        total_mass = sum(mass_at_r.values())
+        if max_r > 1 and total_mass > 1:
+            import math
+            return math.log(total_mass) / math.log(max_r)
+        return 1.0
+
     def dredge_creative_tension(self) -> Optional[Dict]:
         """
         [CD PROTOCOL]: Gradient-Descent Memory Retrieval (Creative Drive RAG)

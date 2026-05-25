@@ -76,6 +76,39 @@ class AkashicContinuityTests(BoneTestCase):
         self.assertIn("Mem1_Safe", index_keys, "[FAIL] Autophagy consumed a highly viable memory.")
         self.assertIn("Mem3_Neutral", index_keys, "[FAIL] Autophagy consumed the wrong memory.")
 
+    def test_cognitive_density_bfs(self):
+        print("\n--- navi-fractal: Cognitive Density (Mass-Radius) ---")
+        # Build a mock graph in shadow_stock representing a dense trauma cluster
+        self.akashic.shadow_stock = [
+            {"concept": "A", "links": ["B", "C"]},
+            {"concept": "B", "links": ["D", "E"]},
+            {"concept": "C", "links": ["F"]},
+            {"concept": "D", "links": []},
+            {"concept": "E", "links": []},
+            {"concept": "F", "links": []}
+        ]
+        self.akashic.scar_map = []
+
+        # Node 'A' sits at the center of a tree.
+        # R=0: A (mass 1)
+        # R=1: B, C (mass 2) -> Total Mass 3
+        # R=2: D, E, F (mass 3) -> Total Mass 6
+        # Max R = 2, Total Mass = 6
+        # d_f = ln(6) / ln(2)
+
+        density = self.akashic.measure_cognitive_density("A")
+        import math
+        expected_density = math.log(6) / math.log(2)
+
+        self.assertAlmostEqual(density, expected_density, places=2,
+                               msg="[FAIL] Cognitive Density BFS miscalculated the mass-radius scaling.")
+
+        # Test an isolated, floating thought
+        point_density = self.akashic.measure_cognitive_density("ISOLATED_NODE")
+        self.assertEqual(point_density, 1.0, "[FAIL] Isolated node did not return a point-mass density of 1.0.")
+
+        print(f"  [SUCCESS] BFS successfully weighed the thought (d_f = {density:.2f}).")
+
     def test_dredge_creative_tension(self):
         self.akashic.shadow_stock = [
             {"concept": "Boring", "coords": {"kappa": 0.1, "gamma": 0.1, "mu": 0.1}},  # a = 0.001
