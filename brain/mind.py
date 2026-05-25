@@ -228,28 +228,27 @@ class DreamEngine:
                 if self.events:
                     self.events.log(f"{Prisma.RED}TERMINAL SLEEP FAILURE: {fatal_msg}{Prisma.RST}", "CRIT")
                 return fatal_msg, shift
-            if hasattr(self, "context_queue") and self.context_queue:
-                raw_payloads = self.context_queue
-                self.context_queue = []
-                s_cost = min(available_atp * 0.4, len(raw_payloads) * 10.0)
-                shift["atp_drain"] = s_cost
-                from spores import _word_to_vector
-                vectors, metadata = [], []
-                for text in raw_payloads:
-                    vec = _word_to_vector(text[:50])
-                    vectors.append(vec)
-                    if np is not None:
-                        v_hash = hashlib.md5(np.array(vec, dtype=np.float32).tobytes()).hexdigest()[:8]
-                    else:
-                        v_hash = hashlib.md5(str(vec).encode('utf-8')).hexdigest()[:8]
-                    metadata.append({"vector_hash": v_hash, "raw_verbatim_text": text.replace("|||NEWLINE|||", "\n"),
-                                     "wing_id": "GLOBAL"})
-                self.mem.cortex.add_memories(vectors, metadata)
-                dream_text = f"[Deep Context Digest | {len(raw_payloads)} Bedrock Nodes Indexed | ATP: -{s_cost:.1f}]"
-                if self.events:
-                    self.events.log(f"{Prisma.MAG}✨ [REM CYCLE]: {dream_text}{Prisma.RST}", "SYS")
-                return dream_text, shift
-            consolidator = MemoryConsolidator(self.mem.hippocampus, self.mem.cortex, self.events)
+        if hasattr(self, "context_queue") and self.context_queue:
+            raw_payloads = self.context_queue
+            self.context_queue = []
+            s_cost = min(available_atp * 0.4, len(raw_payloads) * 10.0)
+            shift["atp_drain"] = s_cost
+            from spores import _word_to_vector
+            vectors, metadata = [], []
+            for text in raw_payloads:
+                vec = _word_to_vector(text[:50])
+                vectors.append(vec)
+                if np is not None:
+                    v_hash = hashlib.md5(np.array(vec, dtype=np.float32).tobytes()).hexdigest()[:8]
+                else:
+                    v_hash = hashlib.md5(str(vec).encode('utf-8')).hexdigest()[:8]
+                metadata.append({"vector_hash": v_hash, "raw_verbatim_text": text.replace("|||NEWLINE|||", "\n"), "wing_id": "GLOBAL"})
+            self.mem.cortex.add_memories(vectors, metadata)
+            dream_text = f"[Deep Context Digest | {len(raw_payloads)} Bedrock Nodes Indexed | ATP: -{s_cost:.1f}]"
+            if self.events:
+                self.events.log(f"{Prisma.MAG}✨ [REM CYCLE]: {dream_text}{Prisma.RST}", "SYS")
+            return dream_text, shift
+        consolidator = MemoryConsolidator(self.mem.hippocampus, self.mem.cortex, self.events)
         nodes_moved, atp_cost = consolidator.trigger_rem_consolidation(available_atp)
         if nodes_moved > 0:
             is_deep_rem = True

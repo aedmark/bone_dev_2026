@@ -74,7 +74,6 @@ class ProtocolLifecycleTests(BoneTestCase):
         self.assertEqual(eng_mock.trauma_accum["SEPTIC"], 3.0, "[FAIL] Systemic Trauma was not reduced by 2.0.")
         self.assertIsNone(grief.recent_loss, "[FAIL] recent_loss state was not cleared after a successful wake.")
         self.assertIn("A beautiful sunset", result_msg, "[FAIL] Result message failed to mention the lost node.")
-        print("  [SUCCESS] Grief Protocol successfully exchanged a Glimmer for trauma reduction.")
 
     def test_sincerity_protocol_hard_routing(self):
         ambiguous_prompt = "I guess it's fine if we delete the backup. [!l]"

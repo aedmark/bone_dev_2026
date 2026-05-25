@@ -47,6 +47,10 @@ class BoneAmanita:
             if val := self.sys_config.get(key) or self.sys_config.get(key.upper()):
                 setattr(self.config, key.upper(), val)
         self.config.WEIGHT_CLASS = self.sys_config.get("WEIGHT_CLASS", "HEAVYWEIGHT")
+        if self.config.WEIGHT_CLASS == "HEAVYWEIGHT":
+            model_id = str(getattr(self.config, "MODEL", "")).lower()
+            if any(k in model_id for k in ["8b", "7b", "hermes3", "llama3", "mini"]):
+                self.config.WEIGHT_CLASS = "LIGHTWEIGHT"
         self.navi_sad = NaviSADProtocol()
         self.events = EventBus(config_ref=self.config)
         self.cmd = CommandProcessor(self, Prisma, config_ref=self.config)
@@ -134,14 +138,14 @@ class BoneAmanita:
         prompt_key = self.mode_settings.get("prompt_key", "ADVENTURE")
         weight_class = self.config.WEIGHT_CLASS
         if weight_class == "LIGHTWEIGHT":
+            if hasattr(self.cortex, "dspy_critic") and self.cortex.dspy_critic:
+                self.cortex.dspy_critic.enabled = False
+                self.events.log("Lightweight architecture declared. Disabling DSPy Affective Critic.", "SYS")
             lite_key = f"{prompt_key}_LITE"
-            if lite_key in self.prompt_library:
+            if self.prompt_library and lite_key in self.prompt_library:
                 prompt_key = lite_key
                 self.mode_settings["prompt_key"] = lite_key
                 self.events.log(f"Lightweight architecture declared. Loading tethered prompt: {prompt_key}", "SYS")
-                if hasattr(self.cortex, "dspy_critic") and self.cortex.dspy_critic:
-                    self.cortex.dspy_critic.enabled = False
-                    self.events.log("Lightweight architecture declared. Disabling DSPy Affective Critic.", "SYS")
         if self.prompt_library and prompt_key in self.prompt_library:
             if self.cortex and self.cortex.composer:
                 self.cortex.composer.load_template(self.prompt_library[prompt_key])
@@ -317,7 +321,8 @@ class BoneAmanita:
         active_phys = self.active_physics
         if self.health <= 0.0:
             return self.trigger_death(active_phys)
-
+        if not is_system and len(clean_in) > 15000:
+            return None
         if not is_system:
             if gate_halt := self._evaluate_two_gates(clean_in, active_phys):
                 return gate_halt
@@ -346,7 +351,7 @@ class BoneAmanita:
                     self.cortex.ballast_active, self.cortex.gordon_shock = True, violation
             if immune_halt := self._evaluate_immune_response(user_message, active_phys):
                 return immune_halt
-        grammar_rules = self.reality_stack.get_grammar_rules()
+            grammar_rules = self.reality_stack.get_grammar_rules()
         if not grammar_rules.get("allow_narrative", True) and self.boot_mode != "TECHNICAL":
             msg = ux("main_strings", "narrative_halt") or "Narrative generation disabled at this Reality Layer."
             return self._generate_halt(msg)
