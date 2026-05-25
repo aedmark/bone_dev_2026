@@ -103,8 +103,7 @@ class ProtocolLifecycleTests(BoneTestCase):
             if saved_hash != "UNKNOWN" and saved_hash != current_hash:
                 print(f"[CHRONOS] Temporal fracture detected. Bridging timeline [{saved_hash}] into [{current_hash}].")
             sys.stdout = sys.__stdout__
-            self.assertIn("Temporal fracture detected", captured_out.getvalue(),
-                          "[FAIL] Chronos failed to detect the timeline fracture.")
+            self.assertIn("Temporal fracture detected", captured_out.getvalue(), "[FAIL] Chronos failed to detect the timeline fracture.")
 
     def test_grief_protocol_activation(self):
         self.engine.bio.endo.glimmers = 0
@@ -121,6 +120,5 @@ class ProtocolLifecycleTests(BoneTestCase):
         initial_stress = syntax.grammatical_stress
         initial_omega = syntax.omega_val
         new_omega = syntax.analyze(toxic_text, narrative_drag=5.0)
-        self.assertGreater(syntax.grammatical_stress, initial_stress,
-                           "[FAIL] Grammatical stress did not spike in response to punctuation density.")
+        self.assertGreater(syntax.grammatical_stress, initial_stress, "[FAIL] Grammatical stress did not spike in response to punctuation density.")
         self.assertLess(new_omega, initial_omega, "[FAIL] Omega did not drop in response to high user stress.")
