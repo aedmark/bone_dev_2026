@@ -34,19 +34,6 @@ class ArchitectureTests(BoneTestCase):
         except AttributeError as e:
             self.fail(f"Immune evaluation failed to safely parse an Object (Eager Evaluation Trap triggered): {e}")
 
-    def test_arch_small_model_scaffolding(self):
-        from main import BoneAmanita
-        from unittest.mock import MagicMock
-        config = {"model": "hermes3", "boot_mode": "CREATIVE", "provider": "ollama"}
-        test_engine = BoneAmanita(config)
-        test_engine._load_system_prompts = MagicMock()
-        test_engine.prompt_library = {"CREATIVE_LITE": "Lightweight Prompt Data"}
-        test_engine._apply_boot_mode()
-        if hasattr(test_engine.cortex, "dspy_critic"):
-            self.assertFalse(test_engine.cortex.dspy_critic.enabled, "[FAIL] Engine failed to disable the DSPy Affective Critic for an 8B model!")
-        expected_key = test_engine.mode_settings.get("prompt_key")
-        self.assertEqual(expected_key, "CREATIVE_LITE", "[FAIL] Engine failed to append the _LITE suffix for the small model prompt!")
-
     def test_immune_system_malformed_physics_resilience(self):
         engine = BoneAmanita({})
         fractured_phys = {"random_key": 42, "string_val": "broken"}

@@ -46,11 +46,6 @@ class BoneAmanita:
         for key in ["model", "provider", "base_url", "api_key"]:
             if val := self.sys_config.get(key) or self.sys_config.get(key.upper()):
                 setattr(self.config, key.upper(), val)
-        self.config.WEIGHT_CLASS = self.sys_config.get("WEIGHT_CLASS", "HEAVYWEIGHT")
-        if self.config.WEIGHT_CLASS == "HEAVYWEIGHT":
-            model_id = str(getattr(self.config, "MODEL", "")).lower()
-            if any(k in model_id for k in ["8b", "7b", "hermes3", "llama3", "mini"]):
-                self.config.WEIGHT_CLASS = "LIGHTWEIGHT"
         self.navi_sad = NaviSADProtocol()
         self.events = EventBus(config_ref=self.config)
         self.cmd = CommandProcessor(self, Prisma, config_ref=self.config)
@@ -131,21 +126,10 @@ class BoneAmanita:
         msg = ux("main_strings", "engaging_mode")
         self.events.log(msg.format(boot_mode=self.boot_mode))
         layer = self.mode_settings.get("ui_layer", RealityLayer.SIMULATION)
-        mutations = {"CONVERSATION": "THE CONVERSATIONALIST", "ADVENTURE": "THE ARCHITECT",
-                     "TECHNICAL": "THE SYSTEM_KERNEL", "CREATIVE": "THE CATALYST", }
+        mutations = {"CONVERSATION": "THE CONVERSATIONALIST", "ADVENTURE": "THE ARCHITECT", "TECHNICAL": "THE SYSTEM_KERNEL", "CREATIVE": "THE CATALYST", }
         self.soul.force_mutation(mutations.get(self.boot_mode, "THE ARCHITECT"))
         self.reality_stack.stabilize_at(layer)
         prompt_key = self.mode_settings.get("prompt_key", "ADVENTURE")
-        weight_class = self.config.WEIGHT_CLASS
-        if weight_class == "LIGHTWEIGHT":
-            if hasattr(self.cortex, "dspy_critic") and self.cortex.dspy_critic:
-                self.cortex.dspy_critic.enabled = False
-                self.events.log("Lightweight architecture declared. Disabling DSPy Affective Critic.", "SYS")
-            lite_key = f"{prompt_key}_LITE"
-            if self.prompt_library and lite_key in self.prompt_library:
-                prompt_key = lite_key
-                self.mode_settings["prompt_key"] = lite_key
-                self.events.log(f"Lightweight architecture declared. Loading tethered prompt: {prompt_key}", "SYS")
         if self.prompt_library and prompt_key in self.prompt_library:
             if self.cortex and self.cortex.composer:
                 self.cortex.composer.load_template(self.prompt_library[prompt_key])
