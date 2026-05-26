@@ -1,7 +1,21 @@
 # CHANGELOG.md
 -----------------------------------------------------------
 
-### **BONEAMANITA 20.2.0 "The Brutalist Optimization Pass"**
+### **BONEAMANITA 20.2.0 "The Excavation"**
+
+**Architectural Amputations & Optimizations**
+
+* **The Weight Class Purge:** Completely eradicated the artificial `WEIGHT_CLASS` (`LIGHTWEIGHT` vs `HEAVYWEIGHT`) auto-classifier from the `LLMInterface` and `PromptComposer`. All models now receive the unadulterated, complex persona block and are subjected to the `DSPyCritic`. Weak models will now fail via natural simulated physics (Terminal Exhaustion, Narrative Drag) rather than arbitrary string-based safety gates.
+* **Biological Bureaucracy Excised:** Executed a massive, system-wide purge of nested `hasattr` and `getattr` defensive checks across the `phases` pipeline (`biological.py`, `cognitive.py`, `environmental.py`, `mechanical.py`). The runtime loop now mathematically trusts the `Genesis` bootloader, directly addressing engine pointers (e.g., `mito.state.atp_pool`, `bio.biometrics`, `town_hall`) to drastically reduce cognitive noise and wasted CPU cycles.
+* **Topological Failsafes Enforced:** Solidified strict interface contracts for truly optional, modular components (`mind_memory.ann`, `shared_lattice`, `akashic`, `governor`). This preserves the engine's ability to seamlessly scale down for lightweight deployment and guarantees the asynchronous `PanicRoom` reboot can survive a catastrophic `Cortex` amputation ("The Bus Crash" scenario).
+* **Algorithmic Ephemeralization:** * Replaced an O(N*M) nested list comprehension in `cycle.py`'s phase-space volume calculator with a highly optimized native Python `zip(*points)` transpose.
+  * Neutralized a silent `NameError` timebomb in the asynchronous topological hallucination check. 
+  * Removed "ghost" object instantiations (e.g., instantiating the `ArchetypeArbiter` merely to call its static methods).
+  * Reconnected a severed namespace pointer that was blinding the `NoeticLoop` to Gordon's active inventory.
+
+---
+
+### **BONEAMANITA 20.1.6 "The Brutalist Optimization Pass"**
 
 **Architectural Amputations & Optimizations**
 

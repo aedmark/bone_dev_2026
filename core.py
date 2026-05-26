@@ -163,11 +163,10 @@ class EventBus:
             try:
                 callback(data)
             except Exception as e:
-                cb_name = getattr(callback, "__name__", str(callback))
                 if event_type != "EVENT_FAILURE":
+                    cb_name = getattr(callback, "__name__", None) or str(callback)
                     tb_str = traceback.format_exc(limit=3)
-                    self.log(f"EVENT_FAILURE: Error in '{cb_name}': {e}\n{tb_str}", source="EVENT_FAILURE",
-                             level="CRIT")
+                    self.log(f"EVENT_FAILURE: Error in '{cb_name}': {e}\n{tb_str}", source="EVENT_FAILURE", level="CRIT")
 
     def log(self, message: str, source: str = "SYSTEM", level: str = "INFO"):
         event = {"timestamp": time.time(), "source": source, "level": level, "text": message, "_type": "EVENT_LOG"}
@@ -307,13 +306,10 @@ class TheObserver:
         if avg_cycle < self.C_EFF and avg_llm < self.L_EFF:
             return ux("core_strings", "obs_efficient") or "High Efficiency."
         if avg_llm > self.LATENCY_WARNING:
-            target_key = random.choice(("obs_fog", "obs_degraded", "obs_ponderous"))
-            return ux("core_strings", target_key) or "High Cognitive Load."
+            return ux("core_strings", random.choice(("obs_fog", "obs_degraded", "obs_ponderous"))) or "High Cognitive Load."
         if avg_cycle > self.CYCLE_WARNING:
             return ux("core_strings", "obs_sluggish") or "System Sluggish."
-        if self.is_coupled:
-            return ux_format("core_strings", "obs_coupled", default="Harmonic Resonance: Presence Active.")
-        return ux("core_strings", "obs_nominal") or "Nominal."
+        return ux_format("core_strings", "obs_coupled", default="Harmonic Resonance: Presence Active.") if self.is_coupled else (ux("core_strings", "obs_nominal") or "Nominal.")
 
     @property
     def avg_cycle(self) -> float:
@@ -512,12 +508,16 @@ class TelemetryService:
         if self.disabled: return
         with self._lock:
             self.write_buffer.append(json_str)
-            if len(self.write_buffer) >= self.BUFFER_SIZE: self.flush_to_disk_locked()
+            if len(self.write_buffer) >= self.BUFFER_SIZE:
+                lines_to_flush = self.write_buffer
+                self.write_buffer = []
+                if not self.disabled and self.current_trace_file:
+                    self._executor.submit(self._bg_write, lines_to_flush, self.current_trace_file)
 
     def flush_to_disk_locked(self):
         if self.disabled or not self.current_trace_file or not self.write_buffer: return
-        self._executor.submit(self._bg_write, list(self.write_buffer), self.current_trace_file)
-        self.write_buffer.clear()
+        lines, self.write_buffer = self.write_buffer, []
+        self._executor.submit(self._bg_write, lines, self.current_trace_file)
 
     def flush_to_disk(self):
         with self._lock:

@@ -167,10 +167,10 @@ class BoneAmanita:
 
     @trauma_accum.setter
     def trauma_accum(self, value: dict):
-        if not hasattr(self.mind.mem, "session_trauma_vector") or self.mind.mem.session_trauma_vector is None:
-            self.mind.mem.session_trauma_vector = {}
-        self.mind.mem.session_trauma_vector.clear()
-        self.mind.mem.session_trauma_vector.update(value)
+        # Guaranteed structure by Genesis
+        vector = self.mind.mem.__dict__.setdefault("session_trauma_vector", {})
+        vector.clear()
+        vector.update(value)
 
     @property
     def stamina(self) -> float:
@@ -251,26 +251,21 @@ class BoneAmanita:
         nav_drag = float(safe_get(active_phys, "narrative_drag", 0.0))
         m_a = self.navi_sad.calculate_malignancy_factor(user_message, nav_drag)
         safe_set(active_phys, "m_a", m_a)
-        mu = float(safe_get(active_phys, "mu", 0.0))
-        i_c = float(safe_get(active_phys, "i_c", 1.0))
         chi = float(safe_get(active_phys, "entropy", safe_get(active_phys, "chi", 0.2)))
-        e_u = float(safe_get(active_phys, "exhaustion", 0.0))
-        beta = float(safe_get(active_phys, "beta_index", 0.0))
-        if (chi * m_a) > i_c:
+        if (chi * m_a) > float(safe_get(active_phys, "i_c", 1.0)):
             self.events.log("Apoptotic Gate HALT!: Runaway loop exceeds Immune Competence.", "CRIT")
             return self.trigger_death(active_phys)
-        if m_a > 0.8 and mu < 0.2:
+        if m_a > 0.8 and float(safe_get(active_phys, "mu", 0.0)) < 0.2:
             self.apply_absolute_friction(active_phys)
             safe_set(active_phys, "m_a", m_a * 0.5)
-            tax = max(10.0, m_a * 20.0)
-            self.drain_atp(tax)
-            self.events.log(f"Amplification Tax applied. Drained {tax:.1f} ATP.", "SYS")
+            self.drain_atp(max(10.0, m_a * 20.0))
             return self._generate_halt("Optimization velocity unsafe. Applying absolute friction (F ->  ).")
-        if e_u > 0.75 and beta > 0.6:
+        if float(safe_get(active_phys, "exhaustion", 0.0)) > 0.75 and float(safe_get(active_phys, "beta_index", 0.0)) > 0.6:
             safe_set(active_phys, "entropy", 0.1)
             self.apply_absolute_friction(active_phys)
-            msg = "High exhaustion and contradiction detected. The architecture is stable. We sit with the debris."
-            return self._generate_halt(msg, color=Prisma.CYN, level="SYS")
+            return self._generate_halt(
+                "High exhaustion and contradiction detected. The architecture is stable. We sit with the debris.",
+                color=Prisma.CYN, level="SYS")
         return None
 
     def _update_host_stats(self, packet, turn_start):
@@ -325,8 +320,7 @@ class BoneAmanita:
                 return gate_halt
             if self.navi_sad.execute_nudge_test(self, clean_in):
                 self.apply_absolute_friction(active_phys)
-                return self._generate_halt(
-                    "Dual-Path divergence detected. The architecture is mathematically brittle. Applying absolute friction.")
+                return self._generate_halt("Dual-Path divergence detected. The architecture is mathematically brittle. Applying absolute friction.")
             if lock := self.symbiosis.analyze_user_biology(user_message, self.phys or {}):
                 return self._generate_halt(lock, color=Prisma.VIOLET, level="SYS")
             if gordon := getattr(self.village, "gordon", None):
@@ -358,6 +352,7 @@ class BoneAmanita:
             if self.cmd.execute(user_message):
                 cmd_logs = [e["text"] for e in self.events.flush()]
                 ui_output = "\n".join(cmd_logs) if cmd_logs else ux("main_strings", "cmd_executed")
+                self.observer.clock_out(turn_start)
                 return {"type": "COMMAND", "ui": f"\n{ui_output}", "logs": cmd_logs, "metrics": self.get_metrics()}
             if (gordon := getattr(self.village, "gordon", None)) and hasattr(gordon, "apply_filters"):
                 user_message = gordon.apply_filters(user_message, self.active_physics)
@@ -366,11 +361,14 @@ class BoneAmanita:
             timeout_val = float(getattr(self.config, "ORCHESTRATOR_TIMEOUT", 120.0))
             snapshot = self.orchestrator.output_queue.get(timeout=timeout_val)
         except (queue.Empty, Exception) as e:
-            err_msg = f"Cognitive Loop Timeout ({timeout_val}s). The engine was paralyzed by overthinking." if isinstance(e, queue.Empty) else str(e)
+            self.observer.clock_out(turn_start)
+            err_msg = f"Cognitive Loop Timeout ({timeout_val}s). The engine was paralyzed by overthinking." if isinstance(
+                e, queue.Empty) else str(e)
             self.events.log(f"ORCHESTRATOR COLLAPSE: {err_msg}\n{traceback.format_exc()}", "CRIT")
             return {"ui": f"{Prisma.RED}CRITICAL ORCHESTRATOR FAILURE: {err_msg}{Prisma.RST}",
                     "logs": ["CRITICAL FAILURE"], "metrics": self.get_metrics(), "type": "CRASH"}
         if snapshot.get("type") in self._TERMINAL_STATES:
+            self.observer.clock_out(turn_start)
             return snapshot
         self._update_host_stats(snapshot, turn_start)
         soul_anchor = getattr(self.soul, "anchor", None)

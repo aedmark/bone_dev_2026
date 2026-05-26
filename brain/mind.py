@@ -168,20 +168,16 @@ class NoeticLoop:
         link_v = safe_get(cfg, "LINK_VOLTAGE_THRESH", 12.0)
         link_chance = safe_get(cfg, "LINK_CHANCE", 0.15)
         ignition = min(1.0, (avg_v / v_div) * (len(clean_words) / w_div))
-
         if voltage > link_v and random.random() < link_chance:
             unique_words = list(set(clean_words))
             graph = getattr(self.mind.mem, "graph", None)
             if graph is not None and len(unique_words) >= 2:
                 w1, w2 = random.sample(unique_words, 2)
                 self._force_link(graph, w1, w2, self.cfg)
-                if hasattr(self.bio, "mito"):
-                    self.bio.mito.adjust_atp(-1.0, "Spontaneous Semantic Link")
-
+                self.bio.mito.adjust_atp(-1.0, "Spontaneous Semantic Link")
         current_lens = str(safe_get(soul_ref, "archetype", "OBSERVER")).upper()
         current_role = f"The {current_lens.title().replace('_', ' ')}"
         msg_cog = ux("brain_strings", "noetic_ignition") or "Cognition active. Ignition: {ignition:.2f}"
-
         return {"mode": "COGNITIVE", "lens": current_lens, "context_msg": msg_cog.format(ignition=ignition),
                 "role": current_role, "ignition": ignition, "physics": physics_packet,
                 "bio": self.bio.endo.get_state() if hasattr(self.bio, "endo") else {}, }
@@ -228,7 +224,7 @@ class DreamEngine:
                 if self.events:
                     self.events.log(f"{Prisma.RED}TERMINAL SLEEP FAILURE: {fatal_msg}{Prisma.RST}", "CRIT")
                 return fatal_msg, shift
-        if hasattr(self, "context_queue") and self.context_queue:
+        if self.context_queue:
             raw_payloads = self.context_queue
             self.context_queue = []
             s_cost = min(available_atp * 0.4, len(raw_payloads) * 10.0)
@@ -297,7 +293,7 @@ class DreamEngine:
                     is_deep_rem = True
         if self.llm:
             index = list(self.mem.subconscious.index)
-            if self.eng and getattr(self.eng, "akashic", None):
+            if self.eng and getattr(self.eng, "akashic", None): # This getattr is load bearing
                 recent_shadows = self.eng.akashic.shadow_stock[-10:]
                 index.extend(g.get("concept", "Forgotten Echo") for g in recent_shadows if "concept" in g)
             if len(index) >= 2:

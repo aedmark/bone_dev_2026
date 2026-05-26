@@ -448,15 +448,12 @@ class GeodesicOrchestrator:
             if "[grief]" in usr_msg:  # NECESSARY GRIEF INTERCEPT
                 self.eng.bio.endo.glimmers += 1
                 self.eng.events.log(f"{Prisma.MAG}Grief acknowledged. A glimmer is yielded.{Prisma.RST}", "SYS")
-
-            base_tags = {"critique_mode": False, "objective_mode": False, "healing_mode": False, "void_mode": False,
-                         "lateral_shuffle": False, "literal_mode": False, "yeetinator_mode": False}
+            tags_map = {"critique_mode": "[!r]", "objective_mode": "[!q]", "healing_mode": "[!h]",
+                "void_mode": "[!v]", "lateral_shuffle": "[!s]", "literal_mode": "[!l]", "yeetinator_mode": "[!y]"}
             if "[!" in usr_msg:
-                base_tags.update({"critique_mode": "[!r]" in usr_msg, "objective_mode": "[!q]" in usr_msg,
-                                  "healing_mode": "[!h]" in usr_msg, "void_mode": "[!v]" in usr_msg,
-                                  "lateral_shuffle": "[!s]" in usr_msg, "literal_mode": "[!l]" in usr_msg,
-                                  "yeetinator_mode": "[!y]" in usr_msg})
-            ctx.physics.vector.update(base_tags)
+                ctx.physics.vector.update({k: (v in usr_msg) for k, v in tags_map.items()})
+            else:
+                ctx.physics.vector.update({k: False for k in tags_map})
             u_exhaustion = float(ctx.user_state.E)
             phi_val = float(ctx.shared_dyn.phi)
             res_delta = float(getattr(ctx.shared_dyn, "delta", getattr(ctx.shared_dyn, "resonance_delta", 0.0)))
@@ -468,7 +465,6 @@ class GeodesicOrchestrator:
             self._verify_semantic_topology(ctx)
             if self.eng.observer:
                 self.eng.observer.last_physics_packet = ctx.physics.snapshot()
-
             # [CD PROTOCOL] Inject metrics into the Telemetry Crystal
             if self.eng.telemetry.active_crystal and hasattr(ctx.physics, "get_principal_eigenvalue"):
                 self.eng.telemetry.active_crystal.leverage_metrics.update({
@@ -538,8 +534,8 @@ class GeodesicOrchestrator:
                         if local_d < 0.2:
                             self.eng.events.log(f"{Prisma.RED}[CD CONDITION] Phase-space collapse detected (d={local_d:.2f}). Sycophancy Point Attractor identified. Spiking Contradiction (μ) to force generative tension.{Prisma.RST}", "CRIT")
                             if ctx.physics:
-                                ctx.physics.mu = min(1.0, getattr(ctx.physics, "mu", 0.0) + 0.5)
-                                ctx.physics.kappa = max(0.5, getattr(ctx.physics, "kappa", 0.0))
+                                ctx.physics.mu = min(1.0, float(getattr(ctx.physics, "mu", 0.0)) + 0.5)
+                                ctx.physics.kappa = max(0.5, float(getattr(ctx.physics, "kappa", 0.0)))
             except Exception as e:
                 self.eng.events.log(f"Async WLS Heuristic Error: {e}", "DEBUG")
 
@@ -550,7 +546,6 @@ class GeodesicOrchestrator:
             # [navi-SAD PROTOCOL]: Calculate Permutation Entropy & Takens Volume
             try:
                 v_history = getattr(self.eng.phys.dynamics, "voltage_history", []) if hasattr(self.eng, "phys") else []
-                # We need 10 points to calculate 9 differences
                 if len(v_history) >= 10:
                     recent_v = v_history[-10:]
                     v_diff = [recent_v[i] - recent_v[i - 1] for i in range(1, len(recent_v))]
@@ -563,7 +558,7 @@ class GeodesicOrchestrator:
                         ctx.council_mandates.append(
                             {"action": "SYNERGY_FIRED", "value": "JESTER", "log": "Sycophancy Loop Shattered."})
                         if ctx.physics:
-                            ctx.physics.entropy = min(1.0, getattr(ctx.physics, "entropy", 0.0) + 0.6)
+                            ctx.physics.entropy = min(1.0, float(getattr(ctx.physics, "entropy", 0.0)) + 0.6)
             except Exception as e:
                 self.eng.events.log(f"Async navi-SAD Evaluation Error: {e}", "DEBUG")
             return
