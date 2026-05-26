@@ -246,7 +246,7 @@ class DreamEngine:
             self.mem.cortex.add_memories(vectors, metadata)
             dream_text = f"[Deep Context Digest | {len(raw_payloads)} Bedrock Nodes Indexed | ATP: -{s_cost:.1f}]"
             if self.events:
-                self.events.log(f"{Prisma.MAG}✨ [REM CYCLE]: {dream_text}{Prisma.RST}", "SYS")
+                self.events.log(f"{Prisma.MAG}[REM CYCLE]: {dream_text}{Prisma.RST}", "SYS")
             return dream_text, shift
         consolidator = MemoryConsolidator(self.mem.hippocampus, self.mem.cortex, self.events)
         nodes_moved, atp_cost = consolidator.trigger_rem_consolidation(available_atp)

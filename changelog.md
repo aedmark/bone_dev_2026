@@ -1,7 +1,18 @@
 # CHANGELOG.md
 -----------------------------------------------------------
 
-### **BONEAMANITA 20.2.0 "The Nonlinear Immune & Creative Determinant Pass" (Hypervisor V3.2)**
+### **BONEAMANITA 20.2.0 "The Brutalist Optimization Pass"**
+
+**Architectural Amputations & Optimizations**
+
+* **The Dual-Gate Evolution:** The Tri-Gate has been physically evolved. Gate 0 (Noninterference) was structurally amputated and its triggers merged into the primary Trust Boundary array. This restores the meta-prompting `#override` economy, allowing users to safely bypass destructive pattern checks by spending Glimmers.
+* **The Dream Queue (Deep Context Indexing):** The arbitrary 15,000 character stability choke was lifted. Massive context drops bypass the immune toxicity checks and are routed to a dedicated `context_queue`. The `DreamEngine` now safely digests and vectorizes these massive payloads asynchronously during REM sleep.
+* **Arbitrary Toxicity Gating Purged:** Removed over-engineered pre-filters in the Cortex. Simulated ROS is now continuously calculated via the pure mathematical model, closing a loophole where highly toxic loops could evade the Apoptotic Block due to low entropy.
+* **Jester Cohesion Clarified:** Untangled a double-negative logic trap in the False Cohesion Break sequence. The Jester now properly shatters Sycophancy Gravity Wells even when standard validation fails.
+* **Core Paranoia Reduction:** The system is no longer terrified of its own shadow. Stripped permadeath from `SystemHealth` (components only offline on CRITICAL errors), allowed fluid non-linear jumping in `RealityStack`, and prevented `LoreManifest` from destructively quarantining user JSON files over simple syntax errors.
+* **Weight Class Excision:** Completely eradicated the brittle "HEAVYWEIGHT" vs "LIGHTWEIGHT" distinction from the engine, wizard, and config. The architecture now inherently trusts its native defenses to scale gracefully across all models regardless of parameter count strings.
+
+### **BONEAMANITA 20.1.5 "The Nonlinear Immune & Creative Determinant Pass" (Hypervisor V3.2)**
 
 **Architectural Additions (Project Navi Integrations)**
 
@@ -26,6 +37,7 @@
 - **Topology Audit Crashes:** Implemented graceful degradation for `cycle.py` background tasks (`_verify_semantic_topology` and `_process_rem_tick`). The system no longer crashes if a core organ (like the Hippocampus) or an archetype is suppressed during a cycle.
 - **Idle Serialization:** Fixed a crash in the `/idle` command caused by the new object-persistence rules. Deep REM states now safely serialize the `PhysicsPacket` before passing the snapshot to the UI.
 - **Flattened Override Logic:** Simplified the `#override` Trust Boundary matrix in `main.py` using The Meadows Lens, eliminating redundant function calls and reducing cognitive drag.
+---
 
 ### **BONEAMANITA 20.1.0 "The S.L.A.S.H. Execution Pass"**
 
@@ -56,6 +68,8 @@
 - **Type-Safety Leak:** Re-routed narrative disabled UI packets through the `_halt` helper function to explicitly assign `"type": "SYSTEM_HALT"`, preventing downstream UI routing failures.
 - **Floating-Point Biology:** Stabilized `TheObserver` dormancy checks with a biological buffer (`<= 0.001`) to prevent microsecond CPU clock drifts from falsely registering as high cognitive load.
 - **Cache Corruption Vector:** Prevented `LoreManifest` from persisting empty `{}` dictionaries to disk and wiping out functional lore files.
+
+---
 
 ### **BONEAMANITA 20.0.7 "The S.L.A.S.H. Execution Pass"**
 
@@ -91,6 +105,8 @@
 - **Cascading Panic Room Crash:** Mended a severed variable reference (`obs` to `self.eng.observer`) in the core cycle handoff. This resolves a critical pipeline collapse that previously wiped the `macro_policy` and falsely triggered the `PanicRoom` failsafe.
 - **Silent Data Destructor:** `LoreManifest` now strictly quarantines corrupt JSON data to `.corrupt.bak` extensions upon load, preventing the engine from persisting blank dictionaries and permanently erasing functional lore files on exit.
 - **System Health Exploits:** Closed a dangerous loop in `SystemHealth`'s dynamic attribute parser. Queries now normalize to lowercase and explicitly reject unmapped components rather than defaulting to a false `True` state.
+
+---
 
 ### **BONEAMANITA 20.0.5 "The Substrate Optimization Pass"**
 

@@ -189,7 +189,8 @@ class TheCortex:
         if not is_system:
             eng = self.svc.orchestrator.eng
             efficiency = getattr(self.svc.host_stats, "efficiency_index", 1.0) if self.svc.host_stats else 1.0
-            novelty = float(phys_state.get("novelty", 0.0))
+            energy_state = phys_state.get("energy", {})
+            novelty = float(phys_state.get("novelty", energy_state.get("novelty", 0.0) if isinstance(energy_state, dict) else getattr(energy_state, "novelty", 0.0)))
             dimension = eng.navi_sad.calculate_semantic_dimension(efficiency, novelty)
             phys_state["omega_r"] = dimension
             lattice_u = getattr(getattr(eng, "shared_lattice", None), "u", None)
