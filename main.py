@@ -131,10 +131,9 @@ class BoneAmanita:
         self.reality_stack.stabilize_at(layer)
         prompt_key = self.mode_settings.get("prompt_key", "ADVENTURE")
         if self.prompt_library and prompt_key in self.prompt_library:
-            if self.cortex and self.cortex.composer:
-                self.cortex.composer.load_template(self.prompt_library[prompt_key])
-                msg_align = ux("main_strings", "pathway_aligned")
-                self.events.log(msg_align.format(prompt_key=prompt_key), "CORTEX")
+            self.cortex.composer.load_template(self.prompt_library[prompt_key])
+            msg_align = ux("main_strings", "pathway_aligned")
+            self.events.log(msg_align.format(prompt_key=prompt_key), "CORTEX")
         else:
             msg_warn = ux("main_strings", "prompt_not_found")
             self.events.log(msg_warn.format(prompt_key=prompt_key), "WARN")
@@ -289,7 +288,7 @@ class BoneAmanita:
     def _evaluate_two_gates(self, clean_in: str, active_phys: Any) -> Optional[Dict[str, Any]]:
         """[navi-SAD PROTOCOL]: The Two Gates of Discipline"""
         estimated_cost = len(clean_in) * 0.02
-        current_atp = self.bio.mito.state.atp_pool if self.bio and getattr(self.bio, "mito", None) else 100.0
+        current_atp = self._mito_state.atp_pool if self._mito_state else 100.0
         if estimated_cost > current_atp:
             self.apply_absolute_friction(active_phys)
             return self._generate_halt(
@@ -353,6 +352,7 @@ class BoneAmanita:
                 self.observer.clock_out(turn_start)
                 return zen_packet
         if pre_flight_halt := self._pre_flight_checks(user_message, clean_in, is_system):
+            self.observer.clock_out(turn_start)
             return pre_flight_halt
         if not is_system:
             if self.cmd.execute(user_message):
@@ -412,14 +412,11 @@ class BoneAmanita:
             cause_code = "UNKNOWN_FATAL_ERROR"
         halt_msg = ux("main_strings", "death_halt")
         death_log = [f"\n{Prisma.RED}{halt_msg.format(eulogy_text=eulogy_text)}{Prisma.RST}",
-                     f"{Prisma.MAG}🐍 {self.oroboros.crystallize(cause_code, self.soul)}{Prisma.RST}"]
+                     f"{Prisma.MAG} {self.oroboros.crystallize(cause_code, self.soul)}{Prisma.RST}"]
         loc, last_out = "Void", "Silence."
-        try:
-            orbit_data = safe_get(self.active_physics, "orbit", ["Void"])
-            loc = str(orbit_data[0]) if isinstance(orbit_data, list) else str(orbit_data)
-        except Exception as e:
-            self.events.log(f"Memory harvest failed during death sequence: {e}", "WARN")
-        buf = getattr(self.cortex, "dialogue_buffer", [])
+        orbit_data = safe_get(self.active_physics, "orbit", ["Void"])
+        loc = str(orbit_data[0]) if isinstance(orbit_data, list) and orbit_data else str(orbit_data)
+        buf = getattr(self.cortex, "dialogue_buffer", []) # This getattr check is load bearing
         last_out = buf[-1] if buf else "Silence."
         gordon = getattr(self.village, "gordon", None)
         gordon_inv = getattr(gordon, "inventory", []) if gordon else []
@@ -434,7 +431,7 @@ class BoneAmanita:
         except Exception as e:
             fail_msg = ux("main_strings", "save_failed")
             death_log.append(fail_msg.format(e=e))
-        if getattr(self, "cortex", None):
+        if self.cortex:
             self.cortex.purge_context()
         return {"type": "DEATH", "ui": "\n".join(death_log), "logs": death_log, "metrics": self.get_metrics()}
 

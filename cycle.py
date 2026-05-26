@@ -98,11 +98,8 @@ def _native_rewire(adj_dict: dict, n_swaps: int) -> dict:
 
 
 def _native_freeze_graph(adj_dict: dict) -> tuple:
-    try:
-        return tuple((k, tuple(sorted(neighbors, key=str))) for k, neighbors in
-                     sorted(adj_dict.items(), key=lambda x: str(x[0])))
-    except (AttributeError, RuntimeError):
-        return ()
+    if not adj_dict or not hasattr(adj_dict, "items"): return ()
+    return tuple((k, tuple(sorted(neighbors, key=str))) for k, neighbors in sorted(adj_dict.items(), key=lambda x: str(x[0])))
 
 
 def _native_permutation_entropy(time_series: list[float], m: int = 3, tau: int = 1, epsilon: float = 1e-5) -> float:
@@ -164,8 +161,7 @@ def _native_takens_volume(time_series: list[float], m: int = 3, tau: int = 1) ->
         return 1.0
 
     volume = 1.0
-    for dim in range(m):
-        dim_values = [p[dim] for p in points]
+    for dim_values in zip(*points):
         spread = max(dim_values) - min(dim_values)
         volume *= max(0.001, spread)
 
@@ -527,13 +523,9 @@ class GeodesicOrchestrator:
                             local_d = 1.0  # Flatten dimension on failure
                         else:
                             # Generate Null Model to detect Hallucinations of Depth
-                            null_adj = _native_configuration_model(actual_adj)
-                            # (In a full async pass, we'd calculate exact radii for the null graph. For cycle speed, we estimate the random limit)
                             null_d = 3.0  # A completely random graph trends toward infinite/high dimension
-
                             lattice.shared.omega_r = min(1.0, local_d / 2.0)
-
-                            if local_d > 1.5 and local_d < null_d:
+                            if 1.5 < local_d < null_d:
                                 self.eng.events.log(
                                     f"{Prisma.CYN}[NAVI-FRACTAL] True Coherence Verified (\u03a9r={lattice.shared.omega_r:.2f}). Dimension {local_d:.2f} is structurally deliberate, not random noise.{Prisma.RST}",
                                     "SYS")
@@ -561,9 +553,7 @@ class GeodesicOrchestrator:
                 # We need 10 points to calculate 9 differences
                 if len(v_history) >= 10:
                     recent_v = v_history[-10:]
-                    # First-differencing: removes the position confound (escalating tension trending to 0 entropy)
                     v_diff = [recent_v[i] - recent_v[i - 1] for i in range(1, len(recent_v))]
-
                     pe = _native_permutation_entropy(v_diff, m=3, tau=1, epsilon=1e-5)
                     vol = _native_takens_volume(v_diff, m=3, tau=1)
                     if pe < 0.4 or vol < 0.05:
@@ -595,17 +585,13 @@ class GeodesicOrchestrator:
             self.engine_state = "REM"
             safe_phys = self.eng.active_physics or PhysicsPacket.void_state()
             dream_log = ""
-            dreamer = getattr(self.eng.mind, "dreamer", None)
-            if dreamer:
-                soul = getattr(self.eng, "soul", None)
-                bio = getattr(self.eng, "bio", None)
-                snapshot_soul = soul.to_dict() if soul else {}
-                bio_packet = {}
-                if bio:
-                    bio_packet["chem"] = bio.endo.get_state() if hasattr(bio, "endo") else {}
-                    if hasattr(bio, "mito"):
-                        bio_packet["mito"] = {"atp": bio.mito.state.atp_pool, "ros": bio.mito.state.ros_buildup}
-                dream_text, _ = dreamer.enter_rem_cycle(snapshot_soul, bio_state=bio_packet)
+            if getattr(self.eng.mind, "dreamer", None):
+                snapshot_soul = self.eng.soul.to_dict()
+                bio_packet = {
+                    "chem": self.eng.bio.endo.get_state(),
+                    "mito": {"atp": self.eng.bio.mito.state.atp_pool, "ros": self.eng.bio.mito.state.ros_buildup}
+                }
+                dream_text, _ = self.eng.mind.dreamer.enter_rem_cycle(snapshot_soul, bio_state=bio_packet)
                 if dream_text:
                     dream_log = f"\n{Prisma.MAG}☁️ {dream_text}{Prisma.RST}"
             return {"type": "SNAPSHOT",
