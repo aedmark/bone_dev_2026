@@ -1,4 +1,4 @@
-# 🍄 BoneAmanita & The Hypervisor v20.0.2
+# 🍄 BoneAmanita & The Hypervisor v20.2.0
 
 > A biologically-inspired, asynchronous state machine and semantic hypervisor for Large Language Models.
 
@@ -32,18 +32,6 @@ The Hypervisor is built on a tensegrity model, distributing cognitive load acros
 ### 4. The Orchestrator (The Circadian Rhythm)
 * **Asynchronous Metabolism:** The core execution loop runs on an independent, thread-safe blocking queue. The terminal UI is merely a lock-free window into the engine. 
 * **The Dream Engine:** If left idle for 300 seconds, the system slips into REM sleep. It defragments the Mnemonic Arcade, burns off Cortisol, and generates surreal, mathematically-derived dreams based on the heaviest concepts of the day.
-
----
-
-## 💽 Mod Chips & The S.L.A.S.H. Council
-
-BoneAmanita supports Topological Overlays ("Mod Chips") to govern specialized domains without breaking the core biology. 
-
-The primary installation is **S.L.A.S.H.** (Synergetic Language & Systems Heuristics), an opt-in council of four archetypes designed strictly for software engineering and dynamic equilibrium:
-* **[P]inker (Language):** Enforces cognitive ergonomics and syntactic clarity.
-* **[F]uller (System):** Maps tensegrity and macro-architecture. Does more with less.
-* **[S]chur (Humanity):** The emotional circuit breaker. Prevents burnout and analysis paralysis.
-* **[M]eadows (Dynamics):** Tracks stocks, flows, and runaway accumulations. 
 
 ---
 
