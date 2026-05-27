@@ -192,10 +192,10 @@ class DreamEngine:
         self.dspy_critic = None
 
     def enter_rem_cycle(self, soul_snapshot: Dict[str, Any], bio_state: Dict[str, Any]) -> Tuple[str, Dict[str, float]]:
-        chem = safe_get(bio_state, "chem", {})
-        cortisol = float(safe_get(chem, "cortisol", 0.0))
-        mito_data = safe_get(bio_state, "mito", {})
-        available_atp = float(safe_get(mito_data, "atp", 0.0))
+        chem = bio_state.get("chem", {})
+        cortisol = float(chem.get("cortisol", 0.0))
+        mito_data = bio_state.get("mito", {})
+        available_atp = float(mito_data.get("atp", 0.0))
         dream_text = None
         is_deep_rem = False
         shift = ({"cortisol": -0.3, "dopamine": 0.1} if cortisol <= 0.6 else {"cortisol": 0.1})
@@ -244,17 +244,12 @@ class DreamEngine:
                 current_state_str = f"Archetype: {soul_snapshot.get('archetype', 'UNKNOWN')}"
                 new_axiom = self.dspy_critic.evolve_prompt(current_state_str, trauma_str)
                 if new_axiom:
-                    active_mode = str(
-                        getattr(self.eng, "boot_mode", "CONVERSATION")).upper() if self.eng else "CONVERSATION"
                     try:
-                        disk_prompts = getattr(self.eng, "prompt_library", None) if self.eng else None
-                        disk_prompts = disk_prompts or self.lore.get("SYSTEM_PROMPTS", {})
-                        base_data = disk_prompts.setdefault("GLOBAL_BASELINE", {})
-                        dirs = base_data.setdefault("EVOLVED_AXIOMS", [])
+                        disk_prompts = (self.eng.prompt_library if self.eng and hasattr(self.eng, "prompt_library") else None) or self.lore.get("SYSTEM_PROMPTS", {})
+                        dirs = disk_prompts.setdefault("GLOBAL_BASELINE", {}).setdefault("EVOLVED_AXIOMS", [])
                         if new_axiom not in dirs:
                             dirs.append(new_axiom)
-                        cfg = safe_get(self.cfg, "CORTEX", {})
-                        threshold = safe_get(cfg, "EPIGENETIC_PRUNE_THRESHOLD", 12)
+                        threshold = safe_get(safe_get(self.cfg, "CORTEX", {}), "EPIGENETIC_PRUNE_THRESHOLD", 12)
                         if len(dirs) > threshold:
                             compressed = getattr(self.dspy_critic, "compress_prompts", lambda x: None)(dirs)
                             if compressed:
@@ -314,10 +309,8 @@ class DreamEngine:
         if not sources:
             sources = self.dream_lore.get(subtype.upper(), ["You stare into the static."])
         if isinstance(sources, dict):
-            flat_sources = []
-            for v in sources.values():
-                flat_sources.extend(v if isinstance(v, list) else [v])
-            sources = flat_sources or ["The void stares back."]
+            sources = [item for v in sources.values() for item in (v if isinstance(v, list) else [v])] or [
+                "The void stares back."]
         if self.llm:
             lore_sample = ", ".join(random.sample(sources, min(3, len(sources))))
             k_hash = getattr(self.eng, "kernel_hash", "UNKNOWN")
@@ -353,10 +346,7 @@ class DreamEngine:
         category = "NIGHTMARES" if trauma_level > 0.5 else "SURREAL"
         templates = self.dream_lore.get(category, [])
         if isinstance(templates, dict):
-            flat_templates = []
-            for v in templates.values():
-                flat_templates.extend(v if isinstance(v, list) else [v])
-            templates = flat_templates
+            templates = [item for v in templates.values() for item in (v if isinstance(v, list) else [v])]
         if not templates:
             return "The walls breathe.", 0.1
         from mechanics.tools import TheTclWeaver

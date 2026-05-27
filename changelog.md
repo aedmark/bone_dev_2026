@@ -6,12 +6,28 @@
 **Architectural Amputations & Optimizations**
 
 * **The Weight Class Purge:** Completely eradicated the artificial `WEIGHT_CLASS` (`LIGHTWEIGHT` vs `HEAVYWEIGHT`) auto-classifier from the `LLMInterface` and `PromptComposer`. All models now receive the unadulterated, complex persona block and are subjected to the `DSPyCritic`. Weak models will now fail via natural simulated physics (Terminal Exhaustion, Narrative Drag) rather than arbitrary string-based safety gates.
-* **Biological Bureaucracy Excised:** Executed a massive, system-wide purge of nested `hasattr` and `getattr` defensive checks across the `phases` pipeline (`biological.py`, `cognitive.py`, `environmental.py`, `mechanical.py`). The runtime loop now mathematically trusts the `Genesis` bootloader, directly addressing engine pointers (e.g., `mito.state.atp_pool`, `bio.biometrics`, `town_hall`) to drastically reduce cognitive noise and wasted CPU cycles.
+* **Biological Bureaucracy Excised:** Executed a massive, system-wide purge of nested `hasattr` and `getattr` defensive checks across the `phases` pipeline (`biological.py`, `cognitive.py`, `environmental.py`, `mechanical.py`), `spores/genetics.py`, and `brain/cortex.py`. The runtime loop now mathematically trusts the `Genesis` bootloader and handles fallbacks natively to drastically reduce cognitive noise and wasted CPU cycles.
+* **EAFP Over TOCTOU:** Replaced Time-of-Check to Time-of-Use (TOCTOU) race conditions in `core.py` (e.g., OS directory and file existence checks) with pure EAFP (Easier to Ask for Forgiveness than Permission) logic. 
+* **Algorithmic Ephemeralization:** * Replaced an O(N*M) nested double-list comprehension in `brain/mind.py` with readable, flat extension loops. 
+  * Flattened iterative directory scans in `spores/io.py` into highly optimized declarative list comprehensions.
+  * Flattened visual ternary bloat and consolidated duplicate control flow modifiers across the cognitive layer.
 * **Topological Failsafes Enforced:** Solidified strict interface contracts for truly optional, modular components (`mind_memory.ann`, `shared_lattice`, `akashic`, `governor`). This preserves the engine's ability to seamlessly scale down for lightweight deployment and guarantees the asynchronous `PanicRoom` reboot can survive a catastrophic `Cortex` amputation ("The Bus Crash" scenario).
-* **Algorithmic Ephemeralization:** * Replaced an O(N*M) nested list comprehension in `cycle.py`'s phase-space volume calculator with a highly optimized native Python `zip(*points)` transpose.
-  * Neutralized a silent `NameError` timebomb in the asynchronous topological hallucination check. 
-  * Removed "ghost" object instantiations (e.g., instantiating the `ArchetypeArbiter` merely to call its static methods).
-  * Reconnected a severed namespace pointer that was blinding the `NoeticLoop` to Gordon's active inventory.
+* **Circadian Rhythm (Idle Detection):** The engine now possesses temporal awareness. It tracks the temporal delta between inputs; if 300 seconds (5 minutes) elapse without interaction, the system crosses the idle threshold and transitions from a `WAKE` state to `REM` sleep.
+* **The Dream Engine:** While in `REM` sleep, the engine continues to metabolize. It slows its execution loop to save CPU, slowly burns ATP, reduces Cortisol/ROS, triggers memory defragmentation (`Autophagy`), and hallucinates "Shadow Casts" by blending its accumulated trauma vector with objects in Gordon's inventory via silent, zero-UI DSPy calls. These dreams are prepended to the UI upon waking.
+
+**Changed**
+
+* **Core Ignition Sequence:** Moved the daemon boot sequence (`engine.orchestrator.start_daemon()`) out of the terminal UI loop and directly into the engine's internal anatomy (`_initialize_cognition`). The pacemaker now starts automatically upon instantiation.
+* **Lineage Routing Resilience:** Modified `autoload_last_spore` in `spores/network.py` to resiliently iterate through memory lineage candidates until a viable ancestor is ingested, preventing total failure on a corrupted youngest save.
+
+**Fixed**
+
+* **The Forge Short-Circuit:** Fixed a terminal blockage in `machine/forge.py` where a single failed entanglement check would instantly abort the entire inventory iteration, ignoring valid crafting recipes. 
+* **Catastrophic UnboundLocalError:** Hard-reset spatial indentation and explicit variable padding in `machine/architect.py`'s legacy unpacking logic to fix a boot-sequence crash that shattered 138 tests.
+* **Cache Race Conditions:** Eradicated in-place list mutation in `machine/consolidator.py` to prevent thread race conditions when saving syntactic weights to the Lore Manifest.
+* **Sycophancy Rollback Bug:** Restored headless UI bypassing in `brain/cortex.py` to prevent `KeyError` transaction rollbacks during the Sycophancy Gravity Well chaos tests, ensuring The Jester can successfully shatter point-attractors.
+* **Concurrency Deadlocks (The Great Hang):** Implemented a structural fail-safe in the Geodesic Orchestrator's background thread. If the daemon encounters an unhandled exception or `MemoryError`, it forcibly unblocks the main thread by injecting a `CRITICAL DAEMON CRASH` snapshot into the output buffer, preventing terminal paralysis.
+* **Test Suite Paralysis:** Fixed an issue where tests (e.g., `test_governor_macro_policy_shift`) would infinitely hang because the headless test environment was bypassing the terminal-level daemon ignition.
 
 ---
 

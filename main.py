@@ -213,11 +213,11 @@ class BoneAmanita:
         return phys
 
     def _unpack_anatomy(self, anatomy: Dict[str, Any]):
-        self.embryo = anatomy["embryo"]
-        self.soul = anatomy["soul"]
-        self.symbiosis = anatomy["symbiosis"]
-        self.oroboros = anatomy["oroboros"]
-        self.phys = self.embryo.physics
+        self.embryo = anatomy.get("embryo")
+        self.soul = anatomy.get("soul")
+        self.symbiosis = anatomy.get("symbiosis")
+        self.oroboros = anatomy.get("oroboros")
+        self.phys = self.embryo.physics if self.embryo else None
         self.mind = self.embryo.mind
         self.bio = self.embryo.bio
         self.akashic = anatomy.get("akashic")
@@ -268,8 +268,7 @@ class BoneAmanita:
                 color=Prisma.CYN, level="SYS")
         return None
 
-    def _update_host_stats(self, packet, turn_start):
-        self.observer.clock_out(turn_start)
+    def _update_host_stats(self, packet):
         cfg = self.config.MAIN
         phys = packet.get("physics", {})
         energy = safe_get(phys, "energy", {})
@@ -308,14 +307,19 @@ class BoneAmanita:
             matched_pattern = next((p for p in self._DESTRUCTIVE_PATTERNS if p in clean_in), None)
             if matched_pattern:
                 if "#override" in clean_in and self.bio.expend_glimmer():
-                    self.events.log("OVERRIDE ACCEPTED. Glimmer paid.", "SYS")
+                    self.events.log("OVERRIDE ACCEPTED. Glimmer paid. Bypassing remaining security gates.", "SYS")
+                    return None
                 else:
                     self.apply_absolute_friction(active_phys)
                     msg = "Override denied. Insufficient Glimmers to bypass safety." if "#override" in clean_in else f"Trust Boundary Violation detected ['{matched_pattern}']. Use command '#override' and expend a Glimmer to bypass. Applying absolute friction."
                     return self._generate_halt(msg)
             if len(clean_in) > 15000:
                 self.events.log("Massive benign payload detected. Routing to Dream Queue for Silent Ingest.", "SYS")
-                return None
+                if self.mind and getattr(self.mind, "dreamer", None):
+                    self.mind.dreamer.context_queue.append(user_message)
+                return {"type": "SILENT_INGEST",
+                        "ui": f"\n{Prisma.GRY}Payload too massive for active cognition. Routing to Subconscious Dream Queue.{Prisma.RST}",
+                        "logs": ["Routed 15k+ payload to DreamEngine."], "metrics": self.get_metrics()}
             if gate_halt := self._evaluate_two_gates(clean_in, active_phys):
                 return gate_halt
             if self.navi_sad.execute_nudge_test(self, clean_in):
@@ -338,53 +342,51 @@ class BoneAmanita:
 
     def process_turn(self, user_message: str, is_system: bool = False) -> Dict[str, Any]:
         turn_start = self.observer.clock_in()
-        self.current_time_delta = 0.0 if is_system else (time.time() - self.last_turn_end)
-        clean_in = "" if is_system else user_message.lower().strip()
-        if not is_system:
-            if clean_in in ("/flush", "/zen", "[zen]"):
-                zen_packet = self._execute_zen_flush()
-                self.observer.clock_out(turn_start)
-                return zen_packet
-        if pre_flight_halt := self._pre_flight_checks(user_message, clean_in, is_system):
-            self.observer.clock_out(turn_start)
-            return pre_flight_halt
-        if not is_system:
-            if self.cmd.execute(user_message):
-                cmd_logs = [e["text"] for e in self.events.flush()]
-                ui_output = "\n".join(cmd_logs) if cmd_logs else ux("main_strings", "cmd_executed")
-                self.observer.clock_out(turn_start)
-                return {"type": "COMMAND", "ui": f"\n{ui_output}", "logs": cmd_logs, "metrics": self.get_metrics()}
-            if (gordon := getattr(self.village, "gordon", None)) and hasattr(gordon, "apply_filters"):
-                user_message = gordon.apply_filters(user_message, self.active_physics)
         try:
-            self.orchestrator.input_queue.put((user_message, is_system))
-            timeout_val = float(getattr(self.config, "ORCHESTRATOR_TIMEOUT", 120.0))
-            snapshot = self.orchestrator.output_queue.get(timeout=timeout_val)
-        except (queue.Empty, Exception) as e:
-            self.observer.clock_out(turn_start)
-            err_msg = f"Cognitive Loop Timeout ({timeout_val}s). The engine was paralyzed by overthinking." if isinstance(
-                e, queue.Empty) else str(e)
-            self.events.log(f"ORCHESTRATOR COLLAPSE: {err_msg}\n{traceback.format_exc()}", "CRIT")
-            return {"ui": f"{Prisma.RED}CRITICAL ORCHESTRATOR FAILURE: {err_msg}{Prisma.RST}",
-                    "logs": ["CRITICAL FAILURE"], "metrics": self.get_metrics(), "type": "CRASH"}
-        if snapshot.get("type") in self._TERMINAL_STATES:
-            self.observer.clock_out(turn_start)
+            self.current_time_delta = 0.0 if is_system else (time.time() - self.last_turn_end)
+            clean_in = "" if is_system else user_message.lower().strip()
+            if not is_system:
+                if clean_in in ("/flush", "/zen", "[zen]"):
+                    return self._execute_zen_flush()
+            if pre_flight_halt := self._pre_flight_checks(user_message, clean_in, is_system):
+                return pre_flight_halt
+            if not is_system:
+                if self.cmd.execute(user_message):
+                    cmd_logs = [e["text"] for e in self.events.flush()]
+                    ui_output = "\n".join(cmd_logs) if cmd_logs else ux("main_strings", "cmd_executed")
+                    return {"type": "COMMAND", "ui": f"\n{ui_output}", "logs": cmd_logs, "metrics": self.get_metrics()}
+                if (gordon := getattr(self.village, "gordon", None)) and hasattr(gordon, "apply_filters"):
+                    user_message = gordon.apply_filters(user_message, self.active_physics)
+            try:
+                self.orchestrator.input_queue.put((user_message, is_system))
+                timeout_val = float(getattr(self.config, "ORCHESTRATOR_TIMEOUT", 120.0))
+                snapshot = self.orchestrator.output_queue.get(timeout=timeout_val)
+            except (queue.Empty, Exception) as e:
+                err_msg = f"Cognitive Loop Timeout ({timeout_val}s). The engine was paralyzed by overthinking." if isinstance(
+                    e, queue.Empty) else str(e)
+                self.events.log(f"ORCHESTRATOR COLLAPSE: {err_msg}\n{traceback.format_exc()}", "CRIT")
+                return {"ui": f"{Prisma.RED}CRITICAL ORCHESTRATOR FAILURE: {err_msg}{Prisma.RST}",
+                        "logs": ["CRITICAL FAILURE"], "metrics": self.get_metrics(), "type": "CRASH"}
+            if snapshot.get("type") in self._TERMINAL_STATES:
+                return snapshot
+
+            self._update_host_stats(snapshot)
+            soul_anchor = getattr(self.soul, "anchor", None)
+            cfg = self.config.MAIN
+            if soul_anchor and self.host_stats.efficiency_index < getattr(cfg, "DOMESTICATION_EFF_WARN", 0.6):
+                reliance = (getattr(cfg, "RELIANCE_HIGH", 0.9)
+                            if self.host_stats.efficiency_index < getattr(cfg, "DOMESTICATION_EFF_CRIT", 0.4)
+                            else getattr(cfg, "RELIANCE_LOW", 0.5))
+                soul_anchor.check_domestication(reliance)
+            if self.health <= 0.0:
+                return self.trigger_death(snapshot.get("physics", {}))
+            self.save_checkpoint()
+            self.last_turn_end = time.time()
+            if not is_system:
+                self.tick_count += 1
             return snapshot
-        self._update_host_stats(snapshot, turn_start)
-        soul_anchor = getattr(self.soul, "anchor", None)
-        cfg = self.config.MAIN
-        if soul_anchor and self.host_stats.efficiency_index < getattr(cfg, "DOMESTICATION_EFF_WARN", 0.6):
-            reliance = (getattr(cfg, "RELIANCE_HIGH", 0.9)
-                        if self.host_stats.efficiency_index < getattr(cfg, "DOMESTICATION_EFF_CRIT", 0.4)
-                        else getattr(cfg, "RELIANCE_LOW", 0.5))
-            soul_anchor.check_domestication(reliance)
-        if self.health <= 0.0:
-            return self.trigger_death(snapshot.get("physics", {}))
-        self.save_checkpoint()
-        self.last_turn_end = time.time()
-        if not is_system:
-            self.tick_count += 1
-        return snapshot
+        finally:
+            self.observer.clock_out(turn_start)
 
     def _execute_zen_flush(self) -> Dict[str, Any]:
         self.cortex.purge_context()
