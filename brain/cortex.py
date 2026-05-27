@@ -14,6 +14,7 @@ from core import EventBus, TelemetryService, LoreManifest, DecisionCrystal
 from mechanics.projector import beautify_thoughts
 from mechanics.tools import RandomRetrievalNavigator, LibraryGraph
 from mechanics.pragmatics import ThePragmatist
+from mechanics.dspycritic import DSPyCritic
 from presets import BoneConfig, BonePresets
 from struts import ux, safe_get, safe_set
 
@@ -64,7 +65,6 @@ class TheCortex:
         self.composer = PromptComposer(self.svc.lore, config_ref=self.cfg)
         self.validator = ResponseValidator(self.svc.lore, config_ref=self.cfg)
         self.pragmatist = ThePragmatist(events_ref=self.events)
-        from mechanics.dspycritic import DSPyCritic
         self.dspy_critic = DSPyCritic(config_ref=self.cfg)
         self.dreamer.dspy_critic = self.dspy_critic
         if not hasattr(self.dreamer, "trauma_buffer"):
@@ -105,7 +105,7 @@ class TheCortex:
         self.last_physics.clear()
         self.dreamer.trauma_buffer.clear()
         if self.events:
-            self.events.log("[APOPTOSIS] Context array purged. Stateless bedrock re-established.", "SYS", )
+            self.events.log("Context array purged. Stateless bedrock re-established.", "SYS", )
 
     def process_context(self, ctx: Any) -> Dict[str, Any]:
         user_input = ctx.input_text
@@ -122,20 +122,18 @@ class TheCortex:
         is_boot_sequence = "SYSTEM_BOOT" in user_input
         c_cfg = safe_get(self.cfg, "CORTEX", {})
         context_limit = int(safe_get(c_cfg, "MAX_INPUT_CHARS", 15000))
-        phys_proxy = dict(ctx.physics) if isinstance(ctx.physics, dict) else (ctx.physics.to_dict() if hasattr(ctx.physics, "to_dict") else {k: v for k, v in vars(ctx.physics).items() if not k.startswith("_")})
-        sim_result = {
-            "physics": phys_proxy,
-            "bio": getattr(ctx, "bio_result", {}),
-            "mind": getattr(ctx, "mind_state", {}),
-            "world": getattr(ctx, "world_state", {}),
-            "ui": getattr(ctx, "bureau_ui", ""),
-            "logs": getattr(ctx, "logs", []),
-            "council_mandates": getattr(ctx, "council_mandates", []),
-            "dream": getattr(ctx, "last_dream", None),
-            "mutated_input": user_input,
-            "trace_id": getattr(ctx, "trace_id", "UNKNOWN"),
-            "type": getattr(ctx, "type", "SNAPSHOT")
-        }
+        if isinstance(ctx.physics, dict):
+            phys_proxy = dict(ctx.physics)
+        elif hasattr(ctx.physics, "to_dict"):
+            phys_proxy = ctx.physics.to_dict()
+        else:
+            phys_proxy = {k: v for k, v in vars(ctx.physics).items() if not k.startswith("_")}
+        sim_result = {"physics": phys_proxy, "bio": getattr(ctx, "bio_result", {}),
+                      "mind": getattr(ctx, "mind_state", {}), "world": getattr(ctx, "world_state", {}),
+                      "ui": getattr(ctx, "bureau_ui", ""), "logs": getattr(ctx, "logs", []),
+                      "council_mandates": getattr(ctx, "council_mandates", []),
+                      "dream": getattr(ctx, "last_dream", None), "mutated_input": user_input,
+                      "trace_id": getattr(ctx, "trace_id", "UNKNOWN"), "type": getattr(ctx, "type", "SNAPSHOT")}
 
         if len(user_input) > context_limit and not is_system and not is_boot_sequence:
             safe_content = user_input.replace("\n", "|||NEWLINE|||")
@@ -145,7 +143,7 @@ class TheCortex:
             s_cost = 5.0
             if self.svc.bio:
                 self.svc.bio.mito.adjust_atp(-s_cost, "Massive Context Queueing")
-            msg = f"{Prisma.CYN}[Dream Queue]: Massive context drop detected. Routed to REM cycle for deep-indexing. Dialogue buffer bypassed. (-{s_cost:.1f} ATP){Prisma.RST}"
+            msg = f"{Prisma.CYN}Massive context drop detected. Routed to REM cycle for deep-indexing. Dialogue buffer bypassed. (-{s_cost:.1f} ATP){Prisma.RST}"
             if self.events:
                 self.events.log(msg, "SYS")
             sim_result.update({"ui": msg, "type": "SILENT_INGEST"})
@@ -192,7 +190,6 @@ class TheCortex:
             if hasattr(eng, "governor"):
                 phys_state["beth_index"] = eng.governor.calculate_coupling(phi=min(1.0, dimension / 2.0), resonance_delta=resonance_delta, user_exhaustion=user_exhaust)
                 phys_state["macro_policy"] = eng.governor.get_policy_shift()
-            ##################################
 
         f_drag = float(phys_state.get("narrative_drag", 0.0))
         chi_val = float(phys_state.get("chi", phys_state.get("entropy", 0.0)))
@@ -218,18 +215,15 @@ class TheCortex:
             sim_result["type"] = "COUNTERFACTUAL_REJECTION"
             return sim_result
         modifiers = self.svc.symbiosis.get_prompt_modifiers(phys_state)
-        if not allow_loot:
+        if not allow_loot or is_boot_sequence:
             modifiers["include_inventory"] = False
         if self.consultant and self.consultant.active:
             self._apply_vsl_overlay(full_state, user_input, sim_result)
         if is_boot_sequence:
             self._apply_boot_overlay(full_state, user_input)
-            modifiers["include_inventory"] = False
         phys = full_state.get("physics", {})
         b_voltage = float(phys.get("voltage", 5.0))
-        llm_params = self.modulator.modulate(
-            base_voltage=b_voltage, latency_penalty=(getattr(self.svc.host_stats, "latency", 0.0)
-                             if self.svc.host_stats else 0.0), physics_state=phys, )
+        llm_params = self.modulator.modulate(base_voltage=b_voltage, latency_penalty=getattr(self.svc.host_stats, "latency", 0.0), physics_state=phys)
         if is_boot_sequence:
             llm_params.update({"temperature": 0.7, "top_p": 0.95})
         p_val = float(phys.get("p", 100.0))
@@ -251,7 +245,7 @@ class TheCortex:
             m.get("action") == "LEXICAL_FIREWALL_STRICT" for m in sim_result.get("council_mandates", []))
         base_prompt = final_prompt
 
-        # Load bearing getattrs
+        # LOAD BEARING ATTRIBUTE CHECKS
         eng_ref = getattr(self.svc.orchestrator, "eng", None)
         gk = getattr(eng_ref, "gatekeeper", None)
 
@@ -307,7 +301,7 @@ class TheCortex:
                 val_res = {"valid": False, "feedback_instruction":
                     f"CRITICAL FAILURE: {judge_reason}. If the user is exhausted, drastically shorten and soften your tone. Prioritize presence over output. Stay in character.", }
                 short_reason = judge_reason.split(".")[0][:60] + "..."
-                print(f" {Prisma.VIOLET}⚖️ DSPy Critic Objected: {short_reason}{Prisma.RST}")
+                print(f" {Prisma.VIOLET}⚖DSPy Critic Objected: {short_reason}{Prisma.RST}")
                 if self.events:
                     self.events.log(f"DSPy Critic Objected: {short_reason}", "SYS")
             else:
@@ -368,7 +362,7 @@ class TheCortex:
         self._update_history("SYSTEM_INIT" if is_boot_sequence else user_input, final_output)
         ui_parts = [sim_result.get("ui", "")]
         if sim_result.get("dream"):
-            ui_parts.append(f"{Prisma.VIOLET}☁️ While you were gone: {sim_result['dream']}{Prisma.RST}")
+            ui_parts.append(f"{Prisma.VIOLET}☁While you were gone: {sim_result['dream']}{Prisma.RST}")
         ui_parts.append(f"{Prisma.WHT}{beautify_thoughts(final_output)}{Prisma.RST}")
         if inv_logs:
             ui_parts.append("\n".join(inv_logs))
@@ -473,9 +467,9 @@ class TheCortex:
         try:
             affect_res = self.llm.generate(affect_prompt, {"temperature": 0.1, "max_tokens": 50}).strip()
             upper_res = affect_res.upper()
-            if "FAIL" in upper_res:
-                fail_idx = upper_res.find("FAIL")
-                judge_reason = affect_res[fail_idx + 4:].lstrip(":- ").strip()
+            if upper_res.startswith("FAIL"):
+                parts = affect_res.split("FAIL", 1)
+                judge_reason = parts[1].lstrip(":- ").strip() if len(parts) > 1 else "Unknown affective breach."
                 self.modulator.current_chem.serotonin = min(1.0, self.modulator.current_chem.serotonin + 0.20)
                 if self.events:
                     self.events.log(f"{Prisma.CYN}[AFFECTIVE GUARD]: Output was too heavy for the user. Generation blocked. Serotonin spiked to enforce calm and lucidity.{Prisma.RST}", "BIO")
@@ -624,11 +618,8 @@ class TheCortex:
             mind["role"] = mind.get("role", f"The {current_lens.title().replace('_', ' ')}")
         full_state = {"bio": bio, "physics": phys, "mind": mind, "soul": soul_data, "world": world,
                       "village": village_data, "user_profile": {"name": "Traveler"},
-                      "vsl": self.consultant.state.__dict__ if self.consultant
-                        and hasattr(self.consultant, "state") else {}, "meta": {
-                "timestamp": time.time(),
-                "mode_settings": mode_settings,
-                "active_mode": self.active_mode,
+                      "vsl": self.consultant.state.__dict__ if self.consultant and hasattr(self.consultant, "state") else {}, "meta": {
+                "timestamp": time.time(), "mode_settings": mode_settings, "active_mode": self.active_mode,
             }, "dialogue_history": self.dialogue_buffer, "recent_logs": sim_result.get("logs", []), }
         if hasattr(self.svc, "symbiosis") and self.svc.symbiosis:
             full_state["reality_directive"] = self.svc.symbiosis.generate_anchor(
@@ -712,8 +703,7 @@ class TheCortex:
         if not history:
             return
         self.dialogue_buffer = [(line.replace("User: ", "Traveler: ").replace(" | System: ",
-                                "\nSystem: ") if " | System: " in line else line)
-                                for line in history[-self.MAX_HISTORY:]]
+            "\nSystem: ") if " | System: " in line else line) for line in history[-self.MAX_HISTORY:]]
         if self.events:
             msg = ux("brain_strings", "cortex_resequenced")
             self.events.log(msg.format(count=len(self.dialogue_buffer)), "BRAIN")

@@ -218,11 +218,11 @@ class LoreManifest:
     def _load_from_disk(self, category: str) -> Optional[Dict]:
         safe_category = os.path.basename(category)
         filepath = os.path.join(self.DATA_DIR, f"{safe_category}.json")
-        if not os.path.exists(filepath):
-            return None
         try:
             with open(filepath, "r", encoding="utf-8") as f:
                 return json.load(f)
+        except FileNotFoundError:
+            return None
         except Exception as e:
             print(f"{Prisma.RED}[LORE]: Parse error in '{category}': {e}. Returning empty structure without modifying disk.{Prisma.RST}")
             return None
@@ -309,7 +309,9 @@ class TheObserver:
             return ux("core_strings", random.choice(("obs_fog", "obs_degraded", "obs_ponderous"))) or "High Cognitive Load."
         if avg_cycle > self.CYCLE_WARNING:
             return ux("core_strings", "obs_sluggish") or "System Sluggish."
-        return ux_format("core_strings", "obs_coupled", default="Harmonic Resonance: Presence Active.") if self.is_coupled else (ux("core_strings", "obs_nominal") or "Nominal.")
+        if self.is_coupled:
+            return ux_format("core_strings", "obs_coupled", default="Harmonic Resonance: Presence Active.")
+        return ux("core_strings", "obs_nominal") or "Nominal."
 
     @property
     def avg_cycle(self) -> float:
@@ -414,8 +416,8 @@ class CyberneticGovernor:
     def regulate(self, physics: Dict[str, Any], dt: float, endocrine_state: Any = None) -> Tuple[float, float]:
         if self.target_v is None or self.target_d is None:
             return 0.0, 0.0
-        current_v = float(physics.get("voltage", self.target_v))
-        current_d = float(physics.get("narrative_drag", self.target_d))
+        current_v = float(safe_get(physics, "voltage", self.target_v))
+        current_d = float(safe_get(physics, "narrative_drag", self.target_d))
         stress_modifier = 1.0
         if endocrine_state:
             glimmers = float(safe_get(endocrine_state, "glimmers", 0.0))
@@ -537,7 +539,6 @@ class TelemetryService:
             self._executor.shutdown(wait=True)
 
     def _yield_historical_records(self, file_limit=5, lines_per_file=10):
-        if not os.path.exists(self.log_dir): return
         files = sorted(glob.glob(os.path.join(self.log_dir, "trace_*.jsonl")), reverse=True)
         for fpath in files[:file_limit]:
             try:

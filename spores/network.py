@@ -431,7 +431,10 @@ class MycelialNetwork:
                 self.events.log(f"{Prisma.GRY}{msg}{Prisma.RST}")
             return None
         candidates = [f for f in files if self.session_id not in f[0]]
-        return self.ingest(candidates[0][0]) if candidates else None
+        for candidate in candidates:
+            if result := self.ingest(candidate[0]):
+                return result
+        return None
 
     def retrieve_semantic(self, trigger_word: str, query_vector: list, scope: float = 0.5,
                           resonance: float = 0.5, ) -> list:

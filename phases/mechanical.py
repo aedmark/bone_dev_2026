@@ -127,7 +127,7 @@ class MachineryPhase(SimulationPhase):
                 self.eng.bio.mito.state.membrane_potential = min(2.0, self.eng.bio.mito.state.efficiency_mod + (boost * 0.1))
         gordon = getattr(self.eng.village, "gordon", None)
         if gordon and gordon.inventory:
-            self._process_crafting(ctx, phys_dict)
+            self._process_crafting(ctx, phys_dict, gordon)
         if t_msg := self.eng.phys.forge.transmute(phys_dict): ctx.log(t_msg)
         _, f_msg, new_item = self.eng.phys.forge.hammer_alloy(phys_dict)
         if f_msg: ctx.log(f_msg)
@@ -144,12 +144,8 @@ class MachineryPhase(SimulationPhase):
         _deep_update(ctx.physics, phys_dict)
         return ctx
 
-    def _process_crafting(self, ctx, phys_dict):
-        gordon = getattr(self.eng.village, "gordon", None)
-        if not gordon:
-            return
-        is_craft, craft_msg, old_item, new_item = self.eng.phys.forge.attempt_crafting(
-            phys_dict, gordon.inventory)
+    def _process_crafting(self, ctx, phys_dict, gordon):
+        is_craft, craft_msg, old_item, new_item = self.eng.phys.forge.attempt_crafting(phys_dict, gordon.inventory)
         if is_craft:
             ctx.log(craft_msg)
             vec = ctx.physics.vector

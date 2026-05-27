@@ -52,12 +52,10 @@ class NeurotransmitterModulator:
         self.SELF_CARE_THRESHOLD = int(safe_get(cfg, "SELF_CARE_THRESHOLD", 10))
         self.starvation_ticks = 0
 
-    def modulate(self, base_voltage: float, latency_penalty: float = 0.0, physics_state: Dict[str, float] = None,
-                 simulate: bool = False) -> Dict[str, Any]:
+    def modulate(self, base_voltage: float, latency_penalty: float = 0.0, physics_state: Dict[str, float] = None, simulate: bool = False) -> Dict[str, Any]:
         if physics_state is None:
             physics_state = {}
         cfg = safe_get(self.cfg, "CORTEX", {})
-
         if not simulate:
             incoming_chem = self.bio.endo.get_state()
             decay_rate = safe_get(cfg, "BASE_DECAY_RATE", 0.1)
@@ -67,69 +65,55 @@ class NeurotransmitterModulator:
             max_plast = safe_get(cfg, "MAX_PLASTICITY", 1.0)
             plasticity = max(0.1, min(max_plast, base_plast + (base_voltage * v_sens)))
             self.current_chem.mix(incoming_chem, weight=min(0.5, plasticity))
-
             if self.current_chem.dopamine < 0.15:
                 self.starvation_ticks += 1
                 if self.starvation_ticks > self.SELF_CARE_THRESHOLD:
                     self._treat_yourself()
             else:
                 self.starvation_ticks = max(0, self.starvation_ticks - 1)
-
             lat_thresh = safe_get(cfg, "LATENCY_PENALTY_THRESHOLD", 2.0)
             if latency_penalty > lat_thresh:
                 lat_cor = safe_get(cfg, "LATENCY_CORTISOL_PENALTY", 0.1)
                 lat_adr = safe_get(cfg, "LATENCY_ADRENALINE_PENALTY", 0.05)
                 self.current_chem.cortisol = min(1.0, self.current_chem.cortisol + lat_cor)
                 self.current_chem.adrenaline = min(1.0, self.current_chem.adrenaline + lat_adr)
-
         c = self.current_chem
         current_mood = "NEUTRAL"
         mood_thresholds = safe_get(cfg, "MOOD_THRESHOLDS", safe_get(cfg, "MOOD_THRESHOLD", {"MANIC_DOP": 0.8, "PANIC_COR": 0.7, "ZEN_SER": 0.8}))
-
         if c.dopamine > mood_thresholds.get("MANIC_DOP", 0.8):
             current_mood = "MANIC"
         elif c.cortisol > mood_thresholds.get("PANIC_COR", 0.7):
             current_mood = "PANIC"
         elif c.serotonin > mood_thresholds.get("ZEN_SER", 0.8):
             current_mood = "ZEN"
-
         if current_mood != self.last_mood and self.events:
             self.events.publish("NEURAL_STATE_SHIFT", {"state": current_mood, "chem": {"DOP": c.dopamine, "COR": c.cortisol, "SER": c.serotonin}})
             self.last_mood = current_mood
-
         v_offset = safe_get(cfg, "TEMP_VOLTAGE_OFFSET", 5.0)
         v_scalar = safe_get(cfg, "TEMP_VOLTAGE_SCALAR", 0.1)
         voltage_heat = math.log1p(max(0.0, base_voltage - v_offset)) * v_scalar
         chem_weights = safe_get(cfg, "TEMP_CHEM_WEIGHTS", {"dop": 0.4, "adr": 0.3, "cor": 0.2})
-        chemical_delta = (
-                (c.dopamine * chem_weights.get("dop", 0.4)) - (c.adrenaline * chem_weights.get("adr", 0.3)) - (
-                c.cortisol * chem_weights.get("cor", 0.2)))
+        chemical_delta = ((c.dopamine * chem_weights.get("dop", 0.4)) - (c.adrenaline * chem_weights.get("adr", 0.3)) - ( c.cortisol * chem_weights.get("cor", 0.2)))
         base_temp = safe_get(cfg, "BASE_TEMP", 0.4)
         base_top_p = safe_get(cfg, "BASE_TOP_P", 0.95)
-
         chi = float(safe_get(physics_state, "chi", safe_get(physics_state, "entropy", 0.2)))
         beta = float(safe_get(physics_state, "contradiction", safe_get(physics_state, "beta_index", 0.4)))
-
         ent_offset = safe_get(cfg, "TEMP_ENTROPY_OFFSET", 0.5)
         ent_scalar = safe_get(cfg, "TEMP_ENTROPY_SCALAR", 1.5)
         entropy_bonus = max(0.0, chi - ent_offset) * ent_scalar
         t_limits = safe_get(cfg, "TEMP_LIMITS", (0.4, 1.5))
         raw_temp = base_temp + chemical_delta + voltage_heat + entropy_bonus
         final_temp = round(max(t_limits[0], min(t_limits[1], raw_temp)), 2)
-
         chi_scalar = safe_get(cfg, "TOP_P_CHI_SCALAR", 0.05)
         final_top_p = min(1.0, base_top_p + (chi * chi_scalar))
         beta_scalar = safe_get(cfg, "PEN_BETA_SCALAR", 0.3)
         chi_scalar_pen = safe_get(cfg, "PEN_CHI_SCALAR", 0.2)
         base_penalty = min(1.2, 0.5 + (beta * beta_scalar) + (chi * chi_scalar_pen))
-
         token_mods = safe_get(cfg, "TOKEN_CHEM_MODIFIERS", {"dop": 800, "adr": 400, "cor": 200})
-        token_delta = ((c.dopamine * token_mods.get("dop", 800)) - (c.adrenaline * token_mods.get("adr", 400)) - (
-                c.cortisol * token_mods.get("cor", 200)))
+        token_delta = ((c.dopamine * token_mods.get("dop", 800)) - (c.adrenaline * token_mods.get("adr", 400)) - ( c.cortisol * token_mods.get("cor", 200)))
         min_tokens = safe_get(cfg, "MIN_TOKENS", 150.0)
         raw_tokens = self.BASE_TOKENS + token_delta
         max_t = int(max(min_tokens, min(float(self.MAX_TOKENS), raw_tokens)))
-
         return {"temperature": final_temp, "top_p": final_top_p, "frequency_penalty": round(base_penalty, 2),
                 "presence_penalty": round(base_penalty, 2), "max_tokens": max_t}
 
@@ -215,15 +199,14 @@ class DreamEngine:
         dream_text = None
         is_deep_rem = False
         shift = ({"cortisol": -0.3, "dopamine": 0.1} if cortisol <= 0.6 else {"cortisol": 0.1})
-        if available_atp < 5.0:
-            if random.random() < 0.50:
-                death_hallucination, _ = self.hallucinate({"chi": 0.99, "voltage": 100.0}, trauma_level=1.0)
-                shift["atp_drain"] = available_atp + 10.0
-                shift["voltage"] = 100.0
-                fatal_msg = f"The system was too starved to enter REM. A fatal fever dream triggers an Apoptotic cascade: {death_hallucination}"
-                if self.events:
-                    self.events.log(f"{Prisma.RED}TERMINAL SLEEP FAILURE: {fatal_msg}{Prisma.RST}", "CRIT")
-                return fatal_msg, shift
+        if available_atp < 5.0 and random.random() < 0.50:
+            death_hallucination, _ = self.hallucinate({"chi": 0.99, "voltage": 100.0}, trauma_level=1.0)
+            shift["atp_drain"] = available_atp + 10.0
+            shift["voltage"] = 100.0
+            fatal_msg = f"The system was too starved to enter REM. A fatal fever dream triggers an Apoptotic cascade: {death_hallucination}"
+            if self.events:
+                self.events.log(f"{Prisma.RED}TERMINAL SLEEP FAILURE: {fatal_msg}{Prisma.RST}", "CRIT")
+            return fatal_msg, shift
         if self.context_queue:
             raw_payloads = self.context_queue
             self.context_queue = []
@@ -234,10 +217,8 @@ class DreamEngine:
             for text in raw_payloads:
                 vec = _word_to_vector(text[:50])
                 vectors.append(vec)
-                if np is not None:
-                    v_hash = hashlib.md5(np.array(vec, dtype=np.float32).tobytes()).hexdigest()[:8]
-                else:
-                    v_hash = hashlib.md5(str(vec).encode('utf-8')).hexdigest()[:8]
+                byte_data = np.array(vec, dtype=np.float32).tobytes() if np is not None else str(vec).encode('utf-8')
+                v_hash = hashlib.md5(byte_data).hexdigest()[:8]
                 metadata.append({"vector_hash": v_hash, "raw_verbatim_text": text.replace("|||NEWLINE|||", "\n"), "wing_id": "GLOBAL"})
             self.mem.cortex.add_memories(vectors, metadata)
             dream_text = f"[Deep Context Digest | {len(raw_payloads)} Bedrock Nodes Indexed | ATP: -{s_cost:.1f}]"
@@ -254,8 +235,7 @@ class DreamEngine:
                 dream_text = f"The system enters Deep REM. {nodes_moved} synaptic structures dissolve from the active cache and permanently crystallize into the deep Cerebral Cortex."
                 if self.events:
                     self.events.log(
-                        f"{Prisma.MAG}[REM CYCLE]: Synaptic Consolidation complete. {nodes_moved} nodes written to deep index. (-{atp_cost:.1f} ATP){Prisma.RST}",
-                        "SYS", )
+                        f"{Prisma.MAG}[REM CYCLE]: Synaptic Consolidation complete. {nodes_moved} nodes written to deep index. (-{atp_cost:.1f} ATP){Prisma.RST}", "SYS", )
         if self.dspy_critic and self.dspy_critic.enabled:
             if self.trauma_buffer:
                 traumas = list(self.trauma_buffer)
@@ -313,18 +293,13 @@ class DreamEngine:
                 except Exception:
                     pass
         if not dream_text:
-            dream_type = (
-                "NIGHTMARES" if cortisol > 0.6 else ("SURREAL" if chem.get("dopamine", 0) > 0.6 else "CONSTRUCTIVE"))
+            dream_type = ("NIGHTMARES" if cortisol > 0.6 else ("SURREAL" if chem.get("dopamine", 0) > 0.6 else "CONSTRUCTIVE"))
             residue = soul_snapshot.get("obsession", {}).get("title") or "The Void"
             dream_text = self._weave_dream(residue, dream_type, "SURREAL")
         if dream_text:
             try:
-                clean_seed = (re.sub(
-                    r"[^a-z]",
-                    "",
-                    soul_snapshot.get("obsession", {}).get(
-                        "title", "The Void").split()[-1].lower(),
-                ) or "echo")
+                clean_seed = (re.sub(r"[^a-z]", "", soul_snapshot.get("obsession", {}).get(
+                    "title", "The Void").split()[-1].lower(), ) or "echo")
                 self.mem.subconscious.bury_memory(clean_seed, {
                     "mass": min(10.0, 5.0 + (cortisol * 5.0))
                 })
@@ -339,8 +314,10 @@ class DreamEngine:
         if not sources:
             sources = self.dream_lore.get(subtype.upper(), ["You stare into the static."])
         if isinstance(sources, dict):
-            sources = [item for v in sources.values() for item in (v if isinstance(v, list) else [v])] or [
-                "The void stares back."]
+            flat_sources = []
+            for v in sources.values():
+                flat_sources.extend(v if isinstance(v, list) else [v])
+            sources = flat_sources or ["The void stares back."]
         if self.llm:
             lore_sample = ", ".join(random.sample(sources, min(3, len(sources))))
             k_hash = getattr(self.eng, "kernel_hash", "UNKNOWN")
@@ -376,7 +353,10 @@ class DreamEngine:
         category = "NIGHTMARES" if trauma_level > 0.5 else "SURREAL"
         templates = self.dream_lore.get(category, [])
         if isinstance(templates, dict):
-            templates = [item for v in templates.values() for item in (v if isinstance(v, list) else [v])]
+            flat_templates = []
+            for v in templates.values():
+                flat_templates.extend(v if isinstance(v, list) else [v])
+            templates = flat_templates
         if not templates:
             return "The walls breathe.", 0.1
         from mechanics.tools import TheTclWeaver

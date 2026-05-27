@@ -58,7 +58,7 @@ class MetabolismPhase(SimulationPhase):
         return ctx
 
     def _apply_economic_stimulus(self, ctx: CycleContext, efficiency: float):
-        base_cost = min(1.5, (0.8 - efficiency) * 5.0) if efficiency < 0.8 else 0.0
+        base_cost = min(1.5, max(0.0, (0.8 - efficiency) * 5.0))
         m_a = getattr(ctx.physics, "m_a", 0.0)
         mu = getattr(ctx.physics, "mu", 0.0)
         amplification_penalty = mu * math.exp(m_a)
@@ -172,9 +172,7 @@ class SensationPhase(SimulationPhase):
 
     def run(self, ctx: Any):
         phys_data = _safe_dict(ctx.physics)
-        current_latency = 0.0
-        if hasattr(self.eng, "observer") and hasattr(self.eng.observer, "last_cycle_duration"):
-            current_latency = self.eng.observer.last_cycle_duration
+        current_latency = getattr(getattr(self.eng, "observer", None), "last_cycle_duration", 0.0)
         impulse = self.synesthesia.perceive(phys_data, traits=self.eng.soul.traits, latency=current_latency)
         ctx.last_impulse = impulse
         qualia = self.synesthesia.get_current_qualia(impulse)

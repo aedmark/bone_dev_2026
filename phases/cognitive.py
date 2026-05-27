@@ -264,15 +264,23 @@ class SimulationPreflightPhase(SimulationPhase):
         self.name = "EXECUTIVE_PREFLIGHT"
 
     def _build_refusal(self, ctx, phys_obj, rtype, msg):
-        return {"type": rtype,
-                "ui": f"\n{Prisma.RED if rtype == 'COUNTERFACTUAL_REJECTION' else Prisma.CYN}{msg}{Prisma.RST}",
-                "logs": [msg], "metrics":
-                    self.eng.get_metrics() if hasattr(self.eng, "get_metrics") else {},
-                "physics": _safe_dict(phys_obj), "bio": getattr(ctx, "bio_result", {}),
-                "mind": {"lens": "EXECUTIVE", "role": "The Gatekeeper",
-                         "thought": "System rejected prompt.", "context_msg": msg},
-                "world": getattr(ctx, "world_state", {}),
-                "is_alive": rtype != "COUNTERFACTUAL_REJECTION"}
+        color = Prisma.RED if rtype == 'COUNTERFACTUAL_REJECTION' else Prisma.CYN
+        return {
+            "type": rtype,
+            "ui": f"\n{color}{msg}{Prisma.RST}",
+            "logs": [msg],
+            "metrics": getattr(self.eng, "get_metrics", lambda: {})(),
+            "physics": _safe_dict(phys_obj),
+            "bio": getattr(ctx, "bio_result", {}),
+            "mind": {
+                "lens": "EXECUTIVE",
+                "role": "The Gatekeeper",
+                "thought": "System rejected prompt.",
+                "context_msg": msg
+            },
+            "world": getattr(ctx, "world_state", {}),
+            "is_alive": rtype != "COUNTERFACTUAL_REJECTION"
+        }
 
     def run(self, ctx: Any):
         if ctx.is_system_event:
