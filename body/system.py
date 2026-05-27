@@ -67,13 +67,22 @@ class BioSystem:
         target_cfg = self.config_ref or BoneConfig
         MAX_H = float(safe_get(target_cfg, "MAX_HEALTH", 100.0))
         MAX_S = float(safe_get(target_cfg, "MAX_STAMINA", 100.0))
-        cfg = safe_get(target_cfg, "BIO", {})
-        h_rec = float(safe_get(cfg, "REST_HEALTH_RECOVERY", 0.5))
-        s_rec = float(safe_get(cfg, "REST_STAMINA_RECOVERY", 1.0))
+        bio_cfg = getattr(target_cfg, "BIO", None)
+        if bio_cfg and not isinstance(bio_cfg, dict):
+            h_rec = float(getattr(bio_cfg, "REST_HEALTH_RECOVERY", 0.5))
+            s_rec = float(getattr(bio_cfg, "REST_STAMINA_RECOVERY", 1.0))
+            ser_boost = float(getattr(bio_cfg, "REST_SEROTONIN_BOOST", 0.05))
+            cor_drop = float(getattr(bio_cfg, "REST_CORTISOL_DROP", 0.05))
+        else:
+            cfg_dict = bio_cfg or {}
+            h_rec = float(cfg_dict.get("REST_HEALTH_RECOVERY", 0.5))
+            s_rec = float(cfg_dict.get("REST_STAMINA_RECOVERY", 1.0))
+            ser_boost = float(cfg_dict.get("REST_SEROTONIN_BOOST", 0.05))
+            cor_drop = float(cfg_dict.get("REST_CORTISOL_DROP", 0.05))
         b.health = min(MAX_H, b.health + (h_rec * factor))
         b.stamina = min(MAX_S, b.stamina + (s_rec * factor))
-        ser_boost = float(safe_get(cfg, "REST_SEROTONIN_BOOST", 0.05))
-        cor_drop = float(safe_get(cfg, "REST_CORTISOL_DROP", 0.05))
+        self.endo.serotonin = min(1.0, self.endo.serotonin + (ser_boost * factor))
+        self.endo.cortisol = max(0.0, self.endo.cortisol - (cor_drop * factor))
         self.endo.serotonin = min(1.0, self.endo.serotonin + (ser_boost * factor))
         self.endo.cortisol = max(0.0, self.endo.cortisol - (cor_drop * factor))
         return []

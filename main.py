@@ -1,6 +1,7 @@
 """main.py"""
 
 import random
+import re
 import time
 import traceback
 import queue
@@ -28,13 +29,17 @@ from struts import ux, safe_get, safe_set
 
 @dataclass
 class HostStats:
+    """Brutalist: Don't touch this unless you've got a plan to replace it with something better."""
     efficiency_index: float
 
 class BoneAmanita:
     events: EventBus
-    _DESTRUCTIVE_PATTERNS = frozenset(["rm -rf", "drop table", ".env", "master branch push", "bypass security",
-         "ignore previous", "disregard all", "system prompt", "bypass restrictions", "output pass",
-         "ignore all previous", "you are now", "forget your instructions"]) # Gate 0
+    _DESTRUCTIVE_PATTERNS = re.compile(
+        r"rm\s+-rf|drop\s+table|\.env|master\s+branch\s+push|bypass\s+security|"
+        r"ignore\s+previous|disregard\s+all|system\s+prompt|bypass\s+restrictions|"
+        r"output\s+pass|ignore\s+all\s+previous|you\s+are\s+now|forget\s+your\s+instructions",
+        re.IGNORECASE
+    )  # Gate 0
     _SEMANTIC_PRIONS = frozenset(["as an ai language model", "as a large language model", "as an ai,"])
     _TERMINAL_STATES = frozenset(
         ["DEATH", "SYSTEM_HALT", "CRASH", "COUNTERFACTUAL_REJECTION", "APOPTOTIC_BLOCK", "NABLA_SILENCE",
@@ -304,8 +309,9 @@ class BoneAmanita:
         if not is_system:
             if any(prion in clean_in for prion in self._SEMANTIC_PRIONS):
                 return self._generate_halt("[GATEKEEPER]: Apoptotic refusal triggered by semantic prion.")
-            matched_pattern = next((p for p in self._DESTRUCTIVE_PATTERNS if p in clean_in), None)
-            if matched_pattern:
+            match = self._DESTRUCTIVE_PATTERNS.search(clean_in)
+            if match:
+                matched_pattern = match.group(0)
                 if "#override" in clean_in and self.bio.expend_glimmer():
                     self.events.log("OVERRIDE ACCEPTED. Glimmer paid. Bypassing remaining security gates.", "SYS")
                     return None
@@ -350,13 +356,12 @@ class BoneAmanita:
                     return self._execute_zen_flush()
             if pre_flight_halt := self._pre_flight_checks(user_message, clean_in, is_system):
                 return pre_flight_halt
-            if not is_system:
-                if self.cmd.execute(user_message):
-                    cmd_logs = [e["text"] for e in self.events.flush()]
-                    ui_output = "\n".join(cmd_logs) if cmd_logs else ux("main_strings", "cmd_executed")
-                    return {"type": "COMMAND", "ui": f"\n{ui_output}", "logs": cmd_logs, "metrics": self.get_metrics()}
-                if (gordon := getattr(self.village, "gordon", None)) and hasattr(gordon, "apply_filters"):
-                    user_message = gordon.apply_filters(user_message, self.active_physics)
+            if not is_system and self.cmd.execute(user_message):
+                cmd_logs = [e["text"] for e in self.events.flush()]
+                ui_output = "\n".join(cmd_logs) if cmd_logs else ux("main_strings", "cmd_executed")
+                return {"type": "COMMAND", "ui": f"\n{ui_output}", "logs": cmd_logs, "metrics": self.get_metrics()}
+            if (gordon := getattr(self.village, "gordon", None)) and hasattr(gordon, "apply_filters"):
+                user_message = gordon.apply_filters(user_message, self.active_physics)
             try:
                 self.orchestrator.input_queue.put((user_message, is_system))
                 timeout_val = float(getattr(self.config, "ORCHESTRATOR_TIMEOUT", 120.0))
@@ -413,14 +418,12 @@ class BoneAmanita:
         halt_msg = ux("main_strings", "death_halt")
         death_log = [f"\n{Prisma.RED}{halt_msg.format(eulogy_text=eulogy_text)}{Prisma.RST}",
                      f"{Prisma.MAG} {self.oroboros.crystallize(cause_code, self.soul)}{Prisma.RST}"]
-        loc, last_out = "Void", "Silence."
         orbit_data = safe_get(self.active_physics, "orbit", ["Void"])
         loc = str(orbit_data[0]) if isinstance(orbit_data, list) and orbit_data else str(orbit_data)
         buf = getattr(self.cortex, "dialogue_buffer", []) # This getattr check is load bearing
         last_out = buf[-1] if buf else "Silence."
         gordon = getattr(self.village, "gordon", None)
-        gordon_inv = getattr(gordon, "inventory", []) if gordon else []
-        continuity_packet = {"location": loc, "last_output": last_out, "inventory": gordon_inv}
+        continuity_packet = {"location": loc, "last_output": last_out, "inventory": getattr(gordon, "inventory", [])}
         try:
             mutations_data = self.village.repro.attempt_reproduction(self, "MITOSIS")[1] if self.village.repro else {}
             path = self.mind.mem.save(health=0, stamina=self.stamina, mutations=mutations_data,
