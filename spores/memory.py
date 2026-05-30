@@ -4,17 +4,17 @@ ORDVEC math provided by Nelson Spence and Project Navi via Apache 2.0 Licensing"
 
 import json
 import os
-import random
-import time
-import tempfile
-from collections import deque
-from typing import List, Tuple, Optional, Dict
-from core import JSONEncoder
-from struts import ux, ux_format
-from presets import BoneConfig
 import re
+import tempfile
+import time
+from collections import deque
 from typing import Any
+from typing import List, Tuple, Optional, Dict
+
+from core import JSONEncoder
+from presets import BoneConfig
 from spores.spore_utils import _word_to_vector
+from struts import ux, ux_format
 
 try:
     import numpy as np
@@ -91,10 +91,9 @@ class SubconsciousStrata:
             with open(self.filepath, "a", encoding="utf-8") as f:
                 clean_fossil["buried_at"] = time.time()
                 f.write(json.dumps(clean_fossil, cls=JSONEncoder) + "\n")
-            self.index[clean_fossil["word"]] = clean_fossil
-            fossil_data = clean_fossil
-            word = fossil_data["word"]
-            self.metadata_log.append(fossil_data)
+            word = clean_fossil["word"]
+            self.index[word] = clean_fossil
+            self.metadata_log.append(clean_fossil)
             if np is not None:
                 K = _word_to_vector(word)
                 rank_vec = self._rank_transform(K)
@@ -150,19 +149,12 @@ class SubconsciousStrata:
     def dredge_vibe(self, trigger_word: str, k: int = 3) -> list:
         """True Asymmetric Rank-Cosine Search."""
         Q = _word_to_vector(trigger_word)
-        if Q is None:
-            return []
         return self.dredge_vibe_by_vector(Q, k)
 
 class MemoryCore:
-    DIMENSION_MAP = {
-        "STR": {"heavy", "constructive", "base"},
-        "VEL": {"kinetic", "explosive", "mot"},
-        "ENT": {"antigen", "toxin", "broken"},
-        "PHI": {"thermal", "photo"},
-        "PSI": {"abstract", "sacred", "idea"},
-        "BET": {"social", "suburban", "play"},
-    }
+    DIMENSION_MAP = {"STR": {"heavy", "constructive", "base"}, "VEL": {"kinetic", "explosive", "mot"},
+                     "ENT": {"antigen", "toxin", "broken"}, "PHI": {"thermal", "photo"},
+                     "PSI": {"abstract", "sacred", "idea"}, "BET": {"social", "suburban", "play"}, }
 
     def __init__(self, events_ref, subconscious_ref, config_ref=None, lexicon_ref=None):
         self.events = events_ref
@@ -204,13 +196,12 @@ class MemoryCore:
         res_prefix = ux("spore_strings", "core_illuminate_resonant") or "Resonant"
         assoc_prefix = ux("spore_strings", "core_illuminate_associated") or "Associated"
         fmt = (ux("spore_strings", "core_illuminate_format") or "{prefix} Engram: '{name}'{conn_str}")
-        burial_batch = []
+
         for score, name, data in scored_memories[:limit]:
             connections = list(data.get("edges", {}).keys())
-            if active_dims:
-                if not data.get("is_diamond", False):
-                    data["edges"] = {k: (v if self.graph.get(k, {}).get("is_diamond", False) else v * 0.95)
-                                     for k, v in data.get("edges", {}).items()}
+            if not data.get("is_diamond", False):
+                data["edges"] = {k: (v if self.graph.get(k, {}).get("is_diamond", False) else v * 0.95)
+                                 for k, v in data.get("edges", {}).items()}
             is_resonant = score > 0.5
             current_prefix = res_prefix if is_resonant else assoc_prefix
             connection_string = f" -> [{', '.join(connections[:2])}]" if connections else ""
@@ -235,9 +226,8 @@ class MemoryCore:
 
     def hallucinate_from_subconscious(self, active_nodes: List[str]):
         """Vector Centroid Hallucination (The Deep Dredge)."""
-        if not hasattr(self.subconscious, "dredge_vibe_by_vector") or len(active_nodes) < 2 or np is None:
+        if len(active_nodes) < 2 or np is None:
             return
-
         vectors = []
         for node in active_nodes:
             vec = _word_to_vector(node)

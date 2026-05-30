@@ -112,8 +112,7 @@ class TheAkashicRecord:
         energy_layer = safe_get(p, "energy") or {}
         for short_key, (full_key, default_val) in axis_map.items():
             val = safe_get(p, short_key)
-            coords[short_key] = val if val is not None else safe_get(energy_layer, full_key,
-                                                                     cfg_defaults.get(short_key, default_val))
+            coords[short_key] = val if val is not None else safe_get(energy_layer, full_key, cfg_defaults.get(short_key, default_val))
         self.scar_map.append({"concept": concept, "coordinates": coords.copy(), "gilded": True})
         max_scars = getattr(self.cfg_akashic, "MAX_SCARS", 50)
         if len(self.scar_map) > max_scars:
@@ -138,6 +137,7 @@ class TheAkashicRecord:
                 if len(epigenetic_list) > max_items:
                     epigenetic_list.pop(0)
                 self.lore.inject("SYSTEM_PROMPTS", prompts)
+                self.lore.save("SYSTEM_PROMPTS")
                 if self.events:
                     self.events.log(f"{log_color}{log_msg}{Prisma.RST}", "SYS")
         except Exception as e:
