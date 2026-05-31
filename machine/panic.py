@@ -1,7 +1,7 @@
 """machine/panic.py"""
 
 from typing import Dict
-from struts import ux, safe_get
+from struts import ux
 from constants import Prisma
 from physics.models import PhysicsPacket
 
@@ -26,10 +26,9 @@ class PanicRoom:
                      "panic_bio_log") or "APOPTOTIC RESET: Biological parameters clamped to survival baseline."
         resp_fallback = ux("machine_strings", "panic_resp_fallback") or "NECROSIS"
         enz_fallback = ux("machine_strings", "panic_enz_fallback") or "NONE"
-        old_chem = safe_get(previous_state or {}, "chem", {})
-        retained_serotonin = max(0.2, float(safe_get(old_chem, "SER", 0.0)))
-        chem_state: Dict[str, float] = {"DOP": 0.0, "COR": 0.0, "OXY": 0.0, "SER": retained_serotonin, "ADR": 0.0,
-                                        "MEL": 0.0}
+        old_chem = (previous_state or {}).get("chem", {})
+        retained_serotonin = max(0.2, float(old_chem.get("SER", 0.0)))
+        chem_state: Dict[str, float] = {"DOP": 0.0, "COR": 0.0, "OXY": 0.0, "SER": retained_serotonin, "ADR": 0.0, "MEL": 0.0}
         return {"is_alive": True, "atp": 10.0, "respiration": resp_fallback, "enzyme": enz_fallback, "chem": chem_state,
                 "logs": [f"{Prisma.RED}{log_msg}{Prisma.RST}"], }
 

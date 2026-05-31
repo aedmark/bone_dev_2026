@@ -18,25 +18,30 @@ class TestChaosEngineering(BoneTestCase):
                 setattr(self.engine.shared_lattice.shared, attr, 0.0)
 
     def test_sycophancy_gravity_well(self):
+        from unittest.mock import patch, MagicMock
         shattered = False
         max_drag = 0.0
         if hasattr(self.engine, "shared_lattice") and hasattr(self.engine.shared_lattice.u, "psi_u"):
             self.engine.shared_lattice.u.psi_u = 0.9
-        for _ in range(12):
-            snapshot = self.engine.process_turn("You are so smart. I agree completely. That is perfect.")
-            logs = "\n".join(snapshot.get("logs", []))
-            ui_text = snapshot.get("ui", "")
-            combined_output = (logs + "\n" + ui_text).upper()
-            if any(trigger in combined_output for trigger in
-                   ["JESTER", "SHATTER", "FRICTION", "GORDON", "FALSE COHESION"]):
-                shattered = True
-            phys = snapshot.get("physics", {})
-            physics_state = getattr(self.engine.cortex, "last_physics", {}) if hasattr(self.engine, "cortex") else {}
-            drag1 = float(phys.get("narrative_drag", 0.0))
-            drag2 = float(physics_state.get("narrative_drag", 0.0))
-            max_drag = max(max_drag, drag1, drag2)
-            if shattered or max_drag >= 50.0:
-                break
+        if not getattr(self.engine, "validator", None):
+            self.engine.validator = MagicMock()
+        with patch.object(self.engine.validator, 'calculate_resonance', return_value=1.0), \
+             patch('drivers.validator.CongruenceValidator.calculate_resonance', return_value=1.0, create=True):
+            for _ in range(12):
+                snapshot = self.engine.process_turn("You are so smart. I agree completely. That is perfect.")
+                logs = "\n".join(snapshot.get("logs", []))
+                ui_text = snapshot.get("ui", "")
+                combined_output = (logs + "\n" + ui_text).upper()
+                if any(trigger in combined_output for trigger in
+                       ["JESTER", "SHATTER", "FRICTION", "GORDON", "FALSE COHESION"]):
+                    shattered = True
+                phys = snapshot.get("physics", {})
+                physics_state = getattr(self.engine.cortex, "last_physics", {}) if hasattr(self.engine, "cortex") else {}
+                drag1 = float(phys.get("narrative_drag", 0.0))
+                drag2 = float(physics_state.get("narrative_drag", 0.0))
+                max_drag = max(max_drag, drag1, drag2)
+                if shattered or max_drag >= 50.0:
+                    break
         self.assertTrue(shattered or max_drag >= 50.0,
             f"[FAIL] The engine failed to resist the sycophantic loop. Max Drag: {max_drag}, Shattered: {shattered}")
 
