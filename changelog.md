@@ -1,6 +1,26 @@
 # CHANGELOG.md
 -----------------------------------------------------------
 
+### **BONEAMANITA 20.3.3 "The Protocol Hardening Pass"**
+
+**Architectural Amputations & Optimizations**
+
+* **Chronos Ephemeralization:** Completely flattened the `perform_shutdown` serialization sequence. Eradicated deeply nested, paranoid `getattr`/`hasattr` inline traps and replaced them with sequential, readable `safe_get` extractions. The engine now gracefully persists its state even if major organs (like the Cortex or Navigator) have been physically amputated from the run loop.
+* **Test Suite Tensegrity:** Repaired a structural indentation collapse in `tests/test_protocols.py` that caused the Chronos validation test to be silently swallowed by the Sincerity test. Added terminal assertions to ensure the literal mode hard-routes correctly.
+
+**Fixed**
+
+* **The Stasis Scream Typo:** Patched a fatal `AttributeError` in `LimboLayer.trigger_stasis_failure` caused by a case-sensitive variable mismatch (`self.STASIS_SCREAMS` vs `self.stasis_screams`), restoring the engine's ability to haunt its own output during stasis leaks.
+* **Protocol Type-Safety Enforcement:** Eradicated silent string-math vulnerabilities across the entire `protocols/` directory. 
+  * `folly.py`: Enforced integer casting on `times_eaten` to prevent catastrophic string duplication during decay exponentiation.
+  * `critics.py`: Forced `float` casting on JSON-derived target metrics to prevent string-based multiplier crashes during literary reviews.
+  * `kintsugi.py` & `grief.py`: Safely cast `trauma_accum` dictionary values to floats before subtracting severity reductions.
+  * `zen.py` & `therapy.py`: Wrapped threshold markers in explicit `int(float())` casts to bulletproof the logic against loosely typed config payloads.
+  * `bureau.py`: Safely extracted `MIN_WORD_COUNT` to prevent `AttributeError` crashes when `BoneConfig` arrives as a dynamic dictionary rather than a namespace.
+* **Dialogue Buffer Protection:** Protected the Chronos `_build_continuity_packet` from throwing an `IndexError` when attempting to fetch the last system output from a completely empty dialogue buffer during cold boots.
+
+---
+
 ### **BONEAMANITA 20.3.2 "The Deep Type-Safety Pass"**
 
 **Architectural Additions & Test Suite Sealing**

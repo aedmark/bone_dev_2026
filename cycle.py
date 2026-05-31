@@ -466,6 +466,7 @@ class GeodesicOrchestrator:
             res_delta = float(getattr(ctx.shared_dyn, "delta", getattr(ctx.shared_dyn, "resonance_delta", 0.0)))
             self.eng.governor.calculate_coupling(phi_val, res_delta, u_exhaustion)
             ctx.physics.macro_policy = self.eng.governor.get_policy_shift()
+            self._evaluate_systemic_feedback(user_message if not is_system else "(Waiting)", ctx)
             ctx = self.simulator.run_simulation(ctx)
             post_logs = [e["text"] for e in self.eng.events.flush()]
             ctx.logs.extend(post_logs)
@@ -608,7 +609,6 @@ class GeodesicOrchestrator:
         ctx = self._execute_core_cycle(clean_message, is_system)
         if exit_pkt := self._check_early_exit(ctx):
             return exit_pkt
-        self._evaluate_systemic_feedback(clean_message, ctx)
         snapshot = self.reporter.render_snapshot(ctx)
         self._hydrate_snapshot_metadata(snapshot, ctx)
         if "ui" in snapshot:

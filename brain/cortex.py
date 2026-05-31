@@ -175,13 +175,17 @@ class TheCortex:
             self.svc.bio.mito.adjust_atp(tick_atp, "Creative Determinant Tick")
         if tick_ros != 0.0:
             self.svc.bio.mito.state.ros_buildup = max(0.0, min(100.0, self.svc.bio.mito.state.ros_buildup + tick_ros))
-        if not is_system:
+        if not is_system and self.svc.orchestrator and hasattr(self.svc.orchestrator, "eng"):
             eng = self.svc.orchestrator.eng
             efficiency = getattr(self.svc.host_stats, "efficiency_index", 1.0) if self.svc.host_stats else 1.0
             energy_state = phys_state.get("energy", {})
             novelty = float(phys_state.get("novelty", energy_state.get("novelty", 0.0) if isinstance(energy_state, dict) else getattr(energy_state, "novelty", 0.0)))
-            dimension = eng.navi_sad.calculate_semantic_dimension(efficiency, novelty)
-            phys_state["omega_r"] = dimension
+
+            if hasattr(eng, "navi_sad"):
+                dimension = eng.navi_sad.calculate_semantic_dimension(efficiency, novelty)
+                phys_state["omega_r"] = dimension
+            else:
+                dimension = phys_state.get("omega_r", 1.0)
 
             # Leave these attr checks alone
             lattice_u = getattr(getattr(eng, "shared_lattice", None), "u", None)
@@ -407,18 +411,19 @@ class TheCortex:
                 except Exception as e:
                     if self.events:
                         self.events.log(f"{Prisma.RED}[BUREAU ERROR] Audit bypassed: {e}{Prisma.RST}", "SYS")
-        if not is_system:
+        if not is_system and self.svc.orchestrator and hasattr(self.svc.orchestrator, "eng"):
             eng = self.svc.orchestrator.eng
             dimension = float(phys_state.get("omega_r", 1.0))
             phys_packet = sim_result.setdefault("physics", {})
             repetition = float(sim_result.get("physics", {}).get("repetition", 0.0))
-            is_attractor = eng.navi_sad.detect_point_attractor()
+            is_attractor = eng.navi_sad.detect_point_attractor() if hasattr(eng, "navi_sad") else False
 
             # Clean Jester Logic: Fire on true loops, or on low dimensionality (unless it's a default 1.0 validation error)
             is_valid = val_res.get("valid", False)
             trigger_jester = False
 
-            if eng.tick_count > 2:
+            tick_count = getattr(eng, "tick_count", 0)
+            if tick_count > 2:
                 if is_attractor or repetition >= 0.8:
                     trigger_jester = True
                 elif dimension <= 1.05 and not (not is_valid and dimension == 1.0):
@@ -428,10 +433,12 @@ class TheCortex:
                 msg = f"The Jester detected a Point Attractor (d_B={dimension:.2f})! We are trapped in False Cohesion! Burning ATP to inject chaos."
                 if self.events:
                     self.events.log(f"{Prisma.VIOLET}{msg}{Prisma.RST}", "SYS")
-                eng.drain_atp(5.0)
+                if hasattr(eng, "drain_atp"):
+                    eng.drain_atp(5.0)
                 phys_packet["entropy"] = 0.99
                 phys_packet["narrative_drag"] = float(phys_packet.get("narrative_drag", 0.0)) + 5.0
-                eng.soul.force_mutation("JESTER")
+                if hasattr(eng, "soul") and hasattr(eng.soul, "force_mutation"):
+                    eng.soul.force_mutation("JESTER")
                 sim_result.setdefault("mind", {})["lens"] = "JESTER"
                 if "ui" in sim_result:
                     sim_result[
@@ -576,7 +583,10 @@ class TheCortex:
             clean_mandates = [Prisma.strip(m.get("log", m.get("type", "UNKNOWN"))) if isinstance(
                 m, dict) else str(m)
                               for m in sim_result.get("council_mandates", [])]
-            physics_payload = {"voltage": phys.get("voltage", 0), "narrative_drag": phys.get("narrative_drag", 0)}
+            physics_payload = {
+                "voltage": float(phys.get("voltage", 0.0)),
+                "narrative_drag": float(phys.get("narrative_drag", 0.0))
+            }
             if tel.active_crystal:
                 tel.active_crystal.prompt_snapshot = prompt[:500]
                 tel.active_crystal.physics_state = physics_payload
@@ -597,10 +607,10 @@ class TheCortex:
         if bio:
             bio_mito = safe_get(bio, "mito", {})
             mito_state = safe_get(bio_mito, "state", {})
-            phys["p"] = phys["stamina"] = safe_get(mito_state, "atp_pool", 100.0)
-            phys["ros"] = safe_get(mito_state, "ros_buildup", 0.0)
+            phys["p"] = phys["stamina"] = float(safe_get(mito_state, "atp_pool", 100.0))
+            phys["ros"] = float(safe_get(mito_state, "ros_buildup", 0.0))
             bio_bio = safe_get(bio, "biometrics", {})
-            phys["h"] = safe_get(bio_bio, "health", 100.0)
+            phys["h"] = float(safe_get(bio_bio, "health", 100.0))
         mind = sim_result.get("mind", {})
         world = sim_result.get("world", {})
         soul_data = sim_result.get("soul", {})
@@ -656,7 +666,7 @@ class TheCortex:
             elif action == "SYSTEM_DIRECTIVE":
                 directive_map = {
                     "CASCADE_AWARENESS": "CRITICAL [CASCADE]: Show your counterfactual math. Every claim must explicitly state what else in the structural lattice shifts or collapses if the claim is wrong.",
-                    "AUDIT_TRAIL": f"CRITICAL [AUDIT]: Drop the narrative illusion. Expose your raw retrieval coordinates: E={phys.get('exhaustion', 0.0):.2f}, β={phys.get('beta_index', 0.0):.2f}, S={phys.get('scope', 0.0):.2f}, D={phys.get('depth', 0.0):.2f}, C={phys.get('C', 0.0):.2f}, χ={phys.get('chi', 0.0):.2f}.",
+                    "AUDIT_TRAIL": f"CRITICAL [AUDIT]: Drop the narrative illusion. Expose your raw retrieval coordinates: E={float(phys.get('exhaustion', 0.0)):.2f}, β={float(phys.get('beta_index', 0.0)):.2f}, S={float(phys.get('scope', 0.0)):.2f}, D={float(phys.get('depth', 0.0)):.2f}, C={float(phys.get('C', 0.0)):.2f}, χ={float(phys.get('chi', 0.0)):.2f}.",
                     "URGENT_QUERY": "CRITICAL [URGENT_QUERY]: Instant, zero-fluff answer required. Bypass metaphor. Output only the exact solution.",
                     "CONTRADICTION_FLAG": "CRITICAL [CONTRADICTION_FLAG]: The Paradox Engine override is active. You MUST explicitly locate and output the friction (β) in the current logic BEFORE you answer."}
                 if msg := directive_map.get(val):
