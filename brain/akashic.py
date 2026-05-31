@@ -67,9 +67,9 @@ class TheAkashicRecord:
             target = None
             lowest_b = float('inf')
             for node_key, node_data in active_strata.index.items():
-                kappa = float(safe_get(node_data, "mass", safe_get(node_data, "kappa", 1.0)))
-                gamma = float(safe_get(node_data, "resonance", safe_get(node_data, "gamma", 0.5)))
-                mu = float(safe_get(node_data, "contradiction", safe_get(node_data, "beta", 0.5)))
+                kappa = float(node_data.get("mass", node_data.get("kappa", 1.0)))
+                gamma = float(node_data.get("resonance", node_data.get("gamma", 0.5)))
+                mu = float(node_data.get("contradiction", node_data.get("beta", 0.5)))
                 b = (kappa * gamma) - mu
                 if b < lowest_b:
                     lowest_b = b
@@ -111,8 +111,9 @@ class TheAkashicRecord:
         coords = {}
         energy_layer = safe_get(p, "energy") or {}
         for short_key, (full_key, default_val) in axis_map.items():
-            val = safe_get(p, short_key)
-            coords[short_key] = val if val is not None else safe_get(energy_layer, full_key, cfg_defaults.get(short_key, default_val))
+            val = p.get(short_key) if isinstance(p, dict) else getattr(p, short_key, None)
+            coords[short_key] = val if val is not None else energy_layer.get(full_key,
+                                                                             cfg_defaults.get(short_key, default_val))
         self.scar_map.append({"concept": concept, "coordinates": coords.copy(), "gilded": True})
         max_scars = getattr(self.cfg_akashic, "MAX_SCARS", 50)
         if len(self.scar_map) > max_scars:

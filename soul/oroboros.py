@@ -48,8 +48,8 @@ class TheOroboros:
                 self.generation_count = data.get("generation", 0)
                 self.scars = [Scar(**s) for s in data.get("scars", [])]
                 self.myths = [Myth(**m) for m in data.get("myths", [])]
-            msg = ux("soul_strings", "oroboros_gen_loaded")
-            print(f"{Prisma.VIOLET}{msg.format(gen=self.generation_count)}{Prisma.RST}")
+            if msg := ux_format("soul_strings", "oroboros_gen_loaded", gen=self.generation_count):
+                print(f"{Prisma.VIOLET}{msg}{Prisma.RST}")
         except Exception as e:
             print(f"{Prisma.RED}[OROBOROS]: Legacy state corrupted or missing. Starting fresh. ({e}){Prisma.RST}")
 

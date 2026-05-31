@@ -157,11 +157,12 @@ class MemoryConsolidator:
         if max_nodes < 1:
             return 0, 0.0
         pending_nodes = self.hippocampus.extract_for_consolidation(limit=max_nodes)
-        vectors = [n["vector"] for _, n in pending_nodes if "vector" in n]
-        payloads = [
-            {"id": k, "vector_hash": n.get("phantom", {}).get("vector_hash", ""), **n.get("meta", {})}
-            for k, n in pending_nodes if "vector" in n
-        ]
+        vectors, payloads = [], []
+        for k, n in pending_nodes:
+            if "vector" in n:
+                vectors.append(n["vector"])
+                payloads.append(
+                    {"id": k, "vector_hash": n.get("phantom", {}).get("vector_hash", ""), **n.get("meta", {})})
         if not vectors:
             return 0, 0.0
         self.cortex.add_memories(vectors, payloads)

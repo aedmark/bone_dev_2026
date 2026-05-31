@@ -118,12 +118,7 @@ class TheCortex:
         is_boot_sequence = "SYSTEM_BOOT" in user_input
         c_cfg = safe_get(self.cfg, "CORTEX", {})
         context_limit = int(safe_get(c_cfg, "MAX_INPUT_CHARS", 15000))
-        if isinstance(ctx.physics, dict):
-            phys_proxy = dict(ctx.physics)
-        elif hasattr(ctx.physics, "to_dict"):
-            phys_proxy = ctx.physics.to_dict()
-        else:
-            phys_proxy = {k: v for k, v in vars(ctx.physics).items() if not k.startswith("_")}
+        phys_proxy = ctx.physics if isinstance(ctx.physics, dict) else (ctx.physics.to_dict() if hasattr(ctx.physics, "to_dict") else vars(ctx.physics).copy())
         sim_result = {"physics": phys_proxy, "bio": getattr(ctx, "bio_result", {}),
                       "mind": getattr(ctx, "mind_state", {}), "world": getattr(ctx, "world_state", {}),
                       "ui": getattr(ctx, "bureau_ui", ""), "logs": getattr(ctx, "logs", []),
@@ -674,9 +669,9 @@ class TheCortex:
         if scope_val > 0.6 or depth_val > 0.6:
             if scope_val > 0.8:
                 phys["lateral_search"] = True
-            if cortex_mem and getattr(cortex_mem, "is_trained", False) and query_vec: # This getattr is load bearing
+            if cortex_mem and getattr(cortex_mem, "is_trained", False) and query_vec:  # This getattr is load bearing
                 ordered_keys = ["STR", "VEL", "PSI", "ENT", "PHI", "BET", "DEL", "E"]
-                q_list = [float(safe_get(query_vec, k, 0.0)) for k in ordered_keys]
+                q_list = [float(query_vec.get(k, 0.0)) for k in ordered_keys]
                 shadow_nodes = cortex_mem.query_neighborhood(q_list, k=2, resonance_threshold=max(0.2, 0.8 - omega_r), physics_state=phys)
             if not shadow_nodes and hasattr(self.svc.mind_memory, "graph") and self.svc.mind_memory.graph:
                 keys = list(self.svc.mind_memory.graph.keys())
