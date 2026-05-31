@@ -432,11 +432,20 @@ class GeodesicOrchestrator:
             ctx = CycleContext(input_text=user_message, is_system_event=is_system)
             ctx.trace_id = cycle_id
             raw_delta = self.eng.current_time_delta
-            expected_reading_time = getattr(self.eng, "last_output_length", 0) / 4.0  # ~250 WPM
-            ctx.time_delta = max(0.1, raw_delta - expected_reading_time)
+            expected_reading_time = getattr(self.eng, "last_output_length", 0) / 4.0
+            calculated_delta = raw_delta - expected_reading_time
             lattice = self.eng.shared_lattice
             ctx.user_state = lattice.u
             ctx.shared_dyn = lattice.shared
+            # --- [ BEGIN: DYNAMIC DT WIRING ] ---
+            # Extract user exhaustion from the shared lattice
+            u_exhaustion = float(getattr(ctx.user_state, "E_u", getattr(ctx.user_state, "E", 0.0)))
+            # Dynamic ceiling: Fresh host (E=0.0) gives a max dt of 5.0s.
+            # Exhausted host (E=1.0) shrinks max dt down to 1.5s.
+            # This forces the PDE to integrate at a gentler, more stable pace when you are tired.
+            dynamic_ceiling = max(1.5, 5.0 - (u_exhaustion * 3.5))
+            ctx.time_delta = min(dynamic_ceiling, max(0.1, calculated_delta))
+            # --- [ END: DYNAMIC DT WIRING ] ---
             ctx.limits = _safe_dict(self.eng.config.CYCLE)
             active_phys = self.eng.active_physics
             if isinstance(active_phys, PhysicsPacket):
@@ -472,6 +481,37 @@ class GeodesicOrchestrator:
             res_delta = float(getattr(ctx.shared_dyn, "delta", getattr(ctx.shared_dyn, "resonance_delta", 0.0)))
             self.eng.governor.calculate_coupling(phi_val, res_delta, u_exhaustion)
             ctx.physics.macro_policy = self.eng.governor.get_policy_shift()
+
+            # --- [ BEGIN: CREATIVE DETERMINANT WIRING ] ---
+            import numpy as np
+
+            # Extract the active mode flags as the target tensor
+            raw_vector = getattr(ctx.physics, "vector", {})
+            if raw_vector:
+                goal_vec = np.array(list(raw_vector.values()), dtype=np.float32)
+            else:
+                goal_vec = np.zeros(7, dtype=np.float32)
+
+            phys_dict = ctx.physics.__dict__ if hasattr(ctx.physics, "__dict__") else ctx.physics
+
+            dv, dd = self.eng.governor.regulate(
+                physics=phys_dict,
+                dt=ctx.time_delta,
+                goal_vector=goal_vec,
+                endocrine_state=getattr(self.eng.bio, "endo", None) if hasattr(self.eng, "bio") else None
+            )
+
+            # Warp the physics immediately before it gets handed to the LLM
+            ctx.physics.voltage = max(0.0, float(getattr(ctx.physics, "voltage", 0.0)) + dv)
+            ctx.physics.narrative_drag = max(0.0, float(getattr(ctx.physics, "narrative_drag", 0.0)) + dd)
+
+            # Feed lambda_1 into the Telemetry Crystal (CD PROTOCOL)
+            if hasattr(self.eng.governor, "last_lam1"):
+                # Bind anonymous lambdas to satisfy the expected Telemetry interface
+                ctx.physics.get_principal_eigenvalue = lambda: self.eng.governor.last_lam1
+                ctx.physics.get_creative_drive = lambda: getattr(self.eng.governor, "last_a", 0.0)
+                ctx.physics.get_viability_potential = lambda: getattr(self.eng.governor, "last_b", 0.0)
+            # --- [ END: CREATIVE DETERMINANT WIRING ] ---
             self._evaluate_systemic_feedback(user_message if not is_system else "(Waiting)", ctx)
             ctx = self.simulator.run_simulation(ctx)
             post_logs = [e["text"] for e in self.eng.events.flush()]
@@ -559,26 +599,26 @@ class GeodesicOrchestrator:
                 self.voltage_history.append(float(getattr(ctx.physics, "voltage", 0.0)))
             if cortex and self.eng.tick_count % 3 == 0:
                 self._async_pool.submit(_bg_wls_check, clean_message)
-            # [navi-SAD PROTOCOL]: Calculate Permutation Entropy & Takens Volume
-            try:
-                v_history = list(self.voltage_history)
-                if len(v_history) >= 10:
-                    recent_v = v_history[-10:]
-                    v_diff = [recent_v[i] - recent_v[i - 1] for i in range(1, len(recent_v))]
-                    pe = _native_permutation_entropy(v_diff, m=3, tau=1, epsilon=1e-5)
-                    vol = _native_takens_volume(v_diff, m=3, tau=1)
-                    if pe < 0.4 or vol < 0.05:
-                        self.eng.events.log(
-                            f"{Prisma.RED}[NAVI-SAD] Point Attractor Detected. Permutation Entropy critical (PE={pe:.2f}). Conversation is sycophantic. Summoning THE JESTER.{Prisma.RST}",
-                            "CRIT")
-                        ctx.council_mandates.append(
-                            {"action": "SYNERGY_FIRED", "value": "JESTER", "log": "Sycophancy Loop Shattered."})
-                        if ctx.physics:
-                            ctx.physics.entropy = min(1.0, float(getattr(ctx.physics, "entropy", 0.0)) + 0.6)
-            except Exception as e:
-                self.eng.events.log(f"Async navi-SAD Evaluation Error: {e}", "DEBUG")
+                # [navi-SAD PROTOCOL]: Calculate Permutation Entropy & Takens Volume
+                try:
+                    v_history = list(self.voltage_history)
+                    has_active_tags = any(ctx.physics.vector.values()) if getattr(ctx.physics, "vector", None) else False
+                    if len(v_history) >= 10 and has_active_tags:
+                        recent_v = v_history[-10:]
+                        v_diff = [recent_v[i] - recent_v[i - 1] for i in range(1, len(recent_v))]
+                        pe = _native_permutation_entropy(v_diff, m=3, tau=1, epsilon=1e-5)
+                        vol = _native_takens_volume(v_diff, m=3, tau=1)
+                        if pe < 0.4 or vol < 0.05:
+                            self.eng.events.log(
+                                f"{Prisma.RED}[NAVI-SAD] Point Attractor Detected. Permutation Entropy critical (PE={pe:.2f}). Conversation is sycophantic. Summoning THE JESTER.{Prisma.RST}",
+                                "CRIT")
+                            ctx.council_mandates.append(
+                                {"action": "SYNERGY_FIRED", "value": "JESTER", "log": "Sycophancy Loop Shattered."})
+                            if ctx.physics:
+                                ctx.physics.entropy = min(1.0, float(getattr(ctx.physics, "entropy", 0.0)) + 0.6)
+                except Exception as e:
+                    self.eng.events.log(f"Async navi-SAD Evaluation Error: {e}", "DEBUG")
             return
-
         atp_level = float(mito_state.atp_pool)
         delta_level = float(self.eng.shared_lattice.shared.delta)
         debt = float(getattr(ctx.physics, "coherence_debt", 0.0))

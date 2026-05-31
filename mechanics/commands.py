@@ -126,10 +126,11 @@ class CommandRegistry:
         self.help_text[name] = help_str
 
     def execute(self, text: str) -> bool:
+        clean_text = text.strip()
         try:
-            parts = shlex.split(text)
+            parts = shlex.split(clean_text)
         except ValueError:
-            parts = text.split()
+            parts = clean_text.split()
         if not parts:
             return True
         cmd = parts[0].lower()

@@ -1,7 +1,32 @@
 # CHANGELOG.md
 -----------------------------------------------------------
 
-### **BONEAMANITA 20.4.0 "The Fractal Synthesis"**
+### **BONEAMANITA 20.4.0 "The Brutalist Excision"**
+
+**Architectural Amputations & Optimizations**
+
+- **Paranoid Wrapper Purge (The Brutalist Lens):** Systematically eradicated `safe_get()` and `hasattr()` bloat across the `machine`, `drivers`, `archetypes`, and `brain` clusters. Enforced native CPython dictionary lookups (`.get()` and `[]`), vastly reducing recursive evaluation overhead and forcing strict C-level data topologies.
+- **Hypervisor Feedback Centralization (The Meadows Lens):** Excised deeply nested, redundant biometric clamps and double-hits across all simulation phases (`phases/*`). Re-routed all metabolism, health, and stamina modifications through centralized hypervisor control gates (`self.eng.health`, `self.eng.stamina`, `self.eng.set_atp()`).
+- **High-Frequency Config Caching:** Eliminated continuous, per-tick config lookups in tightly coupled loops. The `NeurotransmitterModulator` and `SyntaxModule` now compress their thresholds into C-native bound dictionaries (`self.b` and `self.bounds`) exclusively upon initialization.
+- **Vocabulary Matrix Compilation:** The `CongruenceValidator` now caches compiled archetype vocabularies and keyword sets dynamically, eliminating redundant comma-separated string parsing on every cycle tick.
+- **Topological Array Compression:** Re-engineered list comprehension paths in `MemoryConsolidator` (REM sleep) and `TraitVector` normalization to utilize single-pass operations, excising O(2N) redundant memory re-allocations.
+- **EventBus Lock Bottleneck:** Stripped paranoid threading locks (`with self._lock:`) from natively atomic CPython operations (`dict.get` and `deque.append`), clearing a major Global Interpreter Lock (GIL) traffic jam during narrative crystallization.
+
+**Added**
+
+- **Strict Boundary Test Suites:** Deployed robust, dedicated test substrates (`test_phases.py`, `test_machine.py`, `test_soul.py`, `test_brain.py`) to mathematically lock down our new dictionary contracts, cache matrices, and hypervisor clamping boundaries, ensuring the substrate cannot regress into loose typing.
+
+**Fixed**
+
+- **Fragile String Topology (The Fuller Lens):** Replaced blind `.format()` calls across the `soul` and `drivers` modules with robust `ux_format()` wrappers, sealing massive crash vulnerabilities caused by missing UI strings in the Lore configurations.
+- **Forensic Cycle Memory Preservation:** Fixed the exception handler in `GeodesicOrchestrator._execute_core_cycle` so it no longer destroys the active `CycleContext` (timestamp, trace ID, is_system_event) when spawning a crash report.
+- **Headless Test Stochastic Noise:** Hardened headless test loops (`test_chaos_engineering.py`, `test_machine.py`) against random probability failures by injecting deterministic mocks and explicitly cranking simulation voltages to bypass stochastic noise.
+- **Akashic Blindspots:** Sealed a fatal initialization blindspot in `TheAkashicRecord` by wrapping all logging traces in `if self.events:` checks to support headless booting. Additionally fixed a nested dictionary extraction flaw during `record_scar` execution.
+- **Initialization Topological Contradiction:** Fixed a boot sequence error in `main.py` where the Orchestrator was being bound to the Cortex prematurely.
+
+---
+
+### **BONEAMANITA 20.3.5 "The Fractal Synthesis"**
 
 **Architectural Amputations & Optimizations**
 

@@ -12,15 +12,26 @@ from collections import deque, Counter
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from typing import List, Dict, Any, Optional, Tuple
-
+import numpy as np
 from constants import Prisma, RealityLayer
 from physics.models import PhysicsPacket, UserInferredState, SharedDynamics
 from presets import BoneConfig
 from struts import ux, ux_format, safe_get
 
+try:
+    from cd import (
+        solve_1d_picard,
+        viability_threshold_1d,
+        principal_eigenvalue_1d,
+        check_convergence,
+        solution_type,
+    )
+    CD_AVAILABLE = True
+except ImportError:
+    CD_AVAILABLE = False
 
 class JSONEncoder(json.JSONEncoder):
-    """Leave this alone, SLASH"""
+    """Leave this alone unless you know what you're doing"""
     def default(self, o):
         if isinstance(o, (set, deque)):
             return list(o)
@@ -391,44 +402,135 @@ class RealityStack:
                 "allow_commands": d >= RealityLayer.SIMULATION, "allow_meta": d >= RealityLayer.DEBUG,
                 "raw_output": d == RealityLayer.DEEP_CX, "system_override": d == RealityLayer.DEBUG}
 
+
 class CyberneticGovernor:
+    """
+    Upgraded to Nelson's CD (Creative Determinant) PDE Governor.
+    Falls back to passive PID if the navi-creative-determinant library is missing.
+    """
+
     def __init__(self, config_ref=None):
-        self.target_d = None
+        self.cfg = config_ref
+
+        # Legacy PID anchors
         self.target_v = None
-        self.cfg = config_ref or BoneConfig
+        self.target_d = None
         self.beth_index, self.order = 0.5, 1
 
+        # PDE/CD Parameters
+        self.N = 64
+        self.L = 1.0
+        self.c = 10.0
+        self.beta_scale = 1.2
+        self.last_lam1 = 0.0
+        self.last_sol = 'trivial'
+        self.last_a = 0.0
+        self.last_b = 0.0
+
+        if CD_AVAILABLE:
+            self._beta_star_unit = viability_threshold_1d(self.L, b=1.0)
+        else:
+            self._beta_star_unit = 0.0
+
     def calculate_coupling(self, phi: float, resonance_delta: float, user_exhaustion: float) -> float:
+        # Legacy user-state tracker (preserved so GeodesicOrchestrator doesn't crash)
         coherence_debt = (user_exhaustion ** 1.5) * (1.0 - phi)
         self.beth_index = max(0.0, min(1.0, (phi * 0.6) + (user_exhaustion * 0.4) + (coherence_debt * 0.3)))
         self.order = 2 if self.beth_index >= 0.75 or (resonance_delta > 0.3 and user_exhaustion > 0.5) else 1
         return self.beth_index
 
     def get_policy_shift(self) -> str:
+        # Legacy biological override: Always force CO_REGULATION during critical tension
         if self.order == 2:
             return "CO_REGULATION"
+
+        if CD_AVAILABLE:
+            # Macro policy is governed by the principal eigenvalue
+            if self.last_lam1 < 0 or self.last_sol == 'nontrivial':
+                return 'CO_REGULATION'
+            return 'EFFICIENCY'
+
         return "EFFICIENCY"
 
     def recalibrate(self, target_voltage: float, target_drag: float):
         self.target_v = target_voltage
         self.target_d = target_drag
 
-    def regulate(self, physics: Dict[str, Any], dt: float, endocrine_state: Any = None) -> Tuple[float, float]:
-        if self.target_v is None or self.target_d is None:
-            return 0.0, 0.0
-        current_v = float(safe_get(physics, "voltage", self.target_v))
-        current_d = float(safe_get(physics, "narrative_drag", self.target_d))
+    def regulate(self, physics: Dict[str, Any], dt: float, goal_vector: Optional[np.ndarray] = None,
+                 endocrine_state: Any = None) -> Tuple[float, float]:
+
+        # [CRITICAL SHIELD]: Fall back to PID if CD is unavailable, OR if the goal vector is empty.
+        # This prevents the PDE from actively squashing emergent drag during Point Attractors.
+        if not CD_AVAILABLE or goal_vector is None or not np.any(goal_vector):
+            return self._pid_fallback(physics, dt, endocrine_state)
+
+        voltage = float(safe_get(physics, 'voltage', 30.0))
+        drag = float(safe_get(physics, 'narrative_drag', 0.6))
+
+        # Viability field b(x): Spatially varying, shaped by intent vectors
+        g = np.array(goal_vector, dtype=np.float32).flatten()
+        g_norm = np.linalg.norm(g)
+        g_unit = g / g_norm if g_norm > 1e-8 else np.ones(len(g)) / np.sqrt(len(g))
+
+        x_g = np.linspace(0, 1, len(g_unit))
+        x_n = np.linspace(0, 1, self.N)
+        b_field = np.interp(x_n, x_g, np.abs(g_unit))
+        b_mean = float(b_field.mean())
+
+        # Creative drive maps to physical voltage
+        a_scalar = float(np.clip((voltage - 30.0) / 70.0, 0.0, 1.0))
+        self.last_b = b_mean
+        self.last_a = a_scalar
+        beta_star = float(self._beta_star_unit) * b_mean
+        beta_b = self.beta_scale * beta_star * (1.0 + drag)
+
+        try:
+            x, Phi, info = solve_1d_picard(
+                L=self.L, N=self.N, a=a_scalar, beta_b=beta_b, c=self.c
+            )
+            converged = check_convergence(info)[0]
+            sol = solution_type(info)
+
+            # Eigenvalue extracts systemic tension mathematically
+            lam1 = principal_eigenvalue_1d(self.L, b=b_mean)
+            self.last_lam1 = float(lam1)
+            self.last_sol = sol
+
+            if not converged:
+                return self._pid_fallback(physics, dt, endocrine_state)
+
+            phi_mean = float(np.mean(np.abs(Phi)))
+            phi_std = float(np.std(Phi))
+
+            target_v = 30.0 + phi_mean * 70.0
+            target_d = float(np.clip(phi_std * 2.0, 0.1, 1.0))
+
+            stress_mod = 1.0
+            if endocrine_state:
+                glimmers = float(getattr(endocrine_state, 'glimmers', 0))
+                stress_mod = 1.5 if glimmers >= 1 else 0.75
+
+            adjusted_dt = dt * 0.5 * stress_mod
+            return (target_v - voltage) * adjusted_dt, (target_d - drag) * adjusted_dt
+
+        except Exception:
+            return self._pid_fallback(physics, dt, endocrine_state)
+
+    def _pid_fallback(self, physics: Dict[str, Any], dt: float, endocrine_state: Any = None) -> Tuple[float, float]:
+        active_tv = self.target_v if self.target_v is not None else 30.0
+        active_td = self.target_d if self.target_d is not None else 0.6
+        current_v = float(safe_get(physics, "voltage", active_tv))
+        current_d = float(safe_get(physics, "narrative_drag", active_td))
         stress_modifier = 1.0
         if endocrine_state:
             glimmers = float(safe_get(endocrine_state, "glimmers", 0.0))
             stress_modifier = 1.5 if glimmers >= 1 else 0.75
         adjusted_dt = dt * 0.5 * stress_modifier
-        return (self.target_v - current_v) * adjusted_dt, (self.target_d - current_d) * adjusted_dt
+        return (active_tv - current_v) * adjusted_dt, (active_td - current_d) * adjusted_dt
 
 class ArchetypeArbiter:
     @staticmethod
-    def arbitrate(physics_lens: str, soul_archetype: str, council_mandates: List[Dict],
-                  trigram: Any = None) -> Tuple[str, str, str]:
+    def arbitrate(physics_lens: str, soul_archetype: str, council_mandates: List[Dict], trigram: Any = None) -> Tuple[str, str, str]:
         mandate_types = {m.get("type", m.get("action")) for m in (council_mandates or [])}
         if "LOCKDOWN" in mandate_types:
             return "THE CENSOR", "COUNCIL", ux("core_strings", "arb_martial_law") or "Martial Law."
@@ -436,16 +538,12 @@ class ArchetypeArbiter:
             return "THE MACHINE", "COUNCIL", ux("core_strings", "arb_bureaucratic") or "[COUNCIL]: Bureaucratic Override active."
         if soul_archetype and "/" in soul_archetype:
             return soul_archetype, "SOUL", ux_format("core_strings", "arb_diamond", soul_archetype=soul_archetype, default=f"Gestalt Resonance: {soul_archetype}")
-
         manifest = LoreManifest.get_instance()
-        # [Meadows Protocol]: Ensure trigram resolves safely against loosely typed payloads
         tri_name = trigram.get("name") if isinstance(trigram, dict) else str(trigram) if trigram else None
-
         if tri_name and (meta_resonance := manifest.get("NARRATIVE_DATA", "_META_RESONANCE_")):
             for r in meta_resonance:
                 if r.get("trigram") == tri_name and r.get("lens", physics_lens) == physics_lens and r.get("soul", soul_archetype) == soul_archetype:
                     return r["result"], r.get("source", "COSMIC"), r.get("msg") or ux("core_strings", "arb_resonance") or "Cosmic Resonance."
-
         if physics_lens in (manifest.get("COUNCIL_DATA", "LOUD_LENSES") or ("THE MANIC", "THE VOID")):
             return physics_lens, "PHYSICS", ux_format("core_strings", "arb_loud", physics_lens=physics_lens, default=f"Physics Override: {physics_lens}")
         return soul_archetype, "SOUL", ux("core_strings", "arb_soul") or "The soul speaks."

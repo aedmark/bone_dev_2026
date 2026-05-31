@@ -96,10 +96,23 @@ class GordonKnot:
                     msg = ux("gordon_strings", "premise_loc")
                     return f"{Prisma.SLATE}{msg.format(loc=required_loc, zone=current_zone)}{Prisma.RST}"
         for action, req_objs in self.action_coupling.items():
-            if all(w in tokens for w in action.split()) and re.search(rf"\b(?:i\s+(?:will\s+)?{action}|to\s+{action}|{action}\s+(?:the|a|an|my|some|it|this|that)|{action}ing)\b|^{action}\b", text,):
-                if not any(obj.upper() in self.inventory for obj in req_objs):
+            if all(w in tokens for w in action.split()) and re.search(
+                    rf"\b(?:i\s+(?:will\s+)?{action}|to\s+{action}|{action}\s+(?:the|a|an|my|some|it|this|that)|{action}ing)\b|^{action}\b",
+                    text, ):
+                has_required_item = False
+                environmental_actions = {"read", "inspect", "examine", "look", "push", "pull"}
+                for obj in req_objs:
+                    if obj.upper() in self.inventory:
+                        has_required_item = True
+                        break
+                    obj_clean = obj.lower().replace('_', ' ')
+                    if action in environmental_actions and obj_clean in text:
+                        has_required_item = True
+                        break
+                if not has_required_item:
                     return f"{Prisma.SLATE}{(ux('gordon_strings', 'premise_req') or '').format(action=action, req_str=', '.join(req_objs))}{Prisma.RST}"
-        if any(v in tokens for v in self.interaction_verbs):
+        environmental_verbs = {"read", "inspect", "examine", "look"}
+        if any(v in tokens for v in self.interaction_verbs) and not any(v in tokens for v in environmental_verbs):
             for i in self.registry:
                 if i.upper() not in self.inventory:
                     i_low = i.lower().replace('_', ' ')
