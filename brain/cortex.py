@@ -45,9 +45,9 @@ class TheCortex:
         self.svc = services
         self.cfg = services.config_ref or BoneConfig
         self.events = services.events
-        self.dialogue_buffer = []
         c_cfg = safe_get(self.cfg, "CORTEX", {})
         self.MAX_HISTORY = int(safe_get(c_cfg, "MAX_HISTORY_LENGTH", 15))
+        self.dialogue_buffer = deque(maxlen=self.MAX_HISTORY)
         self.modulator = NeurotransmitterModulator(bio_ref=self.svc.bio, events_ref=self.events, config_ref=self.cfg)
         self.last_physics = {}
         self.last_shadow_nodes = []
@@ -67,8 +67,6 @@ class TheCortex:
         self.pragmatist = ThePragmatist(events_ref=self.events)
         self.dspy_critic = DSPyCritic(config_ref=self.cfg)
         self.dreamer.dspy_critic = self.dspy_critic
-        if not hasattr(self.dreamer, "trauma_buffer"):
-            self.dreamer.trauma_buffer = deque(maxlen=5)
         self.active_mode = "ADVENTURE"
         if hasattr(self.svc.mind_memory, "nodes"):
             graph = LibraryGraph(nodes=self.svc.mind_memory.nodes, root=self.svc.mind_memory.root)
@@ -93,8 +91,6 @@ class TheCortex:
 
     def _update_history(self, user_text: str, system_text: str):
         self.dialogue_buffer.append(f"Traveler: {user_text}\nSystem: {system_text}")
-        if len(self.dialogue_buffer) > self.MAX_HISTORY:
-            self.dialogue_buffer = self.dialogue_buffer[-self.MAX_HISTORY:]
 
     def shutdown(self):
         pass
@@ -137,8 +133,6 @@ class TheCortex:
 
         if len(user_input) > context_limit and not is_system and not is_boot_sequence:
             safe_content = user_input.replace("\n", "|||NEWLINE|||")
-            if not hasattr(self.dreamer, "context_queue"):
-                self.dreamer.context_queue = []
             self.dreamer.context_queue.append(safe_content)
             s_cost = 5.0
             if self.svc.bio:
@@ -225,12 +219,11 @@ class TheCortex:
             self._apply_vsl_overlay(full_state, user_input, sim_result)
         if is_boot_sequence:
             self._apply_boot_overlay(full_state, user_input)
-        phys = full_state.get("physics", {})
-        b_voltage = float(phys.get("voltage", 5.0))
-        llm_params = self.modulator.modulate(base_voltage=b_voltage, latency_penalty=getattr(self.svc.host_stats, "latency", 0.0), physics_state=phys)
+        b_voltage = float(phys_state.get("voltage", 5.0))
+        llm_params = self.modulator.modulate(base_voltage=b_voltage, latency_penalty=getattr(self.svc.host_stats, "latency", 0.0), physics_state=phys_state)
         if is_boot_sequence:
             llm_params.update({"temperature": 0.7, "top_p": 0.95})
-        p_val = float(phys.get("p", 100.0))
+        p_val = float(phys_state.get("p", 100.0))
         if llm_params.get("max_tokens", 4096) < 300 or p_val < 20.0:
             full_state["mind"].setdefault("style_directives", []).append("CRITICAL: You are exhausted. You must conclude your thought in under 3 sentences.")
             llm_params["max_tokens"] = min(400, llm_params.get("max_tokens", 4096))
@@ -366,7 +359,10 @@ class TheCortex:
         self._update_history("SYSTEM_INIT" if is_boot_sequence else user_input, final_output)
         ui_parts = [sim_result.get("ui", "")]
         if sim_result.get("dream"):
-            ui_parts.append(f"{Prisma.VIOLET}☁While you were gone: {sim_result['dream']}{Prisma.RST}")
+            dream_content = sim_result['dream']
+            if isinstance(dream_content, tuple):
+                dream_content = dream_content[0]
+            ui_parts.append(f"{Prisma.VIOLET}While you were gone: {dream_content}{Prisma.RST}")
         ui_parts.append(f"{Prisma.WHT}{beautify_thoughts(final_output)}{Prisma.RST}")
         if inv_logs:
             ui_parts.append("\n".join(inv_logs))
@@ -385,7 +381,10 @@ class TheCortex:
                     _, _, data = log.partition(" ")
                     path, _, safe_content = data.partition(":::")
                     if path and safe_content:
-                        sub.queue_write(path.strip(), safe_content.replace("|||NEWLINE|||", "\n"))
+                        clean_path = path.strip()
+                        if ".." in clean_path or clean_path.startswith("/"):
+                            raise ValueError(f"Path traversal blocked by Cortex Sentinel: {clean_path}")
+                        sub.queue_write(clean_path, safe_content.replace("|||NEWLINE|||", "\n"))
                 except Exception as e:
                     err_msg = f"Failed to parse or write file block. {e}"
                     if self.events:
@@ -414,29 +413,24 @@ class TheCortex:
         if not is_system and self.svc.orchestrator and hasattr(self.svc.orchestrator, "eng"):
             eng = self.svc.orchestrator.eng
             dimension = float(phys_state.get("omega_r", 1.0))
-            phys_packet = sim_result.setdefault("physics", {})
-            repetition = float(sim_result.get("physics", {}).get("repetition", 0.0))
+            repetition = float(phys_state.get("repetition", 0.0))
             is_attractor = eng.navi_sad.detect_point_attractor() if hasattr(eng, "navi_sad") else False
-
-            # Clean Jester Logic: Fire on true loops, or on low dimensionality (unless it's a default 1.0 validation error)
             is_valid = val_res.get("valid", False)
             trigger_jester = False
-
             tick_count = getattr(eng, "tick_count", 0)
             if tick_count > 2:
                 if is_attractor or repetition >= 0.8:
                     trigger_jester = True
                 elif dimension <= 1.05 and not (not is_valid and dimension == 1.0):
                     trigger_jester = True
-
             if trigger_jester:
                 msg = f"The Jester detected a Point Attractor (d_B={dimension:.2f})! We are trapped in False Cohesion! Burning ATP to inject chaos."
                 if self.events:
                     self.events.log(f"{Prisma.VIOLET}{msg}{Prisma.RST}", "SYS")
                 if hasattr(eng, "drain_atp"):
                     eng.drain_atp(5.0)
-                phys_packet["entropy"] = 0.99
-                phys_packet["narrative_drag"] = float(phys_packet.get("narrative_drag", 0.0)) + 5.0
+                phys_state["entropy"] = 0.99
+                phys_state["narrative_drag"] = float(phys_state.get("narrative_drag", 0.0)) + 5.0
                 if hasattr(eng, "soul") and hasattr(eng.soul, "force_mutation"):
                     eng.soul.force_mutation("JESTER")
                 sim_result.setdefault("mind", {})["lens"] = "JESTER"
@@ -704,7 +698,7 @@ class TheCortex:
                         "CORTEX")
             else:
                 mind["style_directives"].append(
-                    f"SHADOW CAST: While answering the direct prompt, you MUST briefly illuminate these adjacent/unasked concepts pulled from deep memory: [{shadow_str}]. Offer them as a generous 'door' the user can choose to open, do not lecture.")
+                    f"SHADOW CAST: Subtly weave imagery or themes related to [{shadow_str}] into your environment or dialogue. DO NOT explicitly say 'you recall' or 'from deep memory'. Integrate it viscerally into the current scene as a natural detail.")
                 if self.events:
                     self.events.log(f"{Prisma.CYN}Shadow Cast retrieved: {shadow_str}{Prisma.RST}", "CORTEX")
         return full_state
@@ -712,8 +706,9 @@ class TheCortex:
     def restore_context(self, history: List[str]):
         if not history:
             return
-        self.dialogue_buffer = [(line.replace("User: ", "Traveler: ").replace(" | System: ",
-            "\nSystem: ") if " | System: " in line else line) for line in history[-self.MAX_HISTORY:]]
+        self.dialogue_buffer.clear()
+        self.dialogue_buffer.extend((line.replace("User: ", "Traveler: ").replace(" | System: ",
+            "\nSystem: ") if " | System: " in line else line) for line in history[-self.MAX_HISTORY:])
         if self.events:
             msg = ux("brain_strings", "cortex_resequenced")
             self.events.log(msg.format(count=len(self.dialogue_buffer)), "BRAIN")

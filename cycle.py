@@ -13,6 +13,7 @@ import threading
 import time
 import traceback
 import uuid
+from collections import deque
 from concurrent.futures import ThreadPoolExecutor
 from typing import Dict, Any, List, Optional
 from constants import Prisma
@@ -299,7 +300,7 @@ class GeodesicOrchestrator:
         self.engine_state = "WAKE"
         self.dream_log = []
         self.last_rem_tick = 0.0
-        self.voltage_history = []
+        self.voltage_history = deque(maxlen=20)
         self._async_pool = ThreadPoolExecutor(max_workers=3, thread_name_prefix="CycleAsync")
         from drivers import SharedLatticeDriver
         if not hasattr(self.eng, "shared_lattice"):
@@ -461,7 +462,12 @@ class GeodesicOrchestrator:
                         "yeetinator_mode": "[!y]"}
             has_tags = "[!" in usr_msg
             ctx.physics.vector.update({k: (has_tags and v in usr_msg) for k, v in tags_map.items()})
-            u_exhaustion = float(ctx.user_state.E)
+            lattice_logs, atp_deduction = lattice.infer_and_couple(text=user_message, sys_phys=ctx.physics, input_phys=ctx.physics.vector, atp_pool=float(
+                    self.eng._mito_state.atp_pool if self.eng._mito_state else 100.0))
+            ctx.logs.extend(lattice_logs)
+            if atp_deduction > 0:
+                self.eng.drain_atp(atp_deduction)
+            u_exhaustion = float(getattr(ctx.user_state, "E_u", getattr(ctx.user_state, "E", 0.0)))
             phi_val = float(ctx.shared_dyn.phi)
             res_delta = float(getattr(ctx.shared_dyn, "delta", getattr(ctx.shared_dyn, "resonance_delta", 0.0)))
             self.eng.governor.calculate_coupling(phi_val, res_delta, u_exhaustion)
@@ -484,8 +490,9 @@ class GeodesicOrchestrator:
         except Exception as e:
             full_trace = traceback.format_exc()
             self.eng.events.log(f"CYCLE CRASH: {e}\n{full_trace}", "CRIT")
-            ctx = CycleContext(input_text=user_message)
-            ctx.trace_id = cycle_id
+            if 'ctx' not in locals():
+                ctx = CycleContext(input_text=user_message)
+                ctx.trace_id = cycle_id
             ctx.physics = PanicRoom.get_safe_physics()
             ctx.is_alive = False
             ctx.crash_error = e
@@ -550,11 +557,8 @@ class GeodesicOrchestrator:
         if clean_message != "(Waiting)":
             if ctx.physics:
                 self.voltage_history.append(float(getattr(ctx.physics, "voltage", 0.0)))
-                self.voltage_history = self.voltage_history[-20:]
-
             if cortex and self.eng.tick_count % 3 == 0:
                 self._async_pool.submit(_bg_wls_check, clean_message)
-
             # [navi-SAD PROTOCOL]: Calculate Permutation Entropy & Takens Volume
             try:
                 v_history = list(self.voltage_history)

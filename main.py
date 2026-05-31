@@ -223,8 +223,8 @@ class BoneAmanita:
         self.symbiosis = anatomy.get("symbiosis")
         self.oroboros = anatomy.get("oroboros")
         self.phys = self.embryo.physics if self.embryo else None
-        self.mind = self.embryo.mind
-        self.bio = self.embryo.bio
+        self.mind = self.embryo.mind if self.embryo else None
+        self.bio = self.embryo.bio if self.embryo else None
         self.akashic = anatomy.get("akashic")
         if self.akashic and self.mind:
             self.akashic.active_memory_core = self.mind.mem
@@ -512,6 +512,14 @@ class BoneAmanita:
         return cold_result
 
     def save_checkpoint(self, history: list = None) -> str:
+        if gordon := getattr(self.village, "gordon", None):
+            carto = getattr(self.village, "navigator", None)
+            try:
+                fractal_json = gordon.export_fractal_state(carto)
+                with open("fractal_adventure.json", "w", encoding="utf-8") as f:
+                    f.write(fractal_json)
+            except Exception as e:
+                self.events.log(f"Failed to compile FractalOS state: {e}", "WARN")
         return self.chronos.save_checkpoint(history)
 
     def resume_checkpoint(self) -> Tuple[bool, list]:

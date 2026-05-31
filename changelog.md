@@ -1,6 +1,22 @@
 # CHANGELOG.md
 -----------------------------------------------------------
 
+### **BONEAMANITA 20.4.0 "The Fractal Synthesis"**
+
+**Architectural Amputations & Optimizations**
+
+* **Parser Normalization (The Brutalist Lens):** Stripped repetitive, fragile regex parsing across `GordonKnot` container, extraction, and implicit loot logic. Introduced a universal, deterministic `_clean_noun` static method to violently strip articles, prepositions, and trailing conjunctions before state mutation.
+* **Tinkerer Paranoia Purge:** Amputated dead-code `hasattr` checks in `TheTinkerer` that referenced deprecated inventory methods, routing to the unified `safe_remove_item` wrapper.
+
+**Added (Deterministic Symbiosis)**
+
+* **Strict Spatial Mechanics (The System Lens):** Excised spatial tracking from the LLM's hallucination matrix. The `Item` schema now possesses strict `location` properties, guaranteeing items are mathematically bound to the `inventory`, `VOID`, specific containers, or distinct map nodes.
+* **The Fractal Cartridge Compiler:** Built a master state compiler (`GordonKnot.export_fractal_state`) that fuses `TheCartographer`'s node graph and `GordonKnot`'s item registry into a strict JSON schema compatible with classical interactive fiction engines (FractalOS).
+* **Autopoiesis Save Hook:** The hypervisor now automatically dumps a `fractal_adventure.json` cartridge to the root directory during every system checkpoint, allowing zero-latency, synchronous play inside external environments.
+* **Adventure Tensegrity Validation:** Deployed `tests/test_adventure.py` to enforce strict boundaries. The test suite now violently verifies syntactic noun cleaning, recursive spatial container tracking, and final JSON schema compliance.
+
+---
+
 ### **BONEAMANITA 20.3.3 "The Protocol Hardening Pass"**
 
 **Architectural Amputations & Optimizations**

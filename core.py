@@ -10,12 +10,14 @@ import traceback
 import uuid
 from collections import deque, Counter
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field
 from typing import List, Dict, Any, Optional, Tuple
+
 from constants import Prisma, RealityLayer
+from physics.models import PhysicsPacket, UserInferredState, SharedDynamics
 from presets import BoneConfig
 from struts import ux, ux_format, safe_get
-from physics.models import PhysicsPacket, UserInferredState, SharedDynamics
+
 
 class JSONEncoder(json.JSONEncoder):
     """Leave this alone, SLASH"""
@@ -54,11 +56,10 @@ class DecisionCrystal:
 
     def __str__(self):
         e_val = self.leverage_metrics.get("E", 0.0)
-        return (f"CRYSTAL [{self.decision_id}] {self.system_state} | "
-                f"ARCHETYPE: {self.active_archetype} | E: {e_val:.2f}")
+        return f"CRYSTAL [{self.decision_id}] {self.system_state} | "f"ARCHETYPE: {self.active_archetype} | E: {e_val:.2f}"
 
     def crystallize(self) -> str:
-        data = asdict(self)
+        data = vars(self).copy()
         data["_summary"] = f"{self.system_state}::{self.active_archetype}"
         data["_type"] = "CRYSTAL"
         return json.dumps(data, cls=JSONEncoder)
@@ -157,9 +158,7 @@ class EventBus:
                     del self.subscribers[event_type]
 
     def publish(self, event_type, data=None):
-        with self._lock:
-            callbacks = self.subscribers.get(event_type, ())
-
+        callbacks = self.subscribers.get(event_type, ())
         for callback in callbacks:
             try:
                 callback(data)
@@ -171,8 +170,8 @@ class EventBus:
 
     def log(self, message: str, source: str = "SYSTEM", level: str = "INFO"):
         event = {"timestamp": time.time(), "source": source, "level": level, "text": message, "_type": "EVENT_LOG"}
-        with self._lock:
-            self.buffer.append(event)
+        # deque.append is thread-safe. Paranoid lock removed.
+        self.buffer.append(event)
         self.publish(source, event)
         if self.telemetry:
             self.telemetry.record_event(event)

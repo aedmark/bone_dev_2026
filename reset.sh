@@ -8,6 +8,7 @@ rm -rf ./saves
 rm -f ./lore/lenses.json
 rm -f ./lore/akashic*
 rm -f ./legacy.json
+rm -f ./fractal_adventure.json
 rm -rf ./output
 rm -rf ./tests/tests_isolated_legacy_void.json
 rm -rf ./tests_isolated_legacy_void.json

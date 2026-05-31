@@ -84,10 +84,8 @@ class TheTinkerer:
             new_name, new_data = self.akashic.forge_new_item(vector)
             self.gordon.register_dynamic_item(new_name, new_data)
             self.gordon.acquire(new_name)
-            if hasattr(self.gordon, "remove_item"):
-                self.gordon.remove_item(old_name)
-            elif old_name in getattr(self.gordon, "inventory", []):
-                self.gordon.inventory.remove(old_name)
+            if hasattr(self.gordon, "safe_remove_item"):
+                self.gordon.safe_remove_item(old_name)
             if old_name in inventory_list:
                 inventory_list[inventory_list.index(old_name)] = new_name
             self.tool_resonance[new_name] = resonance / _cfg_val(self.cfg, "VILLAGE", "TINKER_ASCENSION_HALVE", 2.0)
