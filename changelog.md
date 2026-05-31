@@ -1,6 +1,32 @@
 # CHANGELOG.md
 -----------------------------------------------------------
 
+### **BONEAMANITA 20.3.2 "The Deep Type-Safety Pass"**
+
+**Architectural Additions & Test Suite Sealing**
+
+* **Dual-Baseline Topology Enforcement:** Upgraded the `navi-fractal` semantic topology check to evaluate active memory graphs against *both* the Maslov-Sneppen (`_native_rewire`) and configuration model (`_native_configuration_model`) null models simultaneously. The system now takes the strictest clustering threshold of the two to mathematically guarantee a terminal false positive is impossible.
+* **Lexicon Sentiment Resurrection:** Uncovered and excised a massive logical blind spot in `LexiconStore.load_vocabulary` that previously prevented sentiment-based tokens from entering the Reverse Index. The `measure_valence` sentiment analyzer is now fully alive and actively grading inputs.
+* **Chaos Engineering Suites (`test_drivers.py` & `test_lexicon.py`):** Authored brutal new test coverage that intentionally blasts the drivers and linguistic analyzers with malformed, loosely typed `SimpleNamespace` objects and string-coerced JSON configuration numbers to guarantee the type-casting armor never yields to a `TypeError`.
+
+**Fixed**
+
+* **Permutation Entropy Blindness:** Fixed a silently swallowed `AttributeError` in the `GeodesicOrchestrator`. The `navi-SAD` protocol now natively tracks `voltage_history` inside the daemon loop rather than querying the downstream dataclass, restoring The Jester's ability to shatter Point-Attractors.
+* **Enneagram Baseline Paralysis:** Fixed a flaw in the hysteresis test suite that fed the driver a "perfect comfort" baseline, which mathematically caused it to refuse shifting to `THE MANIC` despite high voltage.
+* **Terminal Autophagy Race Condition:** Fixed `test_macro.py`'s `cannibalize` validation. The engine mathematically purges the oldest/lightest nodes first; the test now properly isolates the Genesis blueprint before evaluating the load-bearing wall against the typo.
+* **Subconscious Burial Data Leaks:** Patched `SubconsciousStrata.bury` to safely evaluate `word` keys before persisting to disk, preventing `KeyError` IO halts when archiving fractured thoughts.
+* **Cold Boot Crash:** Guarded `embryo.physics` manipulations with `safe_set` to prevent `NoneType` crashes during headless or purely API-driven engine boots.
+
+**Changed & Optimized**
+
+* **EAFP Over Paranoid Catching:** Executed a system-wide purge of nested `isinstance` and `hasattr` boilerplate across `reporter.py`, `genesis.py`, `core.py`, and `lexicon.py`, replacing them with explicit `safe_get` dynamic typing and clean scalar routing.
+* **String-Coerced JSON Armor:** Defended the entire `drivers/` directory (Enneagram, Consultant, Liminal, Syntax, Validator, UserProfile) against dynamic JSON typing by enforcing strict `float()` and `int()` casting on all physical thresholds, vectors, and config parameters.
+* **Exception Control Flow Excised:** Overhauled `SystemHealth.__getattr__` to cleanly return `.get(comp, True)` for online flags rather than leveraging Python's heavy `AttributeError` exception handler to act as the pipeline's circuit breaker control flow.
+* **Thread-Lock Fast-Failing:** Optimized `EventBus.unsubscribe` to verify subscriber existence before paying the allocation cost of launching generator comprehensions inside a global thread lock.
+* **Telemetry History Sweeps:** Optimized `TelemetryService.get_last_fatal_error` to verify the payload outcome exists before attempting to cast thousands of JSON lines into raw strings.
+
+---
+
 ### **BONEAMANITA 20.3.1 "The Tensegrity Pass"**
 
 **Architectural Hardening & Test Suite Sealing**

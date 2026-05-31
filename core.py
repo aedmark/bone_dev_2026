@@ -149,8 +149,9 @@ class EventBus:
 
     def unsubscribe(self, event_type, callback):
         with self._lock:
-            if event_type in self.subscribers:
-                if new_subs := tuple(c for c in self.subscribers[event_type] if c != callback):
+            subs = self.subscribers.get(event_type)
+            if subs and callback in subs:
+                if new_subs := tuple(c for c in subs if c != callback):
                     self.subscribers[event_type] = new_subs
                 else:
                     del self.subscribers[event_type]
@@ -336,8 +337,8 @@ class SystemHealth:
     observer: Optional["TheObserver"] = None
 
     def __getattr__(self, item: str):
-        if item.endswith("_online") and (comp := item[:-7].lower()) in self.components_online:
-            return self.components_online[comp]
+        if item.endswith("_online"):
+            return self.components_online.get(item[:-7].lower(), True)
         raise AttributeError(f"'SystemHealth' object has no attribute '{item}'")
 
     def link_observer(self, observer_ref):
@@ -428,7 +429,7 @@ class CyberneticGovernor:
 class ArchetypeArbiter:
     @staticmethod
     def arbitrate(physics_lens: str, soul_archetype: str, council_mandates: List[Dict],
-                  trigram: Dict = None) -> Tuple[str, str, str]:
+                  trigram: Any = None) -> Tuple[str, str, str]:
         mandate_types = {m.get("type", m.get("action")) for m in (council_mandates or [])}
         if "LOCKDOWN" in mandate_types:
             return "THE CENSOR", "COUNCIL", ux("core_strings", "arb_martial_law") or "Martial Law."
@@ -436,11 +437,16 @@ class ArchetypeArbiter:
             return "THE MACHINE", "COUNCIL", ux("core_strings", "arb_bureaucratic") or "[COUNCIL]: Bureaucratic Override active."
         if soul_archetype and "/" in soul_archetype:
             return soul_archetype, "SOUL", ux_format("core_strings", "arb_diamond", soul_archetype=soul_archetype, default=f"Gestalt Resonance: {soul_archetype}")
+
         manifest = LoreManifest.get_instance()
-        if trigram and (meta_resonance := manifest.get("NARRATIVE_DATA", "_META_RESONANCE_")):
+        # [Meadows Protocol]: Ensure trigram resolves safely against loosely typed payloads
+        tri_name = trigram.get("name") if isinstance(trigram, dict) else str(trigram) if trigram else None
+
+        if tri_name and (meta_resonance := manifest.get("NARRATIVE_DATA", "_META_RESONANCE_")):
             for r in meta_resonance:
-                if r.get("trigram") == trigram.get("name") and r.get("lens", physics_lens) == physics_lens and r.get("soul", soul_archetype) == soul_archetype:
+                if r.get("trigram") == tri_name and r.get("lens", physics_lens) == physics_lens and r.get("soul", soul_archetype) == soul_archetype:
                     return r["result"], r.get("source", "COSMIC"), r.get("msg") or ux("core_strings", "arb_resonance") or "Cosmic Resonance."
+
         if physics_lens in (manifest.get("COUNCIL_DATA", "LOUD_LENSES") or ("THE MANIC", "THE VOID")):
             return physics_lens, "PHYSICS", ux_format("core_strings", "arb_loud", physics_lens=physics_lens, default=f"Physics Override: {physics_lens}")
         return soul_archetype, "SOUL", ux("core_strings", "arb_soul") or "The soul speaks."
@@ -569,11 +575,11 @@ class TelemetryService:
 
     def get_last_fatal_error(self) -> Optional[str]:
         for data in self._yield_historical_records(file_limit=5, lines_per_file=50):
-            if "CRITICAL" in str(data.get("outcome", "")):
+            outcome = data.get("outcome")
+            if outcome and "CRITICAL" in str(outcome):
                 return ux_format("core_strings", "tel_prev_crash", default="Crash: {reason}", reason=data.get("reasoning", "Unknown"))
         return None
 
     def generate_session_summary(self) -> str:
         self.flush_to_disk()
-        return ux_format("core_strings", "tel_session_summary", status="DISABLED" if self.disabled else "ACTIVE",
-                         count=self.crystals_logged, trace_file=self.current_trace_file)
+        return ux_format("core_strings", "tel_session_summary", status="DISABLED" if self.disabled else "ACTIVE", count=self.crystals_logged, trace_file=self.current_trace_file)

@@ -299,6 +299,7 @@ class GeodesicOrchestrator:
         self.engine_state = "WAKE"
         self.dream_log = []
         self.last_rem_tick = 0.0
+        self.voltage_history = []
         self._async_pool = ThreadPoolExecutor(max_workers=3, thread_name_prefix="CycleAsync")
         from drivers import SharedLatticeDriver
         if not hasattr(self.eng, "shared_lattice"):
@@ -367,8 +368,8 @@ class GeodesicOrchestrator:
         if self.eng.consolidator:
             try:
                 self.eng.consolidator.trigger_autophagy()
-            except Exception:
-                pass
+            except Exception as e:
+                self.eng.events.log(f"REM Autophagy failure: {e}", "DEBUG")
         trauma_level = sum(self.eng.trauma_accum.values()) if self.eng.trauma_accum else 0.0
         gordon = getattr(self.eng.village, "gordon", None)
         objects = getattr(gordon, "inventory", ["static"]) if gordon else ["static"]
@@ -398,12 +399,16 @@ class GeodesicOrchestrator:
         def _bg_topology_check(adj_copy):
             try:
                 max_swaps = min(len(adj_copy) * 10, 1000)
-                null_adj = _native_rewire(adj_copy, n_swaps=max_swaps)
+                # [navi-fractal PROTOCOL]: Dual Null-Model generation
+                null_adj_rewire = _native_rewire(adj_copy, n_swaps=max_swaps)
+                null_adj_config = _native_configuration_model(adj_copy)
                 actual_cluster = mem.calculate_clustering(adj_copy)
-                null_cluster = mem.calculate_clustering(null_adj)
-                if actual_cluster <= (null_cluster * 1.05):
+                null_cluster_rewire = mem.calculate_clustering(null_adj_rewire)
+                null_cluster_config = mem.calculate_clustering(null_adj_config)
+                strict_null_cluster = max(null_cluster_rewire, null_cluster_config)
+                if actual_cluster <= (strict_null_cluster * 1.05):
                     self.eng.events.log(
-                        f"{Prisma.RED}Structural collapse detected. Semantic topology destroyed. Engine is flagged for terminal shutdown.{Prisma.RST}",
+                        f"{Prisma.RED}Structural collapse detected. Semantic topology destroyed against strict dual-baseline. Engine is flagged for terminal shutdown.{Prisma.RST}",
                         "BIO")
                     if hasattr(self.eng, "bio") and hasattr(self.eng.bio, "biometrics"):
                         self.eng.bio.biometrics.health = 0.0
@@ -435,12 +440,11 @@ class GeodesicOrchestrator:
             active_phys = self.eng.active_physics
             if isinstance(active_phys, PhysicsPacket):
                 ctx.physics = active_phys
-            elif isinstance(active_phys, dict) and active_phys:
+            elif active_phys:
                 ctx.physics = PhysicsPacket(**active_phys)
             else:
                 ctx.physics = PhysicsPacket.void_state()
-                msg = ux("cycle_strings", "orch_physics_init") or "Initial physics state established."
-                self.eng.events.log(f"{Prisma.GRY}{msg}{Prisma.RST}", "SYS")
+                self.eng.events.log(f"{Prisma.GRY}{ux('cycle_strings', 'orch_physics_init') or 'Initial physics state established.'}{Prisma.RST}", "SYS")
             ctx.validator = self.congruence_validator
             ctx.reality_stack = self.eng.reality_stack
             ctx.user_name = self.eng.user_name
@@ -453,11 +457,10 @@ class GeodesicOrchestrator:
                 self.eng.bio.endo.glimmers += 1
                 self.eng.events.log(f"{Prisma.MAG}Grief acknowledged. A glimmer is yielded.{Prisma.RST}", "SYS")
             tags_map = {"critique_mode": "[!r]", "objective_mode": "[!q]", "healing_mode": "[!h]",
-                "void_mode": "[!v]", "lateral_shuffle": "[!s]", "literal_mode": "[!l]", "yeetinator_mode": "[!y]"}
-            if "[!" in usr_msg:
-                ctx.physics.vector.update({k: (v in usr_msg) for k, v in tags_map.items()})
-            else:
-                ctx.physics.vector.update({k: False for k in tags_map})
+                        "void_mode": "[!v]", "lateral_shuffle": "[!s]", "literal_mode": "[!l]",
+                        "yeetinator_mode": "[!y]"}
+            has_tags = "[!" in usr_msg
+            ctx.physics.vector.update({k: (has_tags and v in usr_msg) for k, v in tags_map.items()})
             u_exhaustion = float(ctx.user_state.E)
             phi_val = float(ctx.shared_dyn.phi)
             res_delta = float(getattr(ctx.shared_dyn, "delta", getattr(ctx.shared_dyn, "resonance_delta", 0.0)))
@@ -544,12 +547,16 @@ class GeodesicOrchestrator:
                 self.eng.events.log(f"Async WLS Heuristic Error: {e}", "DEBUG")
 
         if clean_message != "(Waiting)":
+            if ctx.physics:
+                self.voltage_history.append(float(getattr(ctx.physics, "voltage", 0.0)))
+                self.voltage_history = self.voltage_history[-20:]
+
             if cortex and self.eng.tick_count % 3 == 0:
                 self._async_pool.submit(_bg_wls_check, clean_message)
 
             # [navi-SAD PROTOCOL]: Calculate Permutation Entropy & Takens Volume
             try:
-                v_history = getattr(self.eng.phys.dynamics, "voltage_history", []) if hasattr(self.eng, "phys") else []
+                v_history = list(self.voltage_history)
                 if len(v_history) >= 10:
                     recent_v = v_history[-10:]
                     v_diff = [recent_v[i] - recent_v[i - 1] for i in range(1, len(recent_v))]
