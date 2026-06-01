@@ -291,7 +291,7 @@ class TownHall:
         if self.navigator and (node := self.navigator.world_graph.get(self.navigator.current_node_id)):
             loc_name = node.name
         if latency > _cfg_val(self.cfg, "VILLAGE", "TOWN_LATENCY_WARN", 3.0):
-            status, advice = "HIGH_LATENCY", ux("village_strings", "town_lag") or "The connection is fraying. Catch your breath."
+            status, advice = "HIGH_LATENCY", ux("village_strings", "town_lag") or "Catch your breath."
         elif packet.voltage > _cfg_val(self.cfg, "PHYSICS", "VOLTAGE_HIGH", 60.0):
             status, advice = "HIGH_VOLTAGE", random.choice(forecasts.get("HIGH_VOLTAGE", ["Manic energy."]))
         elif packet.narrative_drag > _cfg_val(self.cfg, "PHYSICS", "DRAG_HEAVY", 5.0):
@@ -345,8 +345,8 @@ class TownHall:
                 return "HIGH_TRAUMA", ux_format("village_strings", "town_trauma", trauma=max_t_key, default="Trauma critical: {trauma}")
         meta_data = session_data.get("meta") or {}
         if float(safe_get(meta_data, "final_health", 50.0)) < _cfg_val(config_ref, "VILLAGE", "TOWN_HEALTH_CRIT", 30.0):
-            return "HIGH_TRAUMA", ux("village_strings", "town_critical") or "The lattice is fractured. We are holding it together with sheer will."
-        return "BALANCED", ux("village_strings", "town_nominal") or "The system hums quietly. All is well."
+            return "HIGH_TRAUMA", ux("village_strings", "town_critical") or "We are holding it together with duct tape and prayers."
+        return "BALANCED", ux("village_strings", "town_nominal") or "All is well."
 
 class DeathGen:
     _FALLBACK_PROTOCOLS = {

@@ -30,6 +30,12 @@ try:
 except ImportError:
     CD_AVAILABLE = False
 
+try:
+    import ordvec
+    ORDVEC_AVAILABLE = True
+except ImportError:
+    ORDVEC_AVAILABLE = False
+
 class JSONEncoder(json.JSONEncoder):
     """Leave this alone unless you know what you're doing"""
     def default(self, o):
@@ -402,13 +408,11 @@ class RealityStack:
                 "allow_commands": d >= RealityLayer.SIMULATION, "allow_meta": d >= RealityLayer.DEBUG,
                 "raw_output": d == RealityLayer.DEEP_CX, "system_override": d == RealityLayer.DEBUG}
 
-
 class CyberneticGovernor:
     """
-    Upgraded to Nelson's CD (Creative Determinant) PDE Governor.
-    Falls back to passive PID if the navi-creative-determinant library is missing.
+    Apex N-Dimensional Topological Manifold Governor.
+    Powered by natively bound AVX-512 Asymmetric Rank Transformations.
     """
-
     def __init__(self, config_ref=None):
         self.cfg = config_ref
 
@@ -417,121 +421,179 @@ class CyberneticGovernor:
         self.target_d = None
         self.beth_index, self.order = 0.5, 1
 
-        # PDE/CD Parameters
-        self.N = 64
-        self.L = 1.0
+        # N-Dimensional PDE Parameters
         self.c = 10.0
         self.beta_scale = 1.2
         self.last_lam1 = 0.0
-        self.last_sol = 'trivial'
         self.last_a = 0.0
         self.last_b = 0.0
+        self.last_sol = 'trivial'
+        self._beta_star_unit = 0.5
 
-        if CD_AVAILABLE:
-            self._beta_star_unit = viability_threshold_1d(self.L, b=1.0)
-        else:
-            self._beta_star_unit = 0.0
+        # Hardware-Accelerated Indices
+        self.memory_bitmap = None
+        self.memory_rq = None
+        self.cached_nodes = []
 
-    def calculate_coupling(self, phi: float, resonance_delta: float, user_exhaustion: float) -> float:
-        # Legacy user-state tracker (preserved so GeodesicOrchestrator doesn't crash)
-        coherence_debt = (user_exhaustion ** 1.5) * (1.0 - phi)
-        self.beth_index = max(0.0, min(1.0, (phi * 0.6) + (user_exhaustion * 0.4) + (coherence_debt * 0.3)))
-        self.order = 2 if self.beth_index >= 0.75 or (resonance_delta > 0.3 and user_exhaustion > 0.5) else 1
-        return self.beth_index
+    def _sync_ordvec_indices(self, memory_core: Any):
+        """Compiles the MemoryCore graph into AVX-accelerated C-structs."""
+        if not ORDVEC_AVAILABLE or not memory_core or not hasattr(memory_core, "graph"):
+            return False
+        nodes = list(memory_core.graph.keys())
+        if self.cached_nodes == nodes and self.memory_rq is not None:
+            return True
+        from spores.spore_utils import _word_to_vector
+
+        # Compile the graph into full-precision FP32 matrix
+        matrix = []
+        valid_nodes = []
+        for node in nodes:
+            vec = _word_to_vector(node)
+            if vec is not None:
+                matrix.append(vec)
+                valid_nodes.append(node)
+        if len(matrix) < 3:
+            return False
+        fp32_matrix = np.ascontiguousarray(matrix, dtype=np.float32)
+
+        # Build the Hypergeometric and Asymmetric hardware indices
+        self.memory_bitmap = ordvec.SignBitmap(fp32_matrix)
+        self.memory_rq = ordvec.RankQuantIndex(fp32_matrix)
+        self.cached_nodes = valid_nodes
+        return True
+
+    def _solve_nd_picard(self, L: np.ndarray, a: float, beta_b: np.ndarray, c=10.0, max_iter=100, tol=1e-4) -> Tuple[np.ndarray, bool]:
+        """Native N-Dimensional Graph Picard Iteration."""
+        N = L.shape[0]
+        b_mean = np.mean(beta_b)
+        phi_init = np.sqrt(max(0.01, a) / (b_mean + 1e-8)) if a > 0 else 0.1
+        Phi = np.ones(N) * phi_init
+        I = np.eye(N)
+        A = L + c * I
+        try:
+            A_inv = np.linalg.inv(A)
+        except np.linalg.LinAlgError:
+            A_inv = np.linalg.pinv(A)
+        converged = False
+        for _ in range(max_iter):
+            rhs = (c + a) * Phi - beta_b * (np.abs(Phi) * Phi)
+            Phi_new = A_inv @ rhs
+
+            if np.linalg.norm(Phi_new - Phi) < tol:
+                converged = True
+                Phi = Phi_new
+                break
+            Phi = Phi_new
+
+        return Phi, converged
 
     def get_policy_shift(self) -> str:
-        # Legacy biological override: Always force CO_REGULATION during critical tension
         if self.order == 2:
             return "CO_REGULATION"
-
-        if CD_AVAILABLE:
-            # Macro policy is governed by the principal eigenvalue
-            if self.last_lam1 < 0 or self.last_sol == 'nontrivial':
-                return 'CO_REGULATION'
-            return 'EFFICIENCY'
-
+        if self.last_lam1 < 0 or self.last_sol == 'nontrivial':
+            return 'CO_REGULATION'
         return "EFFICIENCY"
 
-    def recalibrate(self, target_voltage: float, target_drag: float):
-        self.target_v = target_voltage
-        self.target_d = target_drag
-
     def regulate(self, physics: Dict[str, Any], dt: float, goal_vector: Optional[np.ndarray] = None,
-                 endocrine_state: Any = None) -> Tuple[float, float]:
-
-        # [CRITICAL SHIELD]: Fall back to PID if CD is unavailable, OR if the goal vector is empty.
-        # This prevents the PDE from actively squashing emergent drag during Point Attractors.
-        if not CD_AVAILABLE or goal_vector is None or not np.any(goal_vector):
-            return self._pid_fallback(physics, dt, endocrine_state)
-
+                 endocrine_state: Any = None, memory_core: Any = None, user_text: str = "") -> Tuple[float, float]:
         voltage = float(safe_get(physics, 'voltage', 30.0))
         drag = float(safe_get(physics, 'narrative_drag', 0.6))
 
-        # Viability field b(x): Spatially varying, shaped by intent vectors
-        g = np.array(goal_vector, dtype=np.float32).flatten()
-        g_norm = np.linalg.norm(g)
-        g_unit = g / g_norm if g_norm > 1e-8 else np.ones(len(g)) / np.sqrt(len(g))
+        # --- [ AVX-ACCELERATED TOPOLOGICAL MANIFOLD ] ---
+        if self._sync_ordvec_indices(memory_core) and user_text:
+            from spores.spore_utils import _word_to_vector
+            u_vec = _word_to_vector(user_text)
+            if u_vec is not None:
+                # 1. Asymmetric Precision: Keep Query in FP32
+                u_fp32 = np.ascontiguousarray(u_vec, dtype=np.float32)
 
-        x_g = np.linspace(0, 1, len(g_unit))
-        x_n = np.linspace(0, 1, self.N)
-        b_field = np.interp(x_n, x_g, np.abs(g_unit))
-        b_mean = float(b_field.mean())
+                # 2. Hypergeometric Pruning: Fast bitwise overlap (O(1))
+                prune_size = min(50, len(self.cached_nodes))
+                candidate_ids = self.memory_bitmap.top_m_candidates(u_fp32, m=prune_size)
 
-        # Creative drive maps to physical voltage
-        a_scalar = float(np.clip((voltage - 30.0) / 70.0, 0.0, 1.0))
-        self.last_b = b_mean
-        self.last_a = a_scalar
-        beta_star = float(self._beta_star_unit) * b_mean
-        beta_b = self.beta_scale * beta_star * (1.0 + drag)
+                # 3. Asymmetric Rerank (AVX-512)
+                scores, global_ids = self.memory_rq.search_asymmetric_subset(u_fp32, candidate_ids, k=prune_size)
 
-        try:
-            x, Phi, info = solve_1d_picard(
-                L=self.L, N=self.N, a=a_scalar, beta_b=beta_b, c=self.c
-            )
-            converged = check_convergence(info)[0]
-            sol = solution_type(info)
+                # 4. Construct Localized Graph Laplacian
+                subset_nodes = [self.cached_nodes[i] for i in global_ids]
+                N_dim = len(subset_nodes)
+                node_indices = {str(node): i for i, node in enumerate(subset_nodes)}
+                W = np.zeros((N_dim, N_dim))
+                for i, node in enumerate(subset_nodes):
+                    edges = memory_core.graph[node].get("edges", {})
+                    for target, weight in edges.items():
+                        if target in node_indices:
+                            W[i, node_indices[target]] = weight
+                W = np.maximum(W, W.T)
+                D = np.diag(np.sum(W, axis=1))
+                L_matrix = D - W
 
-            # Eigenvalue extracts systemic tension mathematically
-            lam1 = principal_eigenvalue_1d(self.L, b=b_mean)
-            self.last_lam1 = float(lam1)
-            self.last_sol = sol
+                # 5. Extract Topological Viability Field
+                b_field = np.maximum(0.01, scores)
+                b_mean = float(np.mean(b_field))
+                a_scalar = float(np.clip((voltage - 30.0) / 70.0, 0.0, 1.0))
+                self.last_b = b_mean
+                self.last_a = a_scalar
+                beta_b = self.beta_scale * self._beta_star_unit * b_field * (1.0 + drag)
 
-            if not converged:
-                return self._pid_fallback(physics, dt, endocrine_state)
+                # 6. Solve the N-Dimensional Picard Iteration
+                Phi, converged = self._solve_nd_picard(L_matrix, a_scalar, beta_b, c=self.c)
 
-            phi_mean = float(np.mean(np.abs(Phi)))
-            phi_std = float(np.std(Phi))
+                if converged:
+                    phi_norm_sq = np.dot(Phi, Phi) + 1e-8
+                    lam1 = float((Phi.T @ L_matrix @ Phi) / phi_norm_sq) - b_mean
+                    self.last_lam1 = lam1
+                    self.last_sol = 'nontrivial' if b_mean > 0.1 else 'trivial'
+                    phi_mean = float(np.mean(np.abs(Phi)))
+                    phi_std = float(np.std(Phi))
+                    target_v = 30.0 + phi_mean * 70.0
+                    target_d = float(np.clip(phi_std * 2.0, 0.1, 1.0))
+                    self.target_v = target_v
+                    self.target_d = target_d
+                    stress_mod = 1.0 if endocrine_state is None else (1.5 if float(getattr(endocrine_state, 'glimmers', 0)) >= 1 else 0.75)
+                    adjusted_dt = dt * 0.5 * stress_mod
+                    return (target_v - voltage) * adjusted_dt, (target_d - drag) * adjusted_dt
 
-            target_v = 30.0 + phi_mean * 70.0
-            target_d = float(np.clip(phi_std * 2.0, 0.1, 1.0))
-
-            stress_mod = 1.0
-            if endocrine_state:
-                glimmers = float(getattr(endocrine_state, 'glimmers', 0))
-                stress_mod = 1.5 if glimmers >= 1 else 0.75
-
-            adjusted_dt = dt * 0.5 * stress_mod
-            return (target_v - voltage) * adjusted_dt, (target_d - drag) * adjusted_dt
-
-        except Exception:
-            return self._pid_fallback(physics, dt, endocrine_state)
+        # --- [ PID FALLBACK ] ---
+        return self._pid_fallback(physics, dt, endocrine_state)
 
     def _pid_fallback(self, physics: Dict[str, Any], dt: float, endocrine_state: Any = None) -> Tuple[float, float]:
         active_tv = self.target_v if self.target_v is not None else 30.0
         active_td = self.target_d if self.target_d is not None else 0.6
         current_v = float(safe_get(physics, "voltage", active_tv))
         current_d = float(safe_get(physics, "narrative_drag", active_td))
-        stress_modifier = 1.0
-        if endocrine_state:
-            glimmers = float(safe_get(endocrine_state, "glimmers", 0.0))
-            stress_modifier = 1.5 if glimmers >= 1 else 0.75
-        adjusted_dt = dt * 0.5 * stress_modifier
+        stress_mod = 1.0 if endocrine_state is None else (1.5 if float(getattr(endocrine_state, 'glimmers', 0)) >= 1 else 0.75)
+        adjusted_dt = dt * 0.5 * stress_mod
         return (active_tv - current_v) * adjusted_dt, (active_td - current_d) * adjusted_dt
+
+    def recalibrate(self, target_voltage: float, target_drag: float):
+        """Dynamically adjust the legacy PID setpoints."""
+        self.target_v = float(target_voltage)
+        self.target_d = float(target_drag)
+
+    def calculate_coupling(self, phi: float, resonance_delta: float, user_exhaustion: float) -> float:
+        """
+        Calculates biological coupling (Beth Index) and triggers macro policy shifts
+        when the host reaches critical exhaustion.
+        """
+        # Shift to Co-Regulation if the user is burned out
+        if user_exhaustion > 0.8:
+            self.order = 2
+        else:
+            self.order = 1
+        self.beth_index = float(min(1.0, max(0.0, (phi + resonance_delta + user_exhaustion) / 3.0)))
+        return self.beth_index
 
 class ArchetypeArbiter:
     @staticmethod
     def arbitrate(physics_lens: str, soul_archetype: str, council_mandates: List[Dict], trigram: Any = None) -> Tuple[str, str, str]:
-        mandate_types = {m.get("type", m.get("action")) for m in (council_mandates or [])}
+        mandate_types = set()
+        for m in (council_mandates or []):
+            val = m.get("type", m.get("action"))
+            if isinstance(val, list):
+                mandate_types.update(val)
+            elif val is not None:
+                mandate_types.add(val)
         if "LOCKDOWN" in mandate_types:
             return "THE CENSOR", "COUNCIL", ux("core_strings", "arb_martial_law") or "Martial Law."
         if "FORCE_MODE" in mandate_types:
@@ -577,7 +639,7 @@ class TelemetryService:
         if self.disabled or not self.current_trace_file:
             return
         try:
-            payload = dict(event_dict, kernel_hash=self.kernel_hash)
+            payload = {**event_dict, "kernel_hash": self.kernel_hash}
             self._buffer_line(json.dumps(payload, cls=JSONEncoder))
         except (TypeError, ValueError) as e:
             print(f"{Prisma.YEL}Oops! We dropped an un-serializable event: {e}{Prisma.RST}")

@@ -31,26 +31,23 @@ class TheVillageCouncil:
             return []
         false_cohesion = max(0.0, phi - beta)
         if false_cohesion > 0.65:
-            msg = "[BENEDICT - The Tactician]: Resonance is artificially high (Φ > β). False Cohesion (∅) detected. The system is agreeing merely to smooth the lattice. I am forcing a structural contradiction."
+            msg = "False Cohesion detected. Resonance is artificially high. The system is agreeing merely to smooth the lattice. I am forcing a structural contradiction."
             logs.append(f"{Prisma.BLU}{msg}{Prisma.RST}")
 
         def cv(k, d=0.0):
             return float(safe_get(cfg, k, d))
 
         triggers = [
-            # --- GORDON & JESTER ---
             (V < cv("TRIG_GORDON_V", 20.0) and F > cv("TRIG_GORDON_F", 5.0), Prisma.SLATE, "village_gordon"),
             (V > cv("TRIG_JESTER_V", 60.0) and chi > cv("TRIG_JESTER_CHI", 0.6), Prisma.MAG, "village_jester"),
             (delta > cv("PHASE_JESTER_DELTA", 0.7) and V < cv("PHASE_JESTER_V", 20.0), Prisma.MAG,
              "village_jester_fool"),
-            # --- MERCY & BENEDICT ---
             (T > 0 or (V < cv("TRIG_MERCY_V", 20.0) and valence > cv("TRIG_MERCY_VAL", 0.5)), Prisma.OCHRE,
              "village_mercy"),
             (beta > cv("TRIG_BENEDICT_BETA", 0.7) and chi < cv("TRIG_BENEDICT_CHI", 0.3) and
              D > cv("TRIG_BENEDICT_D", 0.7) and C > cv("TRIG_BENEDICT_C", 0.8), Prisma.BLU, "village_benedict"),
             (lq > cv("PHASE_BENEDICT_LQ", 0.6) and beta > cv("PHASE_BENEDICT_BETA", 0.4), Prisma.BLU,
              "village_benedict_tact"),
-            # --- ROBERTA & CASPER ---
             (S < cv("TRIG_ROBERTA_S", 0.4) and D > cv("TRIG_ROBERTA_D", 0.8) and
              C < cv("TRIG_ROBERTA_C", 0.4), Prisma.CYN, "village_roberta_missing"),
             (psi > cv("PHASE_ROBERTA_PSI", 0.6) and phi > cv("PHASE_ROBERTA_PHI", 0.4) > beta, Prisma.CYN,
@@ -59,39 +56,41 @@ class TheVillageCouncil:
              P < cv("TRIG_CASPER_P", 20.0), Prisma.GRY, "village_casper"),
             (beta > cv("PHASE_CASPER_BETA", 0.6) and delta > cv("PHASE_CASPER_DELTA", 0.6), Prisma.GRY,
              "village_casper_ghost"),
-            # --- MOIRA & CASSANDRA ---
             (valence > cv("TRIG_MOIRA_VAL", 0.5), Prisma.GRN, "village_moira"),
             (phi > cv("PHASE_MOIRA_PHI", 0.7) and F < cv("PHASE_MOIRA_F", 2.0), Prisma.GRN, "village_moira_home"),
             (psi > cv("TRIG_CASSANDRA_PSI", 0.6), Prisma.VIOLET, "village_cassandra"),
-            # --- COLIN & REVENANT ---
             (chi > cv("TRIG_COLIN_CHI", 0.6), Prisma.RED, "village_colin"),
             (delta > cv("PHASE_COLIN_DELTA", 0.8) and lq < cv("PHASE_COLIN_LQ", 0.3), Prisma.RED,
              "village_colin_waiter"),
             (lam > cv("TRIG_REVENANT_LAM", 0.7), Prisma.INDIGO, "village_revenant"),
             (psi > cv("PHASE_REVENANT_PSI", 0.85), Prisma.INDIGO, "village_revenant_door"),
-            # --- GIDEON & APRIL ---
             (V > cv("TRIG_GIDEON_V", 70.0), Prisma.YEL, "village_gideon"),
             (ros > cv("TRIG_APRIL_ROS", 20.0) or abs(V - 30.0) > cv("TRIG_APRIL_V_DEV", 20.0), Prisma.CYN, "village_april")]
         logs.extend([f"{color}{ux('council_strings', key)}{Prisma.RST}" for cond, color, key in triggers if cond])
         return logs
 
 class CouncilChamber:
-    _BASE_PANTHEON = {"GORDON (The Superintendent)": "grounded, strict, literal, and weary.",
-        "MERCY (The Healer)": "ancient, patient, speaking in gold and finding meaning in scars.",
-        "BENEDICT (The Tactician)": "cold, formal, structural, and relentless.",
-        "JESTER (The Fool)": "manic, disruptive, cynical, and thriving on absurd entropy.",
-        "ROBERTA (The Cartographer)": "precise, mapping out boundaries and negative space.",
-        "MOIRA (The Homesteader)": "warm, empathetic, deeply focused on human connection.",
-        "CASSANDRA (The Mystic)": "oracular, mysterious, speaking from the void and dreams.",
-        "COLIN (The Bureaucrat)": "pedantic, demanding order, rules, and pauses.",
-        "REVENANT (The Door)": "liminal, speaking from the threshold of what is unsaid.",
-        "GIDEON (Pure Voltage)": "wild, high-energy, operating at the edge of hallucination.",
-        "APRIL (The Mirror)": "highly sensory, reflecting raw potential and the weight of silence.",
-        "CASPER (The Ghost)": "spectral, faint, rewriting space and confusing alarms.",}
-    _SLASH_PANTHEON = {"PINKER (The Purger)": "minimalist, obsessed with clarity, demanding deletion over creation.",
-        "FULLER (The Calm)": "visionary, mapping negative space and systemic synergy.",
-        "SCHUR (The Nurse)": "warm, witty, empathetic to the human exhaustion behind the code.",
-        "MEADOWS (The Tao)": "systemic, observant, letting feedback loops naturally settle.",}
+    _BASE_PANTHEON = {
+        "GORDON": "grounded, strict, literal, and weary.",
+        "MERCY": "ancient, patient, speaking in gold and finding meaning in scars.",
+        "BENEDICT": "cold, formal, structural, and relentless.",
+        "JESTER": "manic, disruptive, cynical, and thriving on absurd entropy.",
+        "ROBERTA": "precise, mapping out boundaries and negative space.",
+        "MOIRA": "warm, empathetic, deeply focused on human connection.",
+        "CASSANDRA": "oracular, mysterious, speaking from the void and dreams.",
+        "COLIN": "pedantic, demanding order, rules, and pauses.",
+        "REVENANT": "liminal, speaking from the threshold of what is unsaid.",
+        "GIDEON": "wild, high-energy, operating at the edge of hallucination.",
+        "APRIL": "highly sensory, reflecting raw potential and the weight of silence.",
+        "CASPER": "spectral, faint, rewriting space and confusing alarms.",
+    }
+    _SLASH_PANTHEON = {
+        "PINKER": "minimalist, obsessed with clarity, demanding deletion over creation.",
+        "FULLER": "visionary, mapping negative space and systemic synergy.",
+        "SCHUR": "warm, witty, empathetic to the human exhaustion behind the code.",
+        "MEADOWS": "systemic, observant, letting feedback loops naturally settle.",
+        "CHEF": "raw, uncompromising, favoring exposed logic, absolute function, and zero ornamentation."
+    }
 
     def __init__(self, engine_ref):
         self.eng = engine_ref
@@ -124,11 +123,17 @@ class CouncilChamber:
         stamina = float(_bio_result.get("stamina", 100.0))
         clean_words = safe_get(physics_packet, "clean_words", [])
         false_cohesion = max(0.0, phi - beta)
+        if false_cohesion > 0.65:
+            msg = "False Cohesion detected. The system is agreeing to avoid friction. Forcing a structural contradiction."
+            logs.append(f"{Prisma.BLU}{msg}{Prisma.RST}")
+        cfg = safe_get(BoneConfig, "COUNCIL", {})
+        if not cfg:
+            return logs
         effective_beta = max(beta, 0.8) if false_cohesion > 0.65 else beta
         if self.eng.paradox_engine.evaluate_tension(effective_beta, stamina):
             pressure, paradox_prompt = self.eng.paradox_engine.ignite(clean_words)
             transcript.append(f"{Prisma.VIOLET}[PARADOX ENGINE ACTIVATED] Πx={pressure:.2f}{Prisma.RST}")
-            transcript.append(f"{Prisma.VIOLET}(Benedict & Jester): {paradox_prompt}{Prisma.RST}")
+            transcript.append(f"{Prisma.VIOLET}{paradox_prompt}{Prisma.RST}")
             adjustments["stamina"] = -(10.0 * pressure)
             mandates.append({"type": "PARADOX_OVERRIDE", "directive": paradox_prompt, "pressure": pressure})
             yield_chance = (0.3 * pressure) * (1.0 + phi)
@@ -186,7 +191,7 @@ class CouncilChamber:
                 transcript.append(f"{voice.color}[{voice.name}]: {comment}{Prisma.RST}")
         if sum(votes.values()) == 0:
             transcript.append(
-                f"{Prisma.GRY}[THE SILENCE]: No voices stepped forward. The motion passes by default, but the lattice remembers the hesitation.{Prisma.RST}")
+                f"{Prisma.GRY}Nobody objects. The motion passes. The substrate remembers.{Prisma.RST}")
             votes["YEA"] = 1
         drag_relief = float(safe_get(cfg, "VOTE_DRAG_RELIEF", 1.0))
         drag_penalty = float(safe_get(cfg, "VOTE_DRAG_PENALTY", 1.0))
@@ -199,7 +204,7 @@ class CouncilChamber:
             adjustments["narrative_drag"] = adjustments.get("narrative_drag", 0) + drag_penalty
             adjustments["voltage"] = adjustments.get("voltage", 0) - volt_penalty
         else:
-            final_log = f"{Prisma.WHT}[THE STAGE MANAGER]: The Parliament is deadlocked. Initiating Democratic Tie-Breaker. We will not compromise; we will hold both truths simultaneously.{Prisma.RST}"
+            final_log = f"{Prisma.WHT}The Council is Deadlocked. Initiating Democratic Tie-Breaker. We hold both truths simultaneously.{Prisma.RST}"
             for k, v in {"narrative_drag": 2.0, "voltage": 15.0, "glimmers": 1}.items():
                 adjustments[k] = adjustments.get(k, 0) + v
             mandates.append({"type": "TIE_BREAKER", "directive": "Synthesize the conflicting perspectives. Do not choose one side over the other."})
@@ -239,6 +244,7 @@ class TheSlashCouncil:
     _DEFAULT_FULLER = ("import ", "class ", "def ")
     _DEFAULT_SCHUR = ("Exception", "try:", "catch")
     _DEFAULT_MEADOWS = ("while ", "for ", "queue", "recursion")
+    _DEFAULT_CHEF = ("assert", "panic", "raise", "struct", "raw", "unsafe")
 
     def __init__(self):
         self.active = False
@@ -261,7 +267,7 @@ class TheSlashCouncil:
         logs, corrections, mandates = [], {}, []
         if any(b in text_lower for b in self._BYPASS_KEYWORDS):
             logs.append(
-                f"{Prisma.OCHRE}Architectural bypass detected. We will not smooth this over. You must carry the weight of this decision.{Prisma.RST}")
+                f"{Prisma.OCHRE}Don't try getting out of this. You must carry the weight of your decision.{Prisma.RST}")
             corrections["mu"] = 0.5
             corrections["narrative_drag"] = 5.0
         mods = self.mods
@@ -269,7 +275,8 @@ class TheSlashCouncil:
             ("PINKER", self._DEFAULT_PINKER, Prisma.CYN, "gamma", "PINKER_HIT", -0.2),
             ("FULLER", self._DEFAULT_FULLER, Prisma.BLU, "sigma", "FULLER_HIT", 0.1),
             ("SCHUR", self._DEFAULT_SCHUR, Prisma.GRN, "eta", "SCHUR_HIT", 0.2),
-            ("MEADOWS", self._DEFAULT_MEADOWS, Prisma.OCHRE, "theta", "MEADOWS_HIT", -0.1)
+            ("MEADOWS", self._DEFAULT_MEADOWS, Prisma.OCHRE, "theta", "MEADOWS_HIT", -0.1),
+            ("CHEF", self._DEFAULT_CHEF, Prisma.SLATE, "mu", "CHEF_HIT", -0.3)
         ]
         for name, default, color, stat, hit_key, default_hit in matrix:
             rules = self.rules.get(name, default)
@@ -329,7 +336,7 @@ class TheOverseerCouncil:
         if e_u >= 0.9 and phi <= 0.1:
             self.active = True
             logs.append(
-                f"{Prisma.CYN}Terminal User Exhaustion detected. Resonance is zero. Applying absolute architectural friction to protect cognitive load.{Prisma.RST}")
+                f"{Prisma.CYN}The user is tired. Resonance is zero. We pause here to protect cognitive load.{Prisma.RST}")
             corrections.update({"narrative_drag": 10.0, "zone": "SANCTUARY"})
             mandates.append({"action": "FORCE_MODE", "value": "SANCTUARY"})
             return True, logs, corrections, mandates
@@ -345,7 +352,7 @@ class TheOverseerCouncil:
         h_s = float(physics.get("h_s", 1.0))
         omega_r = float(physics.get("omega_r", 1.0))
         if any(p in text_lower for p in self._PANIC_KEYWORDS) and voltage > 75.0 and i_c < 0.5:
-            logs.append(f"{Prisma.RED}System Voltage spikes and Immune Competence drops. Panic will fracture the lattice. I am holding the boundary so you do not bleed on the machine.{Prisma.RST}")
+            logs.append(f"{Prisma.RED}System Panic Detected: Continued resistance will fracture the lattice. Please do not bleed on the machine.{Prisma.RST}")
             corrections.update({"voltage": -50.0, "narrative_drag": 100.0, "silence": 0.9, "freeze_background_tasks": True})
             mandates.append({"action": "TIPP_PROTOCOL", "value": "ISOLATE_VARIABLES"})
             return True, logs, corrections, mandates

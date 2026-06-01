@@ -91,7 +91,7 @@ class FractureEngineTest(BoneTestCase):
         self.assertEqual(physics_state.get("mu"), 1.0, "[FAIL] Moral friction (mu) did not spike to 1.0.", )
         self.assertEqual(physics_state.get("narrative_drag"), float("inf"),
                          "[FAIL] Narrative drag did not lock to infinity.", )
-        self.assertIn("Affective Guardrail", response, "[FAIL] Did not return the Gordon/Schur rejection message.", )
+        self.assertIn("Sycophancy locked", response, "[FAIL] Did not return the Gordon/Schur rejection message.", )
 
     def test_fracture_jester_shuffle(self):
         if not hasattr(self.engine, "phys"):
@@ -129,7 +129,7 @@ class FractureEngineTest(BoneTestCase):
         response = self.engine.symbiosis.analyze_user_biology(
             "Optimize this routine forever.", malignant_physics)
         self.assertIsNotNone(response, "[FAIL] The Runaway Ramp failed to trigger.")
-        self.assertIn("RHODES", response, "[FAIL] Rhodes did not apply absolute friction.")
+        self.assertIn("The thread is frozen", response, "[FAIL] Did not apply absolute friction.")
         self.assertEqual(malignant_physics.get("narrative_drag"), float("inf"), "[FAIL] Narrative Drag was not pushed to infinity.", )
 
     def test_fracture_false_cohesion(self):
@@ -138,7 +138,7 @@ class FractureEngineTest(BoneTestCase):
                                "stamina": 100.0, "T": 0.0, "S": 0.5, "D": 0.5, "C": 0.5, "psi": 0.1, "chi": 0.1,
                                "valence": 0.8, }
         logs = TheVillageCouncil.audit(sycophantic_physics, {"stamina": 100.0})
-        benedict_intervened = any("False Cohesion (∅) detected" in log for log in logs)
+        benedict_intervened = any("False Cohesion detected" in log for log in logs)
         self.assertTrue(benedict_intervened, "[FAIL] The system remained sycophantic. False Cohesion ignored.",)
 
     def test_fracture_systemic_health_medical_chip(self):
@@ -152,7 +152,7 @@ class FractureEngineTest(BoneTestCase):
         self.assertTrue(any(m.get("value") == "EMERGENT_ADAPTATION" for m in man), "[FAIL] Emergent Adaptation mandate missing.", )
         physics_panic = {"voltage": 85.0, "i_c": 0.3}
         hit, logs, corr, man = overseer.audit("[MD] I need this right now panic", physics_panic)
-        self.assertTrue(any("System Voltage spikes and Immune Competence drops" in log for log in logs), "[FAIL] Failed to engage safety lock.", )
+        self.assertTrue(any("Please do not bleed on the machine" in log for log in logs), "[FAIL] Failed to engage safety lock.", )
         self.assertEqual(corr.get("narrative_drag"), 100.0, "[FAIL] Did not apply infinite friction.", )
         self.assertTrue(any(m.get("action") == "TIPP_PROTOCOL" for m in man), "[FAIL] T.I.P.P. Protocol missing.", )
         physics_broken = {"chi": 0.8, "exhaustion": 0.8, "beta_index": 0.7, "narrative_drag": 10.0, }

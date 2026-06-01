@@ -28,6 +28,7 @@ from phases import (ObservationPhase, SanctuaryPhase, MaintenancePhase, Gatekeep
                     CognitionPhase, SensationPhase, StabilizationPhase, SimulationPhase, _safe_dict)
 from physics import CycleStabilizer
 from struts import ux, ux_format
+import numpy as np
 
 _CRASH_COMPONENT_MAP = {"OBSERVE": "PHYSICS", "METABOLISM": "BIO", "COGNITION": "MIND"}
 
@@ -483,9 +484,7 @@ class GeodesicOrchestrator:
             ctx.physics.macro_policy = self.eng.governor.get_policy_shift()
 
             # --- [ BEGIN: CREATIVE DETERMINANT WIRING ] ---
-            import numpy as np
 
-            # Extract the active mode flags as the target tensor
             raw_vector = getattr(ctx.physics, "vector", {})
             if raw_vector:
                 goal_vec = np.array(list(raw_vector.values()), dtype=np.float32)
@@ -494,20 +493,32 @@ class GeodesicOrchestrator:
 
             phys_dict = ctx.physics.__dict__ if hasattr(ctx.physics, "__dict__") else ctx.physics
 
+            # [N-DIMENSIONAL UPGRADE]: Fetch the Memory Graph and the Implicit User Intent
+            mem_core = getattr(getattr(self.eng, "mind", None), "mem", None)
+            cortex = getattr(self.eng, "cortex", None)
+            implicit_text = ""
+
+            # Scrape the dialogue buffer for the literal words the user typed
+            if cortex and hasattr(cortex, "dialogue_buffer") and cortex.dialogue_buffer:
+                for line in reversed(cortex.dialogue_buffer):
+                    if line.startswith("User:") or line.startswith("Traveler:"):
+                        implicit_text = line[line.find(":") + 1:].strip()
+                        break
+
             dv, dd = self.eng.governor.regulate(
                 physics=phys_dict,
                 dt=ctx.time_delta,
                 goal_vector=goal_vec,
-                endocrine_state=getattr(self.eng.bio, "endo", None) if hasattr(self.eng, "bio") else None
+                endocrine_state=getattr(self.eng.bio, "endo", None) if hasattr(self.eng, "bio") else None,
+                memory_core=mem_core,
+                user_text=implicit_text
             )
 
-            # Warp the physics immediately before it gets handed to the LLM
             ctx.physics.voltage = max(0.0, float(getattr(ctx.physics, "voltage", 0.0)) + dv)
             ctx.physics.narrative_drag = max(0.0, float(getattr(ctx.physics, "narrative_drag", 0.0)) + dd)
 
-            # Feed lambda_1 into the Telemetry Crystal (CD PROTOCOL)
+            # Feed Telemetry to the UI Dashboard
             if hasattr(self.eng.governor, "last_lam1"):
-                # Bind anonymous lambdas to satisfy the expected Telemetry interface
                 ctx.physics.get_principal_eigenvalue = lambda: self.eng.governor.last_lam1
                 ctx.physics.get_creative_drive = lambda: getattr(self.eng.governor, "last_a", 0.0)
                 ctx.physics.get_viability_potential = lambda: getattr(self.eng.governor, "last_b", 0.0)

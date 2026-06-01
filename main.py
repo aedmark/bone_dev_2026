@@ -29,7 +29,7 @@ from struts import ux, safe_get, safe_set
 
 @dataclass
 class HostStats:
-    """Brutalist: Don't touch this unless you've got a plan to replace it with something better."""
+    """Don't touch this unless you've got a plan to replace it with something better."""
     efficiency_index: float
 
 class BoneAmanita:
