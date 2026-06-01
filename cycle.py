@@ -13,7 +13,8 @@ import threading
 import time
 import traceback
 import uuid
-from collections import deque
+import math
+from collections import deque, Counter
 from concurrent.futures import ThreadPoolExecutor
 from typing import Dict, Any, List, Optional
 from constants import Prisma
@@ -32,7 +33,6 @@ import numpy as np
 
 _CRASH_COMPONENT_MAP = {"OBSERVE": "PHYSICS", "METABOLISM": "BIO", "COGNITION": "MIND"}
 
-
 def _native_wls(x: list[float], y: list[float], weights: list[float]) -> float:
     """
     [navi-fractal PROTOCOL]: Weighted Least Squares (WLS) regression with Quality Gates.
@@ -50,22 +50,15 @@ def _native_wls(x: list[float], y: list[float], weights: list[float]) -> float:
     mean_x, mean_y = sum_wx / sum_w, sum_wy / sum_w
     ss_xx -= sum_w * mean_x * mean_x
     ss_xy -= sum_w * mean_x * mean_y
-
     if ss_xx == 0.0:
         return 0.0
-
     slope = ss_xy / ss_xx
-
-    # [navi-fractal] Quality Gate: R^2 validation
     ss_tot = sum(w * (yi - mean_y) ** 2 for w, yi in zip(weights, y))
     ss_res = sum(w * (yi - (mean_y + slope * (xi - mean_x))) ** 2 for w, xi, yi in zip(weights, x, y))
     r2 = 1.0 - (ss_res / ss_tot) if ss_tot > 0.0 else 0.0
-
-    if r2 < 0.85:  # The 'inclusive' preset gate
-        return 0.0  # Refused. The topology is not truly fractal.
-
+    if r2 < 0.85:
+        return 0.0
     return slope
-
 
 def _native_rewire(adj_dict: dict, n_swaps: int) -> dict:
     """
@@ -98,27 +91,17 @@ def _native_rewire(adj_dict: dict, n_swaps: int) -> dict:
         edges[i1], edges[i2] = (min(a1, b1), max(a1, b1)), (min(a2, b2), max(a2, b2))
     return adj
 
-
 def _native_freeze_graph(adj_dict: dict) -> tuple:
-    if not adj_dict or not hasattr(adj_dict, "items"): return ()
+    if not isinstance(adj_dict, dict): return ()
     return tuple((k, tuple(sorted(neighbors, key=str))) for k, neighbors in sorted(adj_dict.items(), key=lambda x: str(x[0])))
 
-
 def _native_permutation_entropy(time_series: list[float], m: int = 3, tau: int = 1, epsilon: float = 1e-5) -> float:
-    """
-    Calculates Permutation Entropy (PE) using Takens' Delay-Coordinate Embedding.
-    Incorporates Navi-SAD strict Tie-Exclusion to prevent fake structural inflation.
-    """
-    import math
-    from collections import Counter
     n = len(time_series)
     if n < m * tau:
         return 1.0
-
     patterns = []
     for i in range(n - (m - 1) * tau):
         window = [time_series[i + j * tau] for j in range(m)]
-
         has_tie = False
         for a in range(m):
             if has_tie: break
@@ -128,51 +111,32 @@ def _native_permutation_entropy(time_series: list[float], m: int = 3, tau: int =
                     break
         if has_tie:
             continue
-
         sorted_indices = tuple(x[0] for x in sorted(enumerate(window), key=lambda x: x[1]))
         patterns.append(sorted_indices)
-
     if not patterns:
         return 0.0
-
     counts = Counter(patterns)
     total = len(patterns)
     pe = 0.0
     for count in counts.values():
         p = count / total
         pe -= p * math.log2(p)
-
     max_e = math.log2(math.factorial(m))
     return pe / max_e if max_e > 0 else 0.0
 
-
 def _native_takens_volume(time_series: list[float], m: int = 3, tau: int = 1) -> float:
-    """
-    Estimates the phase-space volume using Takens' Delay Coordinate Embedding.
-    Maps the 'shape' of the conversation's attractor.
-    """
     n = len(time_series)
     if n < m * tau:
         return 1.0
-
-    points = []
-    for i in range(n - (m - 1) * tau):
-        points.append([time_series[i + j * tau] for j in range(m)])
-
-    if not points:
-        return 1.0
-
     volume = 1.0
-    for dim_values in zip(*points):
-        spread = max(dim_values) - min(dim_values)
+    for j in range(m):
+        dim_values = [time_series[i + j * tau] for i in range(n - (m - 1) * tau)]
+        spread = max(dim_values) - min(dim_values) if dim_values else 0.0
         volume *= max(0.001, spread)
-
     return volume
-
 
 def _native_configuration_model(adj_dict: dict) -> dict:
     """[navi-fractal]: Generates a random graph preserving degree sequence (Null Model)."""
-    import random
     degrees = {node: len(neighbors) for node, neighbors in adj_dict.items()}
     stubs = []
     for node, deg in degrees.items():
@@ -185,28 +149,22 @@ def _native_configuration_model(adj_dict: dict) -> dict:
         null_adj[v].append(u)
     return null_adj
 
-
 def _native_quality_gate(log_r: list, log_m: list) -> tuple[bool, str]:
     """[navi-fractal]: MFA Quality Gate. Checks dynamic range and R^2 linearity."""
     if not log_r or len(log_r) < 3:
         return False, "INSUFFICIENT_RANGE"
-
     n = len(log_r)
     sum_x, sum_y = sum(log_r), sum(log_m)
     sum_xy = sum(x * y for x, y in zip(log_r, log_m))
     sum_xx = sum(x * x for x in log_r)
-
     denom = (n * sum_xx - sum_x ** 2)
     if denom == 0:
         return False, "ZERO_VARIANCE"
-
     slope = (n * sum_xy - sum_x * sum_y) / denom
     intercept = (sum_y - slope * sum_x) / n
-
     ss_tot = sum((y - (sum_y / n)) ** 2 for y in log_m)
     ss_res = sum((y - (slope * x + intercept)) ** 2 for x, y in zip(log_r, log_m))
     r_squared = 1 - (ss_res / ss_tot) if ss_tot > 0 else 0
-
     if r_squared < 0.90:
         return False, f"POOR_FIT_R2_{r_squared:.2f}"
     return True, "PASSED"
@@ -283,11 +241,6 @@ class CycleSimulator:
         ctx.log(f"{Prisma.RED}{msg_panic}{Prisma.RST}")
 
 class GeodesicOrchestrator:
-    """
-    This class manages the lifecycle of the Cycle Simulator. It wraps the raw turn logic in
-    telemetry, threading, and continuous feedback mechanisms to ensure the engine acts like a
-    living organism rather than a static command-line tool.
-    """
     def __init__(self, engine_ref):
         self.eng = engine_ref
         self.simulator = CycleSimulator(engine_ref)
@@ -299,7 +252,7 @@ class GeodesicOrchestrator:
         self.daemon_thread = None
         self.last_interaction_time = time.time()
         self.engine_state = "WAKE"
-        self.dream_log = []
+        self.dream_log = deque(maxlen=5)
         self.last_rem_tick = 0.0
         self.voltage_history = deque(maxlen=20)
         self._async_pool = ThreadPoolExecutor(max_workers=3, thread_name_prefix="CycleAsync")
@@ -401,7 +354,6 @@ class GeodesicOrchestrator:
         def _bg_topology_check(adj_copy):
             try:
                 max_swaps = min(len(adj_copy) * 10, 1000)
-                # [navi-fractal PROTOCOL]: Dual Null-Model generation
                 null_adj_rewire = _native_rewire(adj_copy, n_swaps=max_swaps)
                 null_adj_config = _native_configuration_model(adj_copy)
                 actual_cluster = mem.calculate_clustering(adj_copy)
@@ -438,15 +390,9 @@ class GeodesicOrchestrator:
             lattice = self.eng.shared_lattice
             ctx.user_state = lattice.u
             ctx.shared_dyn = lattice.shared
-            # --- [ BEGIN: DYNAMIC DT WIRING ] ---
-            # Extract user exhaustion from the shared lattice
             u_exhaustion = float(getattr(ctx.user_state, "E_u", getattr(ctx.user_state, "E", 0.0)))
-            # Dynamic ceiling: Fresh host (E=0.0) gives a max dt of 5.0s.
-            # Exhausted host (E=1.0) shrinks max dt down to 1.5s.
-            # This forces the PDE to integrate at a gentler, more stable pace when you are tired.
             dynamic_ceiling = max(1.5, 5.0 - (u_exhaustion * 3.5))
             ctx.time_delta = min(dynamic_ceiling, max(0.1, calculated_delta))
-            # --- [ END: DYNAMIC DT WIRING ] ---
             ctx.limits = _safe_dict(self.eng.config.CYCLE)
             active_phys = self.eng.active_physics
             if isinstance(active_phys, PhysicsPacket):
@@ -464,7 +410,7 @@ class GeodesicOrchestrator:
             if not ctx.physics.vector:
                 ctx.physics.vector = {}
             usr_msg = user_message.lower()
-            if "[grief]" in usr_msg:  # NECESSARY GRIEF INTERCEPT
+            if "[grief]" in usr_msg:
                 self.eng.bio.endo.glimmers += 1
                 self.eng.events.log(f"{Prisma.MAG}Grief acknowledged. A glimmer is yielded.{Prisma.RST}", "SYS")
             tags_map = {"critique_mode": "[!r]", "objective_mode": "[!q]", "healing_mode": "[!h]",
@@ -483,46 +429,30 @@ class GeodesicOrchestrator:
             self.eng.governor.calculate_coupling(phi_val, res_delta, u_exhaustion)
             ctx.physics.macro_policy = self.eng.governor.get_policy_shift()
 
-            # --- [ BEGIN: CREATIVE DETERMINANT WIRING ] ---
-
             raw_vector = getattr(ctx.physics, "vector", {})
             if raw_vector:
                 goal_vec = np.array(list(raw_vector.values()), dtype=np.float32)
             else:
                 goal_vec = np.zeros(7, dtype=np.float32)
-
             phys_dict = ctx.physics.__dict__ if hasattr(ctx.physics, "__dict__") else ctx.physics
-
-            # [N-DIMENSIONAL UPGRADE]: Fetch the Memory Graph and the Implicit User Intent
             mem_core = getattr(getattr(self.eng, "mind", None), "mem", None)
             cortex = getattr(self.eng, "cortex", None)
             implicit_text = ""
-
-            # Scrape the dialogue buffer for the literal words the user typed
             if cortex and hasattr(cortex, "dialogue_buffer") and cortex.dialogue_buffer:
                 for line in reversed(cortex.dialogue_buffer):
                     if line.startswith("User:") or line.startswith("Traveler:"):
                         implicit_text = line[line.find(":") + 1:].strip()
                         break
-
             dv, dd = self.eng.governor.regulate(
-                physics=phys_dict,
-                dt=ctx.time_delta,
-                goal_vector=goal_vec,
+                physics=phys_dict, dt=ctx.time_delta, goal_vector=goal_vec,
                 endocrine_state=getattr(self.eng.bio, "endo", None) if hasattr(self.eng, "bio") else None,
-                memory_core=mem_core,
-                user_text=implicit_text
-            )
-
+                memory_core=mem_core, user_text=implicit_text)
             ctx.physics.voltage = max(0.0, float(getattr(ctx.physics, "voltage", 0.0)) + dv)
             ctx.physics.narrative_drag = max(0.0, float(getattr(ctx.physics, "narrative_drag", 0.0)) + dd)
-
-            # Feed Telemetry to the UI Dashboard
             if hasattr(self.eng.governor, "last_lam1"):
                 ctx.physics.get_principal_eigenvalue = lambda: self.eng.governor.last_lam1
                 ctx.physics.get_creative_drive = lambda: getattr(self.eng.governor, "last_a", 0.0)
                 ctx.physics.get_viability_potential = lambda: getattr(self.eng.governor, "last_b", 0.0)
-            # --- [ END: CREATIVE DETERMINANT WIRING ] ---
             self._evaluate_systemic_feedback(user_message if not is_system else "(Waiting)", ctx)
             ctx = self.simulator.run_simulation(ctx)
             post_logs = [e["text"] for e in self.eng.events.flush()]
@@ -530,7 +460,6 @@ class GeodesicOrchestrator:
             self._verify_semantic_topology(ctx)
             if self.eng.observer:
                 self.eng.observer.last_physics_packet = ctx.physics.snapshot()
-            # [CD PROTOCOL] Inject metrics into the Telemetry Crystal
             if self.eng.telemetry.active_crystal and hasattr(ctx.physics, "get_principal_eigenvalue"):
                 self.eng.telemetry.active_crystal.leverage_metrics.update({
                     "b": ctx.physics.get_viability_potential(),
@@ -573,7 +502,6 @@ class GeodesicOrchestrator:
                 if hasattr(cortex, "get_local_mass_radius"):
                     radii_data = cortex.get_local_mass_radius(msg_str)
                     if radii_data and lattice:
-                        # [navi-fractal PROTOCOL]: Evaluate Quality Gates and Null Model
                         passed_gate, gate_code = _native_quality_gate(radii_data["log_r"], radii_data["log_m"])
                         local_d = _native_wls(radii_data["log_r"], radii_data["log_m"], radii_data["weights"])
                         if not passed_gate:
@@ -582,10 +510,9 @@ class GeodesicOrchestrator:
                                 "SYS")
                             ctx.council_mandates.append(
                                 {"action": "DEFRAGMENT_MEMORY", "value": "FRAG_HIGH", "log": gate_code})
-                            local_d = 1.0  # Flatten dimension on failure
+                            local_d = 1.0
                         else:
-                            # Generate Null Model to detect Hallucinations of Depth
-                            null_d = 3.0  # A completely random graph trends toward infinite/high dimension
+                            null_d = 3.0
                             lattice.shared.omega_r = min(1.0, local_d / 2.0)
                             if 1.5 < local_d < null_d:
                                 self.eng.events.log(
@@ -604,13 +531,11 @@ class GeodesicOrchestrator:
                                 ctx.physics.kappa = max(0.5, float(getattr(ctx.physics, "kappa", 0.0)))
             except Exception as e:
                 self.eng.events.log(f"Async WLS Heuristic Error: {e}", "DEBUG")
-
         if clean_message != "(Waiting)":
             if ctx.physics:
                 self.voltage_history.append(float(getattr(ctx.physics, "voltage", 0.0)))
             if cortex and self.eng.tick_count % 3 == 0:
                 self._async_pool.submit(_bg_wls_check, clean_message)
-                # [navi-SAD PROTOCOL]: Calculate Permutation Entropy & Takens Volume
                 try:
                     v_history = list(self.voltage_history)
                     has_active_tags = any(ctx.physics.vector.values()) if getattr(ctx.physics, "vector", None) else False
@@ -641,7 +566,7 @@ class GeodesicOrchestrator:
             self.engine_state = "REM"
 
     def run_turn(self, user_message: str, is_system: bool = False) -> Dict[str, Any]:
-        """NOTE: /idle is here as a short-circuit protection for REM sleep. Leave it alone."""
+        """/idle: Leave it alone."""
         clean_message = (user_message.strip() or "(Waiting)")
         if clean_message.lower() in ("/idle", "/sleep"):
             self.engine_state = "REM"
@@ -687,24 +612,15 @@ class GeodesicOrchestrator:
             self._async_pool.shutdown(wait=False)
 
     def _hydrate_snapshot_metadata(self, snapshot: Dict, ctx: CycleContext):
-        snapshot.update({
-            "trace_id": ctx.trace_id,
-            "physics": _safe_dict(ctx.physics),
-            "bio": _safe_dict(ctx.bio_result),
-            "mind": _safe_dict(ctx.mind_state),
-            "world": _safe_dict(ctx.world_state),
-            "soul": _safe_dict(getattr(self.eng, "soul", {})),
-            "council_mandates": ctx.council_mandates,
-            "dream": ctx.last_dream,
-            "mutated_input": ctx.input_text
-        })
-
-        # [CD PROTOCOL] Inject CD Metrics into the physics snapshot for UI rendering
+        snapshot.update(
+            {"trace_id": ctx.trace_id, "physics": _safe_dict(ctx.physics), "bio": _safe_dict(ctx.bio_result),
+             "mind": _safe_dict(ctx.mind_state), "world": _safe_dict(ctx.world_state),
+             "soul": _safe_dict(getattr(self.eng, "soul", {})), "council_mandates": ctx.council_mandates,
+             "dream": ctx.last_dream, "mutated_input": ctx.input_text})
         if hasattr(ctx.physics, "get_principal_eigenvalue") and isinstance(snapshot.get("physics"), dict):
             if hasattr(ctx.physics, "enforce_saturation_limit"):
                 sat_penalty = ctx.physics.enforce_saturation_limit()
                 snapshot["physics"]["saturation_penalty"] = round(sat_penalty, 3)
-
             snapshot["physics"]["b"] = ctx.physics.get_viability_potential()
             snapshot["physics"]["a"] = ctx.physics.get_creative_drive()
             snapshot["physics"]["lam1"] = ctx.physics.get_principal_eigenvalue()

@@ -27,14 +27,11 @@ class EndocrineSystem:
         body_config = (LoreManifest.get_instance(config_ref=self.cfg).get("BODY_CONFIG") or {})
         self._REACTION_MAP = body_config.get("REACTION_MAP", {})
         self._KEY_MAP = {
-            "ADR": "adrenaline", "COR": "cortisol", "OXY": "oxytocin",
-            "DOP": "dopamine", "SER": "serotonin", "MEL": "melatonin"
+            "ADR": "adrenaline", "COR": "cortisol", "OXY": "oxytocin", "DOP": "dopamine", "SER": "serotonin", "MEL": "melatonin"
         }
         self._CIRCADIAN_SCHEDULE = body_config.get("CIRCADIAN_SCHEDULE", [])
         self._CIRCADIAN_NIGHT = body_config.get("CIRCADIAN_NIGHT", [{
-            "MEL": 0.3,
-            "COR": -0.1
-        }, "LUNAR", ""])
+            "MEL": 0.3, "COR": -0.1}, "LUNAR", ""])
         if not isinstance(self._CIRCADIAN_NIGHT, list) or len(self._CIRCADIAN_NIGHT) < 3:
             self._CIRCADIAN_NIGHT = [{"MEL": 0.3, "COR": -0.1}, "LUNAR", ""]
 

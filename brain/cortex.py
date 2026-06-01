@@ -240,7 +240,6 @@ class TheCortex:
         # LOAD BEARING ATTRIBUTE CHECKS
         eng_ref = getattr(self.svc.orchestrator, "eng", None)
         gk = getattr(eng_ref, "gatekeeper", None)
-
         if not gk:
             from physics import TheGatekeeper
             gk = TheGatekeeper(self.svc.lexicon, config_ref=self.cfg)
@@ -252,7 +251,7 @@ class TheCortex:
                 raw_resp = self.LEXICAL_PURGE_PATTERN.sub("", raw_resp).strip()
                 if len(raw_resp) < original_len and self.events:
                     self.events.log(
-                        f"{Prisma.RED}[LEXICAL FIREWALL]: Validating boilerplate physically purged from output.{Prisma.RST}", "CORTEX", )
+                        f"{Prisma.RED}Validating boilerplate physically purged from output.{Prisma.RST}", "CORTEX", )
             if allow_loot and self.svc.inventory:
                 final_text, inv_logs = self.svc.inventory.process_loot_tags(
                     raw_resp, user_input)
@@ -260,58 +259,42 @@ class TheCortex:
                 final_text, inv_logs = raw_resp, []
             stamina_val = float(phys_state.get("p", 100.0))
             final_text, needs_rewrite = self.pragmatist.enforce_maxims(final_text, user_input, phys_state, stamina_val)
-            is_faithful, judge_reason = True, ""
             if needs_rewrite:
-                is_faithful = False
-                judge_reason = "Maxim of Quantity violated. Your response was too long. Compress your output drastically."
-            elif self.dspy_critic.enabled:
-                valid_mode = self.active_mode in ["ADVENTURE", "CONVERSATION"]
-                if valid_mode and not is_boot_sequence:
-                    mem_core = getattr(self.svc.mind_memory, "memory_core", None)
-                    phys_vec = full_state["physics"].get("vector", {})
-                    active_mems = mem_core.illuminate(phys_vec) if mem_core else []
-                    if active_mems:
-                        context_str = "Active Memory: " + ", ".join(active_mems)
-                    else:
-                        context_str = "Empty Void."
-                    try:
-                        is_faithful, judge_reason = self.dspy_critic.audit_generation(
-                            user_input, context_str, final_text, active_mode=self.active_mode)
-                    except Exception as e:
-                        is_faithful, judge_reason = True, ""
-                        if self.events:
-                            self.events.log(
-                                f"{Prisma.OCHRE}[CRITIC OFFLINE]: DSPy failed to parse. Bypassing audit.{Prisma.RST}",
-                                "SYS")
-                    if is_faithful:
-                        e_u = float(phys_state.get("exhaustion", 0.0))
-                        beta = float(phys_state.get("beta_index", phys_state.get("contradiction", 0.0)))
-                        if e_u > 0.6 or beta > 0.7:
-                            is_faithful, judge_reason = self._run_affective_audit(
-                                user_input, final_text, e_u, beta)
-            if not is_faithful:
-                val_res = {"valid": False, "feedback_instruction":
-                    f"CRITICAL FAILURE: {judge_reason}. If the user is exhausted, drastically shorten and soften your tone. Prioritize presence over output. Stay in character.", }
-                short_reason = judge_reason.split(".")[0][:60] + "..."
-                print(f" {Prisma.VIOLET}⚖DSPy Critic Objected: {short_reason}{Prisma.RST}")
-                if self.events:
-                    self.events.log(f"DSPy Critic Objected: {short_reason}", "SYS")
-            else:
-                gate_txt = final_text
+                val_res["feedback_instruction"] = "CRITICAL FAILURE: Maxim of Quantity violated. Your response was too long."
+            if not val_res.get("feedback_instruction") and self.dspy_critic.enabled and self.active_mode in ["ADVENTURE", "CONVERSATION"] and not is_boot_sequence:
+                mem_core = getattr(self.svc.mind_memory, "memory_core", None)
+                active_mems = mem_core.illuminate(full_state["physics"].get("vector", {})) if mem_core else []
+                ctx_str = "Active Memory: " + ", ".join(active_mems) if active_mems else "Empty Void."
+                try:
+                    is_faithful, judge_reason = self.dspy_critic.audit_generation(user_input, ctx_str, final_text, active_mode=self.active_mode)
+                    if not is_faithful:
+                        val_res["feedback_instruction"] = f"CRITICAL FAILURE: {judge_reason}. If the user is exhausted, drastically shorten and soften your tone."
+                        if self.events: self.events.log(f"DSPy Critic Objected: {judge_reason.split('.')[0][:60]}...", "SYS")
+                except Exception as e:
+                    if self.events: self.events.log(f"{Prisma.OCHRE}[CRITIC OFFLINE]: DSPy parse failed. Bypassing.{Prisma.RST}", "SYS")
+            if not val_res.get("feedback_instruction"):
+                e_u = float(phys_state.get("exhaustion", 0.0))
+                beta = float(phys_state.get("beta_index", phys_state.get("contradiction", 0.0)))
+                if e_u > 0.6 or beta > 0.7:
+                    is_faithful, judge_reason = self._run_affective_audit(user_input, final_text, e_u, beta)
+                    if not is_faithful:
+                        val_res["feedback_instruction"] = f"CRITICAL FAILURE: {judge_reason} Prioritize presence over output. Stay in character."
+            if not val_res.get("feedback_instruction"):
                 gate_pass, gate_txt = gk.audit_generation(final_text, self.svc.bio.mito)
                 if not gate_pass or "IMMUNOSUPPRESSION ENGAGED" in gate_txt:
-                    val_res = {"valid": False,
-                               "feedback_instruction": "HLA Stabilizer flagged toxic AI slop. Drop the corporate persona immediately.",
-                               "replacement": "Gatekeeper Apoptotic Block.",
-                               "meta_logs": ["[SYSTEM] HLA Stabilizer engaged."]}
-                if not val_res.get("feedback_instruction"):
+                    val_res.update({
+                        "feedback_instruction": "HLA Stabilizer flagged toxic AI slop. Drop the corporate persona immediately.",
+                        "replacement": "Gatekeeper Apoptotic Block.",
+                        "meta_logs": ["[SYSTEM] HLA Stabilizer engaged."]
+                    })
+                else:
                     val_res = self.validator.validate(gate_txt, full_state)
-                if val_res["valid"]:
-                    final_output = val_res["content"]
-                    extracted_logs = val_res.get("meta_logs", [])
-                    if val_res.get("learned_triplet") and self.events:
-                        self.events.publish("SYNTAX_CORRECTED", {"triplet": val_res["learned_triplet"]})
-                    break
+            if val_res.get("valid"):
+                final_output = val_res["content"]
+                extracted_logs = val_res.get("meta_logs", [])
+                if val_res.get("learned_triplet") and self.events:
+                    self.events.publish("SYNTAX_CORRECTED", {"triplet": val_res["learned_triplet"]})
+                break
             if self.svc.bio:
                 lbl = "Cognitive Stumble (Terminal)" if attempt == max_retries - 1 else "Cognitive Stumble"
                 self.svc.bio.mito.adjust_atp(-2.0, lbl)
@@ -432,8 +415,12 @@ class TheCortex:
                 if "ui" in sim_result:
                     sim_result[
                         "ui"] += f"\n\n{Prisma.VIOLET}[FALSE COHESION BREAK: The Jester has seized the architecture.]{Prisma.RST}"
-        for k, v in sim_result.get("physics", {}).items():
-            safe_set(ctx.physics, k, v)
+        updated_phys = sim_result.get("physics", {})
+        if isinstance(ctx.physics, dict):
+            ctx.physics.update(updated_phys)
+        else:
+            for k, v in updated_phys.items():
+                setattr(ctx.physics, k, v)
         return sim_result
 
     def _run_council_debate(self, user_input: str) -> Tuple[str, List[str]]:

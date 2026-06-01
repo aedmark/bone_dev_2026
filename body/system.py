@@ -47,12 +47,8 @@ class BioSystem:
         self.mito.adjust_atp(payload.get("atp_gained", 15.0), "Emergency Autophagy")
 
     def to_dict(self) -> Dict[str, Any]:
-        return {
-            "mito": asdict(self.mito.state),
-            "endo": self.endo.get_state(),
-            "biometrics": asdict(self.biometrics) if self.biometrics else {},
-            "governor_mode": self.governor.mode,
-        }
+        return {"mito": asdict(self.mito.state), "endo": self.endo.get_state(),
+                "biometrics": asdict(self.biometrics) if self.biometrics else {}, "governor_mode": self.governor.mode, }
 
     def expend_glimmer(self) -> bool:
         if self.endo.glimmers >= 1:
@@ -132,7 +128,6 @@ class BioSystem:
         if shield_strength > 0.2 and self.events and (msg := ux("entropy_shield", "shield_active")):
             self.events.log(f"{Prisma.CYN}{msg.format(mitigation=int(shield_strength * 100))}{Prisma.RST}", "PHYS")
 
-
 class SomaticLoop:
     def __init__(self, bio_system_ref: BioSystem, memory_ref=None, lexicon_ref=None, events_ref=None, config_ref=None):
         self.bio = bio_system_ref
@@ -146,7 +141,7 @@ class SomaticLoop:
         self.narrative_data = (LoreManifest.get_instance(config_ref=self.cfg).get("BIO_NARRATIVE") or {})
         if not self.narrative_data:
             if self.events:
-                self.events.log(f"{Prisma.OCHRE}[BODY]: Warning - BIO_NARRATIVE missing.{Prisma.RST}", "SYS")
+                self.events.log(f"{Prisma.OCHRE}Warning - BIO_NARRATIVE missing.{Prisma.RST}", "SYS")
             self.narrative_data = {"symptoms": {}, "organs": {}, "GLIMMER": {}, "GOVERNOR": {}}
         self.bio.endo.narrative_data = self.narrative_data
         self.bio.governor.narrative_data = self.narrative_data
@@ -191,15 +186,12 @@ class SomaticLoop:
             return self._package_result(receipt.status, logs, chem_state=self.bio.endo.get_state())
         elif safety_status == "AUTOPHAGY":
             b.stamina = 10.0
-
-        # PID Homeostasis: Active healing when resting in the Safe Volume
         is_safe, _ = self.bio.governor.assess(phys)
         if is_safe:
             b.stamina = min(max_stamina, b.stamina + 3.0)
             self.bio.mito.adjust_atp(3.0, "PID Homeostasis")
             self.bio.mito.state.ros_buildup = max(0.0, self.bio.mito.state.ros_buildup - 2.0)
             logs.append(f"{Prisma.GRN}[BIO]: Homeostasis active. Resting in Safe Volume.{Prisma.RST}")
-
         total_yield = 0.0
         enzyme = "NONE"
         clean_words = safe_get(phys, "clean_words", [])
@@ -219,14 +211,9 @@ class SomaticLoop:
         stamina_impact = self.synesthesia.apply_impulse(impulse)
         b.stamina = max(0.0, min(max_stamina, b.stamina + stamina_impact))
         qualia = self.synesthesia.get_current_qualia(impulse, config_ref=self.cfg)
-        fb_dict.update({
-            "PSI": float(safe_get(phys, "psi", 0.0)),
-            "CHI": float(safe_get(phys, "chi", 0.0)),
-            "VALENCE": float(safe_get(phys, "valence", 0.0)),
-            "INTEGRITY": semantic_sig.coherence,
-            "NOVELTY": semantic_sig.novelty,
-            "STATIC": float(safe_get(phys, "entropy", 0.0)),
-        })
+        fb_dict.update({"PSI": float(safe_get(phys, "psi", 0.0)), "CHI": float(safe_get(phys, "chi", 0.0)),
+                        "VALENCE": float(safe_get(phys, "valence", 0.0)), "INTEGRITY": semantic_sig.coherence,
+                        "NOVELTY": semantic_sig.novelty, "STATIC": float(safe_get(phys, "entropy", 0.0)), })
         chem_state = self.bio.endo.metabolize(feedback=fb_dict, health=b.health, stamina=b.stamina,
                 ros_level=self.bio.mito.state.ros_buildup, receipt=receipt,
                 harvest_hits=harvest_hits, stress_mod=stress_modifier, enzyme_type=enzyme,

@@ -174,7 +174,7 @@ class MitochondrialForge:
         if stress_level > 5.0:
             self.state.membrane_potential = max(0.4, self.state.membrane_potential - 0.15)
             if self.events:
-                msg = ux_format("mito_forge", "adaptation_stress", default="[MITO]: Trauma Adaptive Response (Stress {stress:.1f}). Efficiency dropped ({old:.2f} -> {new:.2f}).", stress=stress_level, old=old_potential, new=self.state.membrane_potential)
+                msg = ux_format("mito_forge", "adaptation_stress", default="Trauma Adaptive Response ({stress:.1f}). Efficiency dropped ({old:.2f} -> {new:.2f}).", stress=stress_level, old=old_potential, new=self.state.membrane_potential)
                 self.events.log(f"{Prisma.RED}{msg}{Prisma.RST}", "BIO")
         elif stress_level > 1.0:
             self.state.membrane_potential = min(1.5, self.state.membrane_potential + 0.05)
@@ -190,14 +190,14 @@ class MitochondrialForge:
         msg = self._get_text("APOPTOSIS")
         icon = ux("mito_forge", "icon_apoptosis")
         if msg:
-            self.events.log(f"{Prisma.RED}{icon}[MITO]: {msg}{Prisma.RST}", "BIO_CRIT")
+            self.events.log(f"{Prisma.RED}{icon}{msg}{Prisma.RST}", "BIO_CRIT")
 
     def apply_inheritance(self, traits: dict):
         if not traits:
             return
         if traits.get("high_metabolism"):
             self.state.membrane_potential = 1.1
-            self.events.log("[MITO]: Ancestral High Metabolism activated.", "GENETICS")
+            self.events.log("Ancestral High Metabolism activated.", "GENETICS")
 
     def cellular_repair(self, survival_streak: int, g_pool: int, inherited_scars: dict) -> Tuple[bool, int, str]:
         if survival_streak < 50 or self.state.ros_buildup > 10.0 or not inherited_scars:
@@ -209,7 +209,7 @@ class MitochondrialForge:
             fallback = "Epigenetic Plasticity Achieved. Ancestral scar '{healed_scar}' permanently erased. (-1 Glimmer)"
             msg = ux_format("mito_forge", "scar_healed", default=fallback, healed_scar=healed_scar)
             if self.events:
-                self.events.log(f"{Prisma.MAG}✨ [MITO]: {msg}{Prisma.RST}", "BIO_HEAL")
+                self.events.log(f"{Prisma.MAG}{msg}{Prisma.RST}", "BIO_HEAL")
             return True, g_pool, msg
         return False, g_pool, ""
 
@@ -260,7 +260,7 @@ class DigestiveTrack:
             factor = count / self.SAMPLING_THRESHOLD
             if random.random() < 0.1:
                 msg = ux_format("digestive_track", "mass_input",
-                    default="[BIO]: Mass Input ({count}). Sampling x{factor:.1f}.", count=count, factor=factor)
+                    default="Mass Input ({count}). Sampling x{factor:.1f}.", count=count, factor=factor)
                 logs.append(f"{Prisma.GRY}{msg}{Prisma.RST}")
             return random.sample(words, self.SAMPLING_THRESHOLD), factor
         return words, 1.0

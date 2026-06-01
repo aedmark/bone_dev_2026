@@ -110,8 +110,7 @@ class SynestheticCortex:
         strings = (LoreManifest.get_instance(config_ref=config_ref or BoneConfig).get(
             "BODY_CONFIG") or {}).get("QUALIA_STRINGS", {})
         if not impulse:
-            return Qualia(Prisma.GRY, "...", strings.get("tones", {}).get("steady", ""),
-                          strings.get("hints", {}).get("observe", ""))
+            return Qualia(Prisma.GRY, "...", strings.get("tones", {}).get("steady", ""), strings.get("hints", {}).get("observe", ""))
         profiles = [
             (impulse.oxytocin_delta, Prisma.MAG, "resonant", "connect"),
             (impulse.dopamine_delta, Prisma.CYN, "vibrating", "explore"),
@@ -127,7 +126,6 @@ class SynestheticCortex:
         return Qualia(color_code=final_color, somatic_sensation=final_reflex, tone=tone, internal_monologue_hint=hint)
 
     def apply_impulse(self, impulse: BiologicalImpulse) -> float:
-
         for chem in ("cortisol", "oxytocin", "dopamine", "adrenaline"):
             current_val = getattr(self.bio.endo, chem)
             delta_val = getattr(impulse, f"{chem}_delta")

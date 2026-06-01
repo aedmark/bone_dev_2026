@@ -187,7 +187,6 @@ class EventBus:
 
     def log(self, message: str, source: str = "SYSTEM", level: str = "INFO"):
         event = {"timestamp": time.time(), "source": source, "level": level, "text": message, "_type": "EVENT_LOG"}
-        # deque.append is thread-safe. Paranoid lock removed.
         self.buffer.append(event)
         self.publish(source, event)
         if self.telemetry:
@@ -241,7 +240,7 @@ class LoreManifest:
         except FileNotFoundError:
             return None
         except Exception as e:
-            print(f"{Prisma.RED}[LORE]: Parse error in '{category}': {e}. Returning empty structure without modifying disk.{Prisma.RST}")
+            print(f"{Prisma.RED}Parse error in '{category}': {e}. Returning empty structure without modifying disk.{Prisma.RST}")
             return None
 
     def inject(self, category: str, data: Any):
@@ -256,25 +255,25 @@ class LoreManifest:
     def save(self, category: str):
         cat_key = category.lower()
         if cat_key not in self._cache or self._cache[cat_key] is None:
-            print(f"{Prisma.YEL}[LORE]: Refusing to save null cache for '{cat_key}'. Preserving disk state.{Prisma.RST}")
+            print(f"{Prisma.YEL}Refusing to save null cache for '{cat_key}'.{Prisma.RST}")
             return
         filepath = os.path.join(self.DATA_DIR, f"{cat_key}.json")
         try:
             with open(filepath, "w", encoding="utf-8") as f:
                 json.dump(self._cache[cat_key], f, indent=2, cls=JSONEncoder)
-            print(f"{Prisma.GRY}[LORE]: Persisted '{cat_key}'.{Prisma.RST}")
+            print(f"{Prisma.GRY}Persisted '{cat_key}'.{Prisma.RST}")
         except Exception as e:
-            print(f"{Prisma.RED}[LORE]: Failed to save '{cat_key}': {e}{Prisma.RST}")
+            print(f"{Prisma.RED}Failed to save '{cat_key}': {e}{Prisma.RST}")
 
     def flush_cache(self, category: str = None):
         with self._lock:
             if not category:
                 self._cache.clear()
-                print(f"{Prisma.CYN}[LORE]: Flushed Lore cache.{Prisma.RST}")
+                print(f"{Prisma.CYN}Flushed Lore cache.{Prisma.RST}")
                 return
             cat_key = category.lower()
             if self._cache.pop(cat_key, None) is not None:
-                print(f"{Prisma.CYN}[LORE]: Flushed '{cat_key}'.{Prisma.RST}")
+                print(f"{Prisma.CYN}Flushed '{cat_key}'.{Prisma.RST}")
 
 class TheObserver:
     def __init__(self, config_ref=None):
@@ -352,6 +351,18 @@ class SystemHealth:
     hints: List[str] = field(default_factory=list)
     observer: Optional["TheObserver"] = None
 
+    @property
+    def physics_online(self) -> bool:
+        return self.components_online.get("physics", True)
+
+    @property
+    def bio_online(self) -> bool:
+        return self.components_online.get("bio", True)
+
+    @property
+    def mind_online(self) -> bool:
+        return self.components_online.get("mind", True)
+
     def __getattr__(self, item: str):
         if item.endswith("_online"):
             return self.components_online.get(item[:-7].lower(), True)
@@ -411,17 +422,13 @@ class RealityStack:
 class CyberneticGovernor:
     """
     Apex N-Dimensional Topological Manifold Governor.
-    Powered by natively bound AVX-512 Asymmetric Rank Transformations.
+    Powered by natively bound AVX-512 Asymmetric Rank Transformations. Ordvec, Apache 2.0
     """
     def __init__(self, config_ref=None):
         self.cfg = config_ref
-
-        # Legacy PID anchors
         self.target_v = None
         self.target_d = None
         self.beth_index, self.order = 0.5, 1
-
-        # N-Dimensional PDE Parameters
         self.c = 10.0
         self.beta_scale = 1.2
         self.last_lam1 = 0.0
@@ -429,8 +436,6 @@ class CyberneticGovernor:
         self.last_b = 0.0
         self.last_sol = 'trivial'
         self._beta_star_unit = 0.5
-
-        # Hardware-Accelerated Indices
         self.memory_bitmap = None
         self.memory_rq = None
         self.cached_nodes = []
@@ -443,8 +448,6 @@ class CyberneticGovernor:
         if self.cached_nodes == nodes and self.memory_rq is not None:
             return True
         from spores.spore_utils import _word_to_vector
-
-        # Compile the graph into full-precision FP32 matrix
         matrix = []
         valid_nodes = []
         for node in nodes:
@@ -455,15 +458,13 @@ class CyberneticGovernor:
         if len(matrix) < 3:
             return False
         fp32_matrix = np.ascontiguousarray(matrix, dtype=np.float32)
-
-        # Build the Hypergeometric and Asymmetric hardware indices
         self.memory_bitmap = ordvec.SignBitmap(fp32_matrix)
         self.memory_rq = ordvec.RankQuantIndex(fp32_matrix)
         self.cached_nodes = valid_nodes
         return True
 
     def _solve_nd_picard(self, L: np.ndarray, a: float, beta_b: np.ndarray, c=10.0, max_iter=100, tol=1e-4) -> Tuple[np.ndarray, bool]:
-        """Native N-Dimensional Graph Picard Iteration."""
+        """Native N-Dimensional Graph Picard Iteration. Mike Singleton"""
         N = L.shape[0]
         b_mean = np.mean(beta_b)
         phi_init = np.sqrt(max(0.01, a) / (b_mean + 1e-8)) if a > 0 else 0.1
@@ -478,13 +479,11 @@ class CyberneticGovernor:
         for _ in range(max_iter):
             rhs = (c + a) * Phi - beta_b * (np.abs(Phi) * Phi)
             Phi_new = A_inv @ rhs
-
             if np.linalg.norm(Phi_new - Phi) < tol:
                 converged = True
                 Phi = Phi_new
                 break
             Phi = Phi_new
-
         return Phi, converged
 
     def get_policy_shift(self) -> str:
@@ -496,25 +495,17 @@ class CyberneticGovernor:
 
     def regulate(self, physics: Dict[str, Any], dt: float, goal_vector: Optional[np.ndarray] = None,
                  endocrine_state: Any = None, memory_core: Any = None, user_text: str = "") -> Tuple[float, float]:
-        voltage = float(safe_get(physics, 'voltage', 30.0))
-        drag = float(safe_get(physics, 'narrative_drag', 0.6))
-
-        # --- [ AVX-ACCELERATED TOPOLOGICAL MANIFOLD ] ---
+        voltage = float(physics.get('voltage', 30.0) if type(physics) is dict else getattr(physics, 'voltage', 30.0))
+        drag = float(
+            physics.get('narrative_drag', 0.6) if type(physics) is dict else getattr(physics, 'narrative_drag', 0.6))
         if self._sync_ordvec_indices(memory_core) and user_text:
             from spores.spore_utils import _word_to_vector
             u_vec = _word_to_vector(user_text)
             if u_vec is not None:
-                # 1. Asymmetric Precision: Keep Query in FP32
                 u_fp32 = np.ascontiguousarray(u_vec, dtype=np.float32)
-
-                # 2. Hypergeometric Pruning: Fast bitwise overlap (O(1))
                 prune_size = min(50, len(self.cached_nodes))
                 candidate_ids = self.memory_bitmap.top_m_candidates(u_fp32, m=prune_size)
-
-                # 3. Asymmetric Rerank (AVX-512)
                 scores, global_ids = self.memory_rq.search_asymmetric_subset(u_fp32, candidate_ids, k=prune_size)
-
-                # 4. Construct Localized Graph Laplacian
                 subset_nodes = [self.cached_nodes[i] for i in global_ids]
                 N_dim = len(subset_nodes)
                 node_indices = {str(node): i for i, node in enumerate(subset_nodes)}
@@ -527,18 +518,13 @@ class CyberneticGovernor:
                 W = np.maximum(W, W.T)
                 D = np.diag(np.sum(W, axis=1))
                 L_matrix = D - W
-
-                # 5. Extract Topological Viability Field
                 b_field = np.maximum(0.01, scores)
                 b_mean = float(np.mean(b_field))
                 a_scalar = float(np.clip((voltage - 30.0) / 70.0, 0.0, 1.0))
                 self.last_b = b_mean
                 self.last_a = a_scalar
                 beta_b = self.beta_scale * self._beta_star_unit * b_field * (1.0 + drag)
-
-                # 6. Solve the N-Dimensional Picard Iteration
                 Phi, converged = self._solve_nd_picard(L_matrix, a_scalar, beta_b, c=self.c)
-
                 if converged:
                     phi_norm_sq = np.dot(Phi, Phi) + 1e-8
                     lam1 = float((Phi.T @ L_matrix @ Phi) / phi_norm_sq) - b_mean
@@ -553,15 +539,15 @@ class CyberneticGovernor:
                     stress_mod = 1.0 if endocrine_state is None else (1.5 if float(getattr(endocrine_state, 'glimmers', 0)) >= 1 else 0.75)
                     adjusted_dt = dt * 0.5 * stress_mod
                     return (target_v - voltage) * adjusted_dt, (target_d - drag) * adjusted_dt
-
-        # --- [ PID FALLBACK ] ---
         return self._pid_fallback(physics, dt, endocrine_state)
 
     def _pid_fallback(self, physics: Dict[str, Any], dt: float, endocrine_state: Any = None) -> Tuple[float, float]:
         active_tv = self.target_v if self.target_v is not None else 30.0
         active_td = self.target_d if self.target_d is not None else 0.6
-        current_v = float(safe_get(physics, "voltage", active_tv))
-        current_d = float(safe_get(physics, "narrative_drag", active_td))
+        current_v = float(
+            physics.get("voltage", active_tv) if type(physics) is dict else getattr(physics, "voltage", active_tv))
+        current_d = float(
+            physics.get("narrative_drag", active_td) if type(physics) is dict else getattr(physics, "narrative_drag", active_td))
         stress_mod = 1.0 if endocrine_state is None else (1.5 if float(getattr(endocrine_state, 'glimmers', 0)) >= 1 else 0.75)
         adjusted_dt = dt * 0.5 * stress_mod
         return (active_tv - current_v) * adjusted_dt, (active_td - current_d) * adjusted_dt
@@ -572,11 +558,6 @@ class CyberneticGovernor:
         self.target_d = float(target_drag)
 
     def calculate_coupling(self, phi: float, resonance_delta: float, user_exhaustion: float) -> float:
-        """
-        Calculates biological coupling (Beth Index) and triggers macro policy shifts
-        when the host reaches critical exhaustion.
-        """
-        # Shift to Co-Regulation if the user is burned out
         if user_exhaustion > 0.8:
             self.order = 2
         else:
