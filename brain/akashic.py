@@ -82,7 +82,7 @@ class TheAkashicRecord:
             if bio_cfg:
                 current_tax = float(safe_get(bio_cfg, "DEPTH_TAX_MULT", 1.0))
                 safe_set(bio_cfg, "DEPTH_TAX_MULT", max(0.5, current_tax - 0.02))
-            msg_template = ux("akashic_strings", "autophagy_strata") or "Autophagy complete. Composted '{target}' (Mass: {mass:.1f}). Recovered {yield_val:.1f} ATP."
+            msg_template = ux("akashic_strings", "autophagy_strata") or "Composted '{target}' and recovered {yield_val:.1f} ATP."
             msg = msg_template.format(target=target, mass=mass, yield_val=yield_val)
         elif self.discovered_words:
             target = next(iter(self.discovered_words))
@@ -145,12 +145,12 @@ class TheAkashicRecord:
                 self.events.log(f"{Prisma.RED}Failed to mutate system_prompts ({category_key}): {e}{Prisma.RST}", "SYS")
 
     def record_glimmer(self, concept: str, paradigm: str):
-        axiom = f"STRUCTURAL SUCCESS [{concept.upper()}]: The system achieved deep resonance using this paradigm: '{paradigm}'. Prioritize this geometry in future calculations."
+        axiom = f"STRUCTURAL SUCCESS [{concept.upper()}]: The system achieved deep resonance using this paradigm: '{paradigm}'. Remember this."
         max_epi = int(safe_get(self.cfg_akashic, "MAX_EPIGENETIC_BOONS", 10))
-        self._mutate_epigenetics("EPIGENETIC_BOONS", axiom, max_epi, f"🧬 [EPIGENETICS] Boon '{concept}' compiled into flow.", Prisma.MAG)
+        self._mutate_epigenetics("EPIGENETIC_BOONS", axiom, max_epi, f"Epigenetic Boon, '{concept},' compiled into flow.", Prisma.MAG)
 
     def _mutate_system_prompts(self, concept: str, coords: dict):
-        axiom = f"SCAR TISSUE [{concept.upper()}]: The system previously collapsed here (Tension: {coords.get('beta', 0.0)}). You must structurally avoid repeating the failure that caused this."
+        axiom = f"SCAR TISSUE [{concept.upper()}]: The system previously collapsed here (Tension: {coords.get('beta', 0.0)}). Remember this."
         max_epi = int(safe_get(self.cfg_akashic, "MAX_EPIGENETIC_SCARS", 10))
         self._mutate_epigenetics("EPIGENETIC_SCARS", axiom, max_epi, f"[EPIGENETICS] Scar '{concept}' compiled into flow.", Prisma.VIOLET)
 
@@ -230,7 +230,7 @@ class TheAkashicRecord:
         for force, threshold_data in hazard_thresholds.items():
             if vector.get(force, 0) > threshold_data.get("threshold", 0.5):
                 hazards.append(threshold_data.get("hazard_name"))
-        desc_template = (ux("akashic_strings", "artifact_desc") or "A coalesced artifact of {dominant_force}.")
+        desc_template = (ux("akashic_strings", "artifact_desc") or "An artifact of {dominant_force}.")
         cfg = safe_get(self.cfg, "AKASHIC", {})
         artifact_val = float(safe_get(cfg, "ARTIFACT_VALUE", 50.0))
         new_data = {"name": new_name, "description": desc_template.format(dominant_force=dominant_force),
@@ -314,7 +314,7 @@ class TheAkashicRecord:
                         needs_migration = True
                     os.remove(path)
                 except Exception as e:
-                    if self.events: self.events.log(f"{Prisma.RED}[AKASHIC] Failed to migrate legacy {key}: {e}.{Prisma.RST}")
+                    if self.events: self.events.log(f"{Prisma.RED}Failed to migrate legacy {key}: {e}.{Prisma.RST}")
         if needs_migration:
             self.lore.inject("SYSTEM_PROMPTS", prompts)
         words_path = os.path.join(self.data_dir, "akashic_discovered_words.json")
@@ -329,17 +329,14 @@ class TheAkashicRecord:
                             target_list.append(word)
                     self.lore.inject("LEXICON", lexicon_data)
             except Exception as e:
-                if self.events: self.events.log(f"{Prisma.RED}[AKASHIC] Failed to load discovered words: {e}. Keeping current state.{Prisma.RST}")
+                if self.events: self.events.log(f"{Prisma.RED}Failed to load discovered words: {e}. Keeping current state.{Prisma.RST}")
 
     def archive_dream(self, dream_text: str):
         """Archives a dream and immediately persists it to disk."""
         if dream_text not in self.dream_archive:
             self.dream_archive.append(dream_text)
-
-            # Keep a deep archive of the last 50 dreams
             if len(self.dream_archive) > 50:
                 self.dream_archive.pop(0)
-
             self._save_user_state()
 
     def replay_dreams(self) -> Optional[str]:
@@ -452,11 +449,7 @@ class TheAkashicRecord:
         if self.events: self.events.log(f"{Prisma.VIOLET}{msg}{Prisma.RST}")
 
     def measure_cognitive_density(self, start_concept: str) -> float:
-        """
-        [navi-fractal PROTOCOL]: BFS Mass-Radius Subconscious Scaling
-        Measures the geometric weight of a concept. If a thought has a high fractal dimension,
-        it is deeply tangled in trauma/glimmers and requires high cognitive load to process.
-        """
+        """ [navi-fractal PROTOCOL]: BFS Mass-Radius Subconscious Scaling """
         adj = {}
         for mem in self.scar_map + self.shadow_stock:
             concept = mem.get("concept", "Unknown")
@@ -465,15 +458,11 @@ class TheAkashicRecord:
             for link in links:
                 if link not in adj: adj[link] = set()
                 adj[link].add(concept)
-
         if start_concept not in adj or not adj[start_concept]:
-            return 1.0  # Point mass
-
-        # Standard BFS for Mass(Radius)
+            return 1.0
         visited = {start_concept}
         queue = [(start_concept, 0)]
         mass_at_r = {}
-
         while queue:
             node, r = queue.pop(0)
             mass_at_r[r] = mass_at_r.get(r, 0) + 1
@@ -481,8 +470,6 @@ class TheAkashicRecord:
                 if neighbor not in visited:
                     visited.add(neighbor)
                     queue.append((neighbor, r + 1))
-
-        # Estimate d_f ≈ ln(M) / ln(r) for the maximum radius
         max_r = max(mass_at_r.keys()) if mass_at_r else 0
         total_mass = sum(mass_at_r.values())
         if max_r > 1 and total_mass > 1:
@@ -491,21 +478,15 @@ class TheAkashicRecord:
         return 1.0
 
     def dredge_creative_tension(self) -> Optional[Dict]:
-        """
-        [CD PROTOCOL]: Gradient-Descent Memory Retrieval (Creative Drive RAG)
-        Finds the memory that maximizes a(x) = κγμ.
-        Meaning emerges in tension held with care. We seek the productive paradox.
-        """
+        """ [CD PROTOCOL]: Gradient-Descent Memory Retrieval (Creative Drive RAG) """
         best_memory = None
         max_drive = -1.0
-        # Search through shadow_stock and the permanent scar_map
         pool = self.shadow_stock + self.scar_map
         for mem in pool:
             coords = mem.get("coords") or mem.get("coordinates") or {}
-            # Extract CD fields (fallback to structural equivalents if raw CD vars are missing)
-            kappa = float(safe_get(coords, "kappa", safe_get(coords, "E", 0.5)))  # Care / Exhaustion
-            gamma = float(safe_get(coords, "gamma", safe_get(coords, "C", 0.5)))  # Coherence / Connectivity
-            mu = float(safe_get(coords, "mu", safe_get(coords, "beta", 0.5)))  # Contradiction / Tension
+            kappa = float(safe_get(coords, "kappa", safe_get(coords, "E", 0.5)))
+            gamma = float(safe_get(coords, "gamma", safe_get(coords, "C", 0.5)))
+            mu = float(safe_get(coords, "mu", safe_get(coords, "beta", 0.5)))
             creative_drive = kappa * gamma * mu
             if creative_drive > max_drive:
                 max_drive = creative_drive

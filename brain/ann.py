@@ -3,6 +3,7 @@
 import hashlib
 import heapq
 import math
+import random
 import time
 from itertools import islice
 from typing import Dict, List, Any, Tuple, Optional
@@ -18,16 +19,11 @@ class HippocampalCache:
     def encode(self, node_id: str, vector: List[float], metadata: Dict[str, Any]):
         self.nodes.pop(node_id, None)
         short_hash = hashlib.md5(np.array(vector, dtype=np.float32).tobytes()).hexdigest()[:8]
-        self.nodes[node_id] = {
-            "phantom": {
-                "vector_hash": short_hash,
-                "wing_id": metadata.get("wing_id", "GLOBAL"),
-                "room_id": metadata.get("room_id", "GENERAL")
-            },
-            "vector": vector,
-            "meta": metadata,
-            "timestamp": time.time()
-        }
+        self.nodes[node_id] = {"phantom": {
+            "vector_hash": short_hash,
+            "wing_id": metadata.get("wing_id", "GLOBAL"),
+            "room_id": metadata.get("room_id", "GENERAL")
+        }, "vector": vector, "meta": metadata, "timestamp": time.time()}
         if len(self.nodes) > self.max_capacity:
             del self.nodes[next(iter(self.nodes))]
 
@@ -72,7 +68,7 @@ class CerebralIndex:
 
     def add_memories(self, vectors: List[List[float]], metadata_payloads: List[Dict]):
         if not vectors or len(vectors) != len(metadata_payloads):
-            print(f"[ANN] Alignment failure. Vector count ({len(vectors)}) != Payload count ({len(metadata_payloads)}). Aborting ingestion.")
+            print(f"Alignment failure. Vector count ({len(vectors)}) != Payload count ({len(metadata_payloads)}). Aborting ingestion.")
             return
         np_vectors = np.array(vectors, dtype=np.float32)
         self._index.add(np_vectors)
@@ -137,12 +133,8 @@ class CerebralIndex:
         valid_dists = [float(d) for d in distances[0] if d > 0]
         if len(valid_dists) < 3:
             return None
-        return {
-            "log_r": [math.log(d) for d in valid_dists],
-            "log_m": [math.log(i + 1) for i in range(len(valid_dists))],
-            "weights": [1.0] * len(valid_dists)
-        }
-
+        return {"log_r": [math.log(d) for d in valid_dists],
+                "log_m": [math.log(i + 1) for i in range(len(valid_dists))], "weights": [1.0] * len(valid_dists)}
 
 class MemoryConsolidator:
     def __init__(self, hippocampus: HippocampalCache, cortex: CerebralIndex, events: EventBus):

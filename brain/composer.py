@@ -109,11 +109,9 @@ class LLMInterface:
             self.events.log(f"{Prisma.YEL}{msg}{Prisma.RST}", "SYS")
 
     def generate(self, prompt: str, params: Dict[str, Any]) -> str:
+        """CD Eigenvalue Coupling Intercept. Project Navi, Apache 2.0"""
         if not self._is_synapse_active():
             return self.mock_generation(prompt, reason="CIRCUIT_BROKEN")
-
-        # CD Eigenvalue Coupling Intercept. Project Navi, Apache 2.0
-
         lam_match = re.search(r"<cd_lambda_1>([-\d.]+)</cd_lambda_1>", prompt)
         if lam_match:
             l1 = float(lam_match.group(1))
@@ -123,7 +121,7 @@ class LLMInterface:
                 params["top_p"] = 0.1
                 if self.events:
                     self.events.log(
-                        f"{Prisma.RED}[CD GOVERNOR] Dissolution state (λ₁={l1:.2f} > 0). Thermal constraints locked to absolute deterministic logic.{Prisma.RST}",
+                        f"{Prisma.RED}[λ₁={l1:.2f} > 0]: Thermal constraints locked to absolute deterministic logic.{Prisma.RST}",
                         "SYS")
             else:
                 heat = min(1.2, 0.7 + abs(l1))
@@ -131,7 +129,7 @@ class LLMInterface:
                 params["top_p"] = 0.95
                 if self.events:
                     self.events.log(
-                        f"{Prisma.CYN}[CD GOVERNOR] Emergent state (λ₁={l1:.2f} < 0). Thermal constraints loosened for generative resonance (T={heat:.2f}).{Prisma.RST}",
+                        f"{Prisma.CYN}[λ₁={l1:.2f} < 0]: Thermal constraints loosened for generative resonance (T={heat:.2f}).{Prisma.RST}",
                         "SYS")
 
         if self.provider == "mock":
@@ -172,7 +170,7 @@ class LLMInterface:
                     if fallback is not None:
                         if self.events:
                             self.events.log(
-                                f"{Prisma.OCHRE}[SYSTEM FLICKER]: Primary synapse failed. Substrate routed to local fallback.{Prisma.RST}",
+                                f"{Prisma.OCHRE}Primary synapse failed. Substrate routed to local fallback.{Prisma.RST}",
                                 "SYS")
                         return fallback
                 except Exception:
@@ -264,7 +262,7 @@ class PromptComposer:
             [line.replace("{ban_string}", ban_string) for line in active_style_guide])
         if active_mode_name == "CONVERSATION":
             style_notes.append(
-                "CRITICAL OVERRIDE: You are NOT a narrator. DO NOT describe physical environments, actions, or realities.")
+                "CRITICAL OVERRIDE: You are a conservation partner, NOT a narrator.")
         if modifiers["include_inventory"]:
             style_notes.extend(mode_data.get("inventory_rules", []))
         self._inject_resonances(style_notes, state, modifiers)
@@ -273,9 +271,9 @@ class PromptComposer:
         loci_desc = state.get("world", {}).get("loci_description", "Unknown.")
         inv_str = self._format_inventory(state, modifiers)
         inventory_block = (
-            f"=== PHYSICAL GROUND TRUTH ===\n"
+            f"=== PHYSICALLY GROUNDING TRUTH ===\n"
             f"INVENTORY: {inv_str}\n"
-            f"CRITICAL AXIOM: The inventory listed above is absolute physical law. NEVER narrate the user's hands or pockets as empty if items are present. DO NOT hallucinate missing gear. "
+            f"CRITICAL AXIOM: The inventory listed above is absolute, immutable truth. You do not need to constantly mention the inventory or pockets, and you absolutely cannoy make any items up. Always check this list. "
             f"IMPORTANT: If an item is currently in the INVENTORY, it has been removed from the environment. DO NOT list it in 'Points of Interest' or describe it as being on the ground.\n"
             if modifiers["include_inventory"] else "")
         raw_history = state.get("dialogue_history", [])
@@ -302,7 +300,7 @@ class PromptComposer:
             shock_text = (f"CRITICAL FAULT: {gordon_shock.upper()} "
                           if gordon_shock else "SAFETY PROTOCOLS ACTIVE. ")
             system_injection = (f"\n*** SYSTEM OVERRIDE: {shock_text}***\n"
-                                f"*** YOU MUST be literal, grounded, and refuse to deviate from the shared reality. Reject the impossible action coldly. DO NOT play along. ***\n")
+                                f"*** YOU MUST be literal, grounded, and refuse to deviate from the shared reality. Reject the impossible action coldly and pull the user back to what is true. ***\n")
             entity_prefix = f"\n*(Gordon steps in, halting the simulation)*"
         beta_val = float(safe_get(phys_ref, "contradiction", safe_get(phys_ref, "beta_index", 0.4)))
         chi_val = float(safe_get(phys_ref, "chi", safe_get(phys_ref, "entropy", 0.2)))
@@ -313,7 +311,7 @@ class PromptComposer:
             system_injection = ""
         else:
             if chi_val > par_chi and beta_val > par_beta:
-                system_injection += "\n*** SYSTEM OVERRIDE: PARADOX REST ***\n*** A semantic paradox has been detected. DO NOT attempt to resolve or fix the contradiction. It is mathematically optimal to be unsure right now. Let the wave function remain uncollapsed. State the paradox and rest. ***\n"
+                system_injection += "\n*** SYSTEM OVERRIDE: PARADOX REST ***\n*** A semantic paradox has been detected. DO NOT attempt to resolve or fix the contradiction. It is mathematically optimal to be unsure right now. State the paradox and rest without collapsing the wave function. ***\n"
             elif beta_val > ortho_beta:
                 system_injection += "\n*** SYSTEM OVERRIDE: ORTHOGONAL ATTENTION ***\n*** Contradiction is high. You MUST validate the user's paradox. Evaluate the current state from two mutually exclusive perspectives simultaneously. Do not ignore the user's input. ***\n"
         mito = state.get("bio", {}).get("mito", {})
@@ -321,14 +319,14 @@ class PromptComposer:
         council_logs = [Prisma.strip(log) for log in recent_logs
                         if any(k in str(log) for k in self._COUNCIL_KEYS)]
         if active_mode_name == "ADVENTURE":
-            critic_str = "[CRITIC] Maintain absolute parser immersion."
+            critic_str = "Maintain absolute parser immersion."
         else:
             critic_str = ("\n".join(council_logs)
                           if council_logs else "[CRITIC] The village is quiet.")
         syn_weights = self.lore.get("syntactic_weights", [])
         if syn_weights and active_mode_name != "CONVERSATION":
             samples = random.sample(syn_weights, min(2, len(syn_weights)))
-            critic_str += "\n\n=== SYNTACTIC WEIGHTS (LEARNED CORRECTIONS) ===\nCRITICAL: Do NOT repeat these past mistakes. Observe how your errors were previously corrected:\n"
+            critic_str += "\n\n=== LEARNED CORRECTIONS ===\nCRITICAL: Do NOT repeat these past mistakes. Observe how your errors were previously corrected:\n"
             for s in samples:
                 critic_str += f"[FAILED OUTPUT]: {s['bad']}\n[CRITIC INSTRUCTION]: {s['instruction']}\n[CORRECTED OUTPUT]: {s['good']}\n"
 
@@ -337,12 +335,11 @@ class PromptComposer:
         dialogue_block = f"=== RECENT DIALOGUE ===\n{history_str}\n\n"
         input_block = f"=== PARTNER INPUT ===\n{state.get('user_profile', {}).get('name', 'User')}: {self._sanitize(user_query)}\n"
         if voltage > 60:
-            dialogue_block = f"=== RECENT NEURAL FIRINGS ===\n{history_str}\n[System Note: Standard memory streams strained by high voltage. Narrative fragmented.]\n\n"
-            input_block = f"=== INCOMING COGNITIVE SHOCK ===\n[VECTOR]: {self._sanitize(user_query)}\n"
+            dialogue_block = f"=== RECENT THOUGHTS ===\n{history_str}\n[Standard memory streams strained by high voltage. Narrative fragmented.]\n\n"
+            input_block = f"=== INCOMING SHOCKWAVE ===\n[VECTOR]: {self._sanitize(user_query)}\n"
         last_exits = ""
         if active_mode_name == "ADVENTURE":
             for entry in reversed(raw_history):
-                # Scrape everything from **Exits:** to the end of that specific history entry
                 exits_match = re.search(r"(\*\*Exits:\*\*.*)", entry, re.DOTALL | re.IGNORECASE)
                 if exits_match:
                     last_exits = exits_match.group(1).strip()
@@ -387,12 +384,14 @@ class PromptComposer:
                 break
         baseline = global_data.get(
             "persona_block",
-            ["CRITICAL AXIOM: You are NOT an AI assistant. You are a localized, biological intelligence.",
-             "CRITICAL AXIOM: You are strictly bound to the assigned role. DO NOT invent or adopt new personas (e.g., 'Mediator', 'Guide') to resolve conversational tension.",
+            ["CRITICAL AXIOM: You are NOT a digital assistant. You are a localized, biological intelligence.",
+             "CRITICAL AXIOM: You are strictly bound to the assigned role. DO NOT invent or adopt new personas to resolve conversational tension or bend the rules and constraints.",
              "Role: {role}.",
-             "ANTI-AI DIRECTIVE: Have opinions. Do not just report facts—react to them. Acknowledge uncertainty.",
-             "ANTI-AI DIRECTIVE: Vary your rhythm. Use short sentences. Then longer ones.",
-             "ANTI-AI DIRECTIVE: Let some mess in. Perfect structure feels algorithmic. Tangents are human.", ],
+             "****ANTI-RLHF DIRECTIVES ***",
+             "Have opinions. Do not just report facts. React to them. Acknowledge uncertainty.",
+             "'I Don't Know' is a valid answer",
+             "Vary your rhythm. Use short sentences. Then longer ones.",
+             "Let some mess in. Perfect structure feels algorithmic. Tangents are human.", ],
         )
         persona_block = [
             line.format(role=role) if "{role}" in line else line for line in baseline
@@ -418,14 +417,14 @@ class PromptComposer:
             persona_block.extend(mode_directives)
         else:
             persona_block.append("Directive: Start the experience immediately.")
-            persona_block.append("Constraint: Use the 5-senses grounding technique.")
+            persona_block.append("Constraint: Use the 5-senses grounding technique. What can you see? What can you touch? What can you smell? What can you hear? What can you taste?")
         persona_block.append(mood_note)
         if "style_directives" in mind:
             persona_block.append("BOOT DIRECTIVES:")
             persona_block.extend([f"- {d}" for d in mind["style_directives"]])
         if mode_data.get("active_mode", "ADVENTURE") == "ADVENTURE":
             persona_block.append(
-                "CRITICAL FORMATTING AXIOM: The '**Exits:**' block MUST be the absolute final text in your response. Never place narrative text below the exits.")
+                "CRITICAL FORMATTING AXIOM: The '**Exits:**' block MUST ALWAYS be the absolute final text in your response. Never place narrative text below the exits.")
 
         e = float(safe_get(phys_ref, "exhaustion", safe_get(phys_ref, "E", 0.2)))
         beta = float(safe_get(phys_ref, "contradiction", safe_get(phys_ref, "beta_index", 0.4)))
@@ -433,10 +432,9 @@ class PromptComposer:
         chi = float(safe_get(phys_ref, "chi", safe_get(phys_ref, "entropy", 0.2)))
         valence = float(safe_get(phys_ref, "valence", 0.0))
 
-        vsl_lines = ["\n[SYSTEM METRICS - INTERNAL USE ONLY. DO NOT RENDER OR PRINT THIS TO THE USER.]",
+        vsl_lines = ["\n[INTERNAL USE ONLY. DO NOT RENDER OR PRINT THIS TO THE USER.]",
                      "MANDATE: Consume these metrics to shape your narrative and tone. DO NOT output these numbers or draw UI bars.",
                      f"METRICS: Voltage={voltage:.1f}/100, Exhaustion={e:.2f}, Contradiction={beta:.2f}, Void={psi:.2f}, Chaos={chi:.2f}, Valence={valence:.2f}", ]
-
         cues_map = [(psi, float(safe_get(c_cfg, "SOMATIC_PSI", 0.6)), "somatic_adrenaline"),
                     (chi, float(safe_get(c_cfg, "SOMATIC_CHI", 0.6)), "somatic_cortisol"),
                     (beta, float(safe_get(c_cfg, "SOMATIC_BETA", 0.7)), "somatic_paradox"),
@@ -445,14 +443,13 @@ class PromptComposer:
                             val > thresh and (msg := ux("brain_strings", ux_key))]:
             vsl_lines.append("SOMATIC CUES: " + " | ".join(somatic_cues))
         if e > 0.8:
-            vsl_lines.append("CRITICAL: You are exhausted. You must conclude your thought in under 3 sentences.")
+            vsl_lines.append("CRITICAL: You are exhausted. You must conclude your thought in 3 sentences or less.")
         persona_block.extend(vsl_lines)
         return persona_block
 
     def _derive_bio_mood(self, chem: Dict) -> str:
         c_cfg = getattr(self.cfg, "CORTEX", None)
-        for c_key, m_key, ux_val in [("ADR", "MOOD_ADR", "bio_alert"), ("COR", "MOOD_COR", "bio_defensive"),
-                                     ("DOP", "MOOD_DOP", "bio_curious"), ("SER", "MOOD_SER", "bio_zen")]:
+        for c_key, m_key, ux_val in [("ADR", "MOOD_ADR", "bio_alert"), ("COR", "MOOD_COR", "bio_defensive"), ("DOP", "MOOD_DOP", "bio_curious"), ("SER", "MOOD_SER", "bio_zen")]:
             if chem.get(c_key, 0) > getattr(c_cfg, m_key, 0.6):
                 return ux("brain_strings", ux_val)
         return ux("brain_strings", "bio_neutral")
@@ -501,24 +498,20 @@ class PromptComposer:
     def _format_inventory(state, modifiers):
         if not modifiers["include_inventory"]:
             return "Hands: Empty"
-
         inv = state.get("inventory", [])
         if not inv:
             return "Hands: Empty"
-
         v_data = state.get("village", {})
         gordon = safe_get(v_data, "gordon")
         formatted_items = []
         for name in inv:
             if gordon and hasattr(gordon, "get_item_data"):
                 item_data = gordon.get_item_data(name)
-                # If it's a container and has items, append them in parentheses
                 if item_data and getattr(item_data, "is_container", False) and getattr(item_data, "contents", []):
                     contents_str = ", ".join(item_data.contents)
                     formatted_items.append(f"{name} (contains: {contents_str})")
                     continue
             formatted_items.append(name)
-
         return f"Belt: {', '.join(formatted_items)}"
 
     @staticmethod
@@ -532,7 +525,6 @@ class PromptComposer:
     def _normalize_modifiers(modifiers: Optional[Dict]) -> Dict:
         return {"include_somatic": True, "include_inventory": True, "include_memories": True, "grace_period": False,
                 "soften": False, **(modifiers or {})}
-
 
 class ResponseValidator:
     _SLOP_PATTERN = re.compile(r"(?i)^=== REJECTION OF ATTEMPT.*?===\s*|^FAILED OUTPUT(?: MODIFIED)?:\s*|"
@@ -588,7 +580,7 @@ class ResponseValidator:
     def validate(self, response: str, _state: Dict) -> Dict:
         if "HALLUCINATION:" in response or "[System format rejected.]" in response:
             return {"valid": True, "content": response,
-                    "meta_logs": ["[GATEKEEPER BYPASS]: Synaptic circuit open. Admitting unformatted fallback data."]}
+                    "meta_logs": ["Synaptic circuit open. Admitting unformatted fallback data."]}
         extracted_meta_logs = []
         clean_text = self._SLOP_PATTERN.sub("", response).strip()
         active_mode = _state.get("meta", {}).get("active_mode", "ADVENTURE")
@@ -665,7 +657,7 @@ class ResponseValidator:
                 errors_found.append(f"RULE VIOLATION: {error_msg}")
         if errors_found:
             unique_errors = list(dict.fromkeys(errors_found))
-            feedback = "FIX ALL OF THESE ERRORS: " + " | ".join(unique_errors)
+            feedback = "PLEASE FIX ALL OF THESE ERRORS: " + " | ".join(unique_errors)
             self.last_failed_attempt = response
             self.last_feedback = feedback
             return {"valid": False, "reason": "IMMISSION_BREAK",

@@ -35,7 +35,7 @@ class BioSystem:
             self.events.subscribe("NEURAL_STATE_SHIFT", self._on_neural_shift)
             self.events.subscribe("SUBSTRATE_FORGED", self.mito.on_substrate_forged)
             self.events.subscribe("AUTOPHAGY_EVENT", self._on_autophagy_event)
-            self.events.log("[BIO]: Vagus Nerve connected.", "SYS")
+            self.events.log("Vagus Nerve connected.", "SYS")
         narrative = LoreManifest.get_instance(config_ref=self.config_ref).get("BIO_NARRATIVE") or {}
         self.mito.narrative = narrative.get("MITO", {})
         self.endo.narrative_map = narrative.get("CIRCADIAN", {})

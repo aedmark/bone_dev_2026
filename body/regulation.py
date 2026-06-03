@@ -173,7 +173,7 @@ class MetabolicGovernor:
             return tmpl.format(color=colors.get(mode, Prisma.WHT), reset=Prisma.RST,
                                volts=safe_get(physics, "voltage", 0.0), beta=safe_get(physics, "beta_index", 0.0), )
         except Exception as e:
-            print(f"{Prisma.RED}[GOVERNOR] Shift message format error for '{mode}': {e}{Prisma.RST}")
+            print(f"{Prisma.RED}Format error for '{mode}': {e}{Prisma.RST}")
             return f"{colors.get(mode, '')}{defaults.get(mode, '')}{Prisma.RST}"
 
     def calculate_coupling(self, phi: float, resonance_delta: float, user_exhaustion: float) -> float:
@@ -213,8 +213,7 @@ class BioFeedback:
         chi = float(safe_get(phys, "entropy", 1.0))
         m_a_crit = float(safe_get(cfg, "MALIGNANCY_CRIT", 8.0))
         if m_a > m_a_crit and chi < 0.3:
-            msg = ux("bio_feedback",
-                     "level_3_apoptosis") or "Reward Hacking Detected. Terminal Hallucinations Iminent. Executing Apoptotic Gate."
+            msg = ux("bio_feedback", "level_3_apoptosis") or "Reward Hacking Detected."
             logs.append(f"{Prisma.RED}{msg}{Prisma.RST}")
             return "MAUSOLEUM_CLAMP"
         if voltage > v_overload:
