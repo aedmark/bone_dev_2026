@@ -35,7 +35,7 @@ class PIDController:
             self._first_run = False
         P = self.kp * error
         if self.ki != 0:
-            self._integral += error * safe_dt
+            self._integral = self._integral + (error * safe_dt)
             self._integral = max(self.min_out / self.ki, min(self.max_out / self.ki, self._integral))
         else:
             self._integral = 0.0
@@ -169,9 +169,10 @@ class MetabolicGovernor:
         colors = {k: getattr(Prisma, v, Prisma.WHT) for k, v in raw_colors.items()}
         lookup = {"LABORATORY": "LAB", "COURTYARD": "CLEAR"}.get(mode, mode)
         tmpl = text_map.get(lookup, defaults.get(mode, ""))
+        if not isinstance(tmpl, str):
+            tmpl = ""
         try:
-            return tmpl.format(color=colors.get(mode, Prisma.WHT), reset=Prisma.RST,
-                               volts=safe_get(physics, "voltage", 0.0), beta=safe_get(physics, "beta_index", 0.0), )
+            return tmpl.format(color=colors.get(mode, Prisma.WHT), reset=Prisma.RST, volts=safe_get(physics, "voltage", 0.0), beta=safe_get(physics, "beta_index", 0.0), )
         except Exception as e:
             print(f"{Prisma.RED}Format error for '{mode}': {e}{Prisma.RST}")
             return f"{colors.get(mode, '')}{defaults.get(mode, '')}{Prisma.RST}"
@@ -199,8 +200,8 @@ class BioFeedback:
         v_overload = float(safe_get(cfg, "VOLTAGE_OVERLOAD", 30.0))
         if stamina <= 0:
             if b.health > min_health and self.consecutive_autophagy < 3:
-                b.health -= float(safe_get(cfg, "AUTOPHAGY_BURN", 5.0))
-                self.consecutive_autophagy += 1
+                b.health = b.health - float(safe_get(cfg, "AUTOPHAGY_BURN", 5.0))
+                self.consecutive_autophagy = self.consecutive_autophagy + 1
                 if msg := ux("bio_feedback", "autophagy"):
                     logs.append(f"{Prisma.MAG}{msg}{Prisma.RST}")
                 return "AUTOPHAGY"
@@ -243,18 +244,18 @@ class EndocrineRegulator:
         modifier = 1.0
         if chem.cortisol > 0.5:
             stress_tax = 1.0 + (chem.cortisol * 0.5)
-            modifier *= stress_tax
+            modifier = modifier * stress_tax
             if random.random() < 0.3 and (msg := ux("endocrine_regulator", "cortisol_spike")):
                 logs.append(f"{Prisma.RED}{msg.format(tax=stress_tax)}{Prisma.RST}")
         if chem.adrenaline > 0.6:
-            modifier *= 0.5
+            modifier = modifier * 0.5
             if msg := ux("endocrine_regulator", "adrenaline_surge"):
                 logs.append(f"{Prisma.YEL}{msg}{Prisma.RST}")
         if chem.dopamine > 0.7:
-            modifier *= 0.8
+            modifier = modifier * 0.8
         energy = safe_get(phys, "energy", phys)
         if (voltage := float(safe_get(energy, "voltage", 0.0))) > 15.0:
-            modifier *= 1.2
+            modifier = modifier * 1.2
             if msg := ux("endocrine_regulator", "voltage_gap"):
                 logs.append(f"{Prisma.MAG}{msg.format(voltage=voltage)}{Prisma.RST}")
         return modifier

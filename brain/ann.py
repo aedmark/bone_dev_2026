@@ -38,8 +38,8 @@ class HippocampalCache:
         return [(k, self.nodes.pop(k)) for k in target_keys]
 
     def get_graph(self) -> Dict[str, set]:
-        keys = list(self.nodes.keys())
-        adj = {k: set() for k in keys}
+        keys: List[str] = list(self.nodes.keys())
+        adj: Dict[str, set] = {k: set() for k in keys}
         if len(keys) < 2:
             return adj
         vectors = np.array([self.nodes[k]["vector"] for k in keys], dtype=np.float32)
@@ -50,7 +50,9 @@ class HippocampalCache:
         i_idx, j_idx = np.where(sim_matrix > 0.75)
         for i, j in zip(i_idx, j_idx):
             if i != j:
-                adj[keys[i]].add(keys[j])
+                # Type Narrowing: int() proves to PyRight that this is a single index lookup, not a slice
+                idx_i, idx_j = int(i), int(j)
+                adj[keys[idx_i]].add(keys[idx_j])
         return adj
 
 
@@ -72,23 +74,31 @@ class CerebralIndex:
             return
         np_vectors = np.array(vectors, dtype=np.float32)
         self._index.add(np_vectors)
+
         for p in metadata_payloads:
-            if "vector_hash" in p and p["vector_hash"]:
-                self._phantom_lookup[p["vector_hash"]] = p.get("raw_verbatim_text", "")
+            # Type Narrowing: Prove to the linter that the key is definitively a string
+            v_hash = p.get("vector_hash")
+            if isinstance(v_hash, str) and v_hash:
+                self._phantom_lookup[v_hash] = str(p.get("raw_verbatim_text", ""))
+
         self._payloads.extend(metadata_payloads)
-        self.total_nodes += len(vectors)
+        self.total_nodes = self.total_nodes + len(vectors)
         self.is_trained = True
 
-    def lateral_ofc_retrieval(self, physics_state: Dict[str, float], k: int = 2) -> List[Dict]:
+    def lateral_ofc_retrieval(self, physics_state: Dict[str, Any], k: int = 2) -> List[Dict]:
         if not self._payloads:
             return []
-        base_omega = physics_state.get("omega", 0.5)
-        base_omega_r = physics_state.get("omega_r", 0.5)
+
+        if not isinstance(physics_state, dict):
+            physics_state = {}
+
+        base_omega = float(physics_state.get("omega", 0.5))
+        base_omega_r = float(physics_state.get("omega_r", 0.5))
 
         def _score(payload):
-            omega = payload.get("omega", base_omega)
-            omega_r = payload.get("omega_r", base_omega_r)
-            f_cost = payload.get("narrative_drag", 1.0)
+            omega = float(payload.get("omega", base_omega))
+            omega_r = float(payload.get("omega_r", base_omega_r))
+            f_cost = float(payload.get("narrative_drag", 1.0))
             return (omega ** 2) + (2 * omega_r) + f_cost
 
         sample_size = min(len(self._payloads), 100)
@@ -96,27 +106,39 @@ class CerebralIndex:
         return heapq.nlargest(k, candidates, key=_score)
 
     def query_neighborhood(self, query_vector: List[float], k: int = 5, resonance_threshold: float = 0.5,
-                           physics_state: Optional[Dict[str, float]] = None) -> List[Dict]:
+                           physics_state: Optional[Dict[str, Any]] = None) -> List[Dict]:
         if not self.is_trained or self.total_nodes == 0 or len(query_vector) != self.dimension:
             return []
+
         target_wing, is_lateral = None, False
-        if physics_state:
-            if physics_state.get("voltage", 0.0) > 80.0 and physics_state.get("chi", 0.0) > 0.7:
+
+        if isinstance(physics_state, dict):
+            if float(physics_state.get("voltage", 0.0)) > 80.0 and float(physics_state.get("chi", 0.0)) > 0.7:
                 return self.lateral_ofc_retrieval(physics_state, k=k)
             target_wing = physics_state.get("wing_id", "GLOBAL")
-            is_lateral = physics_state.get("lateral_search", False)
+            is_lateral = bool(physics_state.get("lateral_search", False))
+
         np_query = np.array([query_vector], dtype=np.float32)
         distances, indices = self._index.search(np_query, min(k, self.total_nodes))
         results = []
+
         for dist, idx in zip(distances[0], indices[0]):
             if idx == -1:
                 continue
+
             payload = self._payloads[idx]
+
+            # Type Narrowing: Prove to the linter that the payload is definitively a dict
+            if not isinstance(payload, dict):
+                continue
+
             if target_wing and not is_lateral and payload.get("wing_id", "GLOBAL") != target_wing:
                 continue
+
             resonance = 1.0 / (1.0 + float(dist))
             if resonance >= resonance_threshold:
                 results.append({**payload, "resonance": resonance})
+
         return results
 
     def get_local_mass_radius(self, query_text: str = "") -> Optional[Dict[str, List[float]]]:

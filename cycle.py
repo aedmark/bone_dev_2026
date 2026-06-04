@@ -381,6 +381,7 @@ class GeodesicOrchestrator:
     def _execute_core_cycle(self, user_message: str, is_system: bool = False) -> CycleContext:
         cycle_id = str(uuid.uuid4())[:8]
         self.eng.telemetry.start_cycle(cycle_id)
+        ctx = None
         try:
             ctx = CycleContext(input_text=user_message, is_system_event=is_system)
             ctx.trace_id = cycle_id
@@ -470,7 +471,7 @@ class GeodesicOrchestrator:
         except Exception as e:
             full_trace = traceback.format_exc()
             self.eng.events.log(f"CYCLE CRASH: {e}\n{full_trace}", "CRIT")
-            if 'ctx' not in locals():
+            if ctx is None:
                 ctx = CycleContext(input_text=user_message)
                 ctx.trace_id = cycle_id
             ctx.physics = PanicRoom.get_safe_physics()

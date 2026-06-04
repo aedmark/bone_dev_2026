@@ -174,7 +174,7 @@ class TheAkashicRecord:
     def _get_dominant_force(vector_dict: Dict, default: str) -> str:
         safe_vector = vector_dict if isinstance(vector_dict, dict) else {}
         clean_vector = {k: v for k, v in safe_vector.items() if v is not None}
-        return max(clean_vector, key=clean_vector.get) if clean_vector else default
+        return max(clean_vector.keys(), key=lambda k: clean_vector[k]) if clean_vector else default
 
     @staticmethod
     def _extract_dominant_trigram(physics: Any) -> str:
@@ -198,20 +198,28 @@ class TheAkashicRecord:
             active_lens = payload.get("lens", "OBSERVER")
             resonances = (self.lore.get("NARRATIVE_DATA") or {}).get("_META_RESONANCE_", [])
             valid_resonance = next((r for r in resonances if
-                r.get("trigram") == trigram and (r.get("lens") or r.get("soul")) == active_lens), None)
-            if valid_resonance and self.events:
-                self.events.publish("RESONANCE_ACHIEVED", {"result": valid_resonance["result"], "msg": valid_resonance["msg"]})
+                isinstance(r, dict) and r.get("trigram") == trigram and (r.get("lens") or r.get("soul")) == active_lens), None)
+            if isinstance(valid_resonance, dict) and self.events:
+                # Use .get() to completely satisfy PyRight's type checker
+                self.events.publish("RESONANCE_ACHIEVED", {
+                    "result": valid_resonance.get("result", ""),
+                    "msg": valid_resonance.get("msg", "")
+                })
 
     @staticmethod
     def calculate_manifold_shift(theta: str, e: Dict[str, float]) -> Dict[str, float]:
         theta_upper = theta.upper()
         c = (LoreManifest.get_instance().get("PHYSICS_CONSTANTS", "MANIFOLD_SHIFTS") or {})
-        bias = c.get("BIAS_LENSES", {}).get(theta_upper, 0.0)
-        scalar = c.get("SCALAR_LENSES", {}).get(theta_upper, 1.0)
-        for key, params in c.get("VECTOR_THRESHOLDS", {}).items():
-            if e.get(key, 0.5) > params.get("threshold", 0.7):
-                scalar *= params.get("scalar_mod", 1.0)
-                bias += params.get("bias_mod", 0.0)
+        bias_lenses = c.get("BIAS_LENSES") or {}
+        scalar_lenses = c.get("SCALAR_LENSES") or {}
+        vector_thresholds = c.get("VECTOR_THRESHOLDS") or {}
+        bias = float(bias_lenses.get(theta_upper, 0.0))
+        scalar = float(scalar_lenses.get(theta_upper, 1.0))
+        for key, params in vector_thresholds.items():
+            safe_params = params or {}
+            if e.get(key, 0.5) > safe_params.get("threshold", 0.7):
+                scalar = scalar * float(safe_params.get("scalar_mod", 1.0))
+                bias = bias + float(safe_params.get("bias_mod", 0.0))
         return {"voltage_bias": bias, "drag_scalar": scalar}
 
     def _on_ghost_signal(self, payload):
@@ -289,10 +297,18 @@ class TheAkashicRecord:
                 msg = ux("akashic_strings", "state_load_failed")
                 if self.events: self.events.log(f"{Prisma.RED}{msg.format(error=e)}{Prisma.RST}")
         if data:
-            self.lens_cooccurrence = {tuple(k.split("|", 1)): v for k, v in data.get("lens_cooccurrence", {}).items() if
-                                      "|" in k}
-            self.recipe_candidates = {tuple(k.split("|", 1)): v for k, v in data.get("recipe_candidates", {}).items() if
-                                      "|" in k}
+            self.lens_cooccurrence.clear()
+            data_lens = data.get("lens_cooccurrence") or {}
+            for k, v in data_lens.items():
+                if isinstance(k, str) and "|" in k:
+                    p1, p2 = k.split("|", 1)
+                    self.lens_cooccurrence[(p1, p2)] = int(v)
+            self.recipe_candidates.clear()
+            data_recipes = data.get("recipe_candidates") or {}
+            for k, v in data_recipes.items():
+                if isinstance(k, str) and "|" in k and isinstance(v, dict):
+                    p1, p2 = k.split("|", 1)
+                    self.recipe_candidates[(p1, p2)] = {str(vk): int(vv) for vk, vv in v.items()}
             self.ingredient_affinity = data.get("ingredient_affinity", {})
             self.shadow_stock = data.get("shadow_stock", [])
             self.dream_archive = data.get("dream_archive", [])
@@ -301,6 +317,7 @@ class TheAkashicRecord:
             if recipes := gordon_data.get("RECIPES", []):
                 self.known_recipes.update((r.get("ingredient"), r.get("catalyst_category")) for r in recipes if
                                           r.get("ingredient") and r.get("catalyst_category"))
+
         scars_path = os.path.join(self.data_dir, "akashic_scars.json")
         boons_path = os.path.join(self.data_dir, "akashic_boons.json")
         prompts = self.lore.get("SYSTEM_PROMPTS") or {}

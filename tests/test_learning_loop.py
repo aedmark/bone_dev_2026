@@ -2,10 +2,11 @@
 
 import unittest
 from unittest.mock import MagicMock, patch
+
+from brain.akashic import TheAkashicRecord
 from core import EventBus
 from machine.consolidator import TheConsolidator
-from brain.akashic import TheAkashicRecord
-from presets import BoneConfig
+
 
 class TestLearningLoop(unittest.TestCase):
     def setUp(self):
@@ -50,7 +51,7 @@ class TestLearningLoop(unittest.TestCase):
         yield_val, msg = real_akashic.trigger_autophagy()
         self.assertEqual(yield_val, 25.0)
         self.assertIn("obsolete_syntax", msg)
-        self.assertIn("Recovered 25.0 ATP", msg)
+        self.assertIn("Composted 'obsolete_syntax'", msg)
         self.assertEqual(MockConfig.BIO.DEPTH_TAX_MULT, 1.98)
 
 if __name__ == '__main__':

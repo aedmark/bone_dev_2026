@@ -284,7 +284,7 @@ class SymbiosisManager:
         header = text[:200].lower()
         return any(sig in header for sig in self.REFUSAL_SIGNATURES)
 
-    def get_prompt_modifiers(self, physics: Dict = None) -> Dict:
+    def get_prompt_modifiers(self, physics: Optional[Dict] = None) -> Dict:
         manifest = LoreManifest.get_instance(config_ref=self.cfg)
         sym_config = manifest.get("SYMBIOSIS_CONFIG", {})
         default_mods = sym_config.get("DEFAULT_MODIFIERS", {})

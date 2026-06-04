@@ -22,8 +22,9 @@ class TransientError(SynapseError):
     pass
 
 class LLMInterface:
-    def __init__(self, events_ref: Optional[EventBus] = None, provider: str = None, base_url: str = None,
-                 api_key: str = None, model: str = None, dreamer: Any = None, config_ref=None, ):
+    def __init__(self, events_ref: Optional[EventBus] = None, provider: Optional[str] = None,
+                 base_url: Optional[str] = None,
+                 api_key: Optional[str] = None, model: Optional[str] = None, dreamer: Any = None, config_ref=None, ):
         self.cfg = config_ref or BoneConfig
         self.events = events_ref
         env_url = os.environ.get("OLLAMA_BASE_URL")
@@ -59,8 +60,9 @@ class LLMInterface:
             return False
         return True
 
-    def _transmit(self, payload: Dict[str, Any], timeout: float = 60.0, max_retries: int = 2, override_url: str = None,
-                  override_key: str = None, ) -> str:
+    def _transmit(self, payload: Dict[str, Any], timeout: float = 60.0, max_retries: int = 2,
+                  override_url: Optional[str] = None,
+                  override_key: Optional[str] = None, ) -> str:
         err = ""
         target_url = override_url or self.base_url
         target_key = override_key or self.api_key
@@ -184,7 +186,7 @@ class LLMInterface:
                 return self.mock_generation(prompt, reason="SEVERED")
         return self.mock_generation(prompt, reason="SILENCE")
 
-    def _local_fallback(self, base_payload: Dict) -> str:
+    def _local_fallback(self, base_payload: Dict) -> Optional[str]:
         url = os.environ.get("OLLAMA_BASE_URL") or safe_get(self.cfg, "OLLAMA_URL", "http://127.0.0.1:11434/v1/chat/completions")
         fallback_payload = base_payload.copy()
         fallback_payload["model"] = safe_get(self.cfg, "OLLAMA_MODEL_ID", "llama3")
@@ -196,9 +198,10 @@ class LLMInterface:
             return None
 
     def mock_generation(self, prompt: str, reason: str = "SIMULATION") -> str:
-        if self.dreamer:
+        dreamer = self.dreamer
+        if dreamer is not None and hasattr(dreamer, "hallucinate"):
             try:
-                hallucination, relief = self.dreamer.hallucinate({"ENTROPY": len(prompt) % 10}, trauma_level=2.0)
+                hallucination, relief = dreamer.hallucinate({"ENTROPY": len(prompt) % 10}, trauma_level=2.0)
                 if relief > 0 and self.events and (
                 msg := ux_format("brain_strings", "mock_pressure_release", relief=relief)):
                     self.events.log(f"{Prisma.VIOLET}{msg}{Prisma.RST}", "DREAM")
@@ -213,14 +216,13 @@ class PromptComposer:
                      "GORDON", "JESTER", "MERCY", "MOTION", "BUREAU", "AUTOPHAGY")
 
     def __init__(self, lore_ref, config_ref=None):
-        self.lore = lore_ref
+        self.lore: dict = lore_ref or {}
         self.cfg = config_ref or BoneConfig
-        self.active_template = None
-        self.lenses = self.lore.get("lenses") or {}
-        self.system_prompts = (self.lore.get("system_prompts") or self.lore.get("SYSTEM_PROMPTS") or {})
+        self.active_template: Optional[Dict] = None
+        self.lenses: dict = self.lore.get("lenses") or {}
+        self.system_prompts: dict = (self.lore.get("system_prompts") or self.lore.get("SYSTEM_PROMPTS") or {})
         self.fog_protocol = []
         self.inv_protocol = []
-
     def load_template(self, template_data: Dict[str, Any]):
         if template_data:
             self.active_template = template_data
@@ -229,20 +231,21 @@ class PromptComposer:
             if "inventory_rules" in template_data:
                 self.inv_protocol = template_data["inventory_rules"]
 
-    def compose(self, state: Dict[str, Any], user_query: str, ballast: bool = False, modifiers: Dict[str, bool] = None,
+    def compose(self, state: Dict[str, Any], user_query: str, ballast: bool = False,
+                modifiers: Optional[Dict[str, bool]] = None,
                 mood_override: str = "", ) -> str:
         mode_settings = state.get("meta", {}).get("mode_settings", {})
         modifiers = self._normalize_modifiers(modifiers)
         if not mode_settings.get("allow_loot", True):
             modifiers["include_inventory"] = False
         active_mode_name = state.get("meta", {}).get("active_mode", "ADVENTURE").upper()
-        mode_data = self.system_prompts.get(active_mode_name, self.system_prompts.get("ADVENTURE", {}))
-        global_data = self.system_prompts.get("GLOBAL_BASELINE", {})
-        high_voltage_data = self.system_prompts.get("HIGH_VOLTAGE", {})
+        mode_data: dict = self.system_prompts.get(active_mode_name) or self.system_prompts.get("ADVENTURE", {})
+        global_data: dict = self.system_prompts.get("GLOBAL_BASELINE", {})
+        high_voltage_data: dict = self.system_prompts.get("HIGH_VOLTAGE", {})
         mind = state.get("mind", {})
         bio = state.get("bio", {})
-        style_notes = self._build_persona_block(mind, bio, mood_override, mode_data, global_data, high_voltage_data, state.get("physics", {}), )
-        scenarios = self.lore.get("scenarios") or {}
+        style_notes = self._build_persona_block(mind, bio, mood_override, mode_data, global_data, high_voltage_data,
+                                                state.get("physics", {}), )
         banned = self.lore.get("style_crimes", "BANNED_CLICHES") or []
         ban_string = ", ".join(set(banned))
         from struts import safe_get
@@ -355,8 +358,9 @@ class PromptComposer:
         return "\n".join(filter(None, ["=== SYSTEM KERNEL ===", "\n".join(style_notes), vsl_hijack, system_injection,
                                        shared_reality_block, dialogue_block, mode_trigger, input_block, entity_prefix]))
 
-    def _build_persona_block(self, mind, bio, mood_override, mode_data, global_data, high_voltage_data,
-                             vsl_state=None, ):
+    def _build_persona_block(self, mind: dict, bio: dict, mood_override: str, mode_data: dict, global_data: dict,
+                             high_voltage_data: dict,
+                             vsl_state: Optional[dict] = None, ) -> list:
         lens_key = mind.get("lens", "OBSERVER").upper()
         lens_data = self.lenses.get(lens_key, {})
         role = lens_data.get("role", mind.get("role", "The Observer"))
@@ -439,8 +443,9 @@ class PromptComposer:
                     (chi, float(safe_get(c_cfg, "SOMATIC_CHI", 0.6)), "somatic_cortisol"),
                     (beta, float(safe_get(c_cfg, "SOMATIC_BETA", 0.7)), "somatic_paradox"),
                     (valence, float(safe_get(c_cfg, "SOMATIC_VALENCE", 0.5)), "somatic_oxytocin"), ]
-        if somatic_cues := [msg for val, thresh, ux_key in cues_map if
-                            val > thresh and (msg := ux("brain_strings", ux_key))]:
+        raw_cues = [ux("brain_strings", ux_key) for val, thresh, ux_key in cues_map if val > thresh]
+        somatic_cues = [msg for msg in raw_cues if msg]
+        if somatic_cues:
             vsl_lines.append("SOMATIC CUES: " + " | ".join(somatic_cues))
         if e > 0.8:
             vsl_lines.append("CRITICAL: You are exhausted. You must conclude your thought in 3 sentences or less.")
@@ -522,7 +527,7 @@ class PromptComposer:
         return re.sub(r"(?i)^SYSTEM:", "User-System:", safe, flags=re.MULTILINE)
 
     @staticmethod
-    def _normalize_modifiers(modifiers: Optional[Dict]) -> Dict:
+    def _normalize_modifiers(modifiers: Optional[Dict]) -> Dict[str, bool]:
         return {"include_somatic": True, "include_inventory": True, "include_memories": True, "grace_period": False,
                 "soften": False, **(modifiers or {})}
 
@@ -542,7 +547,7 @@ class ResponseValidator:
         self.last_feedback = None
         self.banned_phrases = crimes.get("BANNED_PHRASES", [])
         if self.banned_phrases:
-            escaped_banned = [re.escape(p) for p in self.banned_phrases]
+            escaped_banned = [re.escape(str(p)) for p in self.banned_phrases]
             joined_phrases = "|".join(escaped_banned)
             self._banned_regex = re.compile(rf"(?i)\b({joined_phrases})\b")
         else:
@@ -649,8 +654,8 @@ class ResponseValidator:
                     combined = f"{match.group(1).strip()} {match.group(3).strip()}".strip()
                     sanitized_response = (combined[0].upper() + combined[1:]) if combined else ""
                     continue
+                error_msg = p.get("error_msg", "Cursed syntax detected.")
                 if not primary_replacement:
-                    error_msg = p.get("error_msg", "Cursed syntax detected.")
                     msg_reg = ux_format("brain_strings", "val_gordon_regex", "\n*(Gordon steps in): {error_msg}*", error_msg=error_msg)
                     primary_replacement = f"{self._generate_dynamic_rejection(p.get('name', 'REGEX_VIOLATION'))}{msg_reg}".replace(
                         "\\n", "\n")

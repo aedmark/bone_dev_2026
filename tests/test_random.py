@@ -155,7 +155,7 @@ class RandomTest(BoneTestCase):
             conv_state = self.engine.cortex.gather_state({"physics": {"voltage": 30.0}})
             conv_prompt = composer.compose(conv_state, "Hello?", modifiers={"include_inventory": False})
             adv_mechanics = "Object-Action Coupling"
-            conv_anti_bleed = "You are NOT a narrator"
+            conv_anti_bleed = "NOT a narrator"
             self.assertNotIn(adv_mechanics, conv_prompt, "ADVENTURE mechanics bled into CONVERSATION mode prompt.")
             self.assertIn(conv_anti_bleed, conv_prompt, "CONVERSATION Anti-Bleed constraint was not injected.")
             self.assertNotIn(

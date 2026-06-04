@@ -125,10 +125,10 @@ class CouncilChamber:
         false_cohesion = max(0.0, phi - beta)
         if false_cohesion > 0.65:
             msg = "False Cohesion detected. The system is agreeing to avoid friction. Forcing a structural contradiction."
-            logs.append(f"{Prisma.BLU}{msg}{Prisma.RST}")
+            transcript.append(f"{Prisma.BLU}{msg}{Prisma.RST}")
         cfg = safe_get(BoneConfig, "COUNCIL", {})
         if not cfg:
-            return logs
+            return transcript, adjustments, mandates
         effective_beta = max(beta, 0.8) if false_cohesion > 0.65 else beta
         if self.eng.paradox_engine.evaluate_tension(effective_beta, stamina):
             pressure, paradox_prompt = self.eng.paradox_engine.ignite(clean_words)
@@ -157,7 +157,6 @@ class CouncilChamber:
             "PANTHEON",["GORDON", "JESTER", "MERCY", "BENEDICT", "ROBERTA", "CASPER", "MOIRA", "CASSANDRA",
              "COLIN", "REVENANT", "GIDEON", "APRIL", ],)
         active_present = [actor for actor in pantheon if any(actor in log for log in village_logs)]
-        synergy_fired = False
         for a, b in itertools.combinations(sorted(active_present), 2):
             if (chord_key := f"{a}|{b}") in synergy_map:
                 syn = synergy_map[chord_key]
@@ -165,7 +164,6 @@ class CouncilChamber:
                 for k, v in syn.get("adjustments", {}).items():
                     adjustments[k] = adjustments.get(k, 0) + v
                 mandates.append({"action": "SYNERGY_FIRED", "value": syn.get("name", chord_key)})
-                synergy_fired = True
                 break
         if len(village_logs) > 2:
             msg_t = ux("council_strings", "stage_manager_tension")
