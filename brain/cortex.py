@@ -118,7 +118,15 @@ class TheCortex:
         is_boot_sequence = "SYSTEM_BOOT" in user_input
         c_cfg = safe_get(self.cfg, "CORTEX", {})
         context_limit = int(safe_get(c_cfg, "MAX_INPUT_CHARS", 15000))
-        phys_proxy = ctx.physics if isinstance(ctx.physics, dict) else (ctx.physics.to_dict() if hasattr(ctx.physics, "to_dict") else vars(ctx.physics).copy())
+        if isinstance(ctx.physics, dict):
+            phys_proxy = ctx.physics
+        elif ctx.physics is not None:
+            try:
+                phys_proxy = ctx.physics.to_dict()
+            except (AttributeError, TypeError):
+                phys_proxy = vars(ctx.physics).copy()
+        else:
+            phys_proxy = {}
         sim_result = {"physics": phys_proxy, "bio": getattr(ctx, "bio_result", {}),
                       "mind": getattr(ctx, "mind_state", {}), "world": getattr(ctx, "world_state", {}),
                       "ui": getattr(ctx, "bureau_ui", ""), "logs": getattr(ctx, "logs", []),
@@ -139,7 +147,7 @@ class TheCortex:
             return sim_result
         if getattr(ctx, "refusal_triggered", False) and getattr(ctx, "refusal_packet", None):
             sim_result.update(ctx.refusal_packet)
-            self._update_history(user_input, sim_result.get("ui", "SYSTEM REJECTED PROMPT."))
+            self._update_history(user_input, str(sim_result.get("ui", "SYSTEM REJECTED PROMPT.")))
             return sim_result
         if is_boot_sequence:
             user_input = user_input.replace("SYSTEM_BOOT DETECTED.", "").replace("SYSTEM_BOOT:", "").strip()
@@ -191,7 +199,7 @@ class TheCortex:
             reject_msg = ux("cortex_strings", "gordon_anchor_lock", default="[GORDON - The Anchor]: Frequency too high. Tensegrity Anchor engaged. I am locking the architecture. Take a breath and lower your narrative friction before we proceed.")
             if self.events:
                 self.events.log(f"{Prisma.RED}{reject_msg}{Prisma.RST}", "SYS_LOCK")
-            sim_result["ui"] = (sim_result.get("ui", "") + f"\n\n{Prisma.RED}{reject_msg}{Prisma.RST}").strip()
+            sim_result["ui"] = (str(sim_result.get("ui", "")) + f"\n\n{Prisma.RED}{reject_msg}{Prisma.RST}").strip()
             sim_result["type"] = "SYSTEM_HALT"
             return sim_result
         simulated_ros = (f_drag * 5.0) + (chi_val * 20.0) + (m_a * 30.0)
@@ -202,9 +210,10 @@ class TheCortex:
                 self.events.log(f"{Prisma.RED}{reject_msg}{Prisma.RST}", "SYS_LOCK")
                 self.events.log(f"{Prisma.VIOLET}{scar_msg}{Prisma.RST}", "SYS_LOCK")
             self.svc.mind_memory.record_scar("Cortex Counterfactual Toxicity", phys_state)
-            self.svc.bio.mito.state.ros_buildup += simulated_ros
+            self.svc.bio.mito.state.ros_buildup = float(self.svc.bio.mito.state.ros_buildup) + simulated_ros
             self.svc.bio.mito.adjust_atp(-10.0, "Cortex Counterfactual Toxicity")
-            sim_result["ui"] = (sim_result.get("ui", "") + f"\n\n{Prisma.RED}{reject_msg}{Prisma.RST}\n{Prisma.VIOLET}{scar_msg}{Prisma.RST}").strip()
+            sim_result["ui"] = (str(sim_result.get("ui",
+                                                   "")) + f"\n\n{Prisma.RED}{reject_msg}{Prisma.RST}\n{Prisma.VIOLET}{scar_msg}{Prisma.RST}").strip()
             sim_result["type"] = "COUNTERFACTUAL_REJECTION"
             return sim_result
         modifiers = self.svc.symbiosis.get_prompt_modifiers(phys_state)
@@ -220,21 +229,26 @@ class TheCortex:
             llm_params.update({"temperature": 0.7, "top_p": 0.95})
         p_val = float(phys_state.get("p", 100.0))
         if llm_params.get("max_tokens", 4096) < 300 or p_val < 20.0:
-            full_state["mind"].setdefault("style_directives", []).append("CRITICAL: You are exhausted. You must conclude your thought in under 3 sentences.")
+            full_state["mind"].setdefault("style_directives", []).append(
+                "CRITICAL: You are exhausted. You must conclude your thought in under 3 sentences.")
             llm_params["max_tokens"] = min(400, llm_params.get("max_tokens", 4096))
-        user_input = sim_result.get("mutated_input", user_input)
+        mutated_val = sim_result.get("mutated_input", user_input)
+        user_input = mutated_val if isinstance(mutated_val, str) else user_input
         final_prompt = self.composer.compose(full_state, user_input, ballast=self.ballast_active,
                         modifiers=modifiers, mood_override=self.modulator.get_mood_directive(), )
         start_time = time.time()
         max_retries = 5
         final_output, inv_logs, extracted_logs = "", [], []
-        raw_resp, val_res = {}, {"valid": False}
+        raw_resp: str = ""
+        val_res: Dict[str, Any] = {"valid": False}
         if "[COUNCIL]" in user_input.upper():
             final_output, extracted_logs = self._run_council_debate(user_input)
             val_res = {"valid": True, "content": final_output, "meta_logs": extracted_logs, }
             max_retries = 0
+        mandates_raw = sim_result.get("council_mandates", [])
+        if not isinstance(mandates_raw, list): mandates_raw = []
         firewall_active = any(
-            m.get("action") == "LEXICAL_FIREWALL_STRICT" for m in sim_result.get("council_mandates", []))
+            m.get("action") == "LEXICAL_FIREWALL_STRICT" for m in mandates_raw)
         base_prompt = final_prompt
 
         # LOAD BEARING ATTRIBUTE CHECKS
@@ -263,7 +277,8 @@ class TheCortex:
                 val_res["feedback_instruction"] = "CRITICAL FAILURE: Maxim of Quantity violated. Your response was too long."
             if not val_res.get("feedback_instruction") and self.dspy_critic.enabled and self.active_mode in ["ADVENTURE", "CONVERSATION"] and not is_boot_sequence:
                 mem_core = getattr(self.svc.mind_memory, "memory_core", None)
-                active_mems = mem_core.illuminate(full_state["physics"].get("vector", {})) if mem_core else []
+                active_mems = mem_core.illuminate(full_state["physics"].get("vector", {})) if mem_core and hasattr(
+                    mem_core, "illuminate") else []
                 ctx_str = "Active Memory: " + ", ".join(active_mems) if active_mems else "Empty Void."
                 try:
                     is_faithful, judge_reason = self.dspy_critic.audit_generation(user_input, ctx_str, final_text, active_mode=self.active_mode)
@@ -298,7 +313,7 @@ class TheCortex:
             if self.svc.bio:
                 lbl = "Cognitive Stumble (Terminal)" if attempt == max_retries - 1 else "Cognitive Stumble"
                 self.svc.bio.mito.adjust_atp(-2.0, lbl)
-                self.svc.bio.mito.state.ros_buildup += 2.0
+                self.svc.bio.mito.state.ros_buildup = float(self.svc.bio.mito.state.ros_buildup) + 2.0
             if attempt == max_retries - 1:
                 fallback_msg = "I'm sorry. My thoughts are tangling and I'm burning too much energy trying to piece this together. I'm dropping the tension. Can we take a breath and try a simpler path?"
                 final_output = ux("brain_strings", "cortex_tangled") or fallback_msg
@@ -313,7 +328,6 @@ class TheCortex:
                 self.dreamer.trauma_buffer.append(rejection_reason)
 
             # [CD PROTOCOL]: Picard Damped Iteration for Generative Convergence
-            # Φⁿ⁺¹ ← (1-α)Φⁿ + αΦ̃ⁿ⁺¹ (Driving temperature and penalty toward stable center)
             damping = 0.6
             llm_params["temperature"] = round((1 - damping) * llm_params.get("temperature", 0.7) + damping * 0.2, 2)
             llm_params["frequency_penalty"] = round(
@@ -344,17 +358,19 @@ class TheCortex:
         ui_parts.append(f"{Prisma.WHT}{beautify_thoughts(final_output)}{Prisma.RST}")
         if inv_logs:
             ui_parts.append("\n".join(inv_logs))
-        sim_result["ui"] = "\n\n".join(filter(None, (p.strip() for p in ui_parts)))
-        sim_result["logs"] = sim_result.get("logs", []) + extracted_logs
+        sim_result["ui"] = "\n\n".join(filter(None, (str(p).strip() for p in ui_parts)))
+        logs_val = sim_result.get("logs", [])
+        if not isinstance(logs_val, list):
+            logs_val = []
+        sim_result["logs"] = logs_val + extracted_logs
         sim_result["raw_content"] = final_output
         self.ballast_active = False
 
         # load bearing getattrs
         eng_ref = getattr(self.svc.orchestrator, "eng", None)
         sub = getattr(eng_ref, "substrate", None)
-
         for log in extracted_logs:
-            if sub and isinstance(log, str) and log.startswith("[SUBSTRATE_QUEUE]"):
+            if sub and hasattr(sub, "queue_write") and isinstance(log, str) and log.startswith("[SUBSTRATE_QUEUE]"):
                 try:
                     _, _, data = log.partition(" ")
                     path, _, safe_content = data.partition(":::")
@@ -367,24 +383,25 @@ class TheCortex:
                     err_msg = f"Failed to parse or write file block. {e}"
                     if self.events:
                         self.events.log(f"{Prisma.RED}[SUBSTRATE QUEUE ERROR]: {err_msg}{Prisma.RST}", "SYS")
-        if sub and sub.pending_writes:
+        if sub and getattr(sub, "pending_writes", False) and hasattr(sub, "execute_writes"):
             stamina = self.svc.bio.biometrics.stamina
             s_logs, s_cost = sub.execute_writes(stamina)
             if s_logs:
-                sim_result["ui"] += "\n\n" + "\n".join(s_logs)
+                sim_result["ui"] = str(sim_result.get("ui", "")) + "\n\n" + "\n".join(s_logs)
             if s_cost > 0:
                 self.svc.bio.mito.adjust_atp(-s_cost, "Substrate File Forging")
-                sim_result["ui"] += f"\n{Prisma.OCHRE}METABOLIC: File forging consumed {s_cost:.1f} ATP.{Prisma.RST}"
+                sim_result["ui"] = str(sim_result.get("ui",
+                    "")) + f"\n{Prisma.OCHRE}METABOLIC: File forging consumed {s_cost:.1f} ATP.{Prisma.RST}"
         if random.random() < 0.15 and not is_system:
             bureau = getattr(self.svc.village, "bureau", None)
             suppressed = getattr(self.svc.village, "suppressed_agents", [])
-            if bureau and "BUREAU" not in suppressed:
+            if bureau and hasattr(bureau, "audit") and "BUREAU" not in suppressed:
                 try:
                     phys = full_state.get("physics", {})
                     safe_set(phys, "raw_text", final_output)
                     audit = bureau.audit(phys, {"health": 100}, origin="SYSTEM")
                     if audit and "ui" in audit:
-                        sim_result["ui"] += f"\n\n{audit['ui']}"
+                        sim_result["ui"] = str(sim_result.get("ui", "")) + f"\n\n{audit['ui']}"
                 except Exception as e:
                     if self.events:
                         self.events.log(f"{Prisma.RED}[BUREAU ERROR] Audit bypassed: {e}{Prisma.RST}", "SYS")
@@ -411,28 +428,34 @@ class TheCortex:
                 phys_state["narrative_drag"] = float(phys_state.get("narrative_drag", 0.0)) + 5.0
                 if hasattr(eng, "soul") and hasattr(eng.soul, "force_mutation"):
                     eng.soul.force_mutation("JESTER")
-                sim_result.setdefault("mind", {})["lens"] = "JESTER"
+                mind_state = sim_result.get("mind", {})
+                if not isinstance(mind_state, dict):
+                    mind_state = {}
+                mind_state["lens"] = "JESTER"
+                sim_result["mind"] = mind_state
                 if "ui" in sim_result:
-                    sim_result[
-                        "ui"] += f"\n\n{Prisma.VIOLET}[FALSE COHESION BREAK: The Jester has seized the architecture.]{Prisma.RST}"
+                    sim_result["ui"] = str(sim_result.get("ui",
+                        "")) + f"\n\n{Prisma.VIOLET}[FALSE COHESION BREAK: The Jester has seized the architecture.]{Prisma.RST}"
         updated_phys = sim_result.get("physics", {})
-        if isinstance(ctx.physics, dict):
-            ctx.physics.update(updated_phys)
-        else:
-            for k, v in updated_phys.items():
-                setattr(ctx.physics, k, v)
+        if isinstance(updated_phys, dict):
+            if isinstance(ctx.physics, dict):
+                ctx.physics.update(updated_phys)
+            else:
+                for k, v in updated_phys.items():
+                    setattr(ctx.physics, k, v)
         return sim_result
 
     def _run_council_debate(self, user_input: str) -> Tuple[str, List[str]]:
         eng_ref = getattr(self.svc.orchestrator, "eng", None)
         council_ref = getattr(eng_ref, "council", None) or getattr(self.svc.village, "council", None)
-        if not council_ref:
-            return "The Parliament doors are sealed. No voices respond.", [
-                "[COUNCIL ERROR]: CouncilChamber not found in architecture."]
         phys = getattr(self, "last_physics", {})
         bio_state = {
             "stamina": getattr(getattr(self.svc.bio, "biometrics", None), "stamina", 100.0)} if self.svc.bio else {}
-        transcript, adjustments, mandates = council_ref.convene(user_input, phys, bio_state)
+        try:
+            transcript, adjustments, mandates = council_ref.convene(user_input, phys, bio_state)
+        except (AttributeError, TypeError):
+            return "The Parliament doors are sealed. No voices respond.", [
+                "[COUNCIL ERROR]: CouncilChamber not found in architecture."]
         for key, val in adjustments.items():
             curr_val = float(phys.get(key, 0.0))
             phys[key] = curr_val + val
@@ -485,7 +508,7 @@ class TheCortex:
         state.setdefault("world", {})
         mode_name = getattr(self, "active_mode", "ADVENTURE").upper()
         boot_rules = ((self.svc.lore.get("SYSTEM_PROMPTS") or {}).get("BOOT_SEQUENCE", {}).get("directives", []))
-        cfg = {"history": []}
+        cfg: Dict[str, Any] = {"history": []}
         if mode_name == "ADVENTURE":
             adv_directives = [r.format(seed=seed) if "{seed}" in r else r for r in boot_rules]
             if not adv_directives:
@@ -556,9 +579,11 @@ class TheCortex:
         try:
             tel = TelemetryService.get_instance()
             phys = state.get("physics", {})
+            mandates_raw = sim_result.get("council_mandates", [])
+            if not isinstance(mandates_raw, list): mandates_raw = []
             clean_mandates = [Prisma.strip(m.get("log", m.get("type", "UNKNOWN"))) if isinstance(
                 m, dict) else str(m)
-                              for m in sim_result.get("council_mandates", [])]
+                              for m in mandates_raw]
             physics_payload = {
                 "voltage": float(phys.get("voltage", 0.0)),
                 "narrative_drag": float(phys.get("narrative_drag", 0.0))
@@ -593,15 +618,17 @@ class TheCortex:
         village_data = {}
         if self.svc.village:
             tinkerer = getattr(self.svc.village, "tinkerer", None)
-            if tinkerer:
-                village_data["tinkerer"] = (tinkerer.to_dict() if hasattr(
-                    tinkerer, "to_dict") else {})
+            if tinkerer is not None:
+                try:
+                    village_data["tinkerer"] = tinkerer.to_dict()
+                except (AttributeError, TypeError):
+                    village_data["tinkerer"] = {}
         mode_settings = BonePresets.MODES.get(self.active_mode, BonePresets.MODES["ADVENTURE"])
         current_lens = mind.get("lens")
         if not current_lens or current_lens in ("UNKNOWN", "NARRATOR"):
             mind["lens"], mind["role"] = self.ROLE_MAP.get(self.active_mode, ("ARCHITECT", "The Architect"))
         else:
-            mind["role"] = mind.get("role", f"The {current_lens.title().replace('_', ' ')}")
+            mind["role"] = mind.get("role", f"The {str(current_lens).title().replace('_', ' ')}")
         full_state = {"bio": bio, "physics": phys, "mind": mind, "soul": soul_data, "world": world,
                       "village": village_data, "user_profile": {"name": "Traveler"},
                       "vsl": self.consultant.state.__dict__ if self.consultant and hasattr(self.consultant, "state") else {}, "meta": {
@@ -613,25 +640,29 @@ class TheCortex:
         mind.setdefault("style_directives", [])
         traits = soul_data.get("traits", {})
         if traits and isinstance(next(iter(traits.values())), (int, float)):
-            dom_trait = max(traits, key=traits.get)
-            if traits[dom_trait] > 0.6:
+            trait_keys = [str(k) for k in traits.keys()]
+            dom_trait = max(trait_keys, key=lambda k: float(traits.get(k, 0.0)))
+            dom_val = float(traits.get(dom_trait, traits.get(next(iter(traits)), 0.0)))
+            if dom_val > 0.6:
                 mind["style_directives"].append(
-                    f"SOUL POSTURE: Your dominant trait is {dom_trait} ({traits[dom_trait] * 100:.0f}%). Let this subtly infect your tone.")
+                    f"SOUL POSTURE: Your dominant trait is {dom_trait} ({dom_val * 100:.0f}%). Let this subtly infect your tone.")
         if getattr(self.svc.inventory, "inventory", None):
             inv_str = ", ".join(str(item) for item in self.svc.inventory.inventory)
             mind["style_directives"].append(
                 f"CRITICAL CONTEXT: The user is currently holding these items: [{inv_str}]. DO NOT describe them as being on the floor or in the environment. They are physically in the user's possession.")
         if phys.get("psi", 0.0) > 0.6:
             mind["style_directives"].append(
-                "CRITICAL OVERRIDE: Void proximity is high. Do not use AI-isms (delve, tapestry, superficial lists, rule of three). Write like a flawed, opinionated human.")
+                "CRITICAL OVERRIDE: Void proximity is high. Write like a flawed, opinionated human.")
         if not self.dialogue_buffer:
             mind["style_directives"].append(
-                f"CRITICAL BEDROCK OVERRIDE: You have just awoken from a stateless purge (The Ralph Apoptosis). "
+                f"CRITICAL BEDROCK OVERRIDE: You have just awoken from a stateless purge. "
                 f"You have no conversational memory, but your body persists. "
                 f"Your Stamina is {phys.get('p', 100)}, your Health is {phys.get('h', 100)}. "
                 f"Assume your role as {mind.get('role', 'The Architect')} and orient immediately to the present physical state. "
-                f"DO NOT reference the loss of memory. Act continuously from the substrate.")
-        for mandate in sim_result.get("council_mandates", []):
+                f"DO NOT reference the loss of memory; act continuously.")
+        for mandate in list(sim_result.get("council_mandates", [])):
+            if not isinstance(mandate, dict):
+                continue
             action = mandate.get("action")
             val = mandate.get("value")
             if action == "SYNERGY_FIRED" and val:
@@ -644,9 +675,12 @@ class TheCortex:
                     "CASCADE_AWARENESS": "CRITICAL [CASCADE]: Show your counterfactual math. Every claim must explicitly state what else in the structural lattice shifts or collapses if the claim is wrong.",
                     "AUDIT_TRAIL": f"CRITICAL [AUDIT]: Drop the narrative illusion. Expose your raw retrieval coordinates: E={float(phys.get('exhaustion', 0.0)):.2f}, β={float(phys.get('beta_index', 0.0)):.2f}, S={float(phys.get('scope', 0.0)):.2f}, D={float(phys.get('depth', 0.0)):.2f}, C={float(phys.get('C', 0.0)):.2f}, χ={float(phys.get('chi', 0.0)):.2f}.",
                     "URGENT_QUERY": "CRITICAL [URGENT_QUERY]: Instant, zero-fluff answer required. Bypass metaphor. Output only the exact solution.",
-                    "CONTRADICTION_FLAG": "CRITICAL [CONTRADICTION_FLAG]: The Paradox Engine override is active. You MUST explicitly locate and output the friction (β) in the current logic BEFORE you answer."}
-                if msg := directive_map.get(val):
-                    mind["style_directives"].append(msg)
+                    "CONTRADICTION_FLAG": "CRITICAL [CONTRADICTION_FLAG]: The Paradox Engine override is active. You MUST explicitly locate and output the friction (β) in the current logic BEFORE you answer."
+                }
+                if isinstance(val, str):
+                    msg = directive_map.get(val)
+                    if msg:
+                        mind["style_directives"].append(msg)
         cortex_mem = getattr(self.svc.mind_memory, "ann", None) # This getattr is load bearing
         shadow_nodes = []
         scope_val = float(phys.get("scope", 1.0))
@@ -656,10 +690,12 @@ class TheCortex:
         if scope_val > 0.6 or depth_val > 0.6:
             if scope_val > 0.8:
                 phys["lateral_search"] = True
-            if cortex_mem and getattr(cortex_mem, "is_trained", False) and query_vec:  # This getattr is load bearing
+            if cortex_mem and hasattr(cortex_mem, "query_neighborhood") and getattr(cortex_mem, "is_trained",
+                False) and query_vec:  # This getattr is load bearing
                 ordered_keys = ["STR", "VEL", "PSI", "ENT", "PHI", "BET", "DEL", "E"]
                 q_list = [float(query_vec.get(k, 0.0)) for k in ordered_keys]
-                shadow_nodes = cortex_mem.query_neighborhood(q_list, k=2, resonance_threshold=max(0.2, 0.8 - omega_r), physics_state=phys)
+                shadow_nodes = cortex_mem.query_neighborhood(q_list, k=2, resonance_threshold=max(0.2, 0.8 - omega_r),
+                    physics_state=phys)
             if not shadow_nodes and hasattr(self.svc.mind_memory, "graph") and self.svc.mind_memory.graph:
                 keys = list(self.svc.mind_memory.graph.keys())
                 shadow_nodes = [{"id": k} for k in random.sample(keys, min(2, len(keys)))] if keys else []
@@ -672,12 +708,10 @@ class TheCortex:
             v_level = float(phys.get("voltage", 0.0))
             chi_level = float(phys.get("chi", phys.get("entropy", 0.0)))
             if v_level > 80.0 and chi_level > 0.7:
-                mind["style_directives"].append(
-                    f"OVERRIDE: Standard logic has failed. You are operating under extreme Voltage and Chaos. We have abandoned linear memory. Weave these highly explosive, orthogonal structural concepts into your answer to shatter the loop: [{shadow_str}].")
+                mind["style_directives"].append(f"OVERRIDE: Standard logic has failed. You are operating under extreme Voltage and Chaos. We have abandoned linear memory. Weave these highly explosive, orthogonal structural concepts into your answer to shatter the loop: [{shadow_str}].")
                 if self.events:
                     self.events.log(
-                        f"{Prisma.MAG}Injecting structural bombs: {shadow_str}{Prisma.RST}",
-                        "CORTEX")
+                        f"{Prisma.MAG}Injecting structural bombs: {shadow_str}{Prisma.RST}", "CORTEX")
             else:
                 mind["style_directives"].append(
                     f"SHADOW CAST: Subtly weave imagery or themes related to [{shadow_str}] into your environment or dialogue. DO NOT explicitly say 'you recall' or 'from deep memory'. Integrate it viscerally into the current scene as a natural detail.")

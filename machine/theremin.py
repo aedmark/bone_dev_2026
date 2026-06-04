@@ -6,6 +6,7 @@ from core import LoreManifest
 from presets import BoneConfig
 from struts import ux, safe_get
 
+
 class TheTheremin:
     def __init__(self, config_ref=None):
         self.cfg = config_ref or BoneConfig
@@ -27,8 +28,8 @@ class TheTheremin:
         turb = float(physics.get("turbulence", 0.0))
         rep = float(physics.get("repetition", 0.0))
         complexity = float(physics.get("truth_ratio", 0.0))
-        ancient_mass = counts.get("heavy", 0) + counts.get("thermal", 0) + counts.get("cryo", 0)
-        modern_mass = counts.get("abstract", 0)
+        ancient_mass = float(counts.get("heavy", 0)) + float(counts.get("thermal", 0)) + float(counts.get("cryo", 0))
+        modern_mass = float(counts.get("abstract", 0))
         raw_mix = min(ancient_mass, modern_mass)
         resin_flow = raw_mix * 2.0
         if governor_mode == "LABORATORY":

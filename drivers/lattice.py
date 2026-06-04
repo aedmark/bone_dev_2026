@@ -21,8 +21,6 @@ class SharedLatticeDriver:
         word_cost = len(text.split()) * 0.5
         self.u.P_u = max(0.0, self.u.P_u - word_cost + 5.0)
         self.u.E_u = min(1.0, self.u.E_u + 0.1) if self.u.P_u < 30 else max(0.0, self.u.E_u - 0.05)
-
-        # Brutalist extraction via safe_get, stripping paranoid fallback iteration
         self.u.V_u = float(safe_get(input_phys, "voltage", self.u.V_u))
         self.u.psi_u = float(safe_get(input_phys, "psi", self.u.psi_u))
         self.u.chi_u = float(safe_get(input_phys, "chi", self.u.chi_u))
@@ -64,7 +62,7 @@ class SharedLatticeDriver:
                 msg_key = {1: "silence_pregnant",
                            2: "silence_exhausted",
                            3: "silence_reverent",
-                           4: "silence_strategic"}.get(self.shared.sigma_silence)
+                           4: "silence_strategic"}.get(self.shared.sigma_silence, "silence_strategic")
                 logs.append(f"{Prisma.GRY}... {ux('driver_strings', msg_key) or 'The silence settles.'}{Prisma.RST}")
         elif has_text:
             self.shared.delta = max(0.0, self.shared.delta - 0.1)
@@ -86,5 +84,5 @@ class SharedLatticeDriver:
             self.shared.p_transfer = 15.0
             self.u.P_u += 15.0
             atp_deduction = 15.0
-            logs.append(f"{Prisma.CYN}[CARRIER MODE] I'll carry this part. Rest a moment.{Prisma.RST}")
+            logs.append(f"{Prisma.CYN}We'll carry this part. Rest a moment.{Prisma.RST}")
         return logs, atp_deduction

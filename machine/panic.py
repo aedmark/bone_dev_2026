@@ -1,6 +1,6 @@
 """machine/panic.py"""
 
-from typing import Dict
+from typing import Dict, Any
 from struts import ux
 from constants import Prisma
 from physics.models import PhysicsPacket
@@ -22,8 +22,7 @@ class PanicRoom:
 
     @staticmethod
     def get_safe_bio(previous_state=None):
-        log_msg = ux("machine_strings",
-                     "panic_bio_log") or "APOPTOTIC RESET: Biological parameters clamped to survival baseline."
+        log_msg = ux("machine_strings", "panic_bio_log") or "Biological parameters clamped to survival baseline."
         resp_fallback = ux("machine_strings", "panic_resp_fallback") or "NECROSIS"
         enz_fallback = ux("machine_strings", "panic_enz_fallback") or "NONE"
         old_chem = (previous_state or {}).get("chem", {})
@@ -40,23 +39,12 @@ class PanicRoom:
         }
 
     @staticmethod
-    def get_safe_soul():
-        default_soul = {
-            "name": "Traveler",
-            "archetype": "The Survivor",
-            "virtues": {"resilience": 1.0},
-            "vices": {"amnesia": 1.0},
-            "narrative_arc": "RECOVERY",
-            "xp": 0,
-        }
+    def get_safe_soul() -> Dict[str, Any]:
+        default_soul: Dict[str, Any] = {"name": "Traveler", "archetype": "The Survivor", "virtues": {"resilience": 1.0},
+                                        "vices": {"amnesia": 1.0}, "narrative_arc": "RECOVERY", "xp": 0}
         return ux("machine_strings", "panic_soul") or default_soul
 
     @staticmethod
     def get_safe_limbo():
-        default_limbo = {
-            "mood": "NEUTRAL",
-            "volatility": 0.0,
-            "mask": "DEFAULT",
-            "glitch_factor": 0.0
-        }
+        default_limbo = {"mood": "NEUTRAL", "volatility": 0.0, "mask": "DEFAULT", "glitch_factor": 0.0}
         return ux("machine_strings", "panic_limbo") or default_limbo

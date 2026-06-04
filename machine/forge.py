@@ -7,7 +7,6 @@ from core import LoreManifest
 from mechanics.lexicon import LexiconService
 from struts import ux
 
-
 class TheForge:
     def __init__(self, lex_ref=None):
         self.lex = lex_ref

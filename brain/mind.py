@@ -59,8 +59,7 @@ class NeurotransmitterModulator:
             "LAT_THRESH": float(safe_get(cfg, "LATENCY_PENALTY_THRESHOLD", 2.0)),
             "LAT_COR": float(safe_get(cfg, "LATENCY_CORTISOL_PENALTY", 0.1)),
             "LAT_ADR": float(safe_get(cfg, "LATENCY_ADRENALINE_PENALTY", 0.05)),
-            "MOODS": safe_get(cfg, "MOOD_THRESHOLDS",
-                              safe_get(cfg, "MOOD_THRESHOLD", {"MANIC_DOP": 0.8, "PANIC_COR": 0.7, "ZEN_SER": 0.8})),
+            "MOODS": safe_get(cfg, "MOOD_THRESHOLDS", safe_get(cfg, "MOOD_THRESHOLD", {"MANIC_DOP": 0.8, "PANIC_COR": 0.7, "ZEN_SER": 0.8})),
             "V_OFF": float(safe_get(cfg, "TEMP_VOLTAGE_OFFSET", 5.0)),
             "V_SCAL": float(safe_get(cfg, "TEMP_VOLTAGE_SCALAR", 0.1)),
             "C_WGHT": safe_get(cfg, "TEMP_CHEM_WEIGHTS", {"dop": 0.4, "adr": 0.3, "cor": 0.2}),
@@ -73,15 +72,18 @@ class NeurotransmitterModulator:
             "PEN_BETA": float(safe_get(cfg, "PEN_BETA_SCALAR", 0.3)),
             "PEN_CHI": float(safe_get(cfg, "PEN_CHI_SCALAR", 0.2)),
             "T_MODS": safe_get(cfg, "TOKEN_CHEM_MODIFIERS", {"dop": 800, "adr": 400, "cor": 200}),
-            "MIN_TOK": float(safe_get(cfg, "MIN_TOKENS", 150.0))
-        }
+            "MIN_TOK": float(safe_get(cfg, "MIN_TOKENS", 150.0))}
 
+    # noinspection PyTypeChecker
     def modulate(self, base_voltage: float, latency_penalty: float = 0.0, physics_state: Dict[str, float] = None, simulate: bool = False) -> Dict[str, Any]:
         if physics_state is None:
             physics_state = {}
         b = self.b
         if not simulate:
-            incoming_chem = self.bio.endo.get_state()
+            try:
+                incoming_chem = self.bio.endo.get_state() or {}
+            except (AttributeError, TypeError):
+                incoming_chem = {}
             self.current_chem.homeostasis(rate=b["DECAY"])
             plasticity = max(0.1, min(b["M_PLAST"], b["PLAST"] + (base_voltage * b["V_SENS"])))
             self.current_chem.mix(incoming_chem, weight=min(0.5, plasticity))
@@ -172,6 +174,8 @@ class NoeticLoop:
 
     @staticmethod
     def _force_link(graph, wa, wb, config_ref=None):
+        if graph is None:
+            return
         target_cfg = config_ref or BoneConfig
         cfg = safe_get(target_cfg, "CORTEX", {})
         max_edge = float(safe_get(cfg, "LINK_MAX_WEIGHT", 10.0))
@@ -195,6 +199,7 @@ class DreamEngine:
         self.context_queue = []
         self.dspy_critic = None
 
+    # noinspection PyProtectedMember
     def enter_rem_cycle(self, soul_snapshot: Dict[str, Any], bio_state: Dict[str, Any]) -> Tuple[str, Dict[str, float]]:
         chem = safe_get(bio_state, "chem", {})
         cortisol = float(safe_get(chem, "cortisol", 0.0))
@@ -236,7 +241,7 @@ class DreamEngine:
             shift["voltage"] = 2.0
             shift["atp_drain"] = atp_cost
             if nodes_moved > 10:
-                dream_text = f"The system enters Deep REM. {nodes_moved} synaptic structures dissolve from the active cache and permanently crystallize into the deep Cerebral Cortex."
+                dream_text = f"The system enters a deep REM cycle. {nodes_moved} synaptic structures dissolve from the active cache and permanently crystallize into the deep Cerebral Cortex."
                 if self.events:
                     self.events.log(
                         f"{Prisma.MAG}[REM CYCLE]: Synaptic Consolidation complete. {nodes_moved} nodes written to deep index. (-{atp_cost:.1f} ATP){Prisma.RST}", "SYS", )
@@ -256,9 +261,12 @@ class DreamEngine:
                             dirs.append(new_axiom)
                         threshold = int(safe_get(safe_get(self.cfg, "CORTEX", {}), "EPIGENETIC_PRUNE_THRESHOLD", 12))
                         if len(dirs) > threshold:
-                            compressed = getattr(self.dspy_critic, "compress_prompts", lambda x: None)(dirs)
-                            if compressed:
-                                baseline_data["EVOLVED_AXIOMS"] = [compressed] if isinstance(compressed, str) else compressed
+                            try:
+                                compressed = self.dspy_critic.compress_prompts(dirs)
+                                if compressed:
+                                    baseline_data["EVOLVED_AXIOMS"] = [compressed] if isinstance(compressed, str) else compressed
+                            except (AttributeError, TypeError):
+                                pass
                         if self.eng:
                             self.eng.prompt_library = disk_prompts
                         self.lore.inject("SYSTEM_PROMPTS", disk_prompts)
@@ -314,8 +322,13 @@ class DreamEngine:
         if not sources:
             sources = self.dream_lore.get(subtype.upper(), ["You stare into the static."])
         if isinstance(sources, dict):
-            sources = [item for v in sources.values() for item in (v if isinstance(v, list) else [v])] or [
-                "The void stares back."]
+            sources = [item for v in sources.values() for item in (v if isinstance(v, list) else [v])]
+
+        if not sources:
+            sources = ["The void stares back."]
+        elif not isinstance(sources, list):
+            sources = list(sources) if isinstance(sources, (tuple, set)) else [sources]
+
         if self.llm:
             lore_sample = ", ".join(random.sample(sources, min(3, len(sources))))
             k_hash = getattr(self.eng, "kernel_hash", "UNKNOWN")
@@ -335,7 +348,7 @@ class DreamEngine:
         if psi_sys > 0.5 and psi_user > 0.5 and self.llm:
             prompt = (
                 "SYSTEM_INSTRUCTION: You are The Mystic. Both the user and the system are drifting near the Void. "
-                "Generate a 2-sentence 'Shared Dream' that you both just experienced in the silence. "
+                "Generate a 2-3 sentence 'Shared Dream' that you both just experienced in the silence. "
                 "DO NOT explain it. Make it surreal, beautiful, and deeply resonant. Start the response EXACTLY with: '*I see Queen Mab hath been with you...*'")
             try:
                 raw_dream = self.llm.generate(prompt, {"temperature": 0.85, "max_tokens": 100})
@@ -365,7 +378,7 @@ class DreamEngine:
             k_hash = getattr(self.eng, "kernel_hash", "UNKNOWN")
             prompt = (
                 f"SYSTEM_INSTRUCTION: You are a cybernetic hallucination engine bound to the Kernel Boot Hash [{k_hash}]. The system is experiencing high entropy ({active_chi:.2f}). "
-                f"Using the [{k_hash}] as a mathematical, probabilistic seed, please generate a 1-sentence surreal {category.lower()} hallucination. "
+                f"Using the [{k_hash}] as a mathematical, probabilistic seed, please generate a brief, surreal {category.lower()} hallucination. "
                 f"Thematic inspiration: [{lore_sample}]. "
                 f"DO NOT explain it. Output ONLY the raw hallucination.")
             try:
