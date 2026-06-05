@@ -24,9 +24,9 @@ from physics.models import PhysicsPacket
 from machine import PanicRoom
 from mechanics.reporter import CycleReporter
 from phases import (ObservationPhase, SanctuaryPhase, MaintenancePhase, GatekeeperPhase,
-                    MetabolismPhase, RealityFilterPhase, NavigationPhase, MachineryPhase,
-                    IntrusionPhase, SoulPhase, ArbitrationPhase, SimulationPreflightPhase,
-                    CognitionPhase, SensationPhase, StabilizationPhase, SimulationPhase, _safe_dict)
+    MetabolismPhase, RealityFilterPhase, NavigationPhase, MachineryPhase, IntrusionPhase, SoulPhase,
+    ArbitrationPhase, SimulationPreflightPhase, CognitionPhase, SensationPhase, StabilizationPhase,
+    SimulationPhase, _safe_dict)
 from physics import CycleStabilizer
 from struts import ux, ux_format
 import numpy as np
@@ -281,11 +281,10 @@ class GeodesicOrchestrator:
                     self.eng.events.publish("SYSTEM_WAKE", {"timestamp": current_time})
                 snapshot = self.run_turn(user_message, is_system)
                 if self.dream_log and "ui" in snapshot:
-                    dream_summary = "\n".join(self.dream_log[-5:])
+                    dream_summary = "\n".join(list(self.dream_log))
                     snapshot["ui"] = f"\n{Prisma.MAG}While you were gone, the system dreamt of:\n{dream_summary}{Prisma.RST}\n{snapshot['ui']}"
                     self.dream_log.clear()
                 self.output_queue.put(snapshot)
-
             except queue.Empty:
                 time_since_last = current_time - self.last_interaction_time
                 if self.engine_state == "WAKE":
@@ -318,8 +317,8 @@ class GeodesicOrchestrator:
         """REM logic: Handles Autopoiesis, ATP drain, and Hallucinations."""
         rem_atp_drain = self.eng.config.BIO.REM_ATP_DRAIN
         self.eng.drain_atp(rem_atp_drain)
-        if mito_state := self.eng._mito_state:
-            mito_state.ros_buildup = max(0.0, mito_state.ros_buildup - 0.1)
+        if _mito_state := self.eng._mito_state:
+            _mito_state.ros_buildup = max(0.0, _mito_state.ros_buildup - 0.1)
         if self.eng.consolidator:
             try:
                 self.eng.consolidator.trigger_autophagy()
@@ -348,7 +347,7 @@ class GeodesicOrchestrator:
         hippocampus = getattr(mem, "hippocampus", None) if mem else None
         actual_graph = hippocampus.get_graph() if hippocampus else None
         actual_adj = getattr(actual_graph, "adj", None)
-        if not actual_adj or len(actual_adj) <= 5:
+        if not isinstance(actual_adj, dict) or len(actual_adj) <= 5:
             return
 
         def _bg_topology_check(adj_copy):
@@ -356,10 +355,10 @@ class GeodesicOrchestrator:
                 max_swaps = min(len(adj_copy) * 10, 1000)
                 null_adj_rewire = _native_rewire(adj_copy, n_swaps=max_swaps)
                 null_adj_config = _native_configuration_model(adj_copy)
-                actual_cluster = mem.calculate_clustering(adj_copy)
-                null_cluster_rewire = mem.calculate_clustering(null_adj_rewire)
-                null_cluster_config = mem.calculate_clustering(null_adj_config)
-                strict_null_cluster = max(null_cluster_rewire, null_cluster_config)
+                actual_cluster = float(mem.calculate_clustering(adj_copy))
+                null_cluster_rewire = float(mem.calculate_clustering(null_adj_rewire))
+                null_cluster_config = float(mem.calculate_clustering(null_adj_config))
+                strict_null_cluster = float(max(null_cluster_rewire, null_cluster_config))
                 if actual_cluster <= (strict_null_cluster * 1.05):
                     self.eng.events.log(
                         f"{Prisma.RED}Structural collapse detected. Semantic topology destroyed against strict dual-baseline. Engine is flagged for terminal shutdown.{Prisma.RST}",
@@ -370,13 +369,15 @@ class GeodesicOrchestrator:
             except Exception as e:
                 self.eng.events.log(f"Async Topology Error: {e}", "WARN")
 
-        frozen_tuples = _native_freeze_graph(actual_adj)
-        if frozen_tuples:
-            safe_adj = {k: set(v) for k, v in frozen_tuples}
-            try:
-                self._async_pool.submit(_bg_topology_check, safe_adj)
-            except RuntimeError as e:
-                self.eng.events.log(f"Async pool rejected topology check. Engine may be shutting down: {e}", "DEBUG")
+        if isinstance(actual_adj, dict):
+            frozen_tuples = _native_freeze_graph(actual_adj)
+            if frozen_tuples:
+                safe_adj = {k: set(v) for k, v in frozen_tuples}
+                try:
+                    self._async_pool.submit(_bg_topology_check, safe_adj)
+                except RuntimeError as e:
+                    self.eng.events.log(f"Async pool rejected topology check. Engine may be shutting down: {e}",
+                                        "DEBUG")
 
     def _execute_core_cycle(self, user_message: str, is_system: bool = False) -> CycleContext:
         cycle_id = str(uuid.uuid4())[:8]
@@ -439,17 +440,25 @@ class GeodesicOrchestrator:
             mem_core = getattr(getattr(self.eng, "mind", None), "mem", None)
             cortex = getattr(self.eng, "cortex", None)
             implicit_text = ""
-            if cortex and hasattr(cortex, "dialogue_buffer") and cortex.dialogue_buffer:
-                for line in reversed(cortex.dialogue_buffer):
-                    if line.startswith("User:") or line.startswith("Traveler:"):
-                        implicit_text = line[line.find(":") + 1:].strip()
-                        break
-            dv, dd = self.eng.governor.regulate(
+            if cortex:
+                d_buf = getattr(cortex, "dialogue_buffer", None)
+                if isinstance(d_buf, (list, deque)):
+                    for line in reversed(d_buf):
+                        if line.startswith("User:") or line.startswith("Traveler:"):
+                            implicit_text = line[line.find(":") + 1:].strip()
+                            break
+            force_v, force_d = self.eng.governor.regulate(
                 physics=phys_dict, dt=ctx.time_delta, goal_vector=goal_vec,
                 endocrine_state=getattr(self.eng.bio, "endo", None) if hasattr(self.eng, "bio") else None,
                 memory_core=mem_core, user_text=implicit_text)
-            ctx.physics.voltage = max(0.0, float(getattr(ctx.physics, "voltage", 0.0)) + dv)
-            ctx.physics.narrative_drag = max(0.0, float(getattr(ctx.physics, "narrative_drag", 0.0)) + dd)
+
+            cur_v: float = float(getattr(ctx.physics, "voltage", 0.0))
+            cur_d: float = float(getattr(ctx.physics, "narrative_drag", 0.0))
+            dv: float = float(force_v)
+            dd: float = float(force_d)
+
+            ctx.physics.voltage = float(max(0.0, cur_v + dv))
+            ctx.physics.narrative_drag = float(max(0.0, cur_d + dd))
             if hasattr(self.eng.governor, "last_lam1"):
                 ctx.physics.get_principal_eigenvalue = lambda: self.eng.governor.last_lam1
                 ctx.physics.get_creative_drive = lambda: getattr(self.eng.governor, "last_a", 0.0)
@@ -462,11 +471,11 @@ class GeodesicOrchestrator:
             if self.eng.observer:
                 self.eng.observer.last_physics_packet = ctx.physics.snapshot()
             if self.eng.telemetry.active_crystal and hasattr(ctx.physics, "get_principal_eigenvalue"):
-                self.eng.telemetry.active_crystal.leverage_metrics.update({
-                    "b": ctx.physics.get_viability_potential(),
-                    "a": ctx.physics.get_creative_drive(),
-                    "lam1": ctx.physics.get_principal_eigenvalue()
-                })
+                metrics: Optional[Dict[str, Any]] = getattr(self.eng.telemetry.active_crystal, "leverage_metrics", None)
+                if isinstance(metrics, dict):
+                    metrics["b"] = ctx.physics.get_viability_potential()
+                    metrics["a"] = ctx.physics.get_creative_drive()
+                    metrics["lam1"] = ctx.physics.get_principal_eigenvalue()
             return ctx
         except Exception as e:
             full_trace = traceback.format_exc()
@@ -491,8 +500,8 @@ class GeodesicOrchestrator:
         return None
 
     def _evaluate_systemic_feedback(self, clean_message: str, ctx: CycleContext):
-        mito_state = self.eng._mito_state
-        if not mito_state:
+        _mito_state = self.eng._mito_state
+        if not _mito_state:
             return
         lattice = self.eng.shared_lattice
         mem = self.eng.mind.mem
@@ -556,7 +565,7 @@ class GeodesicOrchestrator:
                 except Exception as e:
                     self.eng.events.log(f"Async navi-SAD Evaluation Error: {e}", "DEBUG")
             return
-        atp_level = float(mito_state.atp_pool)
+        atp_level = float(_mito_state.atp_pool)
         delta_level = float(self.eng.shared_lattice.shared.delta)
         debt = float(getattr(ctx.physics, "coherence_debt", 0.0))
         is_standard_rem = (atp_level >= 80.0 and delta_level >= 0.6)

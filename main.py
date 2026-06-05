@@ -1,13 +1,14 @@
 """main.py"""
 
+import queue
 import random
 import re
 import time
 import traceback
-import queue
 from dataclasses import dataclass
-from typing import Dict, Any, Optional, Tuple
 from types import SimpleNamespace
+from typing import Dict, Any, Optional, Tuple
+
 from archetypes.council import CouncilChamber
 from body import SomaticLoop
 from brain.composer import LLMInterface
@@ -26,6 +27,7 @@ from physics import ZoneInertia, NaviSADProtocol
 from presets import BoneConfig, BonePresets
 from protocols import ChronosKeeper, GriefProtocol
 from struts import ux, safe_get, safe_set
+
 
 @dataclass
 class HostStats:
@@ -103,17 +105,24 @@ class BoneAmanita:
 
     def _initialize_cognition(self):
         """Builds the Cortex first, then starts the Orchestrator daemon so it can safely bind to the Cortex"""
-        self.soma = SomaticLoop(self.bio, self.mind.mem, self.lex, self.events)
-        self.noetic = NoeticLoop(self.mind, self.bio, self.events)
+        bio_sys: Any = getattr(self, "bio", None)
+        mind_sys: Any = getattr(self, "mind", None)
+
+        if bio_sys and mind_sys and getattr(mind_sys, "mem", None):
+            self.soma = SomaticLoop(bio_sys, mind_sys.mem, self.lex, self.events)
+            self.noetic = NoeticLoop(mind_sys, bio_sys, self.events)
+
         self.orchestrator = GeodesicOrchestrator(self)
         llm_args = {k: getattr(self.config, k.upper()) for k in ["provider", "base_url", "api_key", "model"] if hasattr(self.config, k.upper())}
         self.cortex = TheCortex.from_engine(self, llm_client=LLMInterface(events_ref=self.events, config_ref=self.config, **llm_args))
         self.orchestrator.cortex = self.cortex
         self.orchestrator.start_daemon()
-        self.mind.mem.lex = self.lex
-        for c in ("parasite", "memory_core", "lichen"):
-            if sub := getattr(self.mind.mem, c, None):
-                sub.lex = self.lex
+
+        if mind_sys and getattr(mind_sys, "mem", None):
+            mind_sys.mem.lex = self.lex
+            for c in ("parasite", "memory_core", "lichen"):
+                if sub := getattr(mind_sys.mem, c, None):
+                    sub.lex = self.lex
 
     def _validate_state(self):
         tuning_key = self.mode_settings.get("tuning", "STANDARD")
@@ -247,8 +256,7 @@ class BoneAmanita:
         self.events.log(msg, level)
         phys = self.active_physics
         phys_dict = phys.to_dict() if hasattr(phys, "to_dict") else (phys if isinstance(phys, dict) else vars(phys))
-        return {"type": "SYSTEM_HALT", "ui": f"\n{color}{msg}{Prisma.RST}", "logs": [msg],
-                "metrics": self.get_metrics(), "physics": phys_dict}
+        return {"type": "SYSTEM_HALT", "ui": f"\n{color}{msg}{Prisma.RST}", "logs": [msg], "metrics": self.get_metrics(), "physics": phys_dict}
 
     def _evaluate_immune_response(self, user_message: str, active_phys: Any) -> Optional[Dict[str, Any]]:
         if not active_phys:
@@ -306,47 +314,36 @@ class BoneAmanita:
         grammar_rules = self.reality_stack.get_grammar_rules()
         if not grammar_rules.get("allow_narrative", True) and self.boot_mode != "TECHNICAL":
             return self._generate_halt(ux("main_strings", "narrative_halt") or "Narrative generation disabled at this Reality Layer.")
-
         if is_system:
             return self._halt_if_ethically_audited()
-
         if any(prion in clean_in for prion in self._SEMANTIC_PRIONS):
-            return self._generate_halt("[GATEKEEPER]: Apoptotic refusal triggered by semantic prion.")
-
+            return self._generate_halt("REFUSAL triggered by semantic prion.")
         if match := self._DESTRUCTIVE_PATTERNS.search(clean_in):
             if "#override" in clean_in and self.bio.expend_glimmer():
                 self.events.log("OVERRIDE ACCEPTED. Glimmer paid. Bypassing remaining security gates.", "SYS")
                 return None
-
             self.apply_absolute_friction(active_phys)
             msg = "Override denied. Insufficient Glimmers." if "#override" in clean_in else f"Trust Boundary Violation: ['{match.group(0)}']."
             return self._generate_halt(msg)
-
         if len(clean_in) > 15000:
             self.events.log("Massive benign payload detected. Routing to Dream Queue.", "SYS")
             if getattr(self.mind, "dreamer", None):
                 self.mind.dreamer.context_queue.append(user_message)
             return {"type": "SILENT_INGEST", "ui": f"\n{Prisma.GRY}Payload routed to Dream Queue.{Prisma.RST}", "logs": ["Routed 15k+ payload."], "metrics": self.get_metrics()}
-
         if gate_halt := self._evaluate_two_gates(clean_in, active_phys):
             return gate_halt
-
         if self.navi_sad.execute_nudge_test(self, clean_in):
             self.apply_absolute_friction(active_phys)
             return self._generate_halt("Dual-Path divergence detected. Applying absolute friction.")
-
         if lock := self.symbiosis.analyze_user_biology(user_message, active_phys):
             return self._generate_halt(lock, color=Prisma.VIOLET, level="SYS")
-
         if gordon := getattr(self.village, "gordon", None):
             gordon.mode = self.boot_mode
             if violation := gordon.enforce_object_action_coupling(user_message, safe_get(active_phys, "zone", "Unknown")):
                 self.events.log(ux("main_strings", "gordon_intercept") or "Gordon intercepted action.", "SYS")
                 self.cortex.ballast_active, self.cortex.gordon_shock = True, violation
-
         if immune_halt := self._evaluate_immune_response(user_message, active_phys):
             return immune_halt
-
         return self._halt_if_ethically_audited()
 
     def _halt_if_ethically_audited(self) -> Optional[Dict[str, Any]]:
@@ -359,7 +356,7 @@ class BoneAmanita:
         turn_start = self.observer.clock_in()
         try:
             self.current_time_delta = 0.0 if is_system else (time.time() - self.last_turn_end)
-            clean_in = "" if is_system else user_message.lower().strip()
+            clean_in = "" if is_system else re.sub(r'[\u200B-\u200D\uFEFF\u202A-\u202E]', '', user_message.lower().strip())
             if not is_system:
                 if clean_in in ("/flush", "/zen", "[zen]"):
                     return self._execute_zen_flush()
@@ -371,9 +368,9 @@ class BoneAmanita:
                 return {"type": "COMMAND", "ui": f"\n{ui_output}", "logs": cmd_logs, "metrics": self.get_metrics()}
             if (gordon := getattr(self.village, "gordon", None)) and hasattr(gordon, "apply_filters"):
                 user_message = gordon.apply_filters(user_message, self.active_physics)
+            timeout_val = float(getattr(self.config, "ORCHESTRATOR_TIMEOUT", 120.0))
             try:
                 self.orchestrator.input_queue.put((user_message, is_system))
-                timeout_val = float(getattr(self.config, "ORCHESTRATOR_TIMEOUT", 120.0))
                 snapshot = self.orchestrator.output_queue.get(timeout=timeout_val)
             except (queue.Empty, Exception) as e:
                 err_msg = f"Cognitive Loop Timeout ({timeout_val}s). The engine was paralyzed by overthinking." if isinstance(
@@ -511,7 +508,7 @@ class BoneAmanita:
         cold_result = self.process_turn(boot_prompt, is_system=True)
         return cold_result
 
-    def save_checkpoint(self, history: list = None) -> str:
+    def save_checkpoint(self, history: Optional[list] = None) -> str:
         if gordon := getattr(self.village, "gordon", None):
             carto = getattr(self.village, "navigator", None)
             try:
@@ -560,8 +557,6 @@ if __name__ == "__main__":
                 stamina = res.get("metrics", {}).get("stamina", 100.0)
                 if split_token and split_token in ui_text:
                     dashboard, _, ui_text = ui_text.partition(split_token)
-
-                    # --- CD FRAMEWORK OVERLAY ---
                     phys = res.get("physics", {})
                     if "lam1" in phys:
                         lam1, b, a = phys.get("lam1", 0.0), phys.get("b", 0.0), phys.get("a", 0.0)
@@ -570,7 +565,6 @@ if __name__ == "__main__":
                         print(f"\n{dashboard.strip()}\n{cd_overlay}\n")
                     else:
                         print(f"\n{dashboard.strip()}\n")
-
                 ui_text = ui_text.strip()
                 speed = base_speed * (4.0 if stamina < 20.0 else 2.0 if stamina < 50.0 else 1.0)
                 if stamina < 20.0:

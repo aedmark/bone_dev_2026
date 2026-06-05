@@ -58,12 +58,13 @@ class TheOroboros:
         new_scars, new_myths = [], []
         eng = getattr(soul, "eng", None)
         if eng and getattr(eng, "trauma_accum", None):
-            total_trauma = sum(eng.trauma_accum.values())
+            total_trauma = float(sum(eng.trauma_accum.values()))
             if total_trauma > 10.0:
                 scar_val = min(20.0, total_trauma * 0.1)
                 new_scars.append(Scar(name="Existential Dread", stat_affected="trauma_baseline", value=scar_val,
                     description=f"The lattice remembers a heavy collapse (Trauma: {round(total_trauma, 1)})."))
-        if entry := death_data.get(cause_of_death):
+        entry = death_data.get(cause_of_death)
+        if isinstance(entry, (list, tuple)):
             verdict_map = {"TOXICITY": "TOXIC", "BOREDOM": "BORING", "STARVATION": "LIGHT", "APOPTOSIS": "TOXIC"}
             v_key = verdict_map.get(cause_of_death, "HEAVY")
             v_list = death_data.get("VERDICTS", {}).get(v_key)

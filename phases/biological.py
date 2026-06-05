@@ -43,7 +43,7 @@ class MetabolismPhase(SimulationPhase):
             physics, bio_feedback, metrics["health"], metrics["stamina"],
             self.eng.bio.governor.get_stress_modifier(self.eng.tick_count), self.eng.tick_count,
             circadian_bias=self._check_circadian_rhythm(ctx), )
-        self.eng.set_atp(self.eng.mito_state.atp_pool if self.eng.mito_state else 0.0)
+        self.eng.set_atp(self.eng._mito_state.atp_pool if self.eng._mito_state else 0.0)
         self.eng.health = max(0.0, self.eng.health)
         self.eng.stamina = max(0.0, self.eng.stamina)
         ctx.is_alive = ctx.bio_result["is_alive"]
@@ -69,7 +69,7 @@ class MetabolismPhase(SimulationPhase):
             log_msg = (
                 f"{Prisma.OCHRE}{msg.format(tax_burn=round(total_tax, 2))}{Prisma.RST}")
             if amplification_penalty > 1.0:
-                log_msg += f"\n{Prisma.RED}Amplification Tax applied (-{round(amplification_penalty, 2)} ATP){Prisma.RST}"
+                log_msg += f"\n{Prisma.RED}[RUNAWAY RAMP] Amplification Tax applied (-{round(amplification_penalty, 2)} ATP){Prisma.RST}"
             ctx.log(log_msg)
 
     def _check_narcolepsy(self, ctx: CycleContext):

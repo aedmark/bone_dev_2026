@@ -63,7 +63,7 @@ class NarrativeSelf:
 
     def _on_soul_mutation(self, payload: dict):
         new_arch = payload.get("new_archetype")
-        if new_arch:
+        if isinstance(new_arch, str):
             self.force_mutation(new_arch)
 
     def _on_trauma(self, payload):
@@ -283,7 +283,7 @@ class NarrativeSelf:
 
     def _seek_organic_focus(self, lex) -> Tuple[Optional[str], Optional[str], str]:
         packet = self._safe_get_packet()
-        if not packet or not getattr(lex, "measure_viscosity", None):
+        if not packet or lex is None or not hasattr(lex, "measure_viscosity"):
             return None, None, "none"
         candidates = (
             (w, lex.measure_viscosity(w) + 0.2, lex.get_current_category(w))
@@ -330,8 +330,7 @@ class NarrativeSelf:
         ]
         lesson = next((l for cond, l in lessons if cond), "The world is loud.")
         memory = CoreMemory(timestamp=time.time(), trigger_words=clean_words[:5],
-                            emotional_flavor="MANIC" if voltage > 18.0 else "LUCID", lesson=lesson,
-                            impact_voltage=voltage, )
+            emotional_flavor="MANIC" if voltage > 18.0 else "LUCID", lesson=lesson, impact_voltage=voltage, )
         self.core_memories.append(memory)
         max_mems = self._cfg("MAX_CORE_MEMORIES", 10)
         if len(self.core_memories) > max_mems: self.core_memories.pop(0)
@@ -341,17 +340,12 @@ class NarrativeSelf:
         critique_log = self.editor.critique(title, stress_mode=(voltage > 18.0))
         self.events.log(critique_log, "SOUL_CRITIC")
 
-        if msg_core := ux_format("soul_strings", "soul_core_memory_log", title=title, lesson=lesson,
-                                 dance_move=dance_move):
+        if msg_core := ux_format("soul_strings", "soul_core_memory_log", title=title, lesson=lesson, dance_move=dance_move):
             self.events.log(f"{Prisma.MAG}{msg_core}{Prisma.RST}", "SOUL")
         if msg_formed := ux_format("soul_strings", "soul_core_memory_formed", lesson=lesson):
             self.events.log(f"{Prisma.CYN}{msg_formed}{Prisma.RST}", "SOUL")
 
-        self.events.publish("GLIMMER_FORMED", {
-            "concept": title,
-            "paradigm": lesson
-        })
-
+        self.events.publish("GLIMMER_FORMED", {"concept": title, "paradigm": lesson})
         return lesson
 
     @staticmethod
