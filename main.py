@@ -364,7 +364,7 @@ class BoneAmanita:
                 cmd_logs = [e["text"] for e in self.events.flush()]
                 ui_output = "\n".join(cmd_logs) if cmd_logs else ux("main_strings", "cmd_executed")
                 return {"type": "COMMAND", "ui": f"\n{ui_output}", "logs": cmd_logs, "metrics": self.get_metrics()}
-            if (gordon := getattr(self.village, "gordon", None)) and hasattr(gordon, "apply_filters"):
+            if not is_system and (gordon := getattr(self.village, "gordon", None)) and hasattr(gordon, "apply_filters"):
                 user_message = gordon.apply_filters(user_message, self.active_physics)
             timeout_val = float(getattr(self.config, "ORCHESTRATOR_TIMEOUT", 120.0))
             try:

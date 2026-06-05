@@ -434,9 +434,20 @@ class GeodesicOrchestrator:
             u_exhaustion = float(getattr(ctx.user_state, "E_u", getattr(ctx.user_state, "E", 0.0)))
             phi_val = float(ctx.shared_dyn.phi)
             res_delta = float(getattr(ctx.shared_dyn, "delta", getattr(ctx.shared_dyn, "resonance_delta", 0.0)))
+            ctx.physics.exhaustion = u_exhaustion
+            ctx.physics.resonance = phi_val
+            ctx.physics.phi = phi_val
+            ctx.physics.delta = res_delta
+
+            beta_val = float(getattr(ctx.shared_dyn, "beta", getattr(ctx.shared_dyn, "contradiction", getattr(ctx.physics, "beta_index", 0.0))))
+            ctx.physics.beta_index = beta_val
+            ctx.physics.contradiction = beta_val
+            chi_val = float(getattr(ctx.shared_dyn, "chi", getattr(ctx.shared_dyn, "entropy", getattr(ctx.physics, "chi", 0.0))))
+            ctx.physics.chi = chi_val
+            ctx.physics.entropy = chi_val
+            ctx.physics.psi = float(getattr(ctx.user_state, "psi_u", getattr(ctx.user_state, "psi", getattr(ctx.physics, "psi", 0.0))))
             self.eng.governor.calculate_coupling(phi_val, res_delta, u_exhaustion)
             ctx.physics.macro_policy = self.eng.governor.get_policy_shift()
-
             raw_vector = getattr(ctx.physics, "vector", {})
             if raw_vector:
                 goal_vec = np.array(list(raw_vector.values()), dtype=np.float32)
@@ -457,12 +468,10 @@ class GeodesicOrchestrator:
                 physics=phys_dict, dt=ctx.time_delta, goal_vector=goal_vec,
                 endocrine_state=getattr(self.eng.bio, "endo", None) if hasattr(self.eng, "bio") else None,
                 memory_core=mem_core, user_text=implicit_text)
-
             cur_v: float = float(getattr(ctx.physics, "voltage", 0.0))
             cur_d: float = float(getattr(ctx.physics, "narrative_drag", 0.0))
             dv: float = float(force_v)
             dd: float = float(force_d)
-
             ctx.physics.voltage = float(max(0.0, cur_v + dv))
             ctx.physics.narrative_drag = float(max(0.0, cur_d + dd))
             if hasattr(self.eng.governor, "last_lam1"):
@@ -517,21 +526,14 @@ class GeodesicOrchestrator:
         def _bg_wls_check(msg_str):
             try:
                 if akashic and hasattr(akashic, "measure_cognitive_density"):
-                    # Use the first word of the message as a seed concept
                     seed_concept = msg_str.split()[0] if msg_str else "Unknown"
                     density = akashic.measure_cognitive_density(seed_concept)
-                    radii_data = {
-                        "log_r": [1.0, 2.0, 3.0],
-                        "log_m": [1.0 * density, 2.0 * density, 3.0 * density],
-                        "weights": [1.0, 1.0, 1.0]
-                    }
+                    radii_data = {"log_r": [1.0, 2.0, 3.0], "log_m": [1.0 * density, 2.0 * density, 3.0 * density], "weights": [1.0, 1.0, 1.0]}
                     if radii_data and lattice:
                         passed_gate, gate_code = _native_quality_gate(radii_data["log_r"], radii_data["log_m"])
                         local_d = _native_wls(radii_data["log_r"], radii_data["log_m"], radii_data["weights"])
                         if not passed_gate:
-                            self.eng.events.log(
-                                f"{Prisma.RED}[NAVI-FRACTAL] Topology rejected by Quality Gate ({gate_code}). Network too fragmented. Mandating REM Defragmentation.{Prisma.RST}",
-                                "SYS")
+                            self.eng.events.log(f"{Prisma.RED}[NAVI-FRACTAL] Topology rejected by Quality Gate ({gate_code}). Network too fragmented. Mandating REM Defragmentation.{Prisma.RST}", "SYS")
                             ctx.council_mandates.append(
                                 {"action": "DEFRAGMENT_MEMORY", "value": "FRAG_HIGH", "log": gate_code})
                             local_d = 1.0
@@ -543,11 +545,8 @@ class GeodesicOrchestrator:
                                     f"{Prisma.CYN}[NAVI-FRACTAL] True Coherence Verified (\u03a9r={lattice.shared.omega_r:.2f}). Dimension {local_d:.2f} is structurally deliberate, not random noise.{Prisma.RST}",
                                     "SYS")
                             elif local_d >= null_d:
-                                self.eng.events.log(
-                                    f"{Prisma.RED}[NAVI-FRACTAL] Hallucination of Depth! Dimension {local_d:.2f} is indistinguishable from random noise. Stripping coherence rewards.{Prisma.RST}",
-                                    "WARN")
+                                self.eng.events.log(f"{Prisma.RED}[NAVI-FRACTAL] Hallucination of Depth! Dimension {local_d:.2f} is indistinguishable from random noise. Stripping coherence rewards.{Prisma.RST}", "WARN")
                                 lattice.shared.omega_r = 0.0
-
                         if local_d < 0.2:
                             self.eng.events.log(f"{Prisma.RED}[CD CONDITION] Phase-space collapse detected (d={local_d:.2f}). Sycophancy Point Attractor identified. Spiking Contradiction (μ) to force generative tension.{Prisma.RST}", "CRIT")
                             if ctx.physics:
@@ -590,7 +589,6 @@ class GeodesicOrchestrator:
             self.engine_state = "REM"
 
     def run_turn(self, user_message: str, is_system: bool = False) -> Dict[str, Any]:
-        """/idle: Leave it alone."""
         clean_message = (user_message.strip() or "(Waiting)")
         if clean_message.lower() in ("/idle", "/sleep"):
             self.engine_state = "REM"

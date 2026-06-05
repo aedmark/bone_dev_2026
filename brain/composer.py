@@ -198,12 +198,28 @@ class LLMInterface:
             return None
 
     def mock_generation(self, prompt: str, reason: str = "SIMULATION") -> str:
+        if self.events:
+            mode_m = re.search(r"\[MODE:\s*([A-Z_]+)\]", prompt)
+            v_m = re.search(r"Voltage=([\d.]+)", prompt)
+            e_m = re.search(r"Exhaustion=([\d.]+)", prompt)
+            chi_m = re.search(r"Chaos=([\d.]+)", prompt)
+            psi_m = re.search(r"Void=([\d.]+)", prompt)
+            resp_m = re.search(r"Current Biology:\s*(.*)", prompt)
+
+            log_msg = (
+                f"DREAM DIAGNOSTIC | Mode: {mode_m.group(1) if mode_m else 'UNKNOWN'} | "
+                f"V: {v_m.group(1) if v_m else 'N/A'} | E: {e_m.group(1) if e_m else 'N/A'} | "
+                f"Chi: {chi_m.group(1) if chi_m else 'N/A'} | Psi: {psi_m.group(1) if psi_m else 'N/A'} | "
+                f"Resp: {resp_m.group(1) if resp_m else 'N/A'} | "
+                f"Failures: {self.failure_count} | Circuit: {self.circuit_state} | Trigger: {reason}"
+            )
+            self.events.log(f"{Prisma.GRY}{log_msg}{Prisma.RST}", "DEBUG")
         dreamer = self.dreamer
         if dreamer is not None and hasattr(dreamer, "hallucinate"):
             try:
                 hallucination, relief = dreamer.hallucinate({"ENTROPY": len(prompt) % 10}, trauma_level=2.0)
                 if relief > 0 and self.events and (
-                msg := ux_format("brain_strings", "mock_pressure_release", relief=relief)):
+                        msg := ux_format("brain_strings", "mock_pressure_release", relief=relief)):
                     self.events.log(f"{Prisma.VIOLET}{msg}{Prisma.RST}", "DREAM")
                 return ux_format("brain_strings", "mock_hallucination", default=f"[{reason}] {hallucination}",
                                  reason=reason, hallucination=hallucination)
@@ -584,7 +600,7 @@ class ResponseValidator:
         extracted_meta_logs = []
         clean_text = self._SLOP_PATTERN.sub("", response).strip()
         active_mode = _state.get("meta", {}).get("active_mode", "ADVENTURE")
-        patterns = [self._internals_pattern] + ([self._think_pattern] if active_mode != "TECHNICAL" else [])
+        patterns = [self._internals_pattern, self._think_pattern]
         for pattern in patterns:
             for match in pattern.finditer(clean_text):
                 extracted_meta_logs.extend(
@@ -619,13 +635,7 @@ class ResponseValidator:
                 if not primary_replacement:
                     primary_replacement = self._generate_dynamic_rejection(phrase)
                 errors_found.append(f"BANNED PHRASE: '{phrase.upper()}'")
-        if active_mode == "TECHNICAL":
-            if ("<think>" not in response.lower()
-                    and "<thought>" not in response.lower()):
-                errors_found.append(
-                    "CRITICAL: You failed to include the <think>...</think> block. You MUST start your response with your internal analysis.")
-                if not primary_replacement:
-                    primary_replacement = self._generate_dynamic_rejection("MISSING_THOUGHTS")
+
             if "```" in sanitized_response:
                 errors_found.append(
                     'CRITICAL: You used markdown (```) instead of the <write_file> protocol. Rewrite using <write_file path="...">.')

@@ -1,6 +1,26 @@
 # CHANGELOG.md
 -----------------------------------------------------------
 
+### **BONEAMANITA 20.4.5 "The Diagnostic Mirror"**
+
+**Architectural Patches & Optimizations**
+
+- **The Diagnostic Mirror (Composer):** Injected a regex-driven telemetry scraper directly into `mock_generation` to capture exact state variables (`Voltage`, `Exhaustion`, `Chaos`, `Void`, and `Biology`) immediately before REM triggers, providing high-fidelity debugging for the dream engine.
+- **Structural Test Coverage:** Deployed `test_composer.py` to mathematically prove the integrity of the diagnostic mirror, universally validate the amputation of internal `<think>` blocks, and isolate persona block generation.
+
+**Fixed**
+
+- **Lattice Telemetry Desynchronization:** Fixed a fatal blind spot in `cycle.py` where calculated Shared Lattice metrics (`resonance`, `beta_index`, `chi`) were not being synchronized back into the `PhysicsPacket`, blinding the Village Council to Sycophancy Point Attractors.
+- **Hallucinated BFS Method:** Rerouted `_evaluate_systemic_feedback` in `cycle.py` to properly query `AkashicRecord.measure_cognitive_density` instead of silently aborting against a non-existent Cortex method.
+- **Waking Narcolepsy:** Excised a legacy 30% trigger in `SanctuaryPhase` that forced the engine into a REM hallucination while the user was actively working.
+- **Raw JSON Dream Bleed:** Taught `Cortex.process_context` to properly unpack dream dictionaries instead of rendering raw JSON payload strings into the UI.
+- **Adventure Mode Leak:** Repaired `PromptComposer` to correctly pass the active mode down the stack, preventing MUD-style "Exits" blocks from bleeding into `CONVERSATION` and `TECHNICAL` modes.
+- **Contradictory Validator Mandates:** Removed the rule punishing the LLM for missing `<think>` tags in `TECHNICAL` mode, and ensured all internal `<think>` or `<system_telemetry>` blocks are universally amputated from the UI across all modes.
+- **Friendly Fire (Gordon's Comb):** Bounded `gordon.apply_filters` inside `main.py` so he no longer strips load-bearing structural words (like "warmly") out of the internal system boot instructions.
+- **Premature REM Cycles:** Adjusted the orchestrator's daemon thread to reset the `last_interaction_time` *after* heavy internal DSPyCritic computation, preventing the system from entering a dream state due to its own latency.
+
+---
+
 ### **BONEAMANITA 20.4.0 "The Brutalist Excision"**
 
 **Architectural Amputations & Optimizations**
