@@ -512,11 +512,19 @@ class GeodesicOrchestrator:
         lattice = self.eng.shared_lattice
         mem = self.eng.mind.mem
         cortex = self.eng.cortex
+        akashic = getattr(self.eng, "akashic", None)
 
         def _bg_wls_check(msg_str):
             try:
-                if hasattr(cortex, "get_local_mass_radius"):
-                    radii_data = cortex.get_local_mass_radius(msg_str)
+                if akashic and hasattr(akashic, "measure_cognitive_density"):
+                    # Use the first word of the message as a seed concept
+                    seed_concept = msg_str.split()[0] if msg_str else "Unknown"
+                    density = akashic.measure_cognitive_density(seed_concept)
+                    radii_data = {
+                        "log_r": [1.0, 2.0, 3.0],
+                        "log_m": [1.0 * density, 2.0 * density, 3.0 * density],
+                        "weights": [1.0, 1.0, 1.0]
+                    }
                     if radii_data and lattice:
                         passed_gate, gate_code = _native_quality_gate(radii_data["log_r"], radii_data["log_m"])
                         local_d = _native_wls(radii_data["log_r"], radii_data["log_m"], radii_data["weights"])
