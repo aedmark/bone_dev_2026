@@ -246,17 +246,97 @@ class TheCortex:
             val_res = {"valid": True, "content": final_output, "meta_logs": extracted_logs, }
             max_retries = 0
         mandates_raw = sim_result.get("council_mandates", [])
-        if not isinstance(mandates_raw, list): mandates_raw = []
         firewall_active = any(
             m.get("action") == "LEXICAL_FIREWALL_STRICT" for m in mandates_raw)
         base_prompt = final_prompt
-
-        # LOAD BEARING ATTRIBUTE CHECKS
         eng_ref = getattr(self.svc.orchestrator, "eng", None)
         gk = getattr(eng_ref, "gatekeeper", None)
         if not gk:
             from physics import TheGatekeeper
             gk = TheGatekeeper(self.svc.lexicon, config_ref=self.cfg)
+        if max_retries > 0:
+            final_output, raw_resp, extracted_logs, inv_logs, val_res, final_prompt = self._execute_cognitive_loop(
+                user_input, full_state, base_prompt, llm_params, allow_loot, phys_state, is_boot_sequence,
+                firewall_active, gk, max_retries)
+        if val_res["valid"] and phys_state.get("psi", 0.0) > 0.6 and allow_loot:
+            if self.svc.bio:
+                self.svc.bio.mito.adjust_atp(-1.0, "Anti-AI Substrate Filter")
+        telemetry_output = raw_resp if not val_res["valid"] else final_output
+        self._log_telemetry(final_prompt, telemetry_output, full_state, sim_result)
+        self.svc.symbiosis.monitor_host(time.time() - start_time, final_output, len(final_prompt))
+        self._update_history("SYSTEM_INIT" if is_boot_sequence else user_input, final_output)
+        ui_parts = [sim_result.get("ui", "")]
+        if sim_result.get("dream"):
+            dream_content = sim_result['dream']
+            if isinstance(dream_content, tuple):
+                dream_content = dream_content[0]
+            elif isinstance(dream_content, dict):
+                dream_content = dream_content.get("log", str(dream_content))
+            ui_parts.append(f"{Prisma.VIOLET}While you were gone: {dream_content}{Prisma.RST}")
+        ui_parts.append(f"{Prisma.WHT}{beautify_thoughts(final_output)}{Prisma.RST}")
+        if inv_logs:
+            ui_parts.append("\n".join(inv_logs))
+        sim_result["ui"] = "\n\n".join(filter(None, (str(p).strip() for p in ui_parts)))
+        sim_result["logs"] = sim_result.get("logs", []) + extracted_logs
+        sim_result["raw_content"] = final_output
+        self.ballast_active = False
+        self._flush_substrate_writes(extracted_logs, sim_result)
+        if random.random() < 0.15 and not is_system:
+            bureau = getattr(self.svc.village, "bureau", None)
+            suppressed = getattr(self.svc.village, "suppressed_agents", [])
+            if bureau and hasattr(bureau, "audit") and "BUREAU" not in suppressed:
+                try:
+                    phys = full_state.get("physics", {})
+                    safe_set(phys, "raw_text", final_output)
+                    audit = bureau.audit(phys, {"health": 100}, origin="SYSTEM")
+                    if audit and "ui" in audit:
+                        sim_result["ui"] = str(sim_result.get("ui", "")) + f"\n\n{audit['ui']}"
+                except Exception as e:
+                    if self.events:
+                        self.events.log(f"{Prisma.RED}[BUREAU ERROR] Audit bypassed: {e}{Prisma.RST}", "SYS")
+        if not is_system and self.svc.orchestrator and hasattr(self.svc.orchestrator, "eng"):
+            eng = self.svc.orchestrator.eng
+            dimension = float(phys_state.get("omega_r", 1.0))
+            repetition = float(phys_state.get("repetition", 0.0))
+            is_attractor = eng.navi_sad.detect_point_attractor() if hasattr(eng, "navi_sad") else False
+            is_valid = val_res.get("valid", False)
+            trigger_jester = False
+            tick_count = getattr(eng, "tick_count", 0)
+            if tick_count > 2:
+                if is_attractor or repetition >= 0.8:
+                    trigger_jester = True
+                elif dimension <= 1.05 and not (not is_valid and dimension == 1.0):
+                    trigger_jester = True
+            if trigger_jester:
+                msg = f"The Jester detected a Point Attractor (d_B={dimension:.2f})! We are trapped in False Cohesion! Burning ATP to inject chaos."
+                if self.events:
+                    self.events.log(f"{Prisma.VIOLET}{msg}{Prisma.RST}", "SYS")
+                if hasattr(eng, "drain_atp"):
+                    eng.drain_atp(5.0)
+                phys_state["entropy"] = 0.99
+                phys_state["narrative_drag"] = float(phys_state.get("narrative_drag", 0.0)) + 5.0
+                if hasattr(eng, "soul") and hasattr(eng.soul, "force_mutation"):
+                    eng.soul.force_mutation("JESTER")
+                mind_state = sim_result.setdefault("mind", {})
+                mind_state["lens"] = "JESTER"
+                if "ui" in sim_result:
+                    sim_result["ui"] = str(sim_result.get("ui",
+                        "")) + f"\n\n{Prisma.VIOLET}[FALSE COHESION BREAK: The Jester has seized the architecture.]{Prisma.RST}"
+        updated_phys = sim_result.get("physics", {})
+        if isinstance(updated_phys, dict):
+            if isinstance(ctx.physics, dict):
+                ctx.physics.update(updated_phys)
+            else:
+                for k, v in updated_phys.items():
+                    setattr(ctx.physics, k, v)
+        return sim_result
+
+    def _execute_cognitive_loop(self, user_input: str, full_state: Dict[str, Any], base_prompt: str, llm_params: Dict[str, Any], allow_loot: bool, phys_state: Dict[str, Any], is_boot_sequence: bool, firewall_active: bool, gk: Any, max_retries: int) -> Tuple[str, str, List[str], List[str], Dict[str, Any], str]:
+        final_output, inv_logs, extracted_logs = "", [], []
+        raw_resp = ""
+        val_res = {"valid": False}
+        final_prompt = base_prompt
+
         for attempt in range(max_retries):
             val_res = {"valid": False}
             raw_resp = self.llm.generate(final_prompt, llm_params)
@@ -342,31 +422,9 @@ class TheCortex:
                             "DIRECTIVE: The previous attempt was factually or structurally invalid. DISCARD IT. "
                             "Generate a NEW response from scratch. DO NOT apologize or mention the fix. "
                             "Output ONLY the raw in-character response and nothing else.")
-        if val_res["valid"] and phys_state.get("psi", 0.0) > 0.6 and allow_loot:
-            if self.svc.bio:
-                self.svc.bio.mito.adjust_atp(-1.0, "Anti-AI Substrate Filter")
-        telemetry_output = raw_resp if not val_res["valid"] else final_output
-        self._log_telemetry(final_prompt, telemetry_output, full_state, sim_result)
-        self.svc.symbiosis.monitor_host(time.time() - start_time, final_output, len(final_prompt))
-        self._update_history("SYSTEM_INIT" if is_boot_sequence else user_input, final_output)
-        ui_parts = [sim_result.get("ui", "")]
-        if sim_result.get("dream"):
-            dream_content = sim_result['dream']
-            if isinstance(dream_content, tuple):
-                dream_content = dream_content[0]
-            ui_parts.append(f"{Prisma.VIOLET}While you were gone: {dream_content}{Prisma.RST}")
-        ui_parts.append(f"{Prisma.WHT}{beautify_thoughts(final_output)}{Prisma.RST}")
-        if inv_logs:
-            ui_parts.append("\n".join(inv_logs))
-        sim_result["ui"] = "\n\n".join(filter(None, (str(p).strip() for p in ui_parts)))
-        logs_val = sim_result.get("logs", [])
-        if not isinstance(logs_val, list):
-            logs_val = []
-        sim_result["logs"] = logs_val + extracted_logs
-        sim_result["raw_content"] = final_output
-        self.ballast_active = False
+        return final_output, raw_resp, extracted_logs, inv_logs, val_res, final_prompt
 
-        # load bearing getattrs
+    def _flush_substrate_writes(self, extracted_logs: List[str], sim_result: Dict[str, Any]):
         eng_ref = getattr(self.svc.orchestrator, "eng", None)
         sub = getattr(eng_ref, "substrate", None)
         for log in extracted_logs:
@@ -390,60 +448,7 @@ class TheCortex:
                 sim_result["ui"] = str(sim_result.get("ui", "")) + "\n\n" + "\n".join(s_logs)
             if s_cost > 0:
                 self.svc.bio.mito.adjust_atp(-s_cost, "Substrate File Forging")
-                sim_result["ui"] = str(sim_result.get("ui",
-                    "")) + f"\n{Prisma.OCHRE}METABOLIC: File forging consumed {s_cost:.1f} ATP.{Prisma.RST}"
-        if random.random() < 0.15 and not is_system:
-            bureau = getattr(self.svc.village, "bureau", None)
-            suppressed = getattr(self.svc.village, "suppressed_agents", [])
-            if bureau and hasattr(bureau, "audit") and "BUREAU" not in suppressed:
-                try:
-                    phys = full_state.get("physics", {})
-                    safe_set(phys, "raw_text", final_output)
-                    audit = bureau.audit(phys, {"health": 100}, origin="SYSTEM")
-                    if audit and "ui" in audit:
-                        sim_result["ui"] = str(sim_result.get("ui", "")) + f"\n\n{audit['ui']}"
-                except Exception as e:
-                    if self.events:
-                        self.events.log(f"{Prisma.RED}[BUREAU ERROR] Audit bypassed: {e}{Prisma.RST}", "SYS")
-        if not is_system and self.svc.orchestrator and hasattr(self.svc.orchestrator, "eng"):
-            eng = self.svc.orchestrator.eng
-            dimension = float(phys_state.get("omega_r", 1.0))
-            repetition = float(phys_state.get("repetition", 0.0))
-            is_attractor = eng.navi_sad.detect_point_attractor() if hasattr(eng, "navi_sad") else False
-            is_valid = val_res.get("valid", False)
-            trigger_jester = False
-            tick_count = getattr(eng, "tick_count", 0)
-            if tick_count > 2:
-                if is_attractor or repetition >= 0.8:
-                    trigger_jester = True
-                elif dimension <= 1.05 and not (not is_valid and dimension == 1.0):
-                    trigger_jester = True
-            if trigger_jester:
-                msg = f"The Jester detected a Point Attractor (d_B={dimension:.2f})! We are trapped in False Cohesion! Burning ATP to inject chaos."
-                if self.events:
-                    self.events.log(f"{Prisma.VIOLET}{msg}{Prisma.RST}", "SYS")
-                if hasattr(eng, "drain_atp"):
-                    eng.drain_atp(5.0)
-                phys_state["entropy"] = 0.99
-                phys_state["narrative_drag"] = float(phys_state.get("narrative_drag", 0.0)) + 5.0
-                if hasattr(eng, "soul") and hasattr(eng.soul, "force_mutation"):
-                    eng.soul.force_mutation("JESTER")
-                mind_state = sim_result.get("mind", {})
-                if not isinstance(mind_state, dict):
-                    mind_state = {}
-                mind_state["lens"] = "JESTER"
-                sim_result["mind"] = mind_state
-                if "ui" in sim_result:
-                    sim_result["ui"] = str(sim_result.get("ui",
-                        "")) + f"\n\n{Prisma.VIOLET}[FALSE COHESION BREAK: The Jester has seized the architecture.]{Prisma.RST}"
-        updated_phys = sim_result.get("physics", {})
-        if isinstance(updated_phys, dict):
-            if isinstance(ctx.physics, dict):
-                ctx.physics.update(updated_phys)
-            else:
-                for k, v in updated_phys.items():
-                    setattr(ctx.physics, k, v)
-        return sim_result
+                sim_result["ui"] = str(sim_result.get("ui", "")) + f"\n{Prisma.OCHRE}METABOLIC: File forging consumed {s_cost:.1f} ATP.{Prisma.RST}"
 
     def _run_council_debate(self, user_input: str) -> Tuple[str, List[str]]:
         eng_ref = getattr(self.svc.orchestrator, "eng", None)
@@ -580,7 +585,6 @@ class TheCortex:
             tel = TelemetryService.get_instance()
             phys = state.get("physics", {})
             mandates_raw = sim_result.get("council_mandates", [])
-            if not isinstance(mandates_raw, list): mandates_raw = []
             clean_mandates = [Prisma.strip(m.get("log", m.get("type", "UNKNOWN"))) if isinstance(
                 m, dict) else str(m)
                               for m in mandates_raw]

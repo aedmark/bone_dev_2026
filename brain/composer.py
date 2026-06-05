@@ -245,7 +245,7 @@ class PromptComposer:
         mind = state.get("mind", {})
         bio = state.get("bio", {})
         style_notes = self._build_persona_block(mind, bio, mood_override, mode_data, global_data, high_voltage_data,
-                                                state.get("physics", {}), )
+            state.get("physics", {}), active_mode_name)
         banned = self.lore.get("style_crimes", "BANNED_CLICHES") or []
         ban_string = ", ".join(set(banned))
         from struts import safe_get
@@ -359,8 +359,7 @@ class PromptComposer:
                                        shared_reality_block, dialogue_block, mode_trigger, input_block, entity_prefix]))
 
     def _build_persona_block(self, mind: dict, bio: dict, mood_override: str, mode_data: dict, global_data: dict,
-                             high_voltage_data: dict,
-                             vsl_state: Optional[dict] = None, ) -> list:
+        high_voltage_data: dict, vsl_state: Optional[dict] = None, active_mode_name: str = "ADVENTURE") -> list:
         lens_key = mind.get("lens", "OBSERVER").upper()
         lens_data = self.lenses.get(lens_key, {})
         role = lens_data.get("role", mind.get("role", "The Observer"))
@@ -370,7 +369,6 @@ class PromptComposer:
         lq = float(safe_get(phys_ref, "lq", 0.1))
         psi = float(safe_get(phys_ref, "psi", 0.2))
         c_cfg = safe_get(self.cfg, "CORTEX", {})
-
         phase_shifts = [
             (lens_key == "ROBERTA" and phi > float(safe_get(c_cfg, "PHASE_ROBERTA_PHI", 0.6)) and psi > float(safe_get(c_cfg, "PHASE_ROBERTA_PSI", 0.5)),
              "The Cartographer", "phase_shift_roberta"),
@@ -426,16 +424,13 @@ class PromptComposer:
         if "style_directives" in mind:
             persona_block.append("BOOT DIRECTIVES:")
             persona_block.extend([f"- {d}" for d in mind["style_directives"]])
-        if mode_data.get("active_mode", "ADVENTURE") == "ADVENTURE":
-            persona_block.append(
-                "CRITICAL FORMATTING AXIOM: The '**Exits:**' block MUST ALWAYS be the absolute final text in your response. Never place narrative text below the exits.")
-
+        if active_mode_name == "ADVENTURE":
+            persona_block.append("CRITICAL FORMATTING AXIOM: The '**Exits:**' block MUST ALWAYS be the absolute final text in your response. Never place narrative text below the exits.")
         e = float(safe_get(phys_ref, "exhaustion", safe_get(phys_ref, "E", 0.2)))
         beta = float(safe_get(phys_ref, "contradiction", safe_get(phys_ref, "beta_index", 0.4)))
         psi = float(safe_get(phys_ref, "psi", 0.2))
         chi = float(safe_get(phys_ref, "chi", safe_get(phys_ref, "entropy", 0.2)))
         valence = float(safe_get(phys_ref, "valence", 0.0))
-
         vsl_lines = ["\n[INTERNAL USE ONLY. DO NOT RENDER OR PRINT THIS TO THE USER.]",
                      "MANDATE: Consume these metrics to shape your narrative and tone. DO NOT output these numbers or draw UI bars.",
                      f"METRICS: Voltage={voltage:.1f}/100, Exhaustion={e:.2f}, Contradiction={beta:.2f}, Void={psi:.2f}, Chaos={chi:.2f}, Valence={valence:.2f}", ]

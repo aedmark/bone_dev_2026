@@ -19,18 +19,6 @@ from presets import BoneConfig
 from struts import ux, ux_format, safe_get
 
 try:
-    from cd import (
-        solve_1d_picard,
-        viability_threshold_1d,
-        principal_eigenvalue_1d,
-        check_convergence,
-        solution_type,
-    )
-    CD_AVAILABLE = True
-except ImportError:
-    CD_AVAILABLE = False
-
-try:
     import ordvec
     ORDVEC_AVAILABLE = True
 except ImportError:
@@ -165,10 +153,10 @@ class EventBus:
             if callback not in subs:
                 self.subscribers[event_type] = subs + (callback,)
 
-    def unsubscribe(self, event_type, callback):
+    def unsubscribe(self, event_type: str, callback: Any):
         with self._lock:
-            subs = self.subscribers.get(event_type)
-            if subs and callback in subs:
+            subs = self.subscribers.get(event_type, ())
+            if callback in subs:
                 if new_subs := tuple(c for c in subs if c != callback):
                     self.subscribers[event_type] = new_subs
                 else:
@@ -204,11 +192,11 @@ class LoreManifest:
     _instance = None
     _lock = threading.Lock()
 
-    def __init__(self, data_dir=None, config_ref=None):
+    def __init__(self, data_dir: Optional[str] = None, config_ref: Any = None):
         self.cfg = config_ref or BoneConfig
         base_dir = os.path.dirname(os.path.abspath(__file__))
-        self.DATA_DIR = data_dir or os.path.join(base_dir, "lore")
-        self._cache = {}
+        self.DATA_DIR: str = data_dir or os.path.join(base_dir, "lore")
+        self._cache: Dict[str, Any] = {}
 
     @classmethod
     def get_instance(cls, config_ref=None):
@@ -218,7 +206,7 @@ class LoreManifest:
                     cls._instance = LoreManifest(config_ref=config_ref)
         return cls._instance
 
-    def get(self, category: str, sub_key: str = None) -> Any:
+    def get(self, category: str, sub_key: Optional[str] = None) -> Any:
         cat_key = category.lower()
         data = self._cache.get(cat_key)
         if data is None:
@@ -265,7 +253,7 @@ class LoreManifest:
         except Exception as e:
             print(f"{Prisma.RED}Failed to save '{cat_key}': {e}{Prisma.RST}")
 
-    def flush_cache(self, category: str = None):
+    def flush_cache(self, category: Optional[str] = None):
         with self._lock:
             if not category:
                 self._cache.clear()

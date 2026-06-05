@@ -285,6 +285,7 @@ class GeodesicOrchestrator:
                     snapshot["ui"] = f"\n{Prisma.MAG}While you were gone, the system dreamt of:\n{dream_summary}{Prisma.RST}\n{snapshot['ui']}"
                     self.dream_log.clear()
                 self.output_queue.put(snapshot)
+                self.last_interaction_time = time.time()
             except queue.Empty:
                 time_since_last = current_time - self.last_interaction_time
                 if self.engine_state == "WAKE":
@@ -301,13 +302,18 @@ class GeodesicOrchestrator:
                     self.last_rem_tick = current_time
                     self._process_rem_tick()
             except Exception as e:
-                self.eng.events.log(f"Daemon Engine Crash: {e}", "CRIT")
-                self.output_queue.put({
-                    "type": "CRASH",
-                    "ui": f"\n{Prisma.RED}CRITICAL DAEMON CRASH: {e}{Prisma.RST}",
-                    "logs": [str(e)],
-                    "metrics": getattr(self.eng, "get_metrics", lambda: {})()
-                })
+                self.eng.events.log(f"Daemon Engine Crash: {e}\n{traceback.format_exc()}", "CRIT")
+                if task_acquired:
+                    self.output_queue.put({
+                        "type": "CRASH",
+                        "ui": f"\n{Prisma.RED}CRITICAL DAEMON CRASH: {e}{Prisma.RST}",
+                        "logs": [str(e)],
+                        "metrics": getattr(self.eng, "get_metrics", lambda: {})()
+                    })
+                else:
+                    if hasattr(self.eng, "system_health"):
+                        self.eng.system_health.report_warning(f"Asynchronous REM Crash suppressed: {e}")
+                    self.engine_state = "DEGRADED"
                 time.sleep(1.0)
             finally:
                 if task_acquired:
@@ -549,7 +555,7 @@ class GeodesicOrchestrator:
                 try:
                     v_history = list(self.voltage_history)
                     has_active_tags = any(ctx.physics.vector.values()) if getattr(ctx.physics, "vector", None) else False
-                    if len(v_history) >= 10 and has_active_tags:
+                    if len(v_history) >= 10 and not has_active_tags:
                         recent_v = v_history[-10:]
                         v_diff = [recent_v[i] - recent_v[i - 1] for i in range(1, len(recent_v))]
                         pe = _native_permutation_entropy(v_diff, m=3, tau=1, epsilon=1e-5)

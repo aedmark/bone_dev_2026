@@ -85,7 +85,7 @@ class MetabolismPhase(SimulationPhase):
             self.eng.mind.dreamer.enter_rem_cycle(soul_snap, bio_state={"atp": atp})
             defrag_msg = self.eng.mind.dreamer.run_defragmentation(self.eng.mind.mem)
             if defrag_msg:
-                ctx.log(f"{Prisma.CYN}🧹 {defrag_msg}{Prisma.RST}")
+                ctx.log(f"{Prisma.CYN}{defrag_msg}{Prisma.RST}")
             reboot_val = float(safe_get(target_cfg, "MAX_ATP", 100.0)) * 0.33
             self.eng.set_atp(reboot_val)
             ctx.bio_result["atp"] = reboot_val

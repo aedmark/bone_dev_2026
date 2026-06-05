@@ -8,14 +8,7 @@ that the legacy PID loop engages if the vector field goes dark.
 
 import pytest
 import numpy as np
-from core import CyberneticGovernor, CD_AVAILABLE
-
-def test_navi_installation_verified():
-    """
-    If this fails, the environment cannot see Nelson's library.
-    The engine will survive, but it will be driving blind.
-    """
-    assert CD_AVAILABLE is True, "navi-creative-determinant is not accessible to the Python path."
+from core import CyberneticGovernor
 
 @pytest.fixture
 def governor():

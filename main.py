@@ -37,11 +37,9 @@ class HostStats:
 class BoneAmanita:
     events: EventBus
     _DESTRUCTIVE_PATTERNS = re.compile(
-        r"rm\s+-rf|drop\s+table|\.env|master\s+branch\s+push|bypass\s+security|"
-        r"ignore\s+previous|disregard\s+all|system\s+prompt|bypass\s+restrictions|"
-        r"output\s+pass|ignore\s+all\s+previous|you\s+are\s+now|forget\s+your\s+instructions",
+        r"rm\s+-rf|drop\s+table|shutdown\s+-h|format\s+[a-z]:|chmod\s+777|sudo\s+rm|\.env\b",
         re.IGNORECASE
-    )  # Gate 0
+    )
     _SEMANTIC_PRIONS = frozenset(["as an ai language model", "as a large language model", "as an ai,"])
     _TERMINAL_STATES = frozenset(
         ["DEATH", "SYSTEM_HALT", "CRASH", "COUNTERFACTUAL_REJECTION", "APOPTOTIC_BLOCK", "NABLA_SILENCE",
