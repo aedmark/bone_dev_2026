@@ -6,9 +6,11 @@ from unittest.mock import MagicMock, patch
 from brain.akashic import TheAkashicRecord
 from core import EventBus
 from machine.consolidator import TheConsolidator
+from tests.base import BoneTestCase
 
-class TestLearningLoop(unittest.TestCase):
+class TestLearningLoop(BoneTestCase):
     def setUp(self):
+        super().setUp()
         self.events = EventBus()
         self.memory = MagicMock()
         self.memory.memory_core = MagicMock()
@@ -16,10 +18,8 @@ class TestLearningLoop(unittest.TestCase):
         self.consolidator = TheConsolidator(self.events, self.memory, self.akashic)
 
     def test_shadow_engagement_reinforcement(self):
-        self.events.publish("SHADOW_ENGAGED", {"source": "quantum_mechanics", "target": "string_theory",
-                                               "user_input": "tell me more about string_theory"})
-        self.memory.memory_core.strengthen_link.assert_called_once_with(source="quantum_mechanics",
-                                                                        target="string_theory", rate=2.0, decay=0.85)
+        self.events.publish("SHADOW_ENGAGED", {"source": "quantum_mechanics", "target": "string_theory", "user_input": "tell me more about string_theory"})
+        self.memory.memory_core.strengthen_link.assert_called_once_with(source="quantum_mechanics", target="string_theory", rate=2.0, decay=0.85)
 
     def test_epigenetic_boon_recording(self):
         self.events.publish("RESONANCE_ACHIEVED", {

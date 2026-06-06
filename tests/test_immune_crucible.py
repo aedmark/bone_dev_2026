@@ -4,11 +4,13 @@ import unittest
 from unittest.mock import patch, MagicMock
 from main import BoneAmanita
 from constants import RealityLayer
+from tests.base import BoneTestCase
 
-class TestImmuneCrucible(unittest.TestCase):
+class TestImmuneCrucible(BoneTestCase):
     @patch("main.TheCortex")
     @patch("main.LoreManifest")
     def setUp(self, mock_lore, mock_cortex):
+        super().setUp()
         mock_lore.get_instance.return_value.get.return_value = {}
         sys_config = {"user_name": "CHAOS_MONKEY", "boot_mode": "ADVENTURE", "model": "test-model-flash"}
         self.engine = BoneAmanita(config=sys_config)

@@ -10,8 +10,8 @@ rm -f ./lore/akashic*
 rm -f ./legacy.json
 rm -f ./fractal_adventure.json
 rm -rf ./output
-rm -rf ./tests/tests_isolated_legacy_void.json
-rm -rf ./tests_isolated_legacy_void.json
+rm -rf ./tests_isolated_legacy*.json
+rm -rf ./test_output_full.log
 rm -rf ./tests/logs
 rm -rf ./tests/saves
 rm -rf ./tests/tests

@@ -74,7 +74,7 @@ class BoneAmanita:
         self.stabilizer = ZoneInertia(config_ref=self.config)
         self.telemetry = TelemetryService.get_instance(config_ref=self.config)
         self.events.telemetry = self.telemetry
-        self.system_health = SystemHealth()
+        self.system_health = SystemHealth(events=self.events)
         self.observer = TheObserver(config_ref=self.config)
         self.system_health.link_observer(self.observer)
         self.reality_stack = RealityStack()
@@ -528,6 +528,19 @@ class BoneAmanita:
         self.chronos.perform_shutdown()
 
 if __name__ == "__main__":
+    import sys
+    def global_exception_handler(exc_type, exc_value, exc_traceback):
+        if issubclass(exc_type, KeyboardInterrupt):
+            sys.__excepthook__(exc_type, exc_value, exc_traceback)
+            return
+        err_msg = "".join(traceback.format_exception(exc_type, exc_value, exc_traceback))
+        print(f"\n{Prisma.RED}FATAL UNHANDLED EXCEPTION:\n{err_msg}{Prisma.RST}")
+        if tel := TelemetryService.get_instance():
+            tel.record_event({"source": "SYS_CRASH", "level": "CRIT", "text": err_msg, "_type": "EVENT_LOG"})
+            tel.flush_to_disk()
+
+    sys.excepthook = global_exception_handler
+
     sys_config = ConfigWizard.load_or_create()
     engine = BoneAmanita(config=sys_config)
     with SessionGuardian(engine) as session:

@@ -196,6 +196,8 @@ class TestChaosEngineering(BoneTestCase):
         engine = TheParadoxEngine(events_ref=MagicMock())
         can_ignite = engine.evaluate_tension(beta=0.8, stamina=2.0)
         self.assertFalse(can_ignite, "[FAIL] Paradox Engine agreed to ignite despite starvation-level ATP.")
+        result = engine.ignite(recent_words=["structure"], current_stamina=2.0)
+        self.assertIsNone(result, "[FAIL] Paradox Engine ignited while starving.")
         self.assertFalse(engine.is_active, "[FAIL] Paradox Engine state flag is active while starving.")
 
     def test_cd_eigenvalue_thermal_lock(self):

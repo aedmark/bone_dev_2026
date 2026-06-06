@@ -7,8 +7,8 @@ import random
 import threading
 import time
 import traceback
-import threading
 import uuid
+import logging
 from collections import deque, Counter
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
@@ -25,6 +25,12 @@ try:
 except ImportError:
     ORDVEC_AVAILABLE = False
 
+logger = logging.getLogger("bone")
+if not logger.handlers:
+    _sh = logging.StreamHandler()
+    _sh.setFormatter(logging.Formatter("%(message)s"))
+    logger.addHandler(_sh)
+    logger.setLevel(logging.INFO)
 
 class JSONEncoder(json.JSONEncoder):
     """Leave this alone unless you know what you're doing. S.L.A.S.H. Secured."""
@@ -71,7 +77,7 @@ class DecisionCrystal:
 
     def __str__(self):
         e_val = self.leverage_metrics.get("E", 0.0)
-        return f"CRYSTAL [{self.decision_id}] {self.system_state} | "f"ARCHETYPE: {self.active_archetype} | E: {e_val:.2f}"
+        return f"CRYSTAL [{self.decision_id}] {self.system_state} | ARCHETYPE: {self.active_archetype} | E: {e_val:.2f}"
 
     def crystallize(self) -> str:
         data = vars(self).copy()
@@ -130,7 +136,6 @@ class CycleContext:
                  "timestamp": time.time(), })
 
     def to_dict(self) -> Dict[str, Any]:
-        """Fast serialization for the telemetry encoder, compatible with slots."""
         return {k: getattr(self, k) for k in self.__slots__ if hasattr(self, k)}
 
 @dataclass
@@ -202,8 +207,17 @@ class EventBus:
         self.publish(source, event)
         if self.telemetry:
             self.telemetry.record_event(event)
-        if level in ("CRIT", "ERROR"):
-            print(f"{Prisma.RED}[{source}] {message}{Prisma.RST}")
+
+        # S.L.A.S.H. Dynamic routing: Send to structural logging cleanly.
+        # Note: INFO is deliberately mapped to DEBUG so it doesn't spam the standard terminal,
+        # but remains perfectly catchable by external log aggregators.
+        log_lvl = {"CRIT": logging.CRITICAL, "ERROR": logging.ERROR, "WARN": logging.WARNING}.get(level, logging.DEBUG)
+
+        if log_lvl >= logging.WARNING:
+            color = Prisma.RED if log_lvl >= logging.ERROR else Prisma.YEL
+            logger.log(log_lvl, f"{color}[{source}] {message}{Prisma.RST}")
+        else:
+            logger.log(log_lvl, f"[{source}] {message}")
 
     def flush(self) -> List[Dict]:
         with self._lock:
@@ -251,7 +265,10 @@ class LoreManifest:
         except FileNotFoundError:
             return None
         except Exception as e:
-            print(f"{Prisma.RED}Parse error in '{category}': {e}. Returning empty structure without modifying disk.{Prisma.RST}")
+            err_msg = f"Parse error in '{category}': {e}. Returning empty structure without modifying disk."
+            logger.error(f"{Prisma.RED}{err_msg}{Prisma.RST}")
+            if tel := TelemetryService.get_instance():
+                tel.record_event({"source": "LORE", "level": "CRIT", "text": err_msg, "_type": "EVENT_LOG"})
             return None
 
     def inject(self, category: str, data: Any):
@@ -266,25 +283,28 @@ class LoreManifest:
     def save(self, category: str):
         cat_key = category.lower()
         if cat_key not in self._cache or self._cache[cat_key] is None:
-            print(f"{Prisma.YEL}Refusing to save null cache for '{cat_key}'.{Prisma.RST}")
+            logger.warning(f"{Prisma.YEL}Refusing to save null cache for '{cat_key}'.{Prisma.RST}")
             return
         filepath = os.path.join(self.DATA_DIR, f"{cat_key}.json")
         try:
             with open(filepath, "w", encoding="utf-8") as f:
                 json.dump(self._cache[cat_key], f, indent=2, cls=JSONEncoder)
-            print(f"{Prisma.GRY}Persisted '{cat_key}'.{Prisma.RST}")
+            logger.info(f"{Prisma.GRY}Persisted '{cat_key}'.{Prisma.RST}")
         except Exception as e:
-            print(f"{Prisma.RED}Failed to save '{cat_key}': {e}{Prisma.RST}")
+            err_msg = f"Failed to save '{cat_key}': {e}"
+            logger.critical(f"{Prisma.RED}{err_msg}{Prisma.RST}")
+            if tel := TelemetryService.get_instance():
+                tel.record_event({"source": "LORE", "level": "CRIT", "text": err_msg, "_type": "EVENT_LOG"})
 
     def flush_cache(self, category: Optional[str] = None):
         with self._lock:
             if not category:
                 self._cache.clear()
-                print(f"{Prisma.CYN}Flushed Lore cache.{Prisma.RST}")
+                logger.info(f"{Prisma.CYN}Flushed Lore cache.{Prisma.RST}")
                 return
             cat_key = category.lower()
             if self._cache.pop(cat_key, None) is not None:
-                print(f"{Prisma.CYN}Flushed '{cat_key}'.{Prisma.RST}")
+                logger.info(f"{Prisma.CYN}Flushed '{cat_key}'.{Prisma.RST}")
 
 class TheObserver:
     def __init__(self, config_ref=None):
@@ -361,6 +381,7 @@ class SystemHealth:
     warnings: List[str] = field(default_factory=list)
     hints: List[str] = field(default_factory=list)
     observer: Optional["TheObserver"] = None
+    events: Optional["EventBus"] = None
 
     @property
     def physics_online(self) -> bool:
@@ -387,6 +408,8 @@ class SystemHealth:
         self.errors.append(ErrorLog(component, msg, severity=severity))
         if self.observer:
             self.observer.log_error(component)
+        if self.events:
+            self.events.log(f"SystemHealth Failure [{component}]: {msg}", source="HEALTH", level=severity)
         if severity == "CRITICAL":
             self.components_online[component.lower()] = False
         return ux_format("core_strings", "health_offline", component=component, msg=msg)
@@ -398,7 +421,6 @@ class SystemHealth:
         self.hints.append(message)
 
     def reboot_component(self, component: str) -> bool:
-        """Safely restores a component from a CRITICAL offline state."""
         comp_key = component.lower()
         if not self.components_online.get(comp_key, True):
             self.components_online[comp_key] = True
@@ -444,7 +466,6 @@ class CyberneticGovernor:
     Apex N-Dimensional Topological Manifold Governor.
     Powered by natively bound AVX-512 Asymmetric Rank Transformations. Ordvec, Apache 2.0
     """
-    # S.L.A.S.H. Named Mathematical Constants
     PICARD_C = 10.0
     BETA_SCALE = 1.2
     BETA_STAR_UNIT = 0.5
@@ -466,7 +487,6 @@ class CyberneticGovernor:
         self.cached_nodes = []
 
     def _sync_ordvec_indices(self, memory_core: Any):
-        """Compiles the MemoryCore graph into AVX-accelerated C-structs."""
         if not ORDVEC_AVAILABLE or not memory_core or not hasattr(memory_core, "graph"):
             return False
         nodes = list(memory_core.graph.keys())
@@ -489,7 +509,6 @@ class CyberneticGovernor:
         return True
 
     def _solve_nd_picard(self, L: np.ndarray, a: float, beta_b: np.ndarray, c=10.0, max_iter=100, tol=1e-4) -> Tuple[np.ndarray, bool]:
-        """Native N-Dimensional Graph Picard Iteration. Mike Singleton"""
         N = L.shape[0]
         b_mean = np.mean(beta_b)
         phi_init = np.sqrt(max(0.01, a) / (b_mean + 1e-8)) if a > 0 else 0.1
@@ -520,7 +539,6 @@ class CyberneticGovernor:
 
     def regulate(self, physics, dt, goal_vector=None, endocrine_state=None, memory_core=None, user_text="") -> Tuple[
         float, float]:
-        """S.L.A.S.H. Optimized API: Routes to Graph Regulation, gracefully degrading to PID on failure."""
         if not memory_core or not user_text:
             return self._pid_fallback(physics, dt, endocrine_state)
         try:
@@ -529,11 +547,9 @@ class CyberneticGovernor:
             return self._pid_fallback(physics, dt, endocrine_state)
 
     def _graph_regulation(self, physics, dt, memory_core, user_text, endocrine_state) -> Tuple[float, float]:
-        """Contiguous mathematical block for Laplacian field construction and Picard Iteration."""
         from spores.spore_utils import _word_to_vector
         import numpy as np
 
-        # --- 1. Dynamic State Extraction ---
         voltage = float(
             physics.get('voltage', 30.0) if isinstance(physics, dict) else getattr(physics, 'voltage', 30.0))
         drag = float(
@@ -545,7 +561,6 @@ class CyberneticGovernor:
         v_range = v_max - v_base
         a_scalar = float(np.clip((voltage - v_base) / v_range, 0.0, 1.0) if v_range > 0 else 0.0)
 
-        # --- 2. Vectorization & Subgraph Retrieval ---
         if hasattr(self, '_sync_ordvec_indices'):
             self._sync_ordvec_indices(memory_core)
         u_vec = _word_to_vector(user_text)
@@ -558,7 +573,6 @@ class CyberneticGovernor:
         if len(subset_nodes) < 3:
             raise ValueError("Insufficient subgraph density for Laplacian bounds.")
 
-        # --- 3. Laplacian Construction ---
         N_dim = len(subset_nodes)
         node_indices = {str(node): i for i, node in enumerate(subset_nodes)}
         W = np.zeros((N_dim, N_dim))
@@ -572,12 +586,10 @@ class CyberneticGovernor:
         b_field = np.maximum(0.01, scores)
         beta_b = self.BETA_SCALE * self.BETA_STAR_UNIT * b_field * (1.0 + drag)
 
-        # --- 4. Picard Iteration ---
         Phi, converged = self._solve_nd_picard(L_matrix, a_scalar, beta_b, c=self.PICARD_C, max_iter=self.PICARD_MAX_ITER, tol=self.PICARD_TOL)
         if not converged:
             raise ValueError("Picard algorithm failed to converge.")
 
-        # --- 5. Delta Resolution ---
         b_mean = float(np.mean(beta_b))
         phi_norm_sq = np.dot(Phi, Phi) + 1e-8
         self.last_lam1 = float((Phi.T @ L_matrix @ Phi) / phi_norm_sq) - b_mean
@@ -608,7 +620,6 @@ class CyberneticGovernor:
         return (active_tv - current_v) * adjusted_dt, (active_td - current_d) * adjusted_dt
 
     def recalibrate(self, target_voltage: float, target_drag: float):
-        """Dynamically adjust the legacy PID setpoints."""
         self.target_v = float(target_voltage)
         self.target_d = float(target_drag)
 
@@ -666,7 +677,7 @@ class TelemetryService:
             self._executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="BoneTelemetry")
         except OSError as e:
             msg = ux("core_strings", "tel_disk_denied") or "Disk access denied for Telemetry."
-            print(f"{Prisma.OCHRE}[GRACEFUL DEGRADATION] {msg} - {e}. Telemetry offline.{Prisma.RST}")
+            logger.warning(f"{Prisma.OCHRE}[GRACEFUL DEGRADATION] {msg} - {e}. Telemetry offline.{Prisma.RST}")
             self.disabled = True
             self.current_trace_file = None
             self._executor = None
@@ -678,7 +689,7 @@ class TelemetryService:
             payload = {**event_dict, "kernel_hash": self.kernel_hash}
             self._buffer_line(json.dumps(payload, cls=JSONEncoder))
         except (TypeError, ValueError) as e:
-            print(f"{Prisma.YEL}Oops! We dropped an un-serializable event: {e}{Prisma.RST}")
+            logger.warning(f"{Prisma.YEL}Oops! We dropped an un-serializable event: {e}{Prisma.RST}")
 
     @classmethod
     def get_instance(cls, config_ref=None):
@@ -732,7 +743,7 @@ class TelemetryService:
             with open(filepath, "a", encoding="utf-8") as f:
                 f.write("\n".join(lines) + "\n")
         except IOError as e:
-            print(f"{Prisma.RED}[TELEMETRY DECAY] Background write failed: {e}{Prisma.RST}")
+            logger.error(f"{Prisma.RED}[TELEMETRY DECAY] Background write failed: {e}{Prisma.RST}")
 
     def shutdown(self):
         self.flush_to_disk()
@@ -740,14 +751,12 @@ class TelemetryService:
             self._executor.shutdown(wait=True)
 
     def _tail_file(self, filepath: str, n: int = 20) -> List[str]:
-        """Read last n lines without loading the full file."""
         try:
             with open(filepath, "rb") as f:
-                f.seek(0, 2)  # seek to end
+                f.seek(0, 2)
                 file_size = f.tell()
                 if file_size == 0:
                     return []
-                # Read backwards in chunks
                 chunk_size = 8192
                 pos = max(0, file_size - chunk_size)
                 lines_found = []

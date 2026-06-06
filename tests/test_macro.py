@@ -6,9 +6,16 @@ from unittest.mock import patch
 
 from main import BoneAmanita
 from presets import BoneConfig
+from tests.base import BoneTestCase
 
-class MacroLifecycleTests(unittest.TestCase):
+class MacroLifecycleTests(BoneTestCase):
     def setUp(self):
+        super().setUp()
+
+        # [SLASH] We must temporarily un-mock ChronosKeeper for this specific test suite
+        # so we can test actual file writing, overriding the global mock from BoneTestCase.
+        self.chronos_patcher.stop()
+
         self.config = {
             "boot_mode": "ADVENTURE",
             "config": BoneConfig,
@@ -19,6 +26,7 @@ class MacroLifecycleTests(unittest.TestCase):
         self.test_lore_dir = "tests/temp_lore"
         os.makedirs(self.test_save_dir, exist_ok=True)
         os.makedirs(self.test_lore_dir, exist_ok=True)
+
         if hasattr(self.engine, "akashic"):
             self.engine.akashic.save_dir = self.test_save_dir
             self.engine.akashic.data_dir = self.test_lore_dir
@@ -31,6 +39,11 @@ class MacroLifecycleTests(unittest.TestCase):
                 for f in os.listdir(d):
                     os.remove(os.path.join(d, f))
                 os.rmdir(d)
+
+        # [SLASH] Restart the mock before calling super() so the base class
+        # tearDown can cleanly stop it without throwing a RuntimeError.
+        self.chronos_patcher.start()
+        super().tearDown()
 
     def test_chronos_graceful_shutdown_and_hydration(self):
         self.engine.village.bureau.stamp_count = 99

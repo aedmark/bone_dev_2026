@@ -4,9 +4,11 @@ import unittest
 from unittest.mock import MagicMock
 from brain.composer import LLMInterface, ResponseValidator, PromptComposer
 from constants import Prisma
+from tests.base import BoneTestCase
 
-class TestComposerLogging(unittest.TestCase):
+class TestComposerLogging(BoneTestCase):
     def setUp(self):
+        super().setUp()
         # Isolate the EventBus
         self.mock_events = MagicMock()
         self.llm = LLMInterface(events_ref=self.mock_events, provider="mock")
@@ -48,8 +50,9 @@ class TestComposerLogging(unittest.TestCase):
             "DEBUG"
         )
 
-class TestResponseValidator(unittest.TestCase):
+class TestResponseValidator(BoneTestCase):
     def setUp(self):
+        super().setUp()
         self.mock_lore = MagicMock()
         self.mock_lore.get.return_value = {}
         self.validator = ResponseValidator(lore_ref=self.mock_lore)
@@ -77,8 +80,9 @@ class TestResponseValidator(unittest.TestCase):
         self.assertNotIn("CRITICAL: You failed to include the <think>...</think> block", result.get("feedback_instruction", ""))
 
 
-class TestPromptComposer(unittest.TestCase):
+class TestPromptComposer(BoneTestCase):
     def setUp(self):
+        super().setUp()
         self.mock_lore = MagicMock()
         self.mock_lore.get.return_value = {}
         self.composer = PromptComposer(lore_ref=self.mock_lore)

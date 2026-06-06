@@ -6,20 +6,23 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 from spores.memory import SubconsciousStrata, MemoryCore
+from tests.base import BoneTestCase
 
 try:
     import numpy as np
 except ImportError:
     np = None
 
-class TestSubconsciousStrata(unittest.TestCase):
+class TestSubconsciousStrata(BoneTestCase):
     def setUp(self):
+        super().setUp()
         self.temp_dir = tempfile.TemporaryDirectory()
         self.filepath = os.path.join(self.temp_dir.name, "subconscious.jsonl")
         self.strata = SubconsciousStrata(filename=self.filepath)
 
     def tearDown(self):
         self.temp_dir.cleanup()
+        super().tearDown()
 
     def test_initialization(self):
         self.assertEqual(len(self.strata.index), 0)
@@ -70,8 +73,9 @@ class TestSubconsciousStrata(unittest.TestCase):
         finally:
             spores.memory.np = original_np
 
-class TestMemoryCore(unittest.TestCase):
+class TestMemoryCore(BoneTestCase):
     def setUp(self):
+        super().setUp()
         self.mock_events = MagicMock()
         self.mock_subconscious = MagicMock()
         self.mock_lexicon = MagicMock()
