@@ -64,14 +64,11 @@ class MacroLifecycleTests(unittest.TestCase):
 
     def test_autophagy_structural_survival(self):
         mem_core = self.engine.embryo.mind.mem.memory_core
-        # Isolate the environment so Genesis nodes don't intercept the autophagy trigger
         mem_core.graph.clear()
-
         mem_core.graph["LoadBearingWall"] = {"last_tick": 5, "edges": {"a": 10, "b": 10, "c": 10, "d": 20}}
         mem_core.graph["useless_typo"] = {"last_tick": 104, "edges": {}}
         target, _ = mem_core.cannibalize(current_tick=105)
-        self.assertEqual(target, "useless_typo",
-                         "FATAL: Autophagy ate the load-bearing wall instead of the useless recency node!")
+        self.assertEqual(target, "useless_typo", "FATAL: Autophagy ate the load-bearing wall instead of the useless recency node!")
 
 if __name__ == "__main__":
     unittest.main()

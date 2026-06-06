@@ -17,17 +17,11 @@ except ImportError:
     from tests.base import BaseTest as BoneTestCase
 
 class MachineContractTests(BoneTestCase):
-    """
-    Stress-testing the newly brutalized Machine components.
-    We are validating that they strictly accept and process native Python dictionaries
-    without relying on paranoid object-unpacking wrappers.
-    """
     def setUp(self):
         super().setUp()
         self.config = BoneConfig
 
     def test_theremin_dict_contract(self):
-        """The Theremin must cleanly process a raw dictionary."""
         theremin = TheTheremin(config_ref=self.config)
         raw_physics = {"counts": {"heavy": 2, "abstract": 5, "thermal": 1}, "voltage": 12.0, "turbulence": 0.7,
                        "repetition": 0.2, "truth_ratio": 0.8, "narrative_drag": 5.0}
@@ -36,7 +30,6 @@ class MachineContractTests(BoneTestCase):
         self.assertIsInstance(resin, float)
 
     def test_forge_dict_contract(self):
-        """The Forge must correctly parse dictionary counts for alloys."""
         forge = TheForge(lex_ref=MagicMock())
         raw_physics = {"counts": {"heavy": 1, "kinetic": 5},
                        "clean_words": ["metal", "spark", "strike", "heat", "iron"], "voltage": 100.0}
@@ -45,7 +38,6 @@ class MachineContractTests(BoneTestCase):
         self.assertEqual(alloy, "SAFETY_SCISSORS")
 
     def test_crucible_dict_contract(self):
-        """The Crucible must read and write directly to the dictionary."""
         crucible = TheCrucible(config_ref=self.config)
         raw_physics = {"narrative_drag": 2.0, "voltage": 19.0, "kappa": 0.8, "system_surge_event": False}
         state, metric, msg = crucible.audit_fire(raw_physics)
@@ -53,7 +45,6 @@ class MachineContractTests(BoneTestCase):
         self.assertIn("narrative_drag", raw_physics)
 
     def test_panic_room_dict_preservation(self):
-        """Panic Room must safely extract dictionary data without object overhead."""
         previous_state = {"chem": {"SER": 0.85, "DOP": 0.5}}
         safe_bio = PanicRoom.get_safe_bio(previous_state)
         self.assertEqual(safe_bio["chem"]["SER"], 0.85)

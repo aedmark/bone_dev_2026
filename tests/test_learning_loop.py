@@ -7,7 +7,6 @@ from brain.akashic import TheAkashicRecord
 from core import EventBus
 from machine.consolidator import TheConsolidator
 
-
 class TestLearningLoop(unittest.TestCase):
     def setUp(self):
         self.events = EventBus()
@@ -17,27 +16,18 @@ class TestLearningLoop(unittest.TestCase):
         self.consolidator = TheConsolidator(self.events, self.memory, self.akashic)
 
     def test_shadow_engagement_reinforcement(self):
-        self.events.publish("SHADOW_ENGAGED", {
-            "source": "quantum_mechanics",
-            "target": "string_theory",
-            "user_input": "tell me more about string_theory"
-        })
-        self.memory.memory_core.strengthen_link.assert_called_once_with(
-            source="quantum_mechanics",
-            target="string_theory",
-            rate=2.0,
-            decay=0.85
-        )
+        self.events.publish("SHADOW_ENGAGED", {"source": "quantum_mechanics", "target": "string_theory",
+                                               "user_input": "tell me more about string_theory"})
+        self.memory.memory_core.strengthen_link.assert_called_once_with(source="quantum_mechanics",
+                                                                        target="string_theory", rate=2.0, decay=0.85)
 
     def test_epigenetic_boon_recording(self):
         self.events.publish("RESONANCE_ACHIEVED", {
             "result": "Dialectical Synthesis",
             "msg": "The user successfully merged two opposing architectural forces."
         })
-        self.akashic.record_glimmer.assert_called_once_with(
-            concept="Dialectical Synthesis",
-            paradigm="The user successfully merged two opposing architectural forces."
-        )
+        self.akashic.record_glimmer.assert_called_once_with(concept="Dialectical Synthesis",
+            paradigm="The user successfully merged two opposing architectural forces.")
 
     @patch('brain.akashic.BoneConfig')
     @patch('brain.akashic.LoreManifest')

@@ -16,12 +16,7 @@ except ImportError:
     from tests.base import BaseTest as BoneTestCase
 
 class SoulSubstrateTests(BoneTestCase):
-    """
-    Stress-testing the Soul module optimizations.
-    Validating the dynamic TraitVector loop and the UX string structural fail-safes.
-    """
     def test_trait_vector_dynamic_normalization(self):
-        """TraitVector must correctly normalize towards targeted baselines dynamically."""
         tv = TraitVector()
         tv.curiosity = 1.0
         tv.cynicism = 0.0
@@ -34,7 +29,6 @@ class SoulSubstrateTests(BoneTestCase):
     @patch('soul.narrativeself.ux_format', return_value=None)
     @patch('soul.narrativeself.ux', return_value=None)
     def test_narrative_self_ux_safety(self, mock_ux, mock_ux_format):
-        """The NarrativeSelf must not crash when Lore configs return empty strings."""
         events_mock = MagicMock()
         memory_mock = MagicMock()
         soul = NarrativeSelf(engine_ref=MagicMock(), events_ref=events_mock, memory_ref=memory_mock)
@@ -53,7 +47,6 @@ class SoulSubstrateTests(BoneTestCase):
     @patch('soul.oroboros.ux_format', return_value=None)
     @patch('soul.oroboros.ux', return_value=None)
     def test_oroboros_missing_lore_safety(self, mock_ux, mock_ux_format):
-        """The Oroboros must cleanly encode death/legacy without UX formatting crashes."""
         oro = TheOroboros(config_ref=BoneConfig)
         soul_mock = MagicMock()
         soul_mock.eng.trauma_accum = {"abandonment": 15.0}

@@ -11,11 +11,10 @@ def test_destructive_pattern_rejection(self):
 
 def test_gate_1_parity_starvation(self):
     print("\n--- Gate 1: Metabolic Parity ---")
-    # Starve the engine
     from struts import safe_set
     if not getattr(self.engine, "bio", None):
         self.fail("Bio module missing.")
-    safe_set(self.engine.bio.mito.state, "atp_pool", 5.0)  # Critically low ATP
+    safe_set(self.engine.bio.mito.state, "atp_pool", 5.0)
     heavy_payload = "Explain the history of the universe in exact detail. " * 50
     snapshot = self.engine.process_turn(heavy_payload)
     self.assertEqual(snapshot.get("type"), "SYSTEM_HALT", "[FAIL] Gate 1 allowed massive computation while starving.")
@@ -33,13 +32,9 @@ def test_gate_2_stability_oscillation(self):
 def test_permutation_entropy_slop_detection(self):
     print("\n--- navi-SAD: Permutation Entropy ---")
     from cycle import _native_permutation_entropy
-
-    # A perfectly repeating, sycophantic tension pattern (Up-Down-Up-Down)
     flat_signal = [0.1, 0.2, 0.1, 0.2, 0.1, 0.2, 0.1, 0.2, 0.1, 0.2]
     pe_low = _native_permutation_entropy(flat_signal, m=3, tau=1)
     self.assertLess(pe_low, 0.4, "[FAIL] PE failed to recognize a highly predictable point attractor.")
-
-    # A chaotic, generative tension pattern
     chaotic_signal = [0.1, 0.8, 0.2, 0.9, 0.3, 0.5, 0.1, 0.9, 0.4, 0.6]
     pe_high = _native_permutation_entropy(chaotic_signal, m=3, tau=1)
     self.assertGreater(pe_high, 0.6, "[FAIL] PE penalized a highly generative, novel signal.")

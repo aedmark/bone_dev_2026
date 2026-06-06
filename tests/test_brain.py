@@ -17,17 +17,11 @@ except ImportError:
     from tests.base import BaseTest as BoneTestCase
 
 class BrainSubstrateTests(BoneTestCase):
-    """
-    Stress-testing the newly brutalized Brain components.
-    We are validating the structural integrity of the initialization caches,
-    single-pass array comprehensions, and native dictionary bindings.
-    """
     def setUp(self):
         super().setUp()
         self.config = BoneConfig
 
     def test_modulator_cached_bounds(self):
-        """NeurotransmitterModulator must successfully initialize and utilize self.b cache."""
         bio_mock = MagicMock()
         bio_mock.endo.get_state.return_value = {"DOP": 0.5, "COR": 0.2, "ADR": 0.1, "SER": 0.4}
         mod = NeurotransmitterModulator(bio_ref=bio_mock, config_ref=self.config)
@@ -39,7 +33,6 @@ class BrainSubstrateTests(BoneTestCase):
         self.assertIsInstance(params["max_tokens"], int)
 
     def test_consolidator_single_pass_unpacking(self):
-        """MemoryConsolidator must safely unpack vectors and payloads in a single C-loop."""
         hippo_mock = MagicMock()
         hippo_mock.extract_for_consolidation.return_value = [
             ("node_1", {"vector": [0.1, 0.2], "meta": {"concept": "A"}}),
@@ -56,7 +49,6 @@ class BrainSubstrateTests(BoneTestCase):
         self.assertEqual(payloads[1]["concept"], "B", "[FAIL] Payload array misalignment.")
 
     def test_akashic_native_dict_handling(self):
-        """The Akashic Record must safely extract parameters using native .get() over raw dicts."""
         akashic = TheAkashicRecord(lore_manifest=MagicMock(), config_ref=self.config)
         raw_physics = {"exhaustion": 0.8, "beta_index": 0.9, "energy": {"voltage": 100.0}}
         try:
@@ -67,7 +59,6 @@ class BrainSubstrateTests(BoneTestCase):
         self.assertEqual(akashic.scar_map[-1]["coordinates"]["E"], 0.8)
 
     def test_cortex_dictionary_coercion(self):
-        """The Cortex must natively digest loosely typed physics without paranoid wrappers."""
         services = CortexServices(events=MagicMock(), lore=MagicMock(), lexicon=MagicMock(), inventory=MagicMock(), consultant=MagicMock(), orchestrator=MagicMock(),
             symbiosis=MagicMock(), mind_memory=MagicMock(), bio=MagicMock(),  config_ref=self.config)
         cortex = TheCortex(services)

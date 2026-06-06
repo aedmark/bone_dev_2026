@@ -4,7 +4,6 @@ from main import BoneAmanita
 from physics.models import PhysicsPacket
 from tests.base import BoneTestCase
 
-
 class TestChaosEngineering(BoneTestCase):
     def setUp(self):
         super().setUp()
@@ -64,7 +63,6 @@ class TestChaosEngineering(BoneTestCase):
         self.assertEqual(self.engine.orchestrator.engine_state, "REM",
                          "Engine failed to transition to REM state.")
 
-        # Second idle shouldn't crash or alter the state negatively
         snapshot2 = self.engine.orchestrator.run_turn("/idle")
         self.assertEqual(snapshot2.get("type"), "SNAPSHOT")
         self.assertEqual(self.engine.orchestrator.engine_state, "REM",
@@ -120,23 +118,14 @@ class TestChaosEngineering(BoneTestCase):
 
     def test_terminal_topology_collapse(self):
         from unittest.mock import MagicMock
-        self.engine.tick_count = 3  # Triggers the topology check
+        self.engine.tick_count = 3
         self.engine.mind.mem.hippocampus = MagicMock()
-
-        # Feed it a graph large enough to trigger the check (> 5 nodes)
         mock_graph = MagicMock()
         mock_graph.adj = {str(i): [str(i+1)] for i in range(10)}
         self.engine.mind.mem.hippocampus.get_graph.return_value = mock_graph
-
-        # Force the clustering math to fail against the strict dual-baseline
-        # sequence: [actual_cluster, null_cluster_rewire, null_cluster_config]
         self.engine.mind.mem.calculate_clustering = MagicMock(side_effect=[0.1, 0.9, 0.9])
-
-        # Execute the cycle, triggering the bg thread
         self.engine.orchestrator._verify_semantic_topology(MagicMock())
-        self.engine.orchestrator._async_pool.shutdown(wait=True)  # Force thread to finish execution
-
-        # Verify the engine threw the terminal BIO kill switch
+        self.engine.orchestrator._async_pool.shutdown(wait=True)
         self.assertEqual(self.engine.health, 0.0, "[FAIL] Engine failed to execute terminal shutdown upon topology collapse.")
 
     def test_telemetry_serialization_survival(self):
@@ -182,7 +171,7 @@ class TestChaosEngineering(BoneTestCase):
             self.fail(f"[CRITICAL] trigger_death failed gracefully with missing Cortex: {e}")
 
     def test_massive_context_rem_indexing(self):
-        massive_payload = "ALL WORK AND NO PLAY MAKES JACK A DULL BOY. " * 500  # ~22,000 chars
+        massive_payload = "ALL WORK AND NO PLAY MAKES JACK A DULL BOY. " * 500
         snapshot = self.engine.process_turn(massive_payload)
         self.assertEqual(snapshot.get("type"), "SILENT_INGEST",  "[FAIL] Massive payload bypassed the Dream Queue intercept.")
         dreamer = getattr(self.engine.mind, "dreamer", None)
