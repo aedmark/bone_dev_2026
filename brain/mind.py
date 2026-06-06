@@ -203,11 +203,27 @@ class DreamEngine:
     def enter_rem_cycle(self, soul_snapshot: Dict[str, Any], bio_state: Dict[str, Any]) -> Tuple[str, Dict[str, float]]:
         chem = safe_get(bio_state, "chem", {})
         cortisol = float(safe_get(chem, "cortisol", 0.0))
-        mito_data = safe_get(bio_state, "mito", {})
-        available_atp = float(safe_get(mito_data, "atp", 0.0))
+        available_atp = float(safe_get(safe_get(bio_state, "mito", {}), "atp", 0.0))
+        shift = {"cortisol": -0.3, "dopamine": 0.1} if cortisol <= 0.6 else {"cortisol": 0.1}
+
+        # 1. Biological/Memory Consolidation Pipeline
+        dream_text, consolidated_shift = self._run_biological_rem(soul_snapshot, bio_state, available_atp)
+        shift.update(consolidated_shift)
+
+        # 2. Narrative/Hallucination Pipeline
+        if not dream_text:
+            dream_text, narrative_shift = self._generate_narrative_dream(soul_snapshot, chem, cortisol)
+            shift.update(narrative_shift)
+
+        if (shift.pop("is_deep_rem", False)) or (random.random() < 0.10 and cortisol <= 0.6):
+            shift["glimmers"] = 1
+        return dream_text, shift
+
+    def _run_biological_rem(self, soul_snapshot: Dict[str, Any], bio_state: Dict[str, Any], available_atp: float) -> Tuple[Optional[str], Dict[str, Any]]:
+        shift = {}
         dream_text = None
         is_deep_rem = False
-        shift = ({"cortisol": -0.3, "dopamine": 0.1} if cortisol <= 0.6 else {"cortisol": 0.1})
+
         if available_atp < 5.0 and random.random() < 0.50:
             death_hallucination, _ = self.hallucinate({"chi": 0.99, "voltage": 100.0}, trauma_level=1.0)
             shift["atp_drain"] = available_atp + 10.0
@@ -216,6 +232,7 @@ class DreamEngine:
             if self.events:
                 self.events.log(f"{Prisma.RED}TERMINAL SLEEP FAILURE: {fatal_msg}{Prisma.RST}", "CRIT")
             return fatal_msg, shift
+
         if self.context_queue:
             raw_payloads = self.context_queue
             self.context_queue = []
@@ -234,6 +251,7 @@ class DreamEngine:
             if self.events:
                 self.events.log(f"{Prisma.MAG}[REM CYCLE]: {dream_text}{Prisma.RST}", "SYS")
             return dream_text, shift
+
         consolidator = MemoryConsolidator(self.mem.hippocampus, self.mem.cortex, self.events)
         nodes_moved, atp_cost = consolidator.trigger_rem_consolidation(available_atp)
         if nodes_moved > 0:
@@ -245,6 +263,7 @@ class DreamEngine:
                 if self.events:
                     self.events.log(
                         f"{Prisma.MAG}[REM CYCLE]: Synaptic Consolidation complete. {nodes_moved} nodes written to deep index. (-{atp_cost:.1f} ATP){Prisma.RST}", "SYS", )
+
         if self.dspy_critic and self.dspy_critic.enabled:
             if self.trauma_buffer:
                 traumas = list(self.trauma_buffer)
@@ -279,6 +298,15 @@ class DreamEngine:
                             print(err_msg)
                     dream_text = f"The system processes conversational trauma in its sleep. It permanently mutates its own source code, forming a scar-tissue axiom: '{new_axiom}'"
                     is_deep_rem = True
+
+        shift["is_deep_rem"] = is_deep_rem
+        return dream_text, shift
+
+    def _generate_narrative_dream(self, soul_snapshot: Dict[str, Any], chem: Dict[str, float], cortisol: float) -> Tuple[Optional[str], Dict[str, Any]]:
+        shift = {}
+        dream_text = None
+        is_deep_rem = False
+
         if self.llm:
             index = list(self.mem.subconscious.index)
             if self.eng and getattr(self.eng, "akashic", None): # This getattr is load bearing
@@ -304,6 +332,7 @@ class DreamEngine:
             dream_type = ("NIGHTMARES" if cortisol > 0.6 else ("SURREAL" if chem.get("dopamine", 0) > 0.6 else "CONSTRUCTIVE"))
             residue = soul_snapshot.get("obsession", {}).get("title") or "The Void"
             dream_text = self._weave_dream(residue, dream_type, "SURREAL")
+
         if dream_text:
             try:
                 clean_seed = (re.sub(r"[^a-z]", "", soul_snapshot.get("obsession", {}).get(
@@ -313,8 +342,8 @@ class DreamEngine:
                 })
             except Exception:
                 pass
-        if is_deep_rem or (random.random() < 0.10 and cortisol <= 0.6):
-            shift["glimmers"] = 1
+
+        shift["is_deep_rem"] = is_deep_rem
         return dream_text, shift
 
     def _weave_dream(self, residue: str, dream_type: str, subtype: str) -> str:

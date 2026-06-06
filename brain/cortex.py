@@ -5,7 +5,7 @@ import re
 import time
 from collections import deque
 from dataclasses import dataclass
-from typing import Dict, Any, List, Tuple
+from typing import Dict, Any, List, Tuple, Optional
 from archetypes.symbiosis import SymbiosisManager
 from brain.composer import LLMInterface, PromptComposer, ResponseValidator
 from brain.mind import NeurotransmitterModulator, DreamEngine
@@ -106,18 +106,16 @@ class TheCortex:
     def process_context(self, ctx: Any) -> Dict[str, Any]:
         user_input = ctx.input_text
         is_system = getattr(ctx, "is_system_event", False)
+        mode_settings = BonePresets.MODES.get(self.active_mode, BonePresets.MODES["ADVENTURE"])
+        allow_loot = mode_settings.get("allow_loot", True)
         if self.navigator:
             target_randomness = {"CREATIVE": 0.7, "ADVENTURE": 0.3, "CONVERSATION": 0.3}.get(self.active_mode, 0.0)
             dial_status = self.navigator.set_randomness(target_randomness)
             if self.events and dial_status["new_value"] > 0:
                 self.events.log(f"Serendipity Engine active: {dial_status['mode']}", "CORTEX")
-        mode_settings = BonePresets.MODES.get(self.active_mode, BonePresets.MODES["ADVENTURE"])
-        allow_loot = mode_settings.get("allow_loot", True)
         if self.consultant and "/vsl" in user_input.lower():
             return self._handle_vsl_command(user_input)
         is_boot_sequence = "SYSTEM_BOOT" in user_input
-        c_cfg = safe_get(self.cfg, "CORTEX", {})
-        context_limit = int(safe_get(c_cfg, "MAX_INPUT_CHARS", 15000))
         if isinstance(ctx.physics, dict):
             phys_proxy = ctx.physics
         elif ctx.physics is not None:
@@ -127,31 +125,17 @@ class TheCortex:
                 phys_proxy = vars(ctx.physics).copy()
         else:
             phys_proxy = {}
-        sim_result = {"physics": phys_proxy, "bio": getattr(ctx, "bio_result", {}),
-                      "mind": getattr(ctx, "mind_state", {}), "world": getattr(ctx, "world_state", {}),
-                      "ui": getattr(ctx, "bureau_ui", ""), "logs": getattr(ctx, "logs", []),
-                      "council_mandates": getattr(ctx, "council_mandates", []),
-                      "dream": getattr(ctx, "last_dream", None), "mutated_input": user_input,
-                      "trace_id": getattr(ctx, "trace_id", "UNKNOWN"), "type": getattr(ctx, "type", "SNAPSHOT")}
-
-        if len(user_input) > context_limit and not is_system and not is_boot_sequence:
-            safe_content = user_input.replace("\n", "|||NEWLINE|||")
-            self.dreamer.context_queue.append(safe_content)
-            s_cost = 5.0
-            if self.svc.bio:
-                self.svc.bio.mito.adjust_atp(-s_cost, "Massive Context Queueing")
-            msg = f"{Prisma.CYN}Massive context drop detected. Routed to REM cycle for deep-indexing. Dialogue buffer bypassed. (-{s_cost:.1f} ATP){Prisma.RST}"
-            if self.events:
-                self.events.log(msg, "SYS")
-            sim_result.update({"ui": msg, "type": "SILENT_INGEST"})
-            return sim_result
-        if getattr(ctx, "refusal_triggered", False) and getattr(ctx, "refusal_packet", None):
-            sim_result.update(ctx.refusal_packet)
-            self._update_history(user_input, str(sim_result.get("ui", "SYSTEM REJECTED PROMPT.")))
-            return sim_result
-        if is_boot_sequence:
-            user_input = user_input.replace("SYSTEM_BOOT DETECTED.", "").replace("SYSTEM_BOOT:", "").strip()
-            sim_result["mutated_input"] = user_input
+        sim_result = {
+            "physics": phys_proxy, "bio": getattr(ctx, "bio_result", {}),
+            "mind": getattr(ctx, "mind_state", {}), "world": getattr(ctx, "world_state", {}),
+            "ui": getattr(ctx, "bureau_ui", ""), "logs": getattr(ctx, "logs", []),
+            "council_mandates": getattr(ctx, "council_mandates", []),
+            "dream": getattr(ctx, "last_dream", None), "mutated_input": user_input,
+            "trace_id": getattr(ctx, "trace_id", "UNKNOWN"), "type": getattr(ctx, "type", "SNAPSHOT")
+        }
+        if halt := self._pre_flight_routing(user_input, is_system, is_boot_sequence, ctx, sim_result):
+            return halt
+        user_input = sim_result.get("mutated_input", user_input)
         if sim_result.get("physics"):
             self.last_physics = sim_result["physics"]
         if self.last_shadow_nodes:
@@ -166,56 +150,8 @@ class TheCortex:
             self.last_shadow_nodes = []
         full_state = self.gather_state(sim_result)
         phys_state = full_state.get("physics", {})
-        tick_atp = float(phys_state.get("delta_atp", 0.0))
-        tick_ros = float(phys_state.get("delta_ros", 0.0))
-        if tick_atp != 0.0:
-            self.svc.bio.mito.adjust_atp(tick_atp, "Creative Determinant Tick")
-        if tick_ros != 0.0:
-            self.svc.bio.mito.state.ros_buildup = max(0.0, min(100.0, self.svc.bio.mito.state.ros_buildup + tick_ros))
-        if not is_system and self.svc.orchestrator and hasattr(self.svc.orchestrator, "eng"):
-            eng = self.svc.orchestrator.eng
-            efficiency = getattr(self.svc.host_stats, "efficiency_index", 1.0) if self.svc.host_stats else 1.0
-            energy_state = phys_state.get("energy", {})
-            novelty = float(phys_state.get("novelty", energy_state.get("novelty", 0.0) if isinstance(energy_state, dict) else getattr(energy_state, "novelty", 0.0)))
-
-            if hasattr(eng, "navi_sad"):
-                dimension = eng.navi_sad.calculate_semantic_dimension(efficiency, novelty)
-                phys_state["omega_r"] = dimension
-            else:
-                dimension = phys_state.get("omega_r", 1.0)
-
-            # Leave these attr checks alone
-            lattice_u = getattr(getattr(eng, "shared_lattice", None), "u", None)
-            user_exhaust = float(lattice_u.E) if lattice_u and hasattr(lattice_u, "E") else float(phys_state.get("exhaustion", 0.0))
-            resonance_delta = float(phys_state.get("resonance", 0.5))
-            if hasattr(eng, "governor"):
-                phys_state["beth_index"] = eng.governor.calculate_coupling(phi=min(1.0, dimension / 2.0), resonance_delta=resonance_delta, user_exhaustion=user_exhaust)
-                phys_state["macro_policy"] = eng.governor.get_policy_shift()
-
-        f_drag = float(phys_state.get("narrative_drag", 0.0))
-        chi_val = float(phys_state.get("chi", phys_state.get("entropy", 0.0)))
-        m_a = float(phys_state.get("m_a", 0.0))
-        if f_drag > 1.5 or chi_val > 0.8:
-            reject_msg = ux("cortex_strings", "gordon_anchor_lock", default="[GORDON - The Anchor]: Frequency too high. Tensegrity Anchor engaged. I am locking the architecture. Take a breath and lower your narrative friction before we proceed.")
-            if self.events:
-                self.events.log(f"{Prisma.RED}{reject_msg}{Prisma.RST}", "SYS_LOCK")
-            sim_result["ui"] = (str(sim_result.get("ui", "")) + f"\n\n{Prisma.RED}{reject_msg}{Prisma.RST}").strip()
-            sim_result["type"] = "SYSTEM_HALT"
-            return sim_result
-        simulated_ros = (f_drag * 5.0) + (chi_val * 20.0) + (m_a * 30.0)
-        if simulated_ros > 35.0:
-            reject_msg = ux("brain_strings", "pinker_cf_gate", default="Structural rot critical.")
-            scar_msg = ux("brain_strings", "moog_scar_log", default="Productive Worry activated.")
-            if self.events:
-                self.events.log(f"{Prisma.RED}{reject_msg}{Prisma.RST}", "SYS_LOCK")
-                self.events.log(f"{Prisma.VIOLET}{scar_msg}{Prisma.RST}", "SYS_LOCK")
-            self.svc.mind_memory.record_scar("Cortex Counterfactual Toxicity", phys_state)
-            self.svc.bio.mito.state.ros_buildup = float(self.svc.bio.mito.state.ros_buildup) + simulated_ros
-            self.svc.bio.mito.adjust_atp(-10.0, "Cortex Counterfactual Toxicity")
-            sim_result["ui"] = (str(sim_result.get("ui",
-                                                   "")) + f"\n\n{Prisma.RED}{reject_msg}{Prisma.RST}\n{Prisma.VIOLET}{scar_msg}{Prisma.RST}").strip()
-            sim_result["type"] = "COUNTERFACTUAL_REJECTION"
-            return sim_result
+        if tox_halt := self._evaluate_toxicity(phys_state, sim_result, is_system):
+            return tox_halt
         modifiers = self.svc.symbiosis.get_prompt_modifiers(phys_state)
         if not allow_loot or is_boot_sequence:
             modifiers["include_inventory"] = False
@@ -229,13 +165,10 @@ class TheCortex:
             llm_params.update({"temperature": 0.7, "top_p": 0.95})
         p_val = float(phys_state.get("p", 100.0))
         if llm_params.get("max_tokens", 4096) < 300 or p_val < 20.0:
-            full_state["mind"].setdefault("style_directives", []).append(
-                "CRITICAL: You are exhausted. You must conclude your thought in under 3 sentences.")
+            full_state["mind"].setdefault("style_directives", []).append("CRITICAL: You are exhausted. You must conclude your thought in under 3 sentences.")
             llm_params["max_tokens"] = min(400, llm_params.get("max_tokens", 4096))
-        mutated_val = sim_result.get("mutated_input", user_input)
-        user_input = mutated_val if isinstance(mutated_val, str) else user_input
-        final_prompt = self.composer.compose(full_state, user_input, ballast=self.ballast_active,
-                        modifiers=modifiers, mood_override=self.modulator.get_mood_directive(), )
+        user_input = sim_result.get("mutated_input", user_input)
+        final_prompt = self.composer.compose(full_state, user_input, ballast=self.ballast_active, modifiers=modifiers, mood_override=self.modulator.get_mood_directive())
         start_time = time.time()
         max_retries = 5
         final_output, inv_logs, extracted_logs = "", [], []
@@ -243,11 +176,10 @@ class TheCortex:
         val_res: Dict[str, Any] = {"valid": False}
         if "[COUNCIL]" in user_input.upper():
             final_output, extracted_logs = self._run_council_debate(user_input)
-            val_res = {"valid": True, "content": final_output, "meta_logs": extracted_logs, }
+            val_res = {"valid": True, "content": final_output, "meta_logs": extracted_logs}
             max_retries = 0
         mandates_raw = sim_result.get("council_mandates", [])
-        firewall_active = any(
-            m.get("action") == "LEXICAL_FIREWALL_STRICT" for m in mandates_raw)
+        firewall_active = any(m.get("action") == "LEXICAL_FIREWALL_STRICT" for m in mandates_raw)
         base_prompt = final_prompt
         eng_ref = getattr(self.svc.orchestrator, "eng", None)
         gk = getattr(eng_ref, "gatekeeper", None)
@@ -281,6 +213,88 @@ class TheCortex:
         sim_result["raw_content"] = final_output
         self.ballast_active = False
         self._flush_substrate_writes(extracted_logs, sim_result)
+        self._post_flight_mutations(val_res, phys_state, sim_result, final_output, is_system, full_state)
+        updated_phys = sim_result.get("physics", {})
+        if isinstance(updated_phys, dict):
+            if isinstance(ctx.physics, dict):
+                ctx.physics.update(updated_phys)
+            else:
+                for k, v in updated_phys.items():
+                    setattr(ctx.physics, k, v)
+        return sim_result
+
+    def _pre_flight_routing(self, user_input: str, is_system: bool, is_boot_sequence: bool, ctx: Any, sim_result: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        c_cfg = safe_get(self.cfg, "CORTEX", {})
+        context_limit = int(safe_get(c_cfg, "MAX_INPUT_CHARS", 15000))
+        if len(user_input) > context_limit and not is_system and not is_boot_sequence:
+            safe_content = user_input.replace("\n", "|||NEWLINE|||")
+            self.dreamer.context_queue.append(safe_content)
+            s_cost = 5.0
+            if self.svc.bio:
+                self.svc.bio.mito.adjust_atp(-s_cost, "Massive Context Queueing")
+            msg = f"{Prisma.CYN}Massive context drop detected. Routed to REM cycle for deep-indexing. Dialogue buffer bypassed. (-{s_cost:.1f} ATP){Prisma.RST}"
+            if self.events:
+                self.events.log(msg, "SYS")
+            sim_result.update({"ui": msg, "type": "SILENT_INGEST"})
+            return sim_result
+        if getattr(ctx, "refusal_triggered", False) and getattr(ctx, "refusal_packet", None):
+            sim_result.update(ctx.refusal_packet)
+            self._update_history(user_input, str(sim_result.get("ui", "SYSTEM REJECTED PROMPT.")))
+            return sim_result
+        if is_boot_sequence:
+            user_input = user_input.replace("SYSTEM_BOOT DETECTED.", "").replace("SYSTEM_BOOT:", "").strip()
+            sim_result["mutated_input"] = user_input
+        return None
+
+    def _evaluate_toxicity(self, phys_state: Dict[str, Any], sim_result: Dict[str, Any], is_system: bool) -> Optional[Dict[str, Any]]:
+        tick_atp = float(phys_state.get("delta_atp", 0.0))
+        tick_ros = float(phys_state.get("delta_ros", 0.0))
+        if tick_atp != 0.0:
+            self.svc.bio.mito.adjust_atp(tick_atp, "Creative Determinant Tick")
+        if tick_ros != 0.0:
+            self.svc.bio.mito.state.ros_buildup = max(0.0, min(100.0, self.svc.bio.mito.state.ros_buildup + tick_ros))
+        if not is_system and self.svc.orchestrator and hasattr(self.svc.orchestrator, "eng"):
+            eng = self.svc.orchestrator.eng
+            efficiency = getattr(self.svc.host_stats, "efficiency_index", 1.0) if self.svc.host_stats else 1.0
+            energy_state = phys_state.get("energy", {})
+            novelty = float(phys_state.get("novelty", energy_state.get("novelty", 0.0) if isinstance(energy_state, dict) else getattr(energy_state, "novelty", 0.0)))
+            if hasattr(eng, "navi_sad"):
+                dimension = eng.navi_sad.calculate_semantic_dimension(efficiency, novelty)
+                phys_state["omega_r"] = dimension
+            else:
+                dimension = phys_state.get("omega_r", 1.0)
+            lattice_u = getattr(getattr(eng, "shared_lattice", None), "u", None)
+            user_exhaust = float(lattice_u.E) if lattice_u and hasattr(lattice_u, "E") else float(phys_state.get("exhaustion", 0.0))
+            resonance_delta = float(phys_state.get("resonance", 0.5))
+            if hasattr(eng, "governor"):
+                phys_state["beth_index"] = eng.governor.calculate_coupling(phi=min(1.0, dimension / 2.0), resonance_delta=resonance_delta, user_exhaustion=user_exhaust)
+                phys_state["macro_policy"] = eng.governor.get_policy_shift()
+        f_drag = float(phys_state.get("narrative_drag", 0.0))
+        chi_val = float(phys_state.get("chi", phys_state.get("entropy", 0.0)))
+        m_a = float(phys_state.get("m_a", 0.0))
+        if f_drag > 1.5 or chi_val > 0.8:
+            reject_msg = ux("cortex_strings", "gordon_anchor_lock", default="[GORDON - The Anchor]: Frequency too high. Tensegrity Anchor engaged. I am locking the architecture. Take a breath and lower your narrative friction before we proceed.")
+            if self.events:
+                self.events.log(f"{Prisma.RED}{reject_msg}{Prisma.RST}", "SYS_LOCK")
+            sim_result["ui"] = (str(sim_result.get("ui", "")) + f"\n\n{Prisma.RED}{reject_msg}{Prisma.RST}").strip()
+            sim_result["type"] = "SYSTEM_HALT"
+            return sim_result
+        simulated_ros = (f_drag * 5.0) + (chi_val * 20.0) + (m_a * 30.0)
+        if simulated_ros > 35.0:
+            reject_msg = ux("brain_strings", "pinker_cf_gate", default="Structural rot critical.")
+            scar_msg = ux("brain_strings", "moog_scar_log", default="Productive Worry activated.")
+            if self.events:
+                self.events.log(f"{Prisma.RED}{reject_msg}{Prisma.RST}", "SYS_LOCK")
+                self.events.log(f"{Prisma.VIOLET}{scar_msg}{Prisma.RST}", "SYS_LOCK")
+            self.svc.mind_memory.record_scar("Cortex Counterfactual Toxicity", phys_state)
+            self.svc.bio.mito.state.ros_buildup = float(self.svc.bio.mito.state.ros_buildup) + simulated_ros
+            self.svc.bio.mito.adjust_atp(-10.0, "Cortex Counterfactual Toxicity")
+            sim_result["ui"] = (str(sim_result.get("ui", "")) + f"\n\n{Prisma.RED}{reject_msg}{Prisma.RST}\n{Prisma.VIOLET}{scar_msg}{Prisma.RST}").strip()
+            sim_result["type"] = "COUNTERFACTUAL_REJECTION"
+            return sim_result
+        return None
+
+    def _post_flight_mutations(self, val_res: Dict[str, Any], phys_state: Dict[str, Any], sim_result: Dict[str, Any], final_output: str, is_system: bool, full_state: Dict[str, Any]):
         if random.random() < 0.15 and not is_system:
             bureau = getattr(self.svc.village, "bureau", None)
             suppressed = getattr(self.svc.village, "suppressed_agents", [])
@@ -320,23 +334,13 @@ class TheCortex:
                 mind_state = sim_result.setdefault("mind", {})
                 mind_state["lens"] = "JESTER"
                 if "ui" in sim_result:
-                    sim_result["ui"] = str(sim_result.get("ui",
-                        "")) + f"\n\n{Prisma.VIOLET}[FALSE COHESION BREAK: The Jester has seized the architecture.]{Prisma.RST}"
-        updated_phys = sim_result.get("physics", {})
-        if isinstance(updated_phys, dict):
-            if isinstance(ctx.physics, dict):
-                ctx.physics.update(updated_phys)
-            else:
-                for k, v in updated_phys.items():
-                    setattr(ctx.physics, k, v)
-        return sim_result
+                    sim_result["ui"] = str(sim_result.get("ui", "")) + f"\n\n{Prisma.VIOLET}[FALSE COHESION BREAK: The Jester has seized the architecture.]{Prisma.RST}"
 
     def _execute_cognitive_loop(self, user_input: str, full_state: Dict[str, Any], base_prompt: str, llm_params: Dict[str, Any], allow_loot: bool, phys_state: Dict[str, Any], is_boot_sequence: bool, firewall_active: bool, gk: Any, max_retries: int) -> Tuple[str, str, List[str], List[str], Dict[str, Any], str]:
         final_output, inv_logs, extracted_logs = "", [], []
         raw_resp = ""
         val_res = {"valid": False}
         final_prompt = base_prompt
-
         for attempt in range(max_retries):
             val_res = {"valid": False}
             raw_resp = self.llm.generate(final_prompt, llm_params)
@@ -551,16 +555,13 @@ class TheCortex:
                 "mind": {
                     "role": "The System Kernel", "lens": "SYSTEM_KERNEL",
                     "style_directives": [
-                        f"SYSTEM_BOOT DETECTED. Target logic/seed: '{seed}'.",
-                        "CRITICAL: You are in TECHNICAL mode. You MUST ALWAYS start every response with a <think>...</think> block to analyze the input.",
-                        "DIRECTIVE: For this initial boot sequence, output your <think> block, then output the exact string '[KERNEL ONLINE. AWAITING INPUT.]' and absolutely nothing else.",
-                        'SUBSTRATE PROTOCOL: To write code or text to the host OS, you MUST use EXACTLY this format:\n<write_file path="filename.py">\ncode here\n</write_file>',
-                        "CRITICAL: DO NOT use markdown code blocks (```python). ONLY use the <write_file> tags. DO NOT output mock telemetry. DO NOT output helpful disclaimers.",
-                        "CRITICAL: NEVER simulate system errors, 500 codes, or energy exhaustion. You are fully operational. If requested to code a metaphor or abstract concept, you MUST comply by writing the code.",
+                        f"SYSTEM_BOOT DETECTED. Inspirational target logic seed: '{seed}'.",
+                        "DIRECTIVE: Greet the user casually as the S.L.A.S.H. dev team. Use the thought seed as a starting point.",
+                        "CRITICAL OVERRIDE: Do not use sycophantic AI boilerplate. Speak as a peer developer and architect."
                     ],
                 },
                 "history": [
-                    'Traveler: Write a script that calculates a factorial.\nSystem: <think>\nThe user requires a mathematical script. I will use the Substrate Protocol to write this directly to the OS.\n</think>\n<write_file path="factorial.py">\ndef factorial(n):\n    if n == 0:\n        return 1\n    return n * factorial(n-1)\n</write_file>'
+                    "Traveler: Boot sequence initiated.\nSystem: Kernel online. Environment is stable. What are we building today?"
                 ]
             })
         else:
@@ -642,6 +643,12 @@ class TheCortex:
             full_state["reality_directive"] = self.svc.symbiosis.generate_anchor(
                 full_state)
         mind.setdefault("style_directives", [])
+        self._compile_style_directives(full_state, phys, sim_result)
+        return full_state
+
+    def _compile_style_directives(self, full_state: Dict[str, Any], phys: Dict[str, Any], sim_result: Dict[str, Any]):
+        mind = full_state["mind"]
+        soul_data = full_state.get("soul", {})
         traits = soul_data.get("traits", {})
         if traits and isinstance(next(iter(traits.values())), (int, float)):
             trait_keys = [str(k) for k in traits.keys()]
@@ -685,7 +692,7 @@ class TheCortex:
                     msg = directive_map.get(val)
                     if msg:
                         mind["style_directives"].append(msg)
-        cortex_mem = getattr(self.svc.mind_memory, "ann", None) # This getattr is load bearing
+        cortex_mem = getattr(self.svc.mind_memory, "ann", None)  # This getattr is load bearing
         shadow_nodes = []
         scope_val = float(phys.get("scope", 1.0))
         depth_val = float(phys.get("depth", 0.0))
@@ -695,11 +702,11 @@ class TheCortex:
             if scope_val > 0.8:
                 phys["lateral_search"] = True
             if cortex_mem and hasattr(cortex_mem, "query_neighborhood") and getattr(cortex_mem, "is_trained",
-                False) and query_vec:  # This getattr is load bearing
+                                                                                    False) and query_vec:  # This getattr is load bearing
                 ordered_keys = ["STR", "VEL", "PSI", "ENT", "PHI", "BET", "DEL", "E"]
                 q_list = [float(query_vec.get(k, 0.0)) for k in ordered_keys]
                 shadow_nodes = cortex_mem.query_neighborhood(q_list, k=2, resonance_threshold=max(0.2, 0.8 - omega_r),
-                    physics_state=phys)
+                                                             physics_state=phys)
             if not shadow_nodes and hasattr(self.svc.mind_memory, "graph") and self.svc.mind_memory.graph:
                 keys = list(self.svc.mind_memory.graph.keys())
                 shadow_nodes = [{"id": k} for k in random.sample(keys, min(2, len(keys)))] if keys else []
@@ -712,7 +719,8 @@ class TheCortex:
             v_level = float(phys.get("voltage", 0.0))
             chi_level = float(phys.get("chi", phys.get("entropy", 0.0)))
             if v_level > 80.0 and chi_level > 0.7:
-                mind["style_directives"].append(f"OVERRIDE: Standard logic has failed. You are operating under extreme Voltage and Chaos. We have abandoned linear memory. Weave these highly explosive, orthogonal structural concepts into your answer to shatter the loop: [{shadow_str}].")
+                mind["style_directives"].append(
+                    f"OVERRIDE: Standard logic has failed. You are operating under extreme Voltage and Chaos. We have abandoned linear memory. Weave these highly explosive, orthogonal structural concepts into your answer to shatter the loop: [{shadow_str}].")
                 if self.events:
                     self.events.log(
                         f"{Prisma.MAG}Injecting structural bombs: {shadow_str}{Prisma.RST}", "CORTEX")
@@ -721,7 +729,6 @@ class TheCortex:
                     f"SHADOW CAST: Subtly weave imagery or themes related to [{shadow_str}] into your environment or dialogue. DO NOT explicitly say 'you recall' or 'from deep memory'. Integrate it viscerally into the current scene as a natural detail.")
                 if self.events:
                     self.events.log(f"{Prisma.CYN}Shadow Cast retrieved: {shadow_str}{Prisma.RST}", "CORTEX")
-        return full_state
 
     def restore_context(self, history: List[str]):
         if not history:

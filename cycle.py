@@ -33,7 +33,7 @@ import numpy as np
 
 _CRASH_COMPONENT_MAP = {"OBSERVE": "PHYSICS", "METABOLISM": "BIO", "COGNITION": "MIND"}
 
-def _native_wls(x: list[float], y: list[float], weights: list[float]) -> float:
+def _native_wls(x: list[float], y: list[float], weights: list[float], r2_threshold: float = 0.85) -> float:
     """
     [navi-fractal PROTOCOL]: Weighted Least Squares (WLS) regression with Quality Gates.
     Calculates fractal dimension based on mass-radius scaling, but actively REFUSES
@@ -56,7 +56,9 @@ def _native_wls(x: list[float], y: list[float], weights: list[float]) -> float:
     ss_tot = sum(w * (yi - mean_y) ** 2 for w, yi in zip(weights, y))
     ss_res = sum(w * (yi - (mean_y + slope * (xi - mean_x))) ** 2 for w, xi, yi in zip(weights, x, y))
     r2 = 1.0 - (ss_res / ss_tot) if ss_tot > 0.0 else 0.0
-    if r2 < 0.85:
+    n = len(x)
+    min_r2 = max(0.70, r2_threshold - 0.03 * max(0, 8 - n))
+    if r2 < min_r2:
         return 0.0
     return slope
 
@@ -135,21 +137,29 @@ def _native_takens_volume(time_series: list[float], m: int = 3, tau: int = 1) ->
         volume *= max(0.001, spread)
     return volume
 
-def _native_configuration_model(adj_dict: dict) -> dict:
-    """[navi-fractal]: Generates a random graph preserving degree sequence (Null Model)."""
+
+def _native_configuration_model(adj_dict: dict, max_attempts: int = 25) -> dict:
+    """[navi-fractal]: Generates a random graph approx preserving degree sequence (Null Model)."""
     degrees = {node: len(neighbors) for node, neighbors in adj_dict.items()}
     stubs = []
     for node, deg in degrees.items():
         stubs.extend([node] * deg)
-    random.shuffle(stubs)
-    null_adj = {node: list() for node in adj_dict}
-    for i in range(0, len(stubs) - 1, 2):
-        u, v = stubs[i], stubs[i + 1]
-        null_adj[u].append(v)
-        null_adj[v].append(u)
-    return null_adj
+    for _ in range(max_attempts):
+        random.shuffle(stubs)
+        null_adj = {node: set() for node in adj_dict}
+        valid = True
+        for i in range(0, len(stubs) - 1, 2):
+            u, v = stubs[i], stubs[i + 1]
+            if u == v or v in null_adj[u]:
+                valid = False
+                break
+            null_adj[u].add(v)
+            null_adj[v].add(u)
+        if valid:
+            return {k: list(v) for k, v in null_adj.items()}
+    return {k: list(v) for k, v in adj_dict.items()}
 
-def _native_quality_gate(log_r: list, log_m: list) -> tuple[bool, str]:
+def _native_quality_gate(log_r: list, log_m: list, r2_threshold: float = 0.90) -> tuple[bool, str]:
     """[navi-fractal]: MFA Quality Gate. Checks dynamic range and R^2 linearity."""
     if not log_r or len(log_r) < 3:
         return False, "INSUFFICIENT_RANGE"
@@ -165,7 +175,7 @@ def _native_quality_gate(log_r: list, log_m: list) -> tuple[bool, str]:
     ss_tot = sum((y - (sum_y / n)) ** 2 for y in log_m)
     ss_res = sum((y - (slope * x + intercept)) ** 2 for x, y in zip(log_r, log_m))
     r_squared = 1 - (ss_res / ss_tot) if ss_tot > 0 else 0
-    if r_squared < 0.90:
+    if r_squared < r2_threshold:
         return False, f"POOR_FIT_R2_{r_squared:.2f}"
     return True, "PASSED"
 
@@ -325,6 +335,11 @@ class GeodesicOrchestrator:
         self.eng.drain_atp(rem_atp_drain)
         if _mito_state := self.eng._mito_state:
             _mito_state.ros_buildup = max(0.0, _mito_state.ros_buildup - 0.1)
+        if hasattr(self.eng, "system_health"):
+            for comp, is_online in list(self.eng.system_health.components_online.items()):
+                if not is_online:
+                    if self.eng.system_health.reboot_component(comp):
+                        self.eng.events.log(f"{Prisma.GRN}REM Restorative cycle successfully reconstructed the crashed {comp.upper()} manifold.{Prisma.RST}", "SYS")
         if self.eng.consolidator:
             try:
                 self.eng.consolidator.trigger_autophagy()
@@ -403,13 +418,16 @@ class GeodesicOrchestrator:
             ctx.time_delta = min(dynamic_ceiling, max(0.1, calculated_delta))
             ctx.limits = _safe_dict(self.eng.config.CYCLE)
             active_phys = self.eng.active_physics
+            # !!! Leave this alone unless you know what you're doing !!!
             if isinstance(active_phys, PhysicsPacket):
                 ctx.physics = active_phys
             elif active_phys:
                 ctx.physics = PhysicsPacket(**active_phys)
             else:
                 ctx.physics = PhysicsPacket.void_state()
-                self.eng.events.log(f"{Prisma.GRY}{ux('cycle_strings', 'orch_physics_init') or 'Initial physics state established.'}{Prisma.RST}", "SYS")
+                self.eng.events.log(
+                    f"{Prisma.GRY}{ux('cycle_strings', 'orch_physics_init') or 'Initial physics state established.'}{Prisma.RST}",
+                    "SYS")
             ctx.validator = self.congruence_validator
             ctx.reality_stack = self.eng.reality_stack
             ctx.user_name = self.eng.user_name

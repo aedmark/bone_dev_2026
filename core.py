@@ -7,6 +7,7 @@ import random
 import threading
 import time
 import traceback
+import threading
 import uuid
 from collections import deque, Counter
 from concurrent.futures import ThreadPoolExecutor
@@ -24,16 +25,25 @@ try:
 except ImportError:
     ORDVEC_AVAILABLE = False
 
+
 class JSONEncoder(json.JSONEncoder):
-    """Leave this alone unless you know what you're doing"""
+    """Leave this alone unless you know what you're doing. S.L.A.S.H. Secured."""
     def default(self, o):
         if isinstance(o, (set, deque)):
             return list(o)
         if hasattr(o, "to_dict") and callable(o.to_dict):
             return o.to_dict()
         if hasattr(o, "__dict__"):
-            return vars(o)
-        return super().default(o)
+            safe_dict = {}
+            for k, v in vars(o).items():
+                if isinstance(v, (threading.Lock, threading.RLock, threading.Thread)):
+                    continue
+                safe_dict[k] = v
+            return safe_dict
+        try:
+            return super().default(o)
+        except TypeError:
+            return f"<Unserializable: {type(o).__name__}>"
 
 @dataclass
 class ErrorLog:
@@ -69,7 +79,7 @@ class DecisionCrystal:
         data["_type"] = "CRYSTAL"
         return json.dumps(data, cls=JSONEncoder)
 
-@dataclass
+@dataclass(slots=True)
 class CycleContext:
     input_text: str
     is_system_event: bool = False
@@ -119,6 +129,10 @@ class CycleContext:
                 {"phase": phase, "metric": metric, "initial": initial, "final": final, "delta": delta, "reason": reason,
                  "timestamp": time.time(), })
 
+    def to_dict(self) -> Dict[str, Any]:
+        """Fast serialization for the telemetry encoder, compatible with slots."""
+        return {k: getattr(self, k) for k in self.__slots__ if hasattr(self, k)}
+
 @dataclass
 class MindSystem:
     mem: Any
@@ -146,6 +160,7 @@ class EventBus:
         self.subscribers = {}
         self.telemetry = telemetry_ref
         self._lock = threading.RLock()
+        self._publishing = threading.local()
 
     def subscribe(self, event_type, callback):
         with self._lock:
@@ -163,15 +178,23 @@ class EventBus:
                     del self.subscribers[event_type]
 
     def publish(self, event_type, data=None):
-        callbacks = self.subscribers.get(event_type, ())
-        for callback in callbacks:
-            try:
-                callback(data)
-            except Exception as e:
-                if event_type != "EVENT_FAILURE":
-                    cb_name = getattr(callback, "__name__", None) or str(callback)
-                    tb_str = traceback.format_exc(limit=3)
-                    self.log(f"EVENT_FAILURE: Error in '{cb_name}': {e}\n{tb_str}", source="EVENT_FAILURE", level="CRIT")
+        if getattr(self._publishing, 'active', False):
+            return
+        self._publishing.active = True
+        try:
+            callbacks = self.subscribers.get(event_type, ())
+            for callback in callbacks:
+                try:
+                    callback(data)
+                except Exception as e:
+                    if event_type != "EVENT_FAILURE":
+                        cb_name = getattr(callback, "__name__", str(callback))
+                        self.log(
+                            f"Subscriber '{cb_name}' failed: {e}",
+                            source="EVENT_FAILURE", level="CRIT"
+                        )
+        finally:
+            self._publishing.active = False
 
     def log(self, message: str, source: str = "SYSTEM", level: str = "INFO"):
         event = {"timestamp": time.time(), "source": source, "level": level, "text": message, "_type": "EVENT_LOG"}
@@ -374,6 +397,15 @@ class SystemHealth:
     def report_hint(self, message: str):
         self.hints.append(message)
 
+    def reboot_component(self, component: str) -> bool:
+        """Safely restores a component from a CRITICAL offline state."""
+        comp_key = component.lower()
+        if not self.components_online.get(comp_key, True):
+            self.components_online[comp_key] = True
+            self.report_hint(f"{component.upper()} subsystem explicitly rebooted and brought online.")
+            return True
+        return False
+
     def flush_feedback(self) -> Dict[str, List[str]]:
         feedback = {"warnings": list(self.warnings), "hints": list(self.hints)}
         self.warnings.clear()
@@ -412,18 +444,23 @@ class CyberneticGovernor:
     Apex N-Dimensional Topological Manifold Governor.
     Powered by natively bound AVX-512 Asymmetric Rank Transformations. Ordvec, Apache 2.0
     """
+    # S.L.A.S.H. Named Mathematical Constants
+    PICARD_C = 10.0
+    BETA_SCALE = 1.2
+    BETA_STAR_UNIT = 0.5
+    PRUNE_SIZE = 50
+    PICARD_MAX_ITER = 100
+    PICARD_TOL = 1e-4
+
     def __init__(self, config_ref=None):
         self.cfg = config_ref
         self.target_v = None
         self.target_d = None
         self.beth_index, self.order = 0.5, 1
-        self.c = 10.0
-        self.beta_scale = 1.2
         self.last_lam1 = 0.0
         self.last_a = 0.0
         self.last_b = 0.0
         self.last_sol = 'trivial'
-        self._beta_star_unit = 0.5
         self.memory_bitmap = None
         self.memory_rq = None
         self.cached_nodes = []
@@ -481,53 +518,83 @@ class CyberneticGovernor:
             return 'CO_REGULATION'
         return "EFFICIENCY"
 
-    def regulate(self, physics: Dict[str, Any], dt: float, goal_vector: Optional[np.ndarray] = None,
-                 endocrine_state: Any = None, memory_core: Any = None, user_text: str = "") -> Tuple[float, float]:
-        voltage = float(physics.get('voltage', 30.0) if type(physics) is dict else getattr(physics, 'voltage', 30.0))
+    def regulate(self, physics, dt, goal_vector=None, endocrine_state=None, memory_core=None, user_text="") -> Tuple[
+        float, float]:
+        """S.L.A.S.H. Optimized API: Routes to Graph Regulation, gracefully degrading to PID on failure."""
+        if not memory_core or not user_text:
+            return self._pid_fallback(physics, dt, endocrine_state)
+        try:
+            return self._graph_regulation(physics, dt, memory_core, user_text, endocrine_state)
+        except Exception as e:
+            return self._pid_fallback(physics, dt, endocrine_state)
+
+    def _graph_regulation(self, physics, dt, memory_core, user_text, endocrine_state) -> Tuple[float, float]:
+        """Contiguous mathematical block for Laplacian field construction and Picard Iteration."""
+        from spores.spore_utils import _word_to_vector
+        import numpy as np
+
+        # --- 1. Dynamic State Extraction ---
+        voltage = float(
+            physics.get('voltage', 30.0) if isinstance(physics, dict) else getattr(physics, 'voltage', 30.0))
         drag = float(
-            physics.get('narrative_drag', 0.6) if type(physics) is dict else getattr(physics, 'narrative_drag', 0.6))
-        if self._sync_ordvec_indices(memory_core) and user_text:
-            from spores.spore_utils import _word_to_vector
-            u_vec = _word_to_vector(user_text)
-            if u_vec is not None:
-                u_fp32 = np.ascontiguousarray(u_vec, dtype=np.float32)
-                prune_size = min(50, len(self.cached_nodes))
-                candidate_ids = self.memory_bitmap.top_m_candidates(u_fp32, m=prune_size)
-                scores, global_ids = self.memory_rq.search_asymmetric_subset(u_fp32, candidate_ids, k=prune_size)
-                subset_nodes = [self.cached_nodes[i] for i in global_ids]
-                N_dim = len(subset_nodes)
-                node_indices = {str(node): i for i, node in enumerate(subset_nodes)}
-                W = np.zeros((N_dim, N_dim))
-                for i, node in enumerate(subset_nodes):
-                    edges = memory_core.graph[node].get("edges", {})
-                    for target, weight in edges.items():
-                        if target in node_indices:
-                            W[i, node_indices[target]] = weight
-                W = np.maximum(W, W.T)
-                D = np.diag(np.sum(W, axis=1))
-                L_matrix = D - W
-                b_field = np.maximum(0.01, scores)
-                b_mean = float(np.mean(b_field))
-                a_scalar = float(np.clip((voltage - 30.0) / 70.0, 0.0, 1.0))
-                self.last_b = b_mean
-                self.last_a = a_scalar
-                beta_b = self.beta_scale * self._beta_star_unit * b_field * (1.0 + drag)
-                Phi, converged = self._solve_nd_picard(L_matrix, a_scalar, beta_b, c=self.c)
-                if converged:
-                    phi_norm_sq = np.dot(Phi, Phi) + 1e-8
-                    lam1 = float((Phi.T @ L_matrix @ Phi) / phi_norm_sq) - b_mean
-                    self.last_lam1 = lam1
-                    self.last_sol = 'nontrivial' if b_mean > 0.1 else 'trivial'
-                    phi_mean = float(np.mean(np.abs(Phi)))
-                    phi_std = float(np.std(Phi))
-                    target_v = 30.0 + phi_mean * 70.0
-                    target_d = float(np.clip(phi_std * 2.0, 0.1, 1.0))
-                    self.target_v = target_v
-                    self.target_d = target_d
-                    stress_mod = 1.0 if endocrine_state is None else (1.5 if float(getattr(endocrine_state, 'glimmers', 0)) >= 1 else 0.75)
-                    adjusted_dt = dt * 0.5 * stress_mod
-                    return (target_v - voltage) * adjusted_dt, (target_d - drag) * adjusted_dt
-        return self._pid_fallback(physics, dt, endocrine_state)
+            physics.get('narrative_drag', 0.6) if isinstance(physics, dict) else getattr(physics, 'narrative_drag', 0.6))
+        p_cfg = getattr(self.cfg, "PHYSICS", None)
+        v_max = float(getattr(p_cfg, "VOLTAGE_MAX", 100.0))
+        v_floor = float(getattr(p_cfg, "VOLTAGE_FLOOR", 0.0))
+        v_base = v_floor + ((v_max - v_floor) * 0.3)
+        v_range = v_max - v_base
+        a_scalar = float(np.clip((voltage - v_base) / v_range, 0.0, 1.0) if v_range > 0 else 0.0)
+
+        # --- 2. Vectorization & Subgraph Retrieval ---
+        if hasattr(self, '_sync_ordvec_indices'):
+            self._sync_ordvec_indices(memory_core)
+        u_vec = _word_to_vector(user_text)
+        if u_vec is None:
+            raise ValueError("Null vectorization payload.")
+        u_fp32 = np.ascontiguousarray(u_vec, dtype=np.float32)
+        candidate_ids = self.memory_bitmap.top_m_candidates(u_fp32, m=self.PRUNE_SIZE)
+        scores, global_ids = self.memory_rq.search_asymmetric_subset(u_fp32, candidate_ids, k=self.PRUNE_SIZE)
+        subset_nodes = [self.cached_nodes[i] for i in global_ids]
+        if len(subset_nodes) < 3:
+            raise ValueError("Insufficient subgraph density for Laplacian bounds.")
+
+        # --- 3. Laplacian Construction ---
+        N_dim = len(subset_nodes)
+        node_indices = {str(node): i for i, node in enumerate(subset_nodes)}
+        W = np.zeros((N_dim, N_dim))
+        for i, node in enumerate(subset_nodes):
+            edges = memory_core.graph[node].get("edges", {})
+            for target, weight in edges.items():
+                if target in node_indices:
+                    W[i, node_indices[target]] = weight
+        W = np.maximum(W, W.T)
+        L_matrix = np.diag(np.sum(W, axis=1)) - W
+        b_field = np.maximum(0.01, scores)
+        beta_b = self.BETA_SCALE * self.BETA_STAR_UNIT * b_field * (1.0 + drag)
+
+        # --- 4. Picard Iteration ---
+        Phi, converged = self._solve_nd_picard(L_matrix, a_scalar, beta_b, c=self.PICARD_C, max_iter=self.PICARD_MAX_ITER, tol=self.PICARD_TOL)
+        if not converged:
+            raise ValueError("Picard algorithm failed to converge.")
+
+        # --- 5. Delta Resolution ---
+        b_mean = float(np.mean(beta_b))
+        phi_norm_sq = np.dot(Phi, Phi) + 1e-8
+        self.last_lam1 = float((Phi.T @ L_matrix @ Phi) / phi_norm_sq) - b_mean
+        self.last_b = b_mean
+        self.last_a = a_scalar
+        self.last_sol = 'nontrivial' if b_mean > 0.1 else 'trivial'
+        phi_mean = float(np.mean(np.abs(Phi)))
+        phi_std = float(np.std(np.abs(Phi)))
+        self.target_v = v_base + phi_mean * v_range
+        self.target_d = float(np.clip(phi_std * 2.0, 0.1, 1.0))
+        stress_mod = 1.0
+        if endocrine_state:
+            glimmers = float(getattr(endocrine_state, 'glimmers', 0))
+            stress_mod = 1.5 if glimmers >= 1 else 0.75
+
+        adjusted_dt = dt * 0.5 * stress_mod
+        return (self.target_v - voltage) * adjusted_dt, (self.target_d - drag) * adjusted_dt
 
     def _pid_fallback(self, physics: Dict[str, Any], dt: float, endocrine_state: Any = None) -> Tuple[float, float]:
         active_tv = self.target_v if self.target_v is not None else 30.0
@@ -672,12 +739,35 @@ class TelemetryService:
         if self._executor is not None:
             self._executor.shutdown(wait=True)
 
+    def _tail_file(self, filepath: str, n: int = 20) -> List[str]:
+        """Read last n lines without loading the full file."""
+        try:
+            with open(filepath, "rb") as f:
+                f.seek(0, 2)  # seek to end
+                file_size = f.tell()
+                if file_size == 0:
+                    return []
+                # Read backwards in chunks
+                chunk_size = 8192
+                pos = max(0, file_size - chunk_size)
+                lines_found = []
+                while pos >= 0 and len(lines_found) < n:
+                    f.seek(pos)
+                    chunk = f.read(file_size - pos if pos == 0 else chunk_size)
+                    lines_found = chunk.decode("utf-8", errors="replace").splitlines() + lines_found
+                    if len(lines_found) >= n:
+                        break
+                    pos -= chunk_size
+                    file_size = pos + chunk_size
+                return lines_found[-n:]
+        except IOError:
+            return []
+
     def _yield_historical_records(self, file_limit=5, lines_per_file=10):
         files = sorted(glob.glob(os.path.join(self.log_dir, "trace_*.jsonl")), reverse=True)
         for fpath in files[:file_limit]:
             try:
-                with open(fpath, "r", encoding="utf-8") as f:
-                    tail_lines = reversed(deque(f, maxlen=lines_per_file))
+                tail_lines = reversed(self._tail_file(fpath, n=lines_per_file))
                 for line in tail_lines:
                     try:
                         yield json.loads(line)

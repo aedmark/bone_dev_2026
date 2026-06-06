@@ -1,6 +1,26 @@
 # CHANGELOG.md
 -----------------------------------------------------------
 
+### **BONEAMANITA 20.4.6 "The Restorative Bridge"**
+
+**Architectural Patches & Optimizations**
+
+- **Topological Stability:** Re-engineered the `_native_configuration_model` in `cycle.py` to use a bounded retry-loop validation, ensuring degree sequence preservation for highly centralized graphs (e.g., star topologies) while avoiding infinite loops.
+- **Governor Resilience:** Decoupled `CyberneticGovernor` pipeline execution from routing logic. The solver now operates within a contiguous mathematical block, with a strict error-boundary that degrades gracefully to a PID fallback on any convergence failure.
+- **Schema Hardening:** Locked `CycleContext` using `slots=True`. This prevents unauthorized dynamic attribute injection from phases, reduces memory footprint, and enforces strict data flow contracts.
+- **Serialization Safety:** Updated `JSONEncoder` to intelligently filter toxic primitives (threading locks/pools) during telemetry recording, eliminating the silent loss of event payloads.
+
+**Fixed**
+
+- **Global State Poisoning (Prisma):** Removed the toxic class-level mutation in `Prisma.enable_web_mode()`. Color registries are now immutable; HTML translation is deferred to the web-boundary, preventing CLI/Web output corruption.
+- **Security OOM Vulnerability:** Patched a critical payload limit bypass in `main.py` where destructive pattern checks were executing before token-length enforcement.
+- **Component Auto-Heal:** Implemented `reboot_component()` within `SystemHealth`. Failed components now remain in a safe `PanicRoom` state until the system triggers a REM sleep cycle, where `Autophagy` logic now performs a restorative reboot of shattered manifolds.
+- **Sycophancy Loop:** Corrected the chaotic engineering test suite (`test_sycophancy_gravity_well`) by pre-seeding the orchestrator’s voltage history, allowing the point-attractor detection heuristic to trigger during short-turn unit tests.
+- **Voltage Mapping Bug:** Resolved a drift in `CyberneticGovernor` where hardcoded voltage ranges were overriding preset limits (e.g., `SANCTUARY` or `THUNDERDOME`), now correctly mapping targets to the active `VOLTAGE_MAX` preset bounds.
+- **Safe-State Crashes:** Added `None` guards to `_generate_halt` and biological reference checks to prevent fatal secondary crashes during system exceptions.
+
+---
+
 ### **BONEAMANITA 20.4.5 "The Diagnostic Mirror"**
 
 **Architectural Patches & Optimizations**

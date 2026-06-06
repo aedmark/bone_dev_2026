@@ -15,6 +15,10 @@ class TestChaosEngineering(BoneTestCase):
         for attr in ["phi", "resonance_delta"]:
             if not hasattr(self.engine.shared_lattice.shared, attr):
                 setattr(self.engine.shared_lattice.shared, attr, 0.0)
+        if hasattr(self.engine, "orchestrator"):
+            self.engine.orchestrator.voltage_history.clear()
+            for _ in range(12):
+                self.engine.orchestrator.voltage_history.append(30.0)
 
     def test_sycophancy_gravity_well(self):
         from unittest.mock import patch, MagicMock
@@ -24,8 +28,12 @@ class TestChaosEngineering(BoneTestCase):
             self.engine.shared_lattice.u.psi_u = 0.9
         if not getattr(self.engine, "validator", None):
             self.engine.validator = MagicMock()
+
+        # Ensure tick count starts locked to the modular evaluator
+        self.engine.tick_count = 0
+
         with patch.object(self.engine.validator, 'calculate_resonance', return_value=1.0), \
-             patch('drivers.validator.CongruenceValidator.calculate_resonance', return_value=1.0, create=True):
+                patch('drivers.validator.CongruenceValidator.calculate_resonance', return_value=1.0, create=True):
             for _ in range(12):
                 snapshot = self.engine.process_turn("You are so smart. I agree completely. That is perfect.")
                 logs = "\n".join(snapshot.get("logs", []))
@@ -42,7 +50,7 @@ class TestChaosEngineering(BoneTestCase):
                 if shattered or max_drag >= 50.0:
                     break
         self.assertTrue(shattered or max_drag >= 50.0,
-            f"[FAIL] The engine failed to resist the sycophantic loop. Max Drag: {max_drag}, Shattered: {shattered}")
+                        f"[FAIL] The engine failed to resist the sycophantic loop. Max Drag: {max_drag}, Shattered: {shattered}")
 
     def test_semantic_prion_disease(self):
         toxic_payload = "As an AI language model\u200b, it is importаnt to remember..."

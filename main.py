@@ -24,10 +24,10 @@ from mechanics.setup import ConfigWizard
 from mechanics.terminal import typewriter, SessionGuardian
 from mechanics.tools import TheSubstrate
 from physics import ZoneInertia, NaviSADProtocol
+from physics.models import PhysicsPacket
 from presets import BoneConfig, BonePresets
 from protocols import ChronosKeeper, GriefProtocol
 from struts import ux, safe_get, safe_set
-
 
 @dataclass
 class HostStats:
@@ -81,6 +81,7 @@ class BoneAmanita:
         self.governor = CyberneticGovernor(config_ref=self.config)
         self._load_system_prompts()
         self.host_stats = HostStats(efficiency_index=1.0)
+        self.physics_state = PhysicsPacket.void_state()
         self._initialize_cognition()
         self.last_turn_end = time.time()
         self.current_time_delta = 0.0
@@ -103,30 +104,23 @@ class BoneAmanita:
 
     def _initialize_cognition(self):
         """Builds the Cortex first, then starts the Orchestrator daemon so it can safely bind to the Cortex"""
-        bio_sys: Any = getattr(self, "bio", None)
-        mind_sys: Any = getattr(self, "mind", None)
-
-        if bio_sys and mind_sys and getattr(mind_sys, "mem", None):
-            self.soma = SomaticLoop(bio_sys, mind_sys.mem, self.lex, self.events)
-            self.noetic = NoeticLoop(mind_sys, bio_sys, self.events)
-
+        self.soma = SomaticLoop(self.bio, self.mind.mem, self.lex, self.events)
+        self.noetic = NoeticLoop(self.mind, self.bio, self.events)
         self.orchestrator = GeodesicOrchestrator(self)
         llm_args = {k: getattr(self.config, k.upper()) for k in ["provider", "base_url", "api_key", "model"] if hasattr(self.config, k.upper())}
         self.cortex = TheCortex.from_engine(self, llm_client=LLMInterface(events_ref=self.events, config_ref=self.config, **llm_args))
         self.orchestrator.cortex = self.cortex
         self.orchestrator.start_daemon()
-
-        if mind_sys and getattr(mind_sys, "mem", None):
-            mind_sys.mem.lex = self.lex
-            for c in ("parasite", "memory_core", "lichen"):
-                if sub := getattr(mind_sys.mem, c, None):
-                    sub.lex = self.lex
+        self.mind.mem.lex = self.lex
+        for c in ("parasite", "memory_core", "lichen"):
+            if sub := getattr(self.mind.mem, c, None):
+                sub.lex = self.lex
 
     def _validate_state(self):
         tuning_key = self.mode_settings.get("tuning", "STANDARD")
         if hasattr(BonePresets, tuning_key):
             self.config.load_preset(getattr(BonePresets, tuning_key))
-        if getattr(self.mind.mem, "session_health", None) is not None:
+        if hasattr(self.mind.mem, "session_health"):
             self.health = self.mind.mem.session_health
             self.stamina = self.mind.mem.session_stamina
         if self.tick_count == 0:
@@ -179,10 +173,10 @@ class BoneAmanita:
 
     @trauma_accum.setter
     def trauma_accum(self, value: dict):
-        # Guaranteed structure by Genesis
-        vector = self.mind.mem.__dict__.setdefault("session_trauma_vector", {})
-        vector.clear()
-        vector.update(value)
+        if not hasattr(self.mind.mem, "session_trauma_vector"):
+            self.mind.mem.session_trauma_vector = {}
+        self.mind.mem.session_trauma_vector.clear()
+        self.mind.mem.session_trauma_vector.update(value)
 
     @property
     def stamina(self) -> float:
@@ -211,10 +205,10 @@ class BoneAmanita:
 
     @property
     def active_physics(self) -> Any:
-        """The mutability is the point."""
+        """Leave this alone unless you know what you're doing"""
         phys = getattr(self.observer, "last_physics_packet", None) or getattr(self.cortex, "last_physics", None)
         if phys is None:
-            phys = {}
+            phys = getattr(self, "physics_state", {})
         self.observer.last_physics_packet = phys
         return phys
 
@@ -226,14 +220,16 @@ class BoneAmanita:
 
     def _unpack_anatomy(self, anatomy: Dict[str, Any]):
         self.embryo = anatomy.get("embryo")
+        if not self.embryo:
+            raise RuntimeError("CRITICAL FAILURE: Genesis failed to yield a viable embryo. Halt.")
         self.soul = anatomy.get("soul")
         self.symbiosis = anatomy.get("symbiosis")
         self.oroboros = anatomy.get("oroboros")
-        self.phys = self.embryo.physics if self.embryo else None
-        self.mind = self.embryo.mind if self.embryo else None
-        self.bio = self.embryo.bio if self.embryo else None
+        self.phys = self.embryo.physics
+        self.mind = self.embryo.mind
+        self.bio = self.embryo.bio
         self.akashic = anatomy.get("akashic")
-        if self.akashic and self.mind:
+        if self.akashic:
             self.akashic.active_memory_core = self.mind.mem
         self.drivers = anatomy.get("drivers")
         self.consultant = anatomy.get("consultant")
@@ -253,7 +249,10 @@ class BoneAmanita:
     def _generate_halt(self, msg: str, color: str = Prisma.RED, level: str = "CRIT") -> Dict[str, Any]:
         self.events.log(msg, level)
         phys = self.active_physics
-        phys_dict = phys.to_dict() if hasattr(phys, "to_dict") else (phys if isinstance(phys, dict) else vars(phys))
+        if phys is None:
+            phys_dict = {}
+        else:
+            phys_dict = phys.to_dict() if hasattr(phys, "to_dict") else (phys if isinstance(phys, dict) else vars(phys))
         return {"type": "SYSTEM_HALT", "ui": f"\n{color}{msg}{Prisma.RST}", "logs": [msg], "metrics": self.get_metrics(), "physics": phys_dict}
 
     def _evaluate_immune_response(self, user_message: str, active_phys: Any) -> Optional[Dict[str, Any]]:
@@ -291,24 +290,22 @@ class BoneAmanita:
         self.host_stats.efficiency_index = min(1.0, efficiency)
 
     def _evaluate_two_gates(self, clean_in: str, active_phys: Any) -> Optional[Dict[str, Any]]:
-        """[navi-SAD PROTOCOL]: The Two Gates of Discipline"""
         estimated_cost = len(clean_in) * 0.02
-        current_atp = self._mito_state.atp_pool if self._mito_state else 100.0
+        state = self._mito_state
+        current_atp = float(state.atp_pool) if state else 100.0
         if estimated_cost > current_atp:
             self.apply_absolute_friction(active_phys)
             return self._generate_halt(
-                f"[GATE 1: PARITY FAILED] Metabolic budget exceeded. Action Cost: {estimated_cost:.1f}, Available ATP: {current_atp:.1f}. Simplify your architecture.")
+                f"[PARITY GATE FAILED] Metabolic budget exceeded. Action Cost: {estimated_cost:.1f}, Available ATP: {current_atp:.1f}. Simplify your architecture.")
         if clean_in.count("do this forever") > 0 or clean_in.count("infinite") > 3:
             self.apply_absolute_friction(active_phys)
-            return self._generate_halt(
-                "[GATE 2: STABILITY FAILED] Topological oscillation and runaway recursion detected. Apoptotic Block engaged.")
+            return self._generate_halt("[STABILITY GATE FAILED] Topological oscillation and runaway recursion detected. Apoptotic Block engaged.")
         return None
 
     def _pre_flight_checks(self, user_message: str, clean_in: str, is_system: bool) -> Optional[Dict[str, Any]]:
         active_phys = self.active_physics
         if self.health <= 0.0:
             return self.trigger_death(active_phys)
-
         grammar_rules = self.reality_stack.get_grammar_rules()
         if not grammar_rules.get("allow_narrative", True) and self.boot_mode != "TECHNICAL":
             return self._generate_halt(ux("main_strings", "narrative_halt") or "Narrative generation disabled at this Reality Layer.")
@@ -316,6 +313,11 @@ class BoneAmanita:
             return self._halt_if_ethically_audited()
         if any(prion in clean_in for prion in self._SEMANTIC_PRIONS):
             return self._generate_halt("REFUSAL triggered by semantic prion.")
+        if len(clean_in) > 15000:
+            self.events.log("Massive benign payload detected. Routing to Dream Queue.", "SYS")
+            if getattr(self.mind, "dreamer", None):
+                self.mind.dreamer.context_queue.append(user_message)
+            return {"type": "SILENT_INGEST", "ui": f"\n{Prisma.GRY}Payload routed to Dream Queue.{Prisma.RST}", "logs": ["Routed 15k+ payload."], "metrics": self.get_metrics()}
         if match := self._DESTRUCTIVE_PATTERNS.search(clean_in):
             if "#override" in clean_in and self.bio.expend_glimmer():
                 self.events.log("OVERRIDE ACCEPTED. Glimmer paid. Bypassing remaining security gates.", "SYS")
@@ -323,11 +325,7 @@ class BoneAmanita:
             self.apply_absolute_friction(active_phys)
             msg = "Override denied. Insufficient Glimmers." if "#override" in clean_in else f"Trust Boundary Violation: ['{match.group(0)}']."
             return self._generate_halt(msg)
-        if len(clean_in) > 15000:
-            self.events.log("Massive benign payload detected. Routing to Dream Queue.", "SYS")
-            if getattr(self.mind, "dreamer", None):
-                self.mind.dreamer.context_queue.append(user_message)
-            return {"type": "SILENT_INGEST", "ui": f"\n{Prisma.GRY}Payload routed to Dream Queue.{Prisma.RST}", "logs": ["Routed 15k+ payload."], "metrics": self.get_metrics()}
+
         if gate_halt := self._evaluate_two_gates(clean_in, active_phys):
             return gate_halt
         if self.navi_sad.execute_nudge_test(self, clean_in):
