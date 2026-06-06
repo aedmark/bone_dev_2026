@@ -16,7 +16,6 @@ class AppendLogger:
     """Funneled logger to ensure mock outputs append without overwriting."""
     def __init__(self, filename):
         self.filename = filename
-        # Ensure directory exists if needed, though we write to current dir
         os.makedirs(os.path.dirname(filename) if os.path.dirname(filename) else '.', exist_ok=True)
 
     def log(self, test_id, category, *args, **kwargs):
@@ -45,67 +44,49 @@ class TeeOutput:
 class BoneTestCase(unittest.TestCase):
     def setUp(self):
         warnings.filterwarnings("ignore", category=DeprecationWarning)
-
-        # 1. Reroute stdout to append continuously
         self.original_stdout = sys.stdout
         self.tee = TeeOutput(sys.stdout, "test_output_full.log")
         sys.stdout = self.tee
-
         print(f"\n{Prisma.CYN}>>> STARTING TEST: {self.id()}{Prisma.RST}")
-
-        # 2. Patch Lore saves
         self.lore_logger = AppendLogger("test_saves.log")
         self.lore_patcher = patch('core.LoreManifest.save')
         self.mock_lore_save = self.lore_patcher.start()
         self.mock_lore_save.side_effect = lambda *a, **k: self.lore_logger.log(self.id(), "LORE SAVE", *a, **k)
-
-        # 3. Patch ChronosKeeper to redirect quicksaves away from the production 'saves' folder
         self.chronos_patcher = patch('protocols.chronos.ChronosKeeper.save_checkpoint')
         self.mock_chronos_save = self.chronos_patcher.start()
         self.mock_chronos_save.side_effect = lambda history=None: self.lore_logger.log(self.id(), "CHRONOS QUICKSAVE", history=history)
-
-        # 4. Patch Spore IO to redirect memory saves away from the production 'memories' folder
         self.memory_logger = AppendLogger("test_memories.log")
         self.spore_patcher = patch('spores.io.LocalFileSporeLoader.save_spore')
         self.mock_spore_save = self.spore_patcher.start()
         self.mock_spore_save.side_effect = lambda filename, data: self.memory_logger.log(self.id(), f"SPORE SAVE: {filename}", data=data)
-
-        # 5. Patch Telemetry to capture tracking events and write to a test-specific directory
         self.telemetry_logger = AppendLogger("test_telemetry.log")
         self.telemetry_patcher = patch('core.TelemetryService.get_instance')
         self.mock_telemetry_get = self.telemetry_patcher.start()
-
-        # Create a real telemetry instance but point its log directory to our test scope
         self.test_telemetry_dir = "test_telemetry_logs"
         self.real_telemetry = TelemetryService()
         self.real_telemetry.log_dir = self.test_telemetry_dir
         self.real_telemetry.current_trace_file = os.path.join(self.test_telemetry_dir, f"trace_test_{int(time.time())}.jsonl")
         os.makedirs(self.test_telemetry_dir, exist_ok=True)
-
-        # We also want to capture the calls in our unified log for easy viewing
         original_record = self.real_telemetry.record_event
+
         def hooked_record(event_dict):
             self.telemetry_logger.log(self.id(), "TELEMETRY RECORD", event=event_dict)
             original_record(event_dict)
 
         self.real_telemetry.record_event = hooked_record
         self.mock_telemetry_get.return_value = self.real_telemetry
-
         self.test_config = {
             "PROVIDER": "ollama",
             "boot_mode": "DEEP",
             "MAX_STAMINA": 100.0,
             "MAX_HEALTH": 100.0,
             "CORE": {
-                 "TELEMETRY_LOG_DIR": self.test_telemetry_dir # Ensure internal config knows the path
+                 "TELEMETRY_LOG_DIR": self.test_telemetry_dir
             }
         }
-
-        # 6. Isolate the legacy Oroboros file per test thread
         self.oroboros_file = f"tests_isolated_legacy_{self.id().split('.')[-1]}.json"
         self.oroboros_patcher = patch('soul.oroboros.TheOroboros.LEGACY_FILE', self.oroboros_file)
         self.oroboros_patcher.start()
-
         try:
             self.engine = BoneAmanita(config=self.test_config)
         except Exception as e:
@@ -114,9 +95,7 @@ class BoneTestCase(unittest.TestCase):
 
     def tearDown(self):
         print(f"{Prisma.GRN}<<< COMPLETED TEST: {self.id()}{Prisma.RST}\n")
-
         try:
-            # Force telemetry to synchronously flush its buffer before we tear down
             if hasattr(self, 'real_telemetry'):
                 self.real_telemetry.flush_to_disk()
                 if self.real_telemetry._executor:
@@ -125,7 +104,6 @@ class BoneTestCase(unittest.TestCase):
         finally:
             sys.stdout = self.original_stdout
             self.tee.close()
-
         self.lore_patcher.stop()
         self.chronos_patcher.stop()
         self.spore_patcher.stop()
