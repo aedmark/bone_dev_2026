@@ -287,6 +287,11 @@ class TheCortex:
             return sim_result
         if f_drag > 1.5 or chi_val > 0.8:
             reject_msg = ux("cortex_strings", "gordon_anchor_lock", default="[GORDON - The Anchor]: Frequency too high. Tensegrity Anchor engaged. I am locking the architecture. Take a breath and lower your narrative friction before we proceed.")
+            if self.events:
+                self.events.log(f"{Prisma.RED}{reject_msg}{Prisma.RST}", "SYS_LOCK")
+            sim_result["ui"] = (str(sim_result.get("ui", "")) + f"\n\n{Prisma.RED}{reject_msg}{Prisma.RST}").strip()
+            sim_result["type"] = "SYSTEM_HALT"
+            return sim_result
         simulated_ros = (f_drag * 5.0) + (chi_val * 20.0) + (m_a * 30.0)
         if simulated_ros > 35.0:
             reject_msg = ux("brain_strings", "pinker_cf_gate", default="Structural rot critical.")

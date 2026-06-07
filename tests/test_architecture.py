@@ -36,6 +36,8 @@ class ArchitectureTests(BoneTestCase):
         mock_svc.orchestrator.eng.governor.get_policy_shift.return_value = "EFFICIENCY"
         mock_svc.inventory.process_loot_tags.return_value = ("Normal response.", [])
         mock_svc.orchestrator.eng.gatekeeper.audit_generation.return_value = (True, "Normal response.")
+        mock_svc.orchestrator.eng.substrate = None
+        mock_svc.orchestrator.eng.tick_count = 3
         cortex = TheCortex(services=mock_svc, llm_client=MagicMock())
         cortex.active_mode = "ADVENTURE"
         cortex.pragmatist = MagicMock()

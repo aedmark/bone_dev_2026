@@ -1,5 +1,22 @@
 # CHANGELOG.md
 -----------------------------------------------------------
+
+### **BONEAMANITA 20.4.8 "The Moog Protocol"**
+
+**Feature Additions**
+
+* **The Moog Protocol (cortex.py & cycle.py):** Integrated a cognitive quarantine system (`worry_ledger`) into `TheCortex`. The engine now intercepts high-drag, high-chaos loops before they trigger an Apoptotic Crash, physically amputating the text from the `dialogue_buffer`.
+* **Headless Worry Processing (cycle.py):** Wired the `worry_ledger` into the `GeodesicOrchestrator`'s asynchronous background daemon (`_process_rem_tick`). Worries are processed during REM sleep without blocking the main user thread.
+* **Metabolic Yield & Dark Matter:** Implemented a binary actionability filter for quarantined worries. Actionable items are converted directly into strict Council Mandates. Uncontrollable/existential concerns are permanently stripped of narrative weight, stamped into the Akashic Record as "Dark Matter", and yield a massive ROS purge and a Glimmer.
+
+**Test Suite & Architecture Hardening**
+
+* **Python 3.12 Sequence Fortification:** Grounded unconfigured `MagicMock` injections in the `test_architecture.py` suite. Fixed strict sequence validation errors (`random.sample()`) and tuple-unpacking crashes (`ValueError: not enough values to unpack`) across the `Composer`, `Gatekeeper`, and `Inventory` mocks.
+* **Gordon Anchor Restoration:** Fixed a physical leak in `_evaluate_toxicity` where the `SYSTEM_HALT` return statement was accidentally bypassed, restoring Gordon's ability to cleanly lock the architecture under high narrative friction.
+* **Typing Convergence:** Resolved cascading `TypeError` collapses in the test runner by explicitly hydrating the engine mocks with concrete floats and integers for mathematical limits (`tick_count`, `m_a`, `latency`, `calculate_coupling`). All 211 tests now run green.
+
+---
+
 ### **BONEAMANITA 20.4.7 "The Moog Protocol Preparation"**
 
 **Architectural Patches & Optimizations**
