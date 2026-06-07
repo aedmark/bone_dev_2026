@@ -363,30 +363,31 @@ class GeodesicOrchestrator:
                         f"  • {Prisma.strip(dream_txt)} (Shadow cast involving: {random.choice(objs)})")
             except Exception as e:
                 self.eng.events.log(f"Dream generation failed in REM: {e}", "DEBUG")
-                self._async_pool.submit(_bg_hallucinate, trauma_level, objects)
 
-                def _bg_process_moog_ledger(self, worries: list):
-                    """Headless evaluation of the Moog Protocol worry ledger."""
-                    for worry in worries:
-                        actionable = False
-                        if "fix" in worry.lower() or "do" in worry.lower() or "how" in worry.lower():
-                            actionable = True
-                        if actionable:
-                            self.eng.events.log(f"{Prisma.CYN}[MOOG PROTOCOL]: Worry deemed actionable. Converting to mandate.{Prisma.RST}", "SYS")
-                            if hasattr(self.eng, "village") and hasattr(self.eng.village, "council"):
-                                mandate = {"type": "TASK", "directive": worry}
-                                if hasattr(self.eng.village.council, "mandates"):
-                                    self.eng.village.council.mandates.append(mandate)
-                        else:
-                            self.eng.events.log(f"{Prisma.VIOLET}[MOOG PROTOCOL]: Concern is uncontrollable. Stripping narrative weight.{Prisma.RST}", "SYS")
-                            if hasattr(self.eng, "mind") and hasattr(self.eng.mind, "mem"):
-                                safe_phys = getattr(self.eng, "active_physics", None) or {}
-                                self.eng.mind.mem.record_scar(f"Moog Residue: {worry[:30]}...", safe_phys)
-                            if _mito_state := self.eng._mito_state:
-                                _mito_state.ros_buildup = max(0.0, _mito_state.ros_buildup - 15.0)
-                            if hasattr(self.eng, "bio") and hasattr(self.eng.bio, "endo"):
-                                self.eng.bio.endo.glimmers += 1
-                            self.eng.events.log(f"{Prisma.MAG}[MOOG PROTOCOL]: Disciplinary release successful. ROS purged. (+1 Glimmer){Prisma.RST}", "SYS")
+        self._async_pool.submit(_bg_hallucinate, trauma_level, objects)
+
+    def _bg_process_moog_ledger(self, worries: list):
+        """Headless evaluation of the Moog Protocol worry ledger."""
+        for worry in worries:
+            actionable = False
+            if "fix" in worry.lower() or "do" in worry.lower() or "how" in worry.lower():
+                actionable = True
+            if actionable:
+                self.eng.events.log(f"{Prisma.CYN}[MOOG PROTOCOL]: Worry deemed actionable. Converting to mandate.{Prisma.RST}", "SYS")
+                if hasattr(self.eng, "village") and hasattr(self.eng.village, "council"):
+                    mandate = {"type": "TASK", "directive": worry}
+                    if hasattr(self.eng.village.council, "mandates"):
+                        self.eng.village.council.mandates.append(mandate)
+            else:
+                self.eng.events.log(f"{Prisma.VIOLET}[MOOG PROTOCOL]: Concern is uncontrollable. Stripping narrative weight.{Prisma.RST}", "SYS")
+                if hasattr(self.eng, "mind") and hasattr(self.eng.mind, "mem"):
+                    safe_phys = getattr(self.eng, "active_physics", None) or {}
+                    self.eng.mind.mem.record_scar(f"Moog Residue: {worry[:30]}...", safe_phys)
+                if _mito_state := self.eng._mito_state:
+                    _mito_state.ros_buildup = max(0.0, _mito_state.ros_buildup - 15.0)
+                if hasattr(self.eng, "bio") and hasattr(self.eng.bio, "endo"):
+                    self.eng.bio.endo.glimmers += 1
+                self.eng.events.log(f"{Prisma.MAG}[MOOG PROTOCOL]: Disciplinary release successful. ROS purged. (+1 Glimmer){Prisma.RST}", "SYS")
 
     def _verify_semantic_topology(self, ctx: CycleContext):
         """ Native Maslov-Sneppen rewiring (Project Navi, Apache 2.0). """

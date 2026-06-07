@@ -24,12 +24,22 @@ class TestMoogProtocol(BoneTestCase):
         self.config = BoneConfig
 
         # 1. Setup Cortex Services Mock
-        self.mock_svc = MagicMock(spec=CortexServices)
+        self.mock_svc = MagicMock()
+        self.mock_svc.consultant = MagicMock()
+        self.mock_svc.village = MagicMock()
+        self.mock_svc.inventory = MagicMock()
+        self.mock_svc.lore = MagicMock()
+        self.mock_svc.symbiosis = MagicMock()
         self.mock_svc.bio = MagicMock()
         self.mock_svc.bio.endo.glimmers = 0
         self.mock_svc.config_ref = self.config
         self.mock_svc.events = MagicMock()
         self.mock_svc.mind_memory = MagicMock()
+
+        # Hydrate the Orchestrator/Engine mock with concrete floats for the math operations
+        self.mock_svc.orchestrator = MagicMock()
+        self.mock_svc.orchestrator.eng.navi_sad.calculate_semantic_dimension.return_value = 1.0
+        self.mock_svc.orchestrator.eng.governor.calculate_coupling.return_value = 0.5
 
         # 2. Setup Engine Mock for Orchestrator
         self.mock_eng = MagicMock()
