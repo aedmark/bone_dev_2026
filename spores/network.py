@@ -449,7 +449,16 @@ class MycelialNetwork:
             if scope < 0.3:
                 return results
         k_neighbors = max(1, int(scope * 10))
-        results.extend({"source": "cortex", "data": res}
-            for res in
-            self.cortex.query_neighborhood(query_vector=query_vector, k=k_neighbors, resonance_threshold=resonance))
+        cortex_results = self.cortex.query_neighborhood(query_vector=query_vector, k=k_neighbors, resonance_threshold=resonance)
+        
+        for res in cortex_results:
+            if not res.get("raw_text") and (vh := res.get("vector_hash")):
+                if phantom_text := self.cortex.resolve_phantom(vh):
+                    res["raw_text"] = phantom_text
+
+        radius_data = self.cortex.get_local_mass_radius(trigger_word)
+        if radius_data:
+            results.append({"source": "cortex_radius", "data": radius_data})
+
+        results.extend({"source": "cortex", "data": res} for res in cortex_results)
         return results

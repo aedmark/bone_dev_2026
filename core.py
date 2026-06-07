@@ -383,18 +383,6 @@ class SystemHealth:
     observer: Optional["TheObserver"] = None
     events: Optional["EventBus"] = None
 
-    @property
-    def physics_online(self) -> bool:
-        return self.components_online.get("physics", True)
-
-    @property
-    def bio_online(self) -> bool:
-        return self.components_online.get("bio", True)
-
-    @property
-    def mind_online(self) -> bool:
-        return self.components_online.get("mind", True)
-
     def __getattr__(self, item: str):
         if item.endswith("_online"):
             return self.components_online.get(item[:-7].lower(), True)
@@ -550,10 +538,8 @@ class CyberneticGovernor:
         from spores.spore_utils import _word_to_vector
         import numpy as np
 
-        voltage = float(
-            physics.get('voltage', 30.0) if isinstance(physics, dict) else getattr(physics, 'voltage', 30.0))
-        drag = float(
-            physics.get('narrative_drag', 0.6) if isinstance(physics, dict) else getattr(physics, 'narrative_drag', 0.6))
+        voltage = float(safe_get(physics, 'voltage', 30.0))
+        drag = float(safe_get(physics, 'narrative_drag', 0.6))
         p_cfg = getattr(self.cfg, "PHYSICS", None)
         v_max = float(getattr(p_cfg, "VOLTAGE_MAX", 100.0))
         v_floor = float(getattr(p_cfg, "VOLTAGE_FLOOR", 0.0))
@@ -611,10 +597,8 @@ class CyberneticGovernor:
     def _pid_fallback(self, physics: Dict[str, Any], dt: float, endocrine_state: Any = None) -> Tuple[float, float]:
         active_tv = self.target_v if self.target_v is not None else 30.0
         active_td = self.target_d if self.target_d is not None else 0.6
-        current_v = float(
-            physics.get("voltage", active_tv) if type(physics) is dict else getattr(physics, "voltage", active_tv))
-        current_d = float(
-            physics.get("narrative_drag", active_td) if type(physics) is dict else getattr(physics, "narrative_drag", active_td))
+        current_v = float(safe_get(physics, "voltage", active_tv))
+        current_d = float(safe_get(physics, "narrative_drag", active_td))
         stress_mod = 1.0 if endocrine_state is None else (1.5 if float(getattr(endocrine_state, 'glimmers', 0)) >= 1 else 0.75)
         adjusted_dt = dt * 0.5 * stress_mod
         return (active_tv - current_v) * adjusted_dt, (active_td - current_d) * adjusted_dt
