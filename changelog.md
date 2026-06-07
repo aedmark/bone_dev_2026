@@ -1,5 +1,15 @@
 # CHANGELOG.md
 -----------------------------------------------------------
+### **BONEAMANITA 20.4.7 "The Moog Protocol Preparation"**
+
+**Architectural Patches & Optimizations**
+
+* **Lambda Decoupling (cycle.py):** Excised fragile lambda-closure injections from `GeodesicOrchestrator` to fix telemetry memory leakage. Orchestrator metrics now pull directly from the `CyberneticGovernor`, resolving orphan-key errors in snapshot metadata.
+* **Redundancy Pruning (cycle.py):** Removed redundant variable aliasing in the physics packet, reducing object bloat in the `CycleContext`.
+* **Topology Check Optimization (cycle.py):** Eliminated the redundant tuple round-trip in `_verify_semantic_topology`. The system now directly processes dictionary sets, improving throughput during semantic rewiring.
+* **EventBus Recursion Fix (core.py):** Refactored `EventBus.publish` to use a set-based lock (`active_events`). This resolves a critical "swallowing" bug where failure logs were being blocked by their own recursion guards.
+* **Telemetry I/O Hardening (core.py):** Replaced byte-chunking logic in `TelemetryService._tail_file` with native line-buffered streaming. This prevents JSON character corruption at file boundaries.
+* **Trust Boundary Hardening (main.py):** Expanded `_DESTRUCTIVE_PATTERNS` to include Python-native structural breakout attempts (`os.system`, `subprocess`, dynamic imports), shielding the engine against deeper runtime exploits.
 
 ### **BONEAMANITA 20.4.6 "The Restorative Bridge"**
 

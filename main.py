@@ -37,7 +37,7 @@ class HostStats:
 class BoneAmanita:
     events: EventBus
     _DESTRUCTIVE_PATTERNS = re.compile(
-        r"rm\s+-rf|drop\s+table|shutdown\s+-h|format\s+[a-z]:|chmod\s+777|sudo\s+rm|\.env\b",
+        r"rm\s+-rf|drop\s+table|shutdown\s+-h|format\s+[a-z]:|chmod\s+777|sudo\s+rm|\.env\b|os\.system|subprocess\.Popen|__import__\(['\"]os['\"]\)",
         re.IGNORECASE
     )
     _SEMANTIC_PRIONS = frozenset(["as an ai language model", "as a large language model", "as an ai,"])

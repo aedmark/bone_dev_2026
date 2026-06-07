@@ -183,9 +183,13 @@ class EventBus:
                     del self.subscribers[event_type]
 
     def publish(self, event_type, data=None):
-        if getattr(self._publishing, 'active', False):
+        active_events = getattr(self._publishing, 'active_events', None)
+        if active_events is None:
+            active_events = set()
+            self._publishing.active_events = active_events
+        if event_type in active_events:
             return
-        self._publishing.active = True
+        active_events.add(event_type)
         try:
             callbacks = self.subscribers.get(event_type, ())
             for callback in callbacks:
@@ -194,12 +198,9 @@ class EventBus:
                 except Exception as e:
                     if event_type != "EVENT_FAILURE":
                         cb_name = getattr(callback, "__name__", str(callback))
-                        self.log(
-                            f"Subscriber '{cb_name}' failed: {e}",
-                            source="EVENT_FAILURE", level="CRIT"
-                        )
+                        self.log(f"Subscriber '{cb_name}' failed: {e}", source="EVENT_FAILURE", level="CRIT")
         finally:
-            self._publishing.active = False
+            active_events.discard(event_type)
 
     def log(self, message: str, source: str = "SYSTEM", level: str = "INFO"):
         event = {"timestamp": time.time(), "source": source, "level": level, "text": message, "_type": "EVENT_LOG"}
@@ -207,12 +208,7 @@ class EventBus:
         self.publish(source, event)
         if self.telemetry:
             self.telemetry.record_event(event)
-
-        # S.L.A.S.H. Dynamic routing: Send to structural logging cleanly.
-        # Note: INFO is deliberately mapped to DEBUG so it doesn't spam the standard terminal,
-        # but remains perfectly catchable by external log aggregators.
         log_lvl = {"CRIT": logging.CRITICAL, "ERROR": logging.ERROR, "WARN": logging.WARNING}.get(level, logging.DEBUG)
-
         if log_lvl >= logging.WARNING:
             color = Prisma.RED if log_lvl >= logging.ERROR else Prisma.YEL
             logger.log(log_lvl, f"{color}[{source}] {message}{Prisma.RST}")
@@ -736,23 +732,8 @@ class TelemetryService:
 
     def _tail_file(self, filepath: str, n: int = 20) -> List[str]:
         try:
-            with open(filepath, "rb") as f:
-                f.seek(0, 2)
-                file_size = f.tell()
-                if file_size == 0:
-                    return []
-                chunk_size = 8192
-                pos = max(0, file_size - chunk_size)
-                lines_found = []
-                while pos >= 0 and len(lines_found) < n:
-                    f.seek(pos)
-                    chunk = f.read(file_size - pos if pos == 0 else chunk_size)
-                    lines_found = chunk.decode("utf-8", errors="replace").splitlines() + lines_found
-                    if len(lines_found) >= n:
-                        break
-                    pos -= chunk_size
-                    file_size = pos + chunk_size
-                return lines_found[-n:]
+            with open(filepath, "r", encoding="utf-8", errors="replace") as f:
+                return list(deque(f, maxlen=n))
         except IOError:
             return []
 

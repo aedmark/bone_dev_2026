@@ -48,6 +48,7 @@ class TheCortex:
         c_cfg = safe_get(self.cfg, "CORTEX", {})
         self.MAX_HISTORY = int(safe_get(c_cfg, "MAX_HISTORY_LENGTH", 15))
         self.dialogue_buffer = deque(maxlen=self.MAX_HISTORY)
+        self.worry_ledger = deque(maxlen=20)
         self.modulator = NeurotransmitterModulator(bio_ref=self.svc.bio, events_ref=self.events, config_ref=self.cfg)
         self.last_physics = {}
         self.last_shadow_nodes = []
@@ -272,13 +273,19 @@ class TheCortex:
         f_drag = float(phys_state.get("narrative_drag", 0.0))
         chi_val = float(phys_state.get("chi", phys_state.get("entropy", 0.0)))
         m_a = float(phys_state.get("m_a", 0.0))
-        if f_drag > 1.5 or chi_val > 0.8:
-            reject_msg = ux("cortex_strings", "gordon_anchor_lock", default="[GORDON - The Anchor]: Frequency too high. Tensegrity Anchor engaged. I am locking the architecture. Take a breath and lower your narrative friction before we proceed.")
+        if (f_drag > 1.5 or chi_val > 0.8) and m_a < 0.3:
+            worry_text = sim_result.get("mutated_input", "")
+            self.worry_ledger.append(worry_text)
+            phys_state["narrative_drag"] = 0.0
+            moog_msg = "The parameters of this concern are undefined. I am placing this in the ledger. We will not spend ATP on this right now."
             if self.events:
-                self.events.log(f"{Prisma.RED}{reject_msg}{Prisma.RST}", "SYS_LOCK")
-            sim_result["ui"] = (str(sim_result.get("ui", "")) + f"\n\n{Prisma.RED}{reject_msg}{Prisma.RST}").strip()
-            sim_result["type"] = "SYSTEM_HALT"
+                self.events.log(f"{Prisma.CYN}[MOOG INTERCEPT]: {moog_msg}{Prisma.RST}", "SYS")
+            sim_result["ui"] = (str(sim_result.get("ui", "")) + f"\n\n[GORDON]: {moog_msg}").strip()
+            sim_result["type"] = "MOOG_QUARANTINE"
             return sim_result
+        if f_drag > 1.5 or chi_val > 0.8:
+            reject_msg = ux("cortex_strings", "gordon_anchor_lock",
+                            default="[GORDON - The Anchor]: Frequency too high. Tensegrity Anchor engaged. I am locking the architecture. Take a breath and lower your narrative friction before we proceed.")
         simulated_ros = (f_drag * 5.0) + (chi_val * 20.0) + (m_a * 30.0)
         if simulated_ros > 35.0:
             reject_msg = ux("brain_strings", "pinker_cf_gate", default="Structural rot critical.")
