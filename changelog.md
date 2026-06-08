@@ -1,7 +1,7 @@
 # CHANGELOG.md
 -----------------------------------------------------------
 
-### **BONEAMANITA 20.4.8 "The Moog Protocol"**
+### **BONEAMANITA 20.5.0 "The Moog Protocol"**
 
 **Feature Additions**
 
