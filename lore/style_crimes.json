@@ -101,7 +101,7 @@
     },
     {
       "name": "EM_DASH_ABUSE",
-      "regex": "(?:[-—]\\s*[^.!?\\n]*?){3,}",
+      "regex": "(?:(?:—|--)\\s*[^.!?\\n]*?){3,}",
       "error_msg": "DETECTED EM-DASH ABUSE. Stop using dashes to connect disjointed poetic fragments. Use declarative sentences."
     },
     {
