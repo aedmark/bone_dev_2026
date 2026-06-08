@@ -28,6 +28,8 @@
 * **Telemetry I/O Hardening (core.py):** Replaced byte-chunking logic in `TelemetryService._tail_file` with native line-buffered streaming. This prevents JSON character corruption at file boundaries.
 * **Trust Boundary Hardening (main.py):** Expanded `_DESTRUCTIVE_PATTERNS` to include Python-native structural breakout attempts (`os.system`, `subprocess`, dynamic imports), shielding the engine against deeper runtime exploits.
 
+---
+
 ### **BONEAMANITA 20.4.6 "The Restorative Bridge"**
 
 **Architectural Patches & Optimizations**
