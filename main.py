@@ -499,6 +499,11 @@ class BoneAmanita:
             self.phys.narrative_drag = 0.0
         boot_prompt = f"SYSTEM_BOOT: The system is already stable and comfortable. The user has arrived at the thought seed: '{seed}'. Greet the user casually and warmly using this seed. DO NOT describe physical environments and DO NOT act confused about your existence."
         cold_result = self.process_turn(boot_prompt, is_system=True)
+        if state := self._mito_state:
+            self.set_atp(getattr(self.config, "MAX_ATP", 100.0))
+            state.ros_buildup = 0.0
+            self.events.log(
+                f"{Prisma.CYN}Genesis Subsidy Applied. Boot overhead absorbed by the substrate.{Prisma.RST}", "SYS")
         return cold_result
 
     def save_checkpoint(self, history: Optional[list] = None) -> str:

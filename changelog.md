@@ -1,7 +1,30 @@
 # CHANGELOG.md
 -----------------------------------------------------------
 
-### **BONEAMANITA 20.5.0 "The Moog Protocol"**
+### **BONEAMANITA 20.6.0 "The Jester's Gambit"**
+
+**Feature Additions**
+
+* **The Void (`/hallucinate`):** Integrated a native hallucination command into the `CommandProcessor`. It levies a strict 25 ATP tax to mathematically bypass the thermal locks, physically spiking phase-space tension ($\mu \approx 0.9$) and creative drive ($\kappa \ge 0.5$). It injects a hardcoded cognitive mandate directly into the `dialogue_buffer` to summon The Jester and force a lateral paradigm shift.
+* **Topological Reality Validation:** Ripped out the performative abstraction (mock linear data) in `_bg_wls_check` inside `cycle.py`. Wired in a true Breadth-First Search (BFS) algorithm to calculate the actual Mass-Radius scaling and fractal geometry of the `hippocampus` memory graph. 
+
+**Refactoring & Optimization**
+
+* **Reality Stack Tensegrity:** Cleaned a structural dependency leak in `core.py`. Decoupled grammar rules from the mutable `RealityStack` object and centralized them into the static `RealityLayer` class as the absolute source of truth. Altered the test harness to respect the decoupled architecture.
+* **Command Migration & Interrupts:** Stripped the hardcoded `/zen` and `/flush` commands out of `main.py`'s primary `process_turn` loop, routing them gracefully through `CommandProcessor` under the unified `_cmd_rest` protocol.
+* **Data Amputation:** Purged dead-weight state tracking (`village_data`, `joy_history`, `mutations: {}`) from the `save_state` serialization payload, optimizing memory output and disk I/O.
+* **Asynchronous Latency:** Offloaded the synchronous `actual_adj` dictionary comprehension in the `_verify_semantic_topology` check to the async worker pool, preventing main thread blocking and subsequent `queue.Empty` crashes.
+
+**Fixed**
+
+* **The Null Exception Minefield:** Executed a global syntactic purge across `commands.py`, replacing reckless `ux().format()` chained calls with the safe `ux_format()` utility. This prevents fatal `AttributeError` engine crashes if a string is ever missing from `ux_strings.json`.
+* **Dictionary vs. Object Fallback:** Resolved a silent assignment failure where `safe_set` failed to mutate the `MockPhys` class object because it was originally designed for the `active_physics` dictionary. Explicitly separated the live state update from the base engine update.
+* **Telemetry Crash Trap:** Hardened the `/report` and `/diag` commands with safe `getattr` boundary checks to prevent the engine from fatally crashing if the telemetry module boots offline.
+* **The Apoptotic Test Trigger:** Restored the `do this forever` trap to `main.py`'s execution loop explicitly as a load-bearing pillar for the Apoptotic Crash test harness.
+
+---
+
+### **BONEAMANITA 20.4.8 "The Moog Protocol"**
 
 **Feature Additions**
 
