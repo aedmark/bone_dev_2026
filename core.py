@@ -439,12 +439,6 @@ class RealityStack:
     def stabilize_at(self, layer: int):
         self._stack = [layer]
 
-    def get_grammar_rules(self) -> Dict[str, bool]:
-        d = self.current_depth
-        return {"allow_narrative": d in (RealityLayer.SIMULATION, RealityLayer.DEEP_CX, RealityLayer.DEBUG),
-                "allow_commands": d >= RealityLayer.SIMULATION, "allow_meta": d >= RealityLayer.DEBUG,
-                "raw_output": d == RealityLayer.DEEP_CX, "system_override": d == RealityLayer.DEBUG}
-
 class CyberneticGovernor:
     """
     Apex N-Dimensional Topological Manifold Governor.

@@ -165,11 +165,14 @@ class CommandProcessor:
                 self.registry.register(f"/{name}", getattr(self, attr), desc)
 
     def execute(self, text: str):
+        if text.strip().lower() == "[zen]":
+            text = "/zen"
         if not text.startswith("/"):
             return False
         if hasattr(self.interface.eng, "reality_stack"):
             stack = self.interface.eng.reality_stack
-            rules = stack.get_grammar_rules()
+            boot_mode = getattr(self.interface.eng, "boot_mode", "ADVENTURE")
+            rules = RealityLayer.get_rules(stack.current_depth, boot_mode=boot_mode)
             if not rules.get("allow_commands", True):
                 msg = ux("command_alerts", "reality_lock")
                 self.interface.log(f"{self.P.RED}{msg.format(depth=stack.current_depth)}{self.P.RST}", "ERR")
@@ -440,16 +443,35 @@ class CommandProcessor:
         return self._cmd_idle(parts)
 
     def _cmd_rest(self, _parts):
-        self.interface.modify_resource("stamina", 100.0)
-        if hasattr(self.interface.eng, "phys"):
+        cortex = getattr(self.interface.eng, "cortex", None)
+        if cortex:
+            cortex.purge_context()
+
+        phys = getattr(self.interface.eng, "active_physics", None)
+        if phys is not None:
+            from struts import safe_set
+            safe_set(phys, "narrative_drag", 0.0)
+        elif hasattr(self.interface.eng, "phys") and self.interface.eng.phys:
             self.interface.eng.phys.narrative_drag = 0.0
+
+        vitals = self.interface.get_vitals()
+        self.interface.modify_resource("stamina", vitals.get("max_stamina", 100.0))
+        self.interface.modify_resource("atp", vitals.get("max_atp", 100.0))
+
+        if state := getattr(self.interface.eng, "_mito_state", None):
+            state.ros_buildup = 0.0
+
         if hasattr(self.interface.eng, "trauma_accum"):
             self.interface.eng.trauma_accum.clear()
-        self.interface.log(
-            f"{self.P.CYN}Somatic flush complete. Drag reset, trauma purged, stamina restored.{self.P.RST}", "SYS")
+
+        msg = "Context severed. Friction Dropped. Stamina restored. Trauma purged. The mind is clear."
+        self.interface.log(f"{self.P.CYN}{msg}{self.P.RST}", "SYS")
         return True
 
     def _cmd_flush(self, parts):
+        return self._cmd_rest(parts)
+
+    def _cmd_zen(self, parts):
         return self._cmd_rest(parts)
 
     def _cmd_grief(self, _parts):

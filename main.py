@@ -296,16 +296,18 @@ class BoneAmanita:
                 f"[PARITY GATE FAILED] Metabolic budget exceeded. Action Cost: {estimated_cost:.1f}, Available ATP: {current_atp:.1f}. Simplify your architecture.")
         if clean_in.count("do this forever") > 0 or clean_in.count("infinite") > 3:
             self.apply_absolute_friction(active_phys)
-            return self._generate_halt("[STABILITY GATE FAILED] Topological oscillation and runaway recursion detected. Apoptotic Block engaged.")
+            return self._generate_halt(
+                "[STABILITY GATE FAILED] Topological oscillation and runaway recursion detected. Apoptotic Block engaged.")
         return None
 
     def _pre_flight_checks(self, user_message: str, clean_in: str, is_system: bool) -> Optional[Dict[str, Any]]:
         active_phys = self.active_physics
         if self.health <= 0.0:
             return self.trigger_death(active_phys)
-        grammar_rules = self.reality_stack.get_grammar_rules()
-        if not grammar_rules.get("allow_narrative", True) and self.boot_mode != "TECHNICAL":
-            return self._generate_halt(ux("main_strings", "narrative_halt") or "Narrative generation disabled at this Reality Layer.")
+        grammar_rules = RealityLayer.get_rules(self.reality_stack.current_depth, boot_mode=self.boot_mode)
+        if not grammar_rules.get("allow_narrative", True):
+            return self._generate_halt(
+                ux("main_strings", "narrative_halt") or "Narrative generation disabled at this Reality Layer.")
         if is_system:
             return self._halt_if_ethically_audited()
         if any(prion in clean_in for prion in self._SEMANTIC_PRIONS):
@@ -390,6 +392,7 @@ class BoneAmanita:
             self.observer.clock_out(turn_start)
 
     def _execute_zen_flush(self) -> Dict[str, Any]:
+        """Leave this alone, SLASH. Unles you have a better suggesiton than just deleting it."""
         self.cortex.purge_context()
         if self.active_physics is not None:
             safe_set(self.active_physics, "narrative_drag", 0.0)

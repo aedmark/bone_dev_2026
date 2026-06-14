@@ -17,17 +17,16 @@ class CommandSystemTests(BoneTestCase):
         self.assertEqual(processor.interface.get_resource("stamina"), max_stamina, "Stamina breached the architectural ceiling.")
 
     def test_gordon_reality_stack_lockout(self):
+        from constants import RealityLayer
         engine = BoneAmanita({})
         processor = CommandProcessor(engine, Prisma)
 
         class MockRealityStack:
-            current_depth = 4
-
-            def get_grammar_rules(self):
-                return {"allow_commands": False}
+            current_depth = RealityLayer.TERMINAL
 
         engine.reality_stack = MockRealityStack()
         engine.health = 100.0
+        engine.boot_mode = "ADVENTURE"
         processor.execute("/trauma")
         self.assertEqual(engine.health, 100.0, "Gordon failed to hold the wall. Command bypassed Reality Stack lock.")
 
