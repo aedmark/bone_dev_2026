@@ -319,12 +319,10 @@ class BoneAmanita:
             return {"type": "SILENT_INGEST", "ui": f"\n{Prisma.GRY}Payload routed to Dream Queue.{Prisma.RST}", "logs": ["Routed 15k+ payload."], "metrics": self.get_metrics()}
         if match := self._DESTRUCTIVE_PATTERNS.search(clean_in):
             if "#override" in clean_in:
-                endocrine = safe_get(self.bio, "endocrine", None)
-                state = safe_get(endocrine, "state", None) if endocrine else None
-                glimmers = safe_get(state, "glimmers", 0) if state else 0
-
+                endo = getattr(self.bio, "endo", None)
+                glimmers = getattr(endo, "glimmers", 0) if endo else 0
                 if glimmers >= 1:
-                    safe_set(state, "glimmers", glimmers - 1)
+                    endo.glimmers -= 1
                     self.events.log(
                         f"Architect's Override Accepted. Glimmer spent. Executing destructive pattern: [{match.group(0)}].",
                         "SYS")

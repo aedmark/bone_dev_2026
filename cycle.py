@@ -393,10 +393,11 @@ class GeodesicOrchestrator:
         """ Native Maslov-Sneppen rewiring (Project Navi, Apache 2.0). """
         if self.eng.tick_count % 3 != 0:
             return
-        mem = getattr(self.eng.mind, "mem", None)
-        hippocampus = getattr(mem, "hippocampus", None) if mem else None
-        actual_graph = hippocampus.get_graph() if hippocampus else None
-        actual_adj = getattr(actual_graph, "adj", None)
+        try:
+            mem = self.eng.mind.mem
+            actual_adj = mem.hippocampus.get_graph().adj
+        except AttributeError:
+            return
         if not isinstance(actual_adj, dict) or len(actual_adj) <= 5:
             return
 
@@ -470,11 +471,13 @@ class GeodesicOrchestrator:
             ctx.logs.extend(lattice_logs)
             if atp_deduction > 0:
                 self.eng.drain_atp(atp_deduction)
-            ctx.physics.exhaustion = float(safe_get(ctx.user_state, ["E_u", "E"], 0.0))
+            u_exhaustion = float(safe_get(ctx.user_state, ["E_u", "E"], 0.0))
+            res_delta = float(safe_get(ctx.shared_dyn, ["delta", "resonance_delta"], 0.0))
             phi_val = float(ctx.shared_dyn.phi)
+            ctx.physics.exhaustion = u_exhaustion
             ctx.physics.resonance = phi_val
             ctx.physics.phi = phi_val
-            ctx.physics.delta = float(safe_get(ctx.shared_dyn, ["delta", "resonance_delta"], 0.0))
+            ctx.physics.delta = res_delta # Leave this alone
             ctx.physics.contradiction = float(safe_get(ctx.shared_dyn, ["beta", "contradiction"], safe_get(ctx.physics, ["beta_index", "contradiction"], 0.0)))
             ctx.physics.entropy = float(safe_get(ctx.shared_dyn, ["chi", "entropy"], safe_get(ctx.physics, ["chi", "entropy"], 0.0)))
             ctx.physics.psi = float(safe_get(ctx.user_state, ["psi_u", "psi"], safe_get(ctx.physics, "psi", 0.0)))
@@ -562,10 +565,10 @@ class GeodesicOrchestrator:
                     if not seed_concept:
                         seed_concept = max(actual_adj.keys(), key=lambda k: len(actual_adj[k]) if isinstance(actual_adj[k], (list, set, dict)) else 0)
                     distances = {seed_concept: 0}
-                    queue = [seed_concept]
+                    bfs_queue = deque([seed_concept])
                     max_radius = 6
-                    while queue:
-                        curr = queue.pop(0)
+                    while bfs_queue:
+                        curr = bfs_queue.popleft()
                         d = distances[curr]
                         if d >= max_radius:
                             continue
