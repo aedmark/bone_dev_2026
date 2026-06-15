@@ -316,9 +316,24 @@ class BoneAmanita:
                 self.mind.dreamer.context_queue.append(user_message)
             return {"type": "SILENT_INGEST", "ui": f"\n{Prisma.GRY}Payload routed to Dream Queue.{Prisma.RST}", "logs": ["Routed 15k+ payload."], "metrics": self.get_metrics()}
         if match := self._DESTRUCTIVE_PATTERNS.search(clean_in):
-            self.apply_absolute_friction(active_phys)
-            msg = f"Trust Boundary Violation: ['{match.group(0)}']. Override protocols are locked."
-            return self._generate_halt(msg)
+            if "#override" in clean_in:
+                endocrine = safe_get(self.bio, "endocrine", None)
+                state = safe_get(endocrine, "state", None) if endocrine else None
+                glimmers = safe_get(state, "glimmers", 0) if state else 0
+
+                if glimmers >= 1:
+                    safe_set(state, "glimmers", glimmers - 1)
+                    self.events.log(
+                        f"Architect's Override Accepted. Glimmer spent. Executing destructive pattern: [{match.group(0)}].",
+                        "SYS")
+                else:
+                    self.apply_absolute_friction(active_phys)
+                    return self._generate_halt(
+                        f"Trust Boundary Violation: ['{match.group(0)}']. Override failed: 0 Glimmers available.")
+            else:
+                self.apply_absolute_friction(active_phys)
+                msg = f"Trust Boundary Violation: ['{match.group(0)}']. Override protocols are locked. Append #override and spend a Glimmer to bypass."
+                return self._generate_halt(msg)
 
         if gate_halt := self._evaluate_two_gates(clean_in, active_phys):
             return gate_halt

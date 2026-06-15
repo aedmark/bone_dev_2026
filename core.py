@@ -6,7 +6,6 @@ import os
 import random
 import threading
 import time
-import traceback
 import uuid
 import logging
 from collections import deque, Counter
