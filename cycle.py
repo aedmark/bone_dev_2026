@@ -504,12 +504,10 @@ class GeodesicOrchestrator:
                 physics=phys_dict, dt=ctx.time_delta, goal_vector=goal_vec,
                 endocrine_state=getattr(self.eng.bio, "endo", None) if hasattr(self.eng, "bio") else None,
                 memory_core=mem_core, user_text=implicit_text)
-            cur_v: float = float(getattr(ctx.physics, "voltage", 0.0))
-            cur_d: float = float(getattr(ctx.physics, "narrative_drag", 0.0))
-            dv: float = float(force_v)
-            dd: float = float(force_d)
-            ctx.physics.voltage = float(max(0.0, cur_v + dv))
-            ctx.physics.narrative_drag = float(max(0.0, cur_d + dd))
+            cur_v = float(getattr(ctx.physics, "voltage", 0.0))
+            cur_d = float(getattr(ctx.physics, "narrative_drag", 0.0))
+            ctx.physics.voltage = max(0.0, cur_v + force_v)
+            ctx.physics.narrative_drag = max(0.0, cur_d + force_d)
             self._evaluate_systemic_feedback(user_message if not is_system else "(Waiting)", ctx)
             ctx = self.simulator.run_simulation(ctx)
             post_logs = [e["text"] for e in self.eng.events.flush()]
@@ -609,7 +607,7 @@ class GeodesicOrchestrator:
                             if 1.5 < local_d < null_d:
                                 self.eng.events.log(f"{Prisma.CYN}[NAVI-FRACTAL] True Coherence Verified (Ωr = {lattice.shared.omega_r:.2f}). Dimension {local_d:.2f} is structurally deliberate, not random noise.{Prisma.RST}", "SYS")
                             elif local_d >= null_d:
-                                self.self.eng.events.log(f"{Prisma.RED}[NAVI-FRACTAL] Hallucination of Depth! Dimension {local_d:.2f} is indistinguishable from random noise. Stripping coherence rewards.{Prisma.RST}", "WARN")
+                                self.eng.events.log(f"{Prisma.RED}[NAVI-FRACTAL] Hallucination of Depth! Dimension {local_d:.2f} is indistinguishable from random noise. Stripping coherence rewards.{Prisma.RST}", "WARN")
                                 lattice.shared.omega_r = 0.0
                         if local_d < 0.2:
                             self.eng.events.log(f"{Prisma.RED}[CD CONDITION] Phase-space collapse detected (d={local_d:.2f}). Sycophancy Point Attractor identified. Spiking Contradiction (μ) to force generative tension.{Prisma.RST}", "CRIT")
@@ -709,7 +707,7 @@ class GeodesicOrchestrator:
     @staticmethod
     def _generate_crash_report(e: Optional[Exception]) -> Dict[str, Any]:
         if e is not None:
-            full_trace = "".join(traceback.format_exception(type(e), e, getattr(e, "__traceback__", None)))
+            full_trace = "".join(traceback.format_exception(type(e), e, e.__traceback__))
         else:
             full_trace = "Biological execution halted. No standard Python exception provided."
         safe_phys = PanicRoom.get_safe_physics()

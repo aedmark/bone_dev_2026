@@ -49,7 +49,8 @@ class BoneAmanita:
         self.sys_config = config
         self.config = BoneConfig()
         for key in ["model", "provider", "base_url", "api_key"]:
-            if val := self.sys_config.get(key, self.sys_config.get(key.upper())):
+            val = self.sys_config.get(key) or self.sys_config.get(key.upper())
+            if val:
                 setattr(self.config, key.upper(), val)
         self.navi_sad = NaviSADProtocol()
         self.events = EventBus(config_ref=self.config)
@@ -112,9 +113,6 @@ class BoneAmanita:
         self.orchestrator.cortex = self.cortex
         self.orchestrator.start_daemon()
         self.mind.mem.lex = self.lex
-        for c in ("parasite", "memory_core", "lichen"):
-            if sub := getattr(self.mind.mem, c, None):
-                sub.lex = self.lex
 
     def _validate_state(self):
         tuning_key = self.mode_settings.get("tuning", "STANDARD")
