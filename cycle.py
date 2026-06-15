@@ -28,7 +28,7 @@ from phases import (ObservationPhase, SanctuaryPhase, MaintenancePhase, Gatekeep
     ArbitrationPhase, SimulationPreflightPhase, CognitionPhase, SensationPhase, StabilizationPhase,
     SimulationPhase, _safe_dict)
 from physics import CycleStabilizer
-from struts import ux, ux_format
+from struts import ux, ux_format, safe_get
 import numpy as np
 
 _CRASH_COMPONENT_MAP = {"OBSERVE": "PHYSICS", "METABOLISM": "BIO", "COGNITION": "MIND"}
@@ -470,18 +470,14 @@ class GeodesicOrchestrator:
             ctx.logs.extend(lattice_logs)
             if atp_deduction > 0:
                 self.eng.drain_atp(atp_deduction)
-            u_exhaustion = float(getattr(ctx.user_state, "E_u", getattr(ctx.user_state, "E", 0.0)))
+            ctx.physics.exhaustion = float(safe_get(ctx.user_state, ["E_u", "E"], 0.0))
             phi_val = float(ctx.shared_dyn.phi)
-            res_delta = float(getattr(ctx.shared_dyn, "delta", getattr(ctx.shared_dyn, "resonance_delta", 0.0)))
-            ctx.physics.exhaustion = u_exhaustion
             ctx.physics.resonance = phi_val
             ctx.physics.phi = phi_val
-            ctx.physics.delta = res_delta
-            beta_val = float(getattr(ctx.shared_dyn, "beta", getattr(ctx.shared_dyn, "contradiction", getattr(ctx.physics, "beta_index", 0.0))))
-            ctx.physics.contradiction = beta_val
-            chi_val = float(getattr(ctx.shared_dyn, "chi", getattr(ctx.shared_dyn, "entropy", getattr(ctx.physics, "chi", 0.0))))
-            ctx.physics.entropy = chi_val
-            ctx.physics.psi = float(getattr(ctx.user_state, "psi_u", getattr(ctx.user_state, "psi", getattr(ctx.physics, "psi", 0.0))))
+            ctx.physics.delta = float(safe_get(ctx.shared_dyn, ["delta", "resonance_delta"], 0.0))
+            ctx.physics.contradiction = float(safe_get(ctx.shared_dyn, ["beta", "contradiction"], safe_get(ctx.physics, ["beta_index", "contradiction"], 0.0)))
+            ctx.physics.entropy = float(safe_get(ctx.shared_dyn, ["chi", "entropy"], safe_get(ctx.physics, ["chi", "entropy"], 0.0)))
+            ctx.physics.psi = float(safe_get(ctx.user_state, ["psi_u", "psi"], safe_get(ctx.physics, "psi", 0.0)))
             self.eng.governor.calculate_coupling(phi_val, res_delta, u_exhaustion)
             ctx.physics.macro_policy = self.eng.governor.get_policy_shift()
             raw_vector = getattr(ctx.physics, "vector", {})
@@ -496,8 +492,9 @@ class GeodesicOrchestrator:
             if cortex:
                 d_buf = getattr(cortex, "dialogue_buffer", None)
                 if isinstance(d_buf, (list, deque)):
+                    match_prefix = (f"{ctx.user_name}:", "User:", "Traveler:")
                     for line in reversed(d_buf):
-                        if line.startswith("User:") or line.startswith("Traveler:"):
+                        if line.startswith(match_prefix):
                             implicit_text = line[line.find(":") + 1:].strip()
                             break
             force_v, force_d = self.eng.governor.regulate(

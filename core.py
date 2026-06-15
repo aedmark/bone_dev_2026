@@ -43,7 +43,10 @@ class JSONEncoder(json.JSONEncoder):
             for k, v in vars(o).items():
                 if isinstance(v, (threading.Lock, threading.RLock, threading.Thread)):
                     continue
-                safe_dict[k] = v
+                if any(sec in k.lower() for sec in ("api_key", "secret", "token", "password")):
+                    safe_dict[k] = "[REDACTED]"
+                else:
+                    safe_dict[k] = v
             return safe_dict
         try:
             return super().default(o)

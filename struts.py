@@ -18,12 +18,18 @@ def ux_format(section: str, key: str, default: str = "", **kwargs) -> str:
         print(f"{Prisma.GRY}[UX] Formatting mismatch ({e}) in {section}.{key}. Falling back to raw string.{Prisma.RST}")
         return str(msg)
 
-def safe_get(obj: Any, key: str, default: Any = None) -> Any:
+def safe_get(obj: Any, key: Any, default: Any = None) -> Any:
     if obj is None:
         return default
-    if isinstance(obj, dict):
-        return obj.get(key, default)
-    return getattr(obj, key, default)
+    keys = key if isinstance(key, (list, tuple)) else [key]
+    for k in keys:
+        if isinstance(obj, dict) and k in obj:
+            val = obj[k]
+            if val is not None: return val
+        elif hasattr(obj, k):
+            val = getattr(obj, k)
+            if val is not None: return val
+    return default
 
 
 def safe_set(obj: Any, key: str, value: Any) -> None:

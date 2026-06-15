@@ -37,7 +37,7 @@ class HostStats:
 class BoneAmanita:
     events: EventBus
     _DESTRUCTIVE_PATTERNS = re.compile(
-        r"rm\s+-rf|drop\s+table|shutdown\s+-h|format\s+[a-z]:|chmod\s+777|sudo\s+rm|\.env\b|os\.system|subprocess\.Popen|__import__\(['\"]os['\"]\)",
+        r"rm\s+-rf|drop\s+table|shutdown\s+-h|format\s+[a-z]:|chmod\s+777|sudo\s+rm|\.env\b|os\.system|subprocess\.Popen|__import__\(['\"]os['\"]\)|eval\s*\(|exec\s*\(|import\s+(os|pty|sys)\b",
         re.IGNORECASE
     )
     _SEMANTIC_PRIONS = frozenset(["as an ai language model", "as a large language model", "as an ai,"])
@@ -168,6 +168,8 @@ class BoneAmanita:
 
     @trauma_accum.setter
     def trauma_accum(self, value: dict):
+        if getattr(self, "mind", None) is None or getattr(self.mind, "mem", None) is None:
+            return
         if not hasattr(self.mind.mem, "session_trauma_vector"):
             self.mind.mem.session_trauma_vector = {}
         self.mind.mem.session_trauma_vector.clear()
@@ -247,7 +249,7 @@ class BoneAmanita:
         if phys is None:
             phys_dict = {}
         else:
-            phys_dict = phys.to_dict() if hasattr(phys, "to_dict") else (phys if isinstance(phys, dict) else vars(phys))
+            phys_dict = phys.to_dict() if hasattr(phys, "to_dict") else (phys if isinstance(phys, dict) else (vars(phys) if hasattr(phys, '__dict__') else {}))
         return {"type": "SYSTEM_HALT", "ui": f"\n{color}{msg}{Prisma.RST}", "logs": [msg], "metrics": self.get_metrics(), "physics": phys_dict}
 
     def _evaluate_immune_response(self, user_message: str, active_phys: Any) -> Optional[Dict[str, Any]]:
