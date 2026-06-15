@@ -4,5 +4,5 @@
     "provider": "ollama",
     "base_url": "http://127.0.0.1:11434/v1/chat/completions",
     "model": "hermes3",
-    "default_ui_depth": "DEEP"
+    "default_ui_depth": "CORE"
 }
