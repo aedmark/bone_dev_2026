@@ -8,7 +8,6 @@ from struts import ux, safe_get
 from presets import BoneConfig
 from protocols import LimboLayer
 from constants import Prisma
-from machine.tracer import ViralTracer
 from machine.forge import TheForge
 from machine.crucible import TheCrucible
 from machine.theremin import TheTheremin
@@ -35,7 +34,7 @@ class BoneArchitect:
         limbo = LimboLayer(config_ref=target_cfg)
         _mem.cleanup_old_sessions(limbo)
         lore = LoreManifest.get_instance(config_ref=target_cfg)
-        mind = MindSystem(mem=_mem, lex=lex, dreamer=DreamEngine(events, lore, config_ref=target_cfg), tracer=ViralTracer(_mem), )
+        mind = MindSystem(mem=_mem, lex=lex, dreamer=DreamEngine(events, lore, config_ref=target_cfg))
         return mind, limbo
 
     @staticmethod

@@ -236,14 +236,12 @@ class CycleSimulator:
         self.eng.system_health.report_failure(comp, error)
         if comp == "PHYSICS" or not ctx.physics:
             ctx.physics = PanicRoom.get_safe_physics()
-            try:
-                mem_graph = self.eng.mind.mem.hippocampus.get_graph()
-                if mem_graph and hasattr(mem_graph, "adj"):
-                    ctx.physics.space.godel_scar = _native_freeze_graph(mem_graph.adj)
-                    self.eng.events.log(
-                        f"{Prisma.VIOLET}System state safely loaded. Mnemonic structure frozen into Godel Scar.{Prisma.RST}", "SYS")
-            except AttributeError:
-                pass
+            mem_graph = self.eng.mind.mem.hippocampus.get_graph()
+            if mem_graph and hasattr(mem_graph, "adj"):
+                ctx.physics.space.godel_scar = _native_freeze_graph(mem_graph.adj)
+                self.eng.events.log(
+                    f"{Prisma.VIOLET}System state safely loaded. Mnemonic structure frozen into Godel Scar.{Prisma.RST}",
+                    "SYS")
         if comp == "BIO":
             ctx.bio_result = PanicRoom.get_safe_bio()
             ctx.is_alive = True
@@ -493,8 +491,8 @@ class GeodesicOrchestrator:
             else:
                 goal_vec = np.zeros(7, dtype=np.float32)
             phys_dict = ctx.physics.__dict__ if hasattr(ctx.physics, "__dict__") else ctx.physics
-            mem_core = getattr(getattr(self.eng, "mind", None), "mem", None)
-            cortex = getattr(self.eng, "cortex", None)
+            mem_core = self.eng.mind.mem
+            cortex = self.eng.cortex
             implicit_text = ""
             if cortex:
                 d_buf = getattr(cortex, "dialogue_buffer", None)
