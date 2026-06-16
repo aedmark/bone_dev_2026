@@ -100,7 +100,10 @@ class TheCortex:
         self.last_shadow_nodes = []
         self.dialogue_buffer.clear()
         self.last_physics.clear()
-        self.dreamer.trauma_buffer.clear()
+        try:
+            self.dreamer.trauma_buffer.clear()
+        except AttributeError:
+            pass
         if self.events:
             self.events.log("Context array purged. Stateless bedrock re-established.", "SYS", )
 
@@ -278,8 +281,6 @@ class TheCortex:
         chi_limit = 0.8 * tolerance_mod
         if (f_drag > drag_limit or chi_val > chi_limit) and m_a < 0.3:
             worry_text = sim_result.get("mutated_input", "")
-            if hasattr(self, "dialogue_buffer") and self.dialogue_buffer:
-                self.dialogue_buffer.pop()
             self.worry_ledger.append(worry_text)
             phys_state["narrative_drag"] = 0.0
             moog_msg = "The parameters of this concern are undefined. I am placing this in the ledger. We will not spend ATP on this right now."

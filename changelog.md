@@ -1,7 +1,30 @@
 # CHANGELOG.md
 -----------------------------------------------------------
 
-### **BONEAMANITA 20.6.0 "The Jester's Gambit"**
+### **BONEAMANITA 20.5.0 "The S.L.A.S.H. Audit"**
+
+**Security & Immunity**
+
+- **The Lexical Firewall Hardening:** Expanded `_DESTRUCTIVE_PATTERNS` in `main.py` to intercept raw `eval()`, `exec()`, and native system imports (`pty`, `sys`), physically blocking adversarial python injection prior to cognitive load.
+- **API Key Redaction:** Overhauled `core.py`'s `JSONEncoder` to actively scrub dictionaries for terms like "api_key", "secret", "token", and "password". Toxic payload data is now cleanly replaced with `[REDACTED]` before being flushed to telemetry logs.
+
+**Refactoring & Optimization**
+
+- **The Syntactic Purge:** Upgraded `safe_get` in `struts.py` to support array-based key fallbacks, allowing the system to amputate deeply nested, paranoid `getattr()` chains throughout the cognitive cycle.
+- **$O(1)$ Graph Traversal:** Ripped out the $O(N)$ `list.pop(0)` operation inside the `cycle.py` background WLS thread and replaced it with a `collections.deque` topological BFS queue, preventing the thread from choking as the spatial memory radius expands.
+- **EAFP Logic Shifts:** Replaced paranoid, multi-tier object inspection in `_verify_semantic_topology` and `purge_context` with clean, pythonic 'Easier to Ask for Forgiveness than Permission' `try-except` boundary blocks.
+
+**Fixed**
+
+- **The Reality Fracture (`NameError`):** Fixed a load-bearing amputation in `cycle.py` where the Cybernetic Governor's native variable demands (`res_delta`, `u_exhaustion`) were accidentally severed from the local namespace, instantly shunting the system into Safe Mode.
+- **The Override Currency Bug:** Re-routed the Architect's `#override` gate in `main.py` to target the correct endocrine pathway (`self.bio.endo.glimmers`), allowing the user to properly spend their currency to assert agency. Introduced mathematical proofs in the test suite to validate both successful expenditures and bankrupt rejections.
+- **The Moog Memory Erasure:** Fixed an architectural flaw in `brain/cortex.py` where the system prematurely popped the `dialogue_buffer` upon detecting un-actionable toxicity. High-drag prompts are now properly quarantined in the worry ledger without accidentally deleting the previous, healthy conversational turn.
+- **The Anaerobic Chaos Leak:** Plugged a massive accounting error in `body/metabolism.py`. Heavy structural payloads (`chi` > 0.8, `psi` > 0.8) were dodging their biological tax because the `ANAEROBIC_THRESHOLD` bypass fired before the waste was calculated. Chaos waste is now dynamically calculated and actively poisons the `ros_buildup` even when the system burns HP instead of ATP.
+- **Silent Asynchronous Failures:** Re-bound the `mem` local variable inside the background topology WLS thread so the engine can properly execute apoptosis (terminal shutdown) when it detects structural rot, rather than the shutdown command crashing silently.
+
+---
+
+### **BONEAMANITA 20.4.9 "The Jester's Gambit"**
 
 **Feature Additions**
 
