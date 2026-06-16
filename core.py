@@ -396,7 +396,7 @@ class SystemHealth:
             self.observer.log_error(component)
         if self.events:
             self.events.log(f"SystemHealth Failure [{component}]: {msg}", source="HEALTH", level=severity)
-        if severity == "CRITICAL":
+        if severity in ("CRITICAL", "ERROR"):
             self.components_online[component.lower()] = False
         return ux_format("core_strings", "health_offline", component=component, msg=msg)
 
@@ -631,6 +631,8 @@ class ArchetypeArbiter:
 
 class TelemetryService:
     _tracer_instance = None
+    _cls_lock = threading.Lock()
+
     def __init__(self, config_ref=None):
         self.cfg = config_ref or BoneConfig
         core_cfg = self.cfg.CORE
@@ -666,7 +668,9 @@ class TelemetryService:
     @classmethod
     def get_instance(cls, config_ref=None):
         if cls._tracer_instance is None:
-            cls._tracer_instance = TelemetryService(config_ref=config_ref)
+            with cls._cls_lock:
+                if cls._tracer_instance is None:
+                    cls._tracer_instance = TelemetryService(config_ref=config_ref)
         return cls._tracer_instance
 
     def start_cycle(self, trace_id: str):
@@ -695,10 +699,7 @@ class TelemetryService:
         with self._lock:
             self.write_buffer.append(json_str)
             if len(self.write_buffer) >= self.BUFFER_SIZE:
-                lines_to_flush = self.write_buffer
-                self.write_buffer = []
-                if not self.disabled and self.current_trace_file:
-                    self._executor.submit(self._bg_write, lines_to_flush, self.current_trace_file)
+                self.flush_to_disk_locked()
 
     def flush_to_disk_locked(self):
         if self.disabled or not self.current_trace_file or not self.write_buffer: return

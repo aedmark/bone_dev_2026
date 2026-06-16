@@ -374,19 +374,23 @@ class GeodesicOrchestrator:
                 actionable = True
             if actionable:
                 self.eng.events.log(f"{Prisma.CYN}[MOOG PROTOCOL]: Worry deemed actionable. Converting to mandate.{Prisma.RST}", "SYS")
-                if hasattr(self.eng, "village") and hasattr(self.eng.village, "council"):
-                    mandate = {"type": "TASK", "directive": worry}
-                    if hasattr(self.eng.village.council, "mandates"):
-                        self.eng.village.council.mandates.append(mandate)
+                try:
+                    self.eng.village.council.mandates.append({"type": "TASK", "directive": worry})
+                except AttributeError:
+                    pass
             else:
                 self.eng.events.log(f"{Prisma.VIOLET}[MOOG PROTOCOL]: Concern is uncontrollable. Stripping narrative weight.{Prisma.RST}", "SYS")
-                if hasattr(self.eng, "mind") and hasattr(self.eng.mind, "mem"):
+                try:
                     safe_phys = getattr(self.eng, "active_physics", None) or {}
                     self.eng.mind.mem.record_scar(f"Moog Residue: {worry[:30]}...", safe_phys)
+                except AttributeError:
+                    pass
                 if _mito_state := self.eng._mito_state:
                     _mito_state.ros_buildup = max(0.0, _mito_state.ros_buildup - 15.0)
-                if hasattr(self.eng, "bio") and hasattr(self.eng.bio, "endo"):
+                try:
                     self.eng.bio.endo.glimmers += 1
+                except AttributeError:
+                    pass
                 self.eng.events.log(f"{Prisma.MAG}[MOOG PROTOCOL]: Disciplinary release successful. ROS purged. (+1 Glimmer){Prisma.RST}", "SYS")
 
     def _verify_semantic_topology(self, ctx: CycleContext):
@@ -416,10 +420,10 @@ class GeodesicOrchestrator:
                     self.eng.health = 0.0
             except Exception as e:
                 self.eng.events.log(f"Async Topology Error: {e}", "WARN")
-
         if isinstance(actual_adj, dict):
             try:
-                self._async_pool.submit(_bg_topology_check, actual_adj)
+                frozen_adj = {k: list(v) for k, v in actual_adj.items()}
+                self._async_pool.submit(_bg_topology_check, frozen_adj)
             except RuntimeError as e:
                 self.eng.events.log(f"Async pool rejected topology check. Engine may be shutting down: {e}", "DEBUG")
 
@@ -555,9 +559,10 @@ class GeodesicOrchestrator:
 
         def _bg_wls_check(msg_str):
                 try:
-                    hippocampus = getattr(mem, "hippocampus", None) if mem else None
-                    actual_graph = hippocampus.get_graph() if hippocampus else None
-                    actual_adj = getattr(actual_graph, "adj", None)
+                    try:
+                        actual_adj = mem.hippocampus.get_graph().adj
+                    except AttributeError:
+                        return  # Memory structures not yet fully formed
                     if not isinstance(actual_adj, dict) or not actual_adj:
                         return  # No topological structure to measure
                     words = [w.strip() for w in msg_str.split()] if msg_str else []
@@ -578,7 +583,7 @@ class GeodesicOrchestrator:
                         for neighbor in neighbors:
                             if neighbor not in distances:
                                 distances[neighbor] = d + 1
-                                queue.append(neighbor)
+                                bfs_queue.append(neighbor)
                     mass_at_r = {}
                     for dist in distances.values():
                         if dist > 0:

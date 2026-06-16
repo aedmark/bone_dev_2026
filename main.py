@@ -168,12 +168,13 @@ class BoneAmanita:
 
     @trauma_accum.setter
     def trauma_accum(self, value: dict):
-        if getattr(self, "mind", None) is None or getattr(self.mind, "mem", None) is None:
+        mem = getattr(getattr(self, "mind", None), "mem", None)
+        if not mem:
             return
-        if not hasattr(self.mind.mem, "session_trauma_vector"):
-            self.mind.mem.session_trauma_vector = {}
-        self.mind.mem.session_trauma_vector.clear()
-        self.mind.mem.session_trauma_vector.update(value)
+        if not hasattr(mem, "session_trauma_vector"):
+            mem.session_trauma_vector = {}
+        mem.session_trauma_vector.clear()
+        mem.session_trauma_vector.update(value)
 
     @property
     def stamina(self) -> float:
@@ -230,7 +231,7 @@ class BoneAmanita:
             self.akashic.active_memory_core = self.mind.mem
         self.drivers = anatomy.get("drivers")
         self.consultant = anatomy.get("consultant")
-        self.consolidator = anatomy.get("consolidator")
+        self.consolidator = anatomy.get("consolidator") # Memory anchor for EventBus
         if self.bio:
             self.bio.setup_listeners()
         v = anatomy.get("village", {})
@@ -246,10 +247,14 @@ class BoneAmanita:
     def _generate_halt(self, msg: str, color: str = Prisma.RED, level: str = "CRIT") -> Dict[str, Any]:
         self.events.log(msg, level)
         phys = self.active_physics
-        if phys is None:
-            phys_dict = {}
-        else:
-            phys_dict = phys.to_dict() if hasattr(phys, "to_dict") else (phys if isinstance(phys, dict) else (vars(phys) if hasattr(phys, '__dict__') else {}))
+        phys_dict = {}
+        if phys is not None:
+            if hasattr(phys, "to_dict"):
+                phys_dict = phys.to_dict()
+            elif isinstance(phys, dict):
+                phys_dict = phys
+            else:
+                phys_dict = vars(phys) if hasattr(phys, '__dict__') else {}
         return {"type": "SYSTEM_HALT", "ui": f"\n{color}{msg}{Prisma.RST}", "logs": [msg], "metrics": self.get_metrics(), "physics": phys_dict}
 
     def _evaluate_immune_response(self, user_message: str, active_phys: Any) -> Optional[Dict[str, Any]]:

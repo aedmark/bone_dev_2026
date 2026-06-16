@@ -171,7 +171,6 @@ class TheCortex:
         if llm_params.get("max_tokens", 4096) < 300 or p_val < 20.0:
             full_state["mind"].setdefault("style_directives", []).append("CRITICAL: You are exhausted. You must conclude your thought in under 3 sentences.")
             llm_params["max_tokens"] = min(400, llm_params.get("max_tokens", 4096))
-        user_input = sim_result.get("mutated_input", user_input)
         final_prompt = self.composer.compose(full_state, user_input, ballast=self.ballast_active, modifiers=modifiers, mood_override=self.modulator.get_mood_directive())
         start_time = time.time()
         max_retries = 5
@@ -501,8 +500,7 @@ class TheCortex:
             affect_res = self.llm.generate(affect_prompt, {"temperature": 0.1, "max_tokens": 50}).strip()
             upper_res = affect_res.upper()
             if upper_res.startswith("FAIL"):
-                parts = affect_res.split("FAIL", 1)
-                judge_reason = parts[1].lstrip(":- ").strip() if len(parts) > 1 else "Unknown affective breach."
+                judge_reason = affect_res[4:].lstrip(":- ").strip() or "Unknown affective breach."
                 self.modulator.current_chem.serotonin = min(1.0, self.modulator.current_chem.serotonin + 0.20)
                 if self.events:
                     self.events.log(f"{Prisma.CYN}[AFFECTIVE GUARD]: Output was too heavy for the user. Generation blocked. Serotonin spiked to enforce calm and lucidity.{Prisma.RST}", "BIO")
