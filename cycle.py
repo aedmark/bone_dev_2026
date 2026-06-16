@@ -491,8 +491,8 @@ class GeodesicOrchestrator:
             else:
                 goal_vec = np.zeros(7, dtype=np.float32)
             phys_dict = ctx.physics.__dict__ if hasattr(ctx.physics, "__dict__") else ctx.physics
-            mem_core = self.eng.mind.mem
-            cortex = self.eng.cortex
+            mem_core = getattr(getattr(self.eng, "mind", None), "mem", None)
+            cortex = getattr(self.eng, "cortex", None)
             implicit_text = ""
             if cortex:
                 d_buf = getattr(cortex, "dialogue_buffer", None)

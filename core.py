@@ -145,7 +145,6 @@ class MindSystem:
     mem: Any
     lex: Any
     dreamer: Any
-    tracer: Any
 
 @dataclass
 class PhysSystem:

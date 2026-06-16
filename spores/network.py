@@ -9,7 +9,7 @@ from brain.ann import HippocampalCache, CerebralIndex
 from constants import Prisma
 from core import EventBus, LoreManifest
 from presets import BoneConfig
-from spores.biome import BioLichen, BioParasite, ImmuneMycelium
+from spores.biome import BioLichen, BioParasite
 from spores.genetics import LiteraryReproduction
 from spores.io import LocalFileSporeLoader
 from spores.memory import SubconsciousStrata, MemoryCore
@@ -28,9 +28,6 @@ class MycelialNetwork:
         self.cortex = CerebralIndex(dimension=8)
         self.subconscious = SubconsciousStrata(filename=f"memories/subconscious_{self.session_id}.jsonl")
         self.memory_core = MemoryCore(events, self.subconscious, config_ref=self.cfg, lexicon_ref=self.lex)
-        self.lichen = BioLichen(lexicon_ref=self.lex)
-        self.parasite = BioParasite(self, self.lex, config_ref=self.cfg)
-        self.immune = ImmuneMycelium()
         self.repro = LiteraryReproduction(config_ref=self.cfg)
         self.fossils = deque(maxlen=200)
         self.lineage_log = deque(maxlen=50)
@@ -69,13 +66,6 @@ class MycelialNetwork:
     def run_ecosystem(self, physics: Any, stamina: float, tick: int) -> List[str]:
         clean_words = safe_get(physics, "clean_words", [])
         logs = []
-        lichen_result = self.lichen.photosynthesize(physics, clean_words, tick)
-        lichen_log = lichen_result[1] if len(lichen_result) > 1 else None
-        if lichen_log:
-            logs.append(lichen_log)
-        parasite_result = self.parasite.infect(physics, stamina)
-        if len(parasite_result) > 1 and parasite_result[1]:
-            logs.append(parasite_result[1])
         cfg_spores = safe_get(self.cfg, "SPORES", {})
         if random.random() < float(safe_get(cfg_spores, "CHORUS_CHANCE", 0.10)):
             chorus_log = self._poll_chorus(clean_words, physics)
@@ -360,7 +350,7 @@ class MycelialNetwork:
                 new_seed.bloomed = s_data.get("b", False)
                 self.seeds.append(new_seed)
         return (data.get("mitochondria") or {},
-                set(data.get("antibodies") or []),
+                set(),
                 data.get("soul_legacy") or {},
                 data.get("continuity"),
                 data.get("world_atlas") or {},)
@@ -389,7 +379,7 @@ class MycelialNetwork:
                 "meta": {"timestamp": time.time(), "final_health": health, "final_stamina": stamina, },
                 "trauma_vector": final_vector, "joy_vectors": top_joy or [], "joy_legacy": joy_legacy_data,
                 "core_graph": core_graph, "mutations": mutations or {},
-                "antibodies": list(antibodies) if antibodies else [], "mitochondria": mitochondria_traits,
+                "mitochondria": mitochondria_traits,
                 "soul_legacy": soul_data, "continuity": continuity, "world_atlas": world_atlas or {},
                 "village_data": village_data, "seeds": seed_list, "fossils": list(self.fossils)}
         return self.loader.save_spore(self.filename, data)

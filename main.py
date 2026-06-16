@@ -426,7 +426,6 @@ class BoneAmanita:
     def trigger_death(self, last_phys) -> Dict:
         self.bio.mito.adapt(0)
         mito_state_dict = vars(self.bio.mito.state)
-        immune_data = list(self.bio.immune.active_antibodies)
         if death_gen := getattr(self.village, "death_gen", None):
             eulogy_text, cause_code = death_gen.eulogy(last_phys, mito_state_dict, self.trauma_accum)
         else:

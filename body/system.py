@@ -7,7 +7,7 @@ from typing import Optional, Dict, List, Any, TYPE_CHECKING
 from core import Prisma, LoreManifest
 from struts import ux, safe_get, safe_set
 from presets import BoneConfig
-from spores import ImmuneMycelium, BioLichen, BioParasite
+from spores import BioLichen, BioParasite
 from body.metabolism import DigestiveTrack
 from body.regulation import EndocrineRegulator, BioFeedback
 from body.endocrine import SemanticEndocrinologist
@@ -23,7 +23,6 @@ class BioSystem:
     mito: "MitochondrialForge"
     endo: "EndocrineSystem"
     governor: "MetabolicGovernor"
-    immune: Optional[ImmuneMycelium] = None
     lichen: Optional[BioLichen] = None
     parasite: Optional[BioParasite] = None
     plasticity: Any = None

@@ -40,13 +40,13 @@ class BoneArchitect:
     @staticmethod
     def _construct_bio(events, mind, lex, config_ref=None) -> BioSystem:
         from body import BioSystem, MitochondrialState, Biometrics, MitochondrialForge, EndocrineSystem, MetabolicGovernor
-        from spores import ImmuneMycelium, BioLichen, BioParasite
+        from spores import BioLichen, BioParasite
         target_cfg = config_ref or BoneConfig
         cfg = safe_get(target_cfg, "METABOLISM", {})
         genesis_val = float(safe_get(cfg, "GENESIS_VOLTAGE", 100.0))
         mito_state = MitochondrialState(atp_pool=genesis_val)
         bio_metrics = Biometrics(health=float(safe_get(target_cfg, "MAX_HEALTH", 100.0)), stamina=float(safe_get(target_cfg, "MAX_STAMINA", 100.0)))
-        return BioSystem(mito=MitochondrialForge(mito_state, events, config_ref=target_cfg), endo=EndocrineSystem(config_ref=target_cfg), immune=ImmuneMycelium(),
+        return BioSystem(mito=MitochondrialForge(mito_state, events, config_ref=target_cfg), endo=EndocrineSystem(config_ref=target_cfg),
             lichen=BioLichen(lexicon_ref=lex), governor=MetabolicGovernor(config_ref=target_cfg),
             parasite=BioParasite(mind.mem, lex, config_ref=target_cfg), events=events, biometrics=bio_metrics, config_ref=target_cfg, )
 
@@ -85,12 +85,10 @@ class BoneArchitect:
             load_result = None
         results = list(load_result) if isinstance(load_result, (list, tuple)) else []
         results.extend([None] * (5 - len(results)))
-        mito_legacy, immune_legacy, soul_legacy, continuity, atlas = results[:5]
+        mito_legacy, _, soul_legacy, continuity, atlas = results[:5]
         soul_legacy = soul_legacy or {}
         if mito_legacy:
             embryo.bio.mito.apply_inheritance(mito_legacy)
-        if immune_legacy and isinstance(immune_legacy, (list, set)):
-            embryo.bio.immune.active_antibodies.update(immune_legacy)
         embryo.soul_legacy = soul_legacy
         embryo.continuity = continuity
         if atlas and embryo.physics.nav:

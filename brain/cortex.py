@@ -440,8 +440,8 @@ class TheCortex:
                     f"{Prisma.OCHRE}{(ux('brain_strings', 'cortex_retry') or '').format(attempt=attempt + 1)}{Prisma.RST}",
                     "CORTEX")
             final_prompt = (f"{base_prompt}\n\n=== SYSTEM REJECTION ===\nREASON: {rejection_reason}\n\n"
-                            "DIRECTIVE: The previous attempt was factually or structurally invalid. DISCARD IT. "
-                            "Generate a NEW response from scratch. DO NOT apologize or mention the fix. "
+                            "DIRECTIVE: Your previous attempt to answer the PARTNER INPUT was factually or structurally invalid. DISCARD IT. "
+                            "Generate a NEW response specifically addressing the most recent PARTNER INPUT. DO NOT apologize or mention the fix. "
                             "Output ONLY the raw in-character response and nothing else.")
         return final_output, raw_resp, extracted_logs, inv_logs, val_res, final_prompt
 
