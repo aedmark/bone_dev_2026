@@ -30,7 +30,7 @@ class SyntaxModule:
         if not words:
             return 1.0
         b = self.bounds
-        bureau_vocab = self.lex.get("bureau_buzzwords") if self.lex else set()
+        bureau_vocab = set(self.lex.get("bureau_buzzwords") or []) if self.lex else set()
         buzz_count = sum(1 for w in words if w.lower() in bureau_vocab)
         avg_len = sum(len(w) for w in words) / len(words)
         if (avg_len > b["len_hi"] and narrative_drag > b["drag_hi"]) or buzz_count > 0:

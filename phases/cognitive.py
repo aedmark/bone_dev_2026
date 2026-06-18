@@ -262,6 +262,8 @@ class SimulationPreflightPhase(SimulationPhase):
     def __init__(self, engine_ref):
         super().__init__(engine_ref)
         self.name = "EXECUTIVE_PREFLIGHT"
+        raw_map = LoreManifest.get_instance().get("PHYSICS_CONSTANTS", "SINCERITY_MAP") or {}
+        self.sincerity_map = {k.upper(): v for k, v in raw_map.items()}
 
     def _build_refusal(self, ctx, phys_obj, rtype, msg):
         color = Prisma.RED if rtype == 'COUNTERFACTUAL_REJECTION' else Prisma.CYN
@@ -297,9 +299,8 @@ class SimulationPreflightPhase(SimulationPhase):
         upper_input = (ctx.input_text or "").upper()
         is_slash = ("[SLASH]" in upper_input or "[MOD:CODE]" in upper_input or "/SLASH" in upper_input)
         clean_input = upper_input.replace(" ", "")
-        sincerity_map = LoreManifest.get_instance().get("PHYSICS_CONSTANTS", "SINCERITY_MAP") or {}
-        for tag, data in sincerity_map.items():
-            if tag.upper() in clean_input:
+        for tag, data in self.sincerity_map.items():
+            if tag in clean_input:
                 lens = data.get("slash") if is_slash else data.get("core")
                 msg = f"[SINCERITY PROTOCOL]: {data.get('desc')} Summoning {lens}."
                 col_code = getattr(Prisma, data.get("col", "GRY"), Prisma.GRY)

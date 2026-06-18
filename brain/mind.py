@@ -23,11 +23,12 @@ class ChemicalState:
     adrenaline: float = 0.1
     serotonin: float = 0.2
     config_ref: Any = None
+    _HOMEOSTASIS_MAP = (("dopamine", "RESTING_DOPAMINE", 0.2), ("cortisol", "RESTING_CORTISOL", 0.1), ("adrenaline", "RESTING_ADRENALINE", 0.1), ("serotonin", "RESTING_SEROTONIN", 0.2))
 
     def homeostasis(self, rate: float = 0.1):
         safe_rate = max(0.0, min(1.0, rate))
         cfg = safe_get(self.config_ref or BoneConfig, "CORTEX", {})
-        for attr, key, default in [("dopamine", "RESTING_DOPAMINE", 0.2), ("cortisol", "RESTING_CORTISOL", 0.1), ("adrenaline", "RESTING_ADRENALINE", 0.1), ("serotonin", "RESTING_SEROTONIN", 0.2)]:
+        for attr, key, default in self._HOMEOSTASIS_MAP:
             target = float(safe_get(cfg, key, default))
             setattr(self, attr, getattr(self, attr) + (target - getattr(self, attr)) * safe_rate)
 
@@ -439,7 +440,7 @@ class DreamEngine:
         if not memory_system.graph:
             return ux("brain_strings", "defrag_empty")
         graph = memory_system.graph
-        prunable = ((n, sum(float(v) for v in safe_get(d, "edges", {}).values())) for n, d in graph.items() if not safe_get(d, "is_diamond", False))
+        prunable = ((n, sum(float(v) for v in d.get("edges", {}).values())) for n, d in graph.items() if not d.get("is_diamond", False))
         weak_nodes = [(n, mass) for n, mass in prunable if mass < 2.0]
         pruned = [n for n, _ in sorted(weak_nodes, key=lambda x: x[1])[:limit]]
         for node in pruned:
