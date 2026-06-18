@@ -138,7 +138,7 @@ class CycleContext:
                  "timestamp": time.time(), })
 
     def to_dict(self) -> Dict[str, Any]:
-        return {k: getattr(self, k) for k in self.__slots__ if hasattr(self, k)}
+        return {k: getattr(self, k) for k in self.__slots__}
 
 @dataclass
 class MindSystem:

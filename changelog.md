@@ -1,6 +1,34 @@
 # CHANGELOG.md
 -----------------------------------------------------------
 
+### **BONEAMANITA 20.5.1 "The Deep Tissue Massage"**
+
+**Security & Immunity**
+- **Cryptographic Upgrade:** Upgraded `HippocampalCache` hashing from computationally compromised MD5 to SHA-256 for robust neural cache hygiene (`brain/ann.py`).
+- **Atomic State Swaps:** Patched `soul/oroboros.py` to use Python's secure `tempfile` library for writing legacy states, eliminating hardcoded `.tmp` path race conditions and symlink vulnerabilities.
+- **Loud Failure Protocol:** Stripped silent `TypeError` catching from `PhysicsPacket.__setattr__` (`physics/models.py`). Toxic string injections into critical energy floats (like `voltage`) will now fail loudly to prevent corrupted state masking.
+
+**Performance & Architecture**
+- **The Big O Overhaul:** Drastically reduced computational overhead in `MemoryCore` (`spores/memory.py`):
+  - Replaced massive list allocation and $O(N \log N)$ `min()` scans with $O(N)$ running minimums in `cannibalize()`.
+  - Replaced $O(N \log N)$ `np.argsort` with $O(N)$ `np.argpartition` for lightning-fast Subconscious Dredging.
+  - Amputated nested $O(N^2)$ iteration in `prune_synapses` in favor of C-level `set.intersection`.
+  - Replaced boilerplate nested index loops with `itertools.combinations` in `illuminate()`.
+- **I/O Apocalypse Averted:** Blocked two catastrophic disk-read bottlenecks:
+  - Cached `LexiconService` in `machine/forge.py` to prevent reloading JSON from disk every time crafting is attempted.
+  - Amputated `_load_index()` from `_prune_strata()` (`spores/memory.py`), slicing arrays directly in RAM instead of triggering a full disk re-parse and re-vectorization during deep memory pruning.
+- **Paranoia Purge:** Removed redundant, CPU-wasting "paranoid programming" checks:
+  - Optimized `safe_get` (`struts.py`) to bypass explicit `hasattr` loops, defaulting to native `dict.get` and `getattr` in $O(1)$ time.
+  - Removed `hasattr` checks in `CycleContext.to_dict` (`core.py`), trusting `@dataclass(slots=True)` memory constraints.
+  - Amputated pure-Python matrix math abstractions (`_identity`, `_mat_mul`, etc.) in `spores/spore_utils.py` to defer all linear algebra directly to NumPy.
+- **Reflection Bottleneck:** Cached `dataclasses.fields(cls)` in `PhysicsPacket._safe_init` (`physics/models.py`), eliminating dynamic class reflection overhead during high-volume packet instantiation.
+
+**Bug Fixes**
+- **The Infinite Recursion Trap:** Patched the Mitchell Protocol (`spores/memory.py`) to track object `id()` hashes, preventing fatal `RecursionError` crashes when encountering circular references.
+- **Combinatorial Scope Crash:** Fixed a critical indentation bug in `MemoryCore.illuminate` where `itertools` pairing was accidentally scoped inside the memory-scoring loop, triggering `UnboundLocalError` on zero-resonance inputs and severing the phase pipeline.
+- **Event Redundancy:** Consolidated `Q_MATRIX_UPDATED` broadcasts into a centralized `_sync_q_matrix()` method in `spores/network.py` to uphold DRY principles and prevent desyncs.
+
+
 ### **BONEAMANITA 20.5.0 "The S.L.A.S.H. Audit"**
 
 **Security & Immunity**

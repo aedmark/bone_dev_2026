@@ -21,14 +21,12 @@ def ux_format(section: str, key: str, default: str = "", **kwargs) -> str:
 def safe_get(obj: Any, key: Any, default: Any = None) -> Any:
     if obj is None:
         return default
-    keys = key if isinstance(key, (list, tuple)) else [key]
+    keys = key if isinstance(key, (list, tuple)) else (key,)
+    is_dict = isinstance(obj, dict)
     for k in keys:
-        if isinstance(obj, dict) and k in obj:
-            val = obj[k]
-            if val is not None: return val
-        elif hasattr(obj, k):
-            val = getattr(obj, k)
-            if val is not None: return val
+        val = obj.get(k) if is_dict else getattr(obj, k, None)
+        if val is not None:
+            return val
     return default
 
 

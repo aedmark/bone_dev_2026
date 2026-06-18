@@ -18,7 +18,7 @@ class HippocampalCache:
 
     def encode(self, node_id: str, vector: List[float], metadata: Dict[str, Any]):
         self.nodes.pop(node_id, None)
-        short_hash = hashlib.md5(np.array(vector, dtype=np.float32).tobytes()).hexdigest()[:8]
+        short_hash = hashlib.sha256(np.array(vector, dtype=np.float32).tobytes()).hexdigest()[:8]
         self.nodes[node_id] = {"phantom": {
             "vector_hash": short_hash,
             "wing_id": metadata.get("wing_id", "GLOBAL"),

@@ -37,20 +37,20 @@ class MycelialNetwork:
         self.session_trauma_vector = {}
         if seed_file:
             self.ingest(seed_file)
-        if hasattr(self.events, "publish"):
-            safe_q_matrix = getattr(self.subconscious, "Q_n", [[0.0] * 8 for _ in range(8)])
-            self.events.publish("Q_MATRIX_UPDATED", {"q_matrix": safe_q_matrix})
+        self._sync_q_matrix()
         if hasattr(self.events, "subscribe"):
             self.events.subscribe("SCAR_RECORDED", self._on_scar_recorded)
 
+    def _sync_q_matrix(self):
+        if hasattr(self.events, "publish"):
+            safe_q_matrix = getattr(self.subconscious, "Q_n", [[0.0] * 8 for _ in range(8)])
+            self.events.publish("Q_MATRIX_UPDATED", {"q_matrix": safe_q_matrix})
+
     def _on_scar_recorded(self, payload):
-        concept = payload.get("concept")
-        if concept:
+        if concept := payload.get("concept"):
             if hasattr(self.subconscious, "apply_scar"):
                 self.subconscious.apply_scar(concept)
-            if hasattr(self.events, "publish"):
-                safe_q_matrix = getattr(self.subconscious, "Q_n", [[0.0] * 8 for _ in range(8)])
-                self.events.publish("Q_MATRIX_UPDATED", {"q_matrix": safe_q_matrix})
+            self._sync_q_matrix()
 
     @property
     def graph(self):
@@ -182,9 +182,7 @@ class MycelialNetwork:
                 log_msg = l_msg
             if not victims:
                 return ux("spore_strings", "net_sat_lock") or "", []
-            if hasattr(self.events, "publish"):
-                safe_q_matrix = getattr(self.subconscious, "Q_n", [[0.0] * 8 for _ in range(8)])
-                self.events.publish("Q_MATRIX_UPDATED", {"q_matrix": safe_q_matrix})
+            self._sync_q_matrix()
         self.cortical_stack.extend(valuable)
         base_rate = 0.5 * (resonance / 5.0)
         learning_rate = max(0.1, min(1.0, base_rate * learning_mod))
@@ -199,16 +197,19 @@ class MycelialNetwork:
         return log_msg, victims + new_wells
 
     def _filter_valuable_matter(self, words: List[str]) -> List[str]:
-        solvents = (self.lex.SOLVENTS
-                    if self.lex and hasattr(self.lex, "SOLVENTS") else set())
+        solvents = self.lex.SOLVENTS if self.lex and hasattr(self.lex, "SOLVENTS") else set()
+        get_cat = self.lex.get_current_category if self.lex else lambda w: None
 
-        def is_valuable(w):
+        valuable = []
+        for w in words:
             if len(w) <= 4 and w in solvents:
-                return False
-            cat = self.lex.get_current_category(w) if self.lex else None
-            if cat == "void": return False
-            return bool(cat) or len(w) > 4
-        return [w for w in words if is_valuable(w)]
+                continue
+            cat = get_cat(w)
+            if cat == "void":
+                continue
+            if cat or len(w) > 4:
+                valuable.append(w)
+        return valuable
 
     def _detect_new_wells(self, words, tick):
         new_wells = []
