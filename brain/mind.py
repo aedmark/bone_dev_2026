@@ -25,11 +25,13 @@ class ChemicalState:
     config_ref: Any = None
     _HOMEOSTASIS_MAP = (("dopamine", "RESTING_DOPAMINE", 0.2), ("cortisol", "RESTING_CORTISOL", 0.1), ("adrenaline", "RESTING_ADRENALINE", 0.1), ("serotonin", "RESTING_SEROTONIN", 0.2))
 
+    def __post_init__(self):
+        cfg = safe_get(self.config_ref or BoneConfig, "CORTEX", {})
+        self._targets = {attr: float(safe_get(cfg, key, default)) for attr, key, default in self._HOMEOSTASIS_MAP}
+
     def homeostasis(self, rate: float = 0.1):
         safe_rate = max(0.0, min(1.0, rate))
-        cfg = safe_get(self.config_ref or BoneConfig, "CORTEX", {})
-        for attr, key, default in self._HOMEOSTASIS_MAP:
-            target = float(safe_get(cfg, key, default))
+        for attr, target in self._targets.items():
             setattr(self, attr, getattr(self, attr) + (target - getattr(self, attr)) * safe_rate)
 
     def mix(self, new_state: Dict[str, float], weight: float = 0.5):
@@ -201,6 +203,7 @@ class DreamEngine:
         self.trauma_buffer = deque(maxlen=5)
         self.context_queue = []
         self.dspy_critic = None
+        self.epi_prune = int(safe_get(safe_get(self.cfg, "CORTEX", {}), "EPIGENETIC_PRUNE_THRESHOLD", 12))
 
     # noinspection PyProtectedMember
     def enter_rem_cycle(self, soul_snapshot: Dict[str, Any], bio_state: Dict[str, Any]) -> Tuple[str, Dict[str, float]]:
@@ -241,10 +244,12 @@ class DreamEngine:
             self.context_queue = []
             s_cost = min(available_atp * 0.4, len(raw_payloads) * 10.0)
             shift["atp_drain"] = s_cost
-            from spores import _word_to_vector
+            if not hasattr(self, "_w2v"):
+                from spores import _word_to_vector
+                self._w2v = _word_to_vector
             vectors, metadata = [], []
             for text in raw_payloads:
-                vec = _word_to_vector(text[:50])
+                vec = self._w2v(text[:50])
                 vectors.append(vec)
                 byte_data = np.array(vec, dtype=np.float32).tobytes() if np is not None else str(vec).encode('utf-8')
                 v_hash = hashlib.md5(byte_data).hexdigest()[:8]
@@ -295,8 +300,7 @@ class DreamEngine:
                         dirs = baseline_data.setdefault("EVOLVED_AXIOMS", [])
                         if new_axiom not in dirs:
                             dirs.append(new_axiom)
-                        threshold = int(safe_get(safe_get(self.cfg, "CORTEX", {}), "EPIGENETIC_PRUNE_THRESHOLD", 12))
-                        if len(dirs) > threshold:
+                        if len(dirs) > self.epi_prune:
                             try:
                                 compressed = self.dspy_critic.compress_prompts(dirs)
                                 if compressed:
@@ -415,8 +419,10 @@ class DreamEngine:
             templates = [item for v in templates.values() for item in (v if isinstance(v, list) else [v])]
         if not templates:
             return "The walls breathe.", 0.1
-        from mechanics.tools import TheTclWeaver
-        weaver = TheTclWeaver.get_instance()
+        if not hasattr(self, "_weaver"):
+            from mechanics.tools import TheTclWeaver
+            self._weaver = TheTclWeaver.get_instance()
+        weaver = self._weaver
         v = _vector or {}
         active_chi = float(safe_get(v, "chi", safe_get(v, "entropy", 0.85)))
         active_v = float(safe_get(v, "voltage", 90.0))

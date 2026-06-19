@@ -7,6 +7,8 @@ import os
 import re
 import tempfile
 import time
+import heapq
+import itertools
 from collections import deque
 from typing import Any
 from typing import List, Tuple, Optional, Dict
@@ -88,9 +90,7 @@ class SubconsciousStrata:
     def bury(self, fossil_data: Dict, config_ref=None):
         try:
             clean_fossil = _billy_mitchell_protocol(fossil_data)
-            target_cfg = config_ref or BoneConfig
-            cfg = target_cfg.get("SPORES", {}) if isinstance(target_cfg, dict) else getattr(target_cfg, "SPORES", {})
-            max_idx = int(cfg.get("MAX_INDEX_SIZE", 1000) if isinstance(cfg, dict) else 1000)
+            max_idx = int(safe_get(safe_get(config_ref or BoneConfig, "SPORES", {}), "MAX_INDEX_SIZE", 1000))
             if len(self.index) > max_idx:
                 self._prune_strata()
             with open(self.filepath, "a", encoding="utf-8") as f:
@@ -215,12 +215,12 @@ class MemoryCore:
                 resonance_score += base_mass_score
             if resonance_score > dynamic_threshold:
                 scored_memories.append((resonance_score, node, data))
-        scored_memories.sort(key=lambda x: x[0], reverse=True)
+        top_memories = heapq.nlargest(effective_limit, scored_memories, key=lambda x: x[0])
         results = []
         res_prefix = ux("spore_strings", "core_illuminate_resonant") or "Resonant"
         assoc_prefix = ux("spore_strings", "core_illuminate_associated") or "Associated"
         fmt = (ux("spore_strings", "core_illuminate_format") or "{prefix} Engram: '{name}'{conn_str}")
-        for score, name, data in scored_memories[:effective_limit]:
+        for score, name, data in top_memories:
             connections = list(data.get("edges", {}).keys())
             if not data.get("is_diamond", False):
                 data["edges"] = {k: (v if self.graph.get(k, {}).get("is_diamond", False) else v * 0.95)
@@ -229,9 +229,8 @@ class MemoryCore:
             current_prefix = res_prefix if is_resonant else assoc_prefix
             connection_string = f" -> [{', '.join(connections[:2])}]" if connections else ""
             results.append(fmt.format(prefix=current_prefix, name=name.upper(), conn_str=connection_string))
-        survivors = [name for score, name, data in scored_memories[:effective_limit] if score > dynamic_threshold]
+        survivors = [name for score, name, data in top_memories if score > dynamic_threshold]
         if len(survivors) > 1:
-            import itertools
             for node_a, node_b in itertools.combinations(survivors, 2):
                 self.graph[node_a].setdefault("edges", {})
                 self.graph[node_b].setdefault("edges", {})
