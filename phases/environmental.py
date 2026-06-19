@@ -241,6 +241,8 @@ class SanctuaryPhase(SimulationPhase):
     def _trigger_dream(self, ctx: CycleContext):
         if not self.eng.mind.dreamer:
             return
+        if getattr(self.eng, "tick_count", 0) <= 2 or random.random() > 0.15:
+            return
         if hasattr(self.eng, "akashic") and hasattr(self.eng.akashic, "replay_dreams"):
             if dream_log := self.eng.akashic.replay_dreams():
                 ctx.log(f"{Prisma.VIOLET}{dream_log}{Prisma.RST}")
