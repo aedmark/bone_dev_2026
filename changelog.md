@@ -18,6 +18,8 @@
 - **Object Bloat Removal:** Collapsed redundant intermediate dictionary generation in `TheAkashicRecord._get_dominant_force` down to a memory-efficient list comprehension.
 - **Hardened Array Extraction:** Explicitly bound variable padding in `BoneArchitect.awaken` with `max(0, 5 - len(results))` to prevent Python's negative-multiplier quirk from swallowing silent array extraction index errors.
 
+---
+
 ### **BONEAMANITA 20.5.1 "The Deep Tissue Massage"**
 
 **Security & Immunity**

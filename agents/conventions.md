@@ -1,8 +1,6 @@
- # BoneAmanita Conventions
+# BoneAmanita Conventions
 
-> **Forge Document Hierarchy:** Constitution > **Conventions** > Architecture Domain Docs > Engineering Plan
->
-> This document locks down implementation choices for BoneAmanita to prevent inconsistency across AI coding sessions. 
+This document locks down implementation choices for BoneAmanita to prevent inconsistency across AI coding sessions. 
 
 ## The TONIC Table (Technically Obvious, Not Intended Choice)
 

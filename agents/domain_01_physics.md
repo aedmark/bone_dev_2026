@@ -1,12 +1,8 @@
-# BoneAmanita Glossary
+# Domain 01: Physics
 
-> **Forge Document Hierarchy:** Constitution > Conventions > **Glossary** > Architecture Domain Docs
->
-> Vague language produces wide probability distributions in AI agents. Precise words produce narrow ones. This glossary defines BoneAmanita's highly specific, poetic, and load-bearing nomenclature. 
-> 
-> **Agents MUST map these concepts exactly as defined and are FORBIDDEN from substituting them with the listed synonyms.**
+Vague language produces wide probability distributions in AI agents. Precise words produce narrow ones. This glossary defines BoneAmanita's highly specific, poetic, and load-bearing nomenclature. 
 
----
+**Agents MUST map these concepts exactly as defined and are FORBIDDEN from substituting them with the listed synonyms.**
 
 ### Core Physics & Biological Variables
 
