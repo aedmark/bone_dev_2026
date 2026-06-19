@@ -121,8 +121,8 @@ class BoneConfig:
     PROVIDER = "ollama"
     BASE_URL = None
     API_KEY = "ollama"
-    MODEL = "hermes3"
-    OLLAMA_FALLBACK = "llama3.1:8b"
+    MODEL = "mistral-nemo"
+    OLLAMA_FALLBACK = ""
     _TEMPLATE_DATA = {}
 
     @classmethod

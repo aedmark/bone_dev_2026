@@ -26,12 +26,12 @@ class LiminalModule:
             "scar_thresh": float(safe_get(cfg, "LIMINAL_SCAR_THRESHOLD", 0.85)),
             "scar_relief": float(safe_get(cfg, "LIMINAL_SCAR_RELIEF", 0.5))
         }
+        self.liminal_vocab = set(self.lex.get("liminal") or []) if self.lex else set()
 
-    def analyze(self, text: str, physics_vector: Dict[str, float]) -> float:
+    def analyze(self, text: str, physics_vector: Dict[str, float], grammatical_stress: float = 0.0) -> float:
         w = self.weights
         words = text.lower().split()
-        liminal_vocab = set(self.lex.get("liminal") or []) if self.lex else set()
-        void_hits = sum(1 for w in words if w in liminal_vocab)
+        void_hits = sum(1 for w in words if w in self.liminal_vocab)
         lexical_lambda = min(1.0, void_hits * w["lexical"])
         dark_matter_sparks = 0
         if len(words) > 1 and hasattr(self.lex, "get_categories_for_word"):
@@ -45,8 +45,9 @@ class LiminalModule:
         vector_lambda = ((float(pv.get("PSI", 0.0)) * w["psi_mult"]) +
                          (float(pv.get("ENT", 0.0)) * w["ent_mult"]) +
                          (float(pv.get("DEL", 0.0)) * w["del_mult"]))
+        stress_multiplier = 1.0 + (grammatical_stress ** 2) * 2.0
         self.lambda_val = (self.lambda_val * w["decay"]) + (
-                (lexical_lambda + dark_matter_lambda + vector_lambda) * w["growth"])
+                (lexical_lambda + dark_matter_lambda + vector_lambda) * w["growth"] * stress_multiplier)
         if self.lambda_val > w["scar_thresh"]:
             self.godel_scars += 1
             self.lambda_val *= w["scar_relief"]

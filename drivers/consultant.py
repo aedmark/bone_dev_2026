@@ -45,6 +45,8 @@ class BoneConsultant:
                 self.state.active_modules.append(mod)
             elif f"[-VSL_{mod}]" in user_text and mod in self.state.active_modules:
                 self.state.active_modules.remove(mod)
+        syntax_omega = self.syntax_mod.analyze(user_text, narrative_drag)
+        liminal_lambda = self.liminal_mod.analyze(user_text, physics_vector, grammatical_stress=self.syntax_mod.grammatical_stress)
 
     def get_system_prompt(self, soul_snapshot: Optional[Dict] = None) -> str:
         directives = []
