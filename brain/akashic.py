@@ -468,8 +468,15 @@ class TheAkashicRecord:
         self.shadow_stock.append(memory_data)
         if len(self.shadow_stock) > self.MAX_SHADOW_CAPACITY:
             self.shadow_stock.pop(0)
-        msg = ux("akashic_strings", "ghost_archived")
-        if self.events: self.events.log(f"{Prisma.VIOLET}{msg}{Prisma.RST}")
+        concept = memory_data.get("concept", "An unknown echo")
+        msg = ux("akashic_strings",
+                 "ghost_archived") or f"A load-bearing memory refused to die. [{concept.upper()}] has entered the Shadow Archive."
+        if self.events:
+            try:
+                formatted_msg = msg.format(concept=concept)
+            except KeyError:
+                formatted_msg = msg
+            self.events.log(f"{Prisma.VIOLET}{formatted_msg}{Prisma.RST}", "AKASHIC")
 
     def measure_cognitive_density(self, start_concept: str) -> float:
         """ [navi-fractal PROTOCOL]: BFS Mass-Radius Subconscious Scaling """

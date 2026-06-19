@@ -51,15 +51,15 @@ Simultaneously, specialized constraint modules analyze the text:
 **WHY NOT:** Redundant type casting is a common "defensive programming" tactic. In BoneAmanita, we trust our established types to run closer to the metal.
 
 
+### [DEC-05] Cross-Driver Contamination
+
+**Decision:** Drivers contaminate each other hierarchically. The `SyntaxModule` calculates `grammatical_stress` first, which is immediately passed to the `LiminalModule` as an exponential multiplier.
+
+**WHY:** Corporate jargon, bureaucratic syntax, and aggressive semantic friction naturally accelerate the system's descent into madness and reality-fracture. They are not mathematically isolated.
+
 ## 3. Open Questions
 
-### [OQ-1] Cross-Driver Contamination
-
-**Status:** `Discovery: Phase 2`
-
-**Question:** Currently, the `LiminalModule` and `SyntaxModule` evaluate text independently. Should they contaminate each other? For example, if a user exhibits massive `grammatical_stress` (Syntax), should that act as a multiplier to accelerate the generation of `godel_scars` (Liminal), or must they remain mathematically isolated until they hit the central `goal_vec`?
-
-### [OQ-2] User Profile Affinity Decay
+### [OQ-1] User Profile Affinity Decay
 
 **Status:** `Backlog`
 

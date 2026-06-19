@@ -1,6 +1,20 @@
 # CHANGELOG.md
 -----------------------------------------------------------
 
+### **BONEAMANITA 20.6.0 "The Subconscious Bridge"**
+
+**Cognitive Evolution (Domain Implementations)**
+- **Vector 1: The Tunnel Vision Protocol:** Cortisol is no longer a passive biometric. High cortisol now mechanically restricts N-Dimensional memory dredging, mathematically suppressing lateral/positive topological nodes and violently narrowing the Akashic retrieval beam during RAG execution.
+- **Vector 2: Cross-Driver Contamination:** The `SyntaxModule` and `LiminalModule` have been topologically linked. High bureaucratic or grammatical stress now acts as an exponential multiplier in the Liminal layer, violently accelerating the creation of `godel_scars` and reality fractures.
+- **Vector 3: Waking Dream Injection:** Sleep is no longer isolated. Waking from a deep REM cycle now triggers "Brain Fog" (spikes in `chi` and `narrative_drag` during the `CognitionPhase`). The system mechanically extracts "ghost words" from the dream residue and blindly fuses them into the waking user prompt, topologically linking hallucination to physical reality.
+- **Vector 4: Shadow Archival Transcedence:** Article 8 has been fully implemented in `MemoryCore.cannibalize()`. When the memory graph reaches critical mass, nodes with a topological mass ≥ 25.0 bypass the standard JSON graveyard. Instead, they fire a `GHOST_SIGNAL`, transcending into the Akashic `shadow_stock` to permanently haunt the Dream Engine.
+
+**Performance & Architecture (The Paranoia Purge: Part II)**
+- **Fortified Geometric Containment:** Secured `LocalFileSporeLoader.save_spore` against directory traversal attacks using strict `os.path.realpath` and `os.path.commonpath` evaluations.
+- **Bedrock Pre-Compilation:** Excised dynamic singleton queries (`LoreManifest.get_instance()`), inline imports, and nested `safe_get` wrappers from the $O(N)$ hot loops inside `SubconsciousStrata`, `NoeticLoop`, `MetabolicGovernor`, `TheAkashicRecord`, `SyntaxModule`, and `EnneagramDriver`. All bedrock constants are now rigidly cached at genesis. 
+
+---
+
 ### **BONEAMANITA 20.5.2 "The Paranoia Purge"**
 
 **Security & Containment**

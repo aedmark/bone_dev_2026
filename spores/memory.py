@@ -318,10 +318,24 @@ class MemoryCore:
         data, score = min_data, min_score
         mass = float(sum(data.get("edges", {}).values()))
         lifespan = current_tick - (data.get("strata") or {}).get("birth_tick", current_tick)
-        fossil_data = {"word": victim, "mass": round(mass, 2), "lifespan": lifespan, "edges": data["edges"], "death_tick": current_tick, }
-        self.subconscious.bury(fossil_data, config_ref=self.cfg)
-        if hasattr(self, "events") and self.events:
-            self.events.publish("MEMORY_BURIED", {"fossil": fossil_data})
+        cortex_cfg = safe_get(self.cfg, "CORTEX", {})
+        shadow_mass_threshold = float(safe_get(cortex_cfg, "SHADOW_MASS_THRESHOLD", 25.0))
+        fossil_data = {"word": victim, "mass": round(mass, 2), "lifespan": lifespan, "edges": data["edges"],
+                       "death_tick": current_tick}
+        if mass >= shadow_mass_threshold:
+            if hasattr(self, "events") and self.events:
+                # Provide standard 'coords' to satisfy Akashic RAG (Creative Drive) requirements
+                self.events.publish("GHOST_SIGNAL", {
+                    "concept": victim,
+                    "mass": round(mass, 2),
+                    "lifespan": lifespan,
+                    "links": list(data["edges"].keys()),
+                    "coords": {"kappa": min(1.0, mass / 50.0), "gamma": 0.8, "mu": 0.5}
+                })
+        else:
+            self.subconscious.bury(fossil_data, config_ref=self.cfg)
+            if hasattr(self, "events") and self.events:
+                self.events.publish("MEMORY_BURIED", {"fossil": fossil_data})
         del self.graph[victim]
         for node_data in self.graph.values():
             node_data["edges"].pop(victim, None)

@@ -49,16 +49,14 @@ Simultaneously, the engine maintains a continuous biological `ChemicalState` (`m
 **WHY NOT:** MD5 is slightly faster, but corrupted memory graphs require a total Genesis reset to fix. 
 
 
+### [DEC-05] The Tunnel Vision Protocol
+**Decision:** Cortisol actively restricts the N-Dimensional topological beam. High cortisol artificially shrinks the $K$ limit of returned vectors and mechanically penalizes semantic nodes mapped to positive dimensions (`constructive`, `play`, `social`).
+**WHY:** Under biological stress, the mind hyper-fixates on trauma. This guarantees the LLM physically cannot access "happy" or "lateral" thoughts when it is panicking, forcing a mathematically authentic trauma response.
+
+### [DEC-06] Shadow Archival Thresholds (Article 8)
+**Decision:** When the graph is capped, any pruned memory with a topological mass $\ge 25.0$ bypasses the standard JSON graveyard. It fires a `GHOST_SIGNAL` and ascends to the Akashic `shadow_stock`.
+**WHY:** A node that has accumulated 25+ connections is no longer noise; it is structural lore. Transcending it to the Shadow Archive allows it to permanently haunt the Dream Engine.
+
 ## 3. Open Questions
 
-### [OQ-1] Chemical Influence on Memory Retrieval
-
-**Status:** `Discovery: Phase 2`
-
-**Question:** Currently, neurotransmitters exist and track homeostasis. But how heavily should they influence actual `MemoryCore` dredging? Should high Cortisol actively suppress the retrieval of positive or lateral topological nodes, forcing a "tunnel vision" recall?
-
-### [OQ-2] Shadow Archival Thresholds
-
-**Status:** `Backlog`
-
-**Question:** Article 8 mandates that "load-bearing context or highly polarized nodes" are granted shadow-archival status instead of being deleted. What is the exact mathematical threshold (e.g., mass > 50, resonance > 0.9) that promotes a node from "noise" to "shadow archive"?
+*(Currently no open architectural questions for Domain 02. The topological memory graph is stable.)*

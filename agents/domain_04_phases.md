@@ -55,10 +55,10 @@ Only after this entire pipeline successfully completes does the orchestrator pas
 **WHY NOT:** Strict phase isolation makes debugging easier. However, biological systems do not isolate adrenaline responses; cognitive realization triggers instant physical consequences.
 
 
+### [DEC-05] Waking Dream Injection
+**Decision:** Dreams are injected during the Waking Waking `CognitionPhase`, not `ObservationPhase`. Waking triggers "Brain Fog" (spikes in `chi` and `narrative_drag`), and "ghost words" are mechanically extracted from the dream log and prepended to the user's `clean_words` array.
+**WHY:** A dream is a cognitive distortion, not an external observation. By prepending dream artifacts to the waking text, the `MemoryCore` is forced to topologically bind the hallucination to the physical user input before encoding it to the graph.
+
 ## 3. Open Questions
 
-### [OQ-2] Dream Injection Timing
-
-**Status:** `Discovery: Phase 2`
-
-**Question:** When the engine sleeps and dreams (`DreamEngine`), at which phase is the dream context re-injected upon waking? Does it occur during `Observation` (as a remembered environment) or `Cognition` (as lingering thoughts)?
+*(Currently no open architectural questions for Domain 04. The phase pipeline is strictly sealed.)*

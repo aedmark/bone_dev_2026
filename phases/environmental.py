@@ -145,8 +145,8 @@ class ObservationPhase(SimulationPhase):
                     dream_text, shift = dream_engine.enter_rem_cycle(
                         soul_snap, bio_state=bio_packet)
                     if dream_text:
-                        ctx.log(f"{Prisma.VIOLET}☁️ While you were gone: {dream_text}{Prisma.RST}")
-                        ctx.last_dream = dream_text
+                        ctx.log(f"{Prisma.VIOLET}☁While you were gone: {dream_text}{Prisma.RST}")
+                        ctx.last_dream = {"log": dream_text, "source": "RETROACTIVE_SLEEP"}
                     if hours_passed > 4.0:
                         defrag_msg = dream_engine.run_defragmentation(self.eng.mind.mem)
                         if defrag_msg:
