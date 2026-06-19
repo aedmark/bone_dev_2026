@@ -14,7 +14,7 @@ from typing import List, Tuple, Optional, Dict
 from core import JSONEncoder
 from presets import BoneConfig
 from spores.spore_utils import _word_to_vector
-from struts import ux, ux_format
+from struts import ux, ux_format, safe_get
 
 try:
     import numpy as np
