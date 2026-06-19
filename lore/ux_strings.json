@@ -178,7 +178,7 @@
     "lite": "/hud lite: Simple energy meter engaged.",
     "core": "/hud core: 5-Coordinate display engaged.",
     "deep": "/hud deep: Full 15-vector lattice exposed.",
-    "coding": "SLASH Mod Chip Engaged. Coding metrics (Γ, Σ, Η, Θ, Υ) active.",
+    "coding": "SLASH Engaged. Coding metrics now active.",
     "idle": "/idle: Zero ATP burn. Village dormant.",
     "recover": "Zen mode. Stamina regenerating."
   },
