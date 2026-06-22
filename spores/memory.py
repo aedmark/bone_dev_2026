@@ -137,9 +137,9 @@ class SubconsciousStrata:
                         self.rank_bank = np.ascontiguousarray(np.vstack([self.rank_bank, vec]), dtype=np.float32)
                         if ordvec and self.bitmap is not None and self.quantizer is not None:
                             try:
-                                # Data-oblivious append handles new vectors natively
-                                self.bitmap.add(vec)
-                                self.quantizer.add(vec)
+                                vec_2d = np.ascontiguousarray([vec], dtype=np.float32)
+                                self.bitmap.add(vec_2d)
+                                self.quantizer.add(vec_2d)
                             except Exception as e:
                                 print(f"\n[ORDVEC] Append Failure: {e}")
                                 self.bitmap = None
