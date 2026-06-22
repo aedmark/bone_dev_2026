@@ -59,7 +59,7 @@ class TestSubconsciousStrata(BoneTestCase):
         """Tests the training-free structural memory state."""
         rng = np.random.RandomState(42)
         mock_vecs = {}
-        for i in range(10):
+        for i in range(35):
             v = rng.randn(128).astype(np.float32)
             norm = np.linalg.norm(v)
             if norm > 0:
@@ -68,10 +68,10 @@ class TestSubconsciousStrata(BoneTestCase):
 
         mock_w2v.side_effect = lambda w: mock_vecs.get(w, rng.randn(128).astype(np.float32))
 
-        for i in range(10):
+        for i in range(35):
             self.strata.bury({"word": f"node_{i}", "mass": float(i)})
 
-        self.assertEqual(self.strata.rank_bank.shape[0], 10)
+        self.assertEqual(self.strata.rank_bank.shape[0], 35)
 
         self.assertIsNotNone(self.strata.bitmap)
         self.assertIsNotNone(self.strata.quantizer)
