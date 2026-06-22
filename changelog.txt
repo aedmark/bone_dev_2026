@@ -11,7 +11,14 @@
 
 **Performance & Architecture (The Paranoia Purge: Part II)**
 - **Fortified Geometric Containment:** Secured `LocalFileSporeLoader.save_spore` against directory traversal attacks using strict `os.path.realpath` and `os.path.commonpath` evaluations.
-- **Bedrock Pre-Compilation:** Excised dynamic singleton queries (`LoreManifest.get_instance()`), inline imports, and nested `safe_get` wrappers from the $O(N)$ hot loops inside `SubconsciousStrata`, `NoeticLoop`, `MetabolicGovernor`, `TheAkashicRecord`, `SyntaxModule`, and `EnneagramDriver`. All bedrock constants are now rigidly cached at genesis. 
+- **Bedrock Pre-Compilation:** Excised dynamic singleton queries (`LoreManifest.get_instance()`), inline imports, and nested `safe_get` wrappers from the $O(N)$ hot loops inside `SubconsciousStrata`, `NoeticLoop`, `MetabolicGovernor`, `TheAkashicRecord`, `SyntaxModule`, and `EnneagramDriver`. All bedrock constants are now rigidly cached at genesis.
+
+- **The Ordinal Involution Trap:** Fixed a fundamental mathematical bug in `physics/maths.py` where `_native_ordinal_pattern` was calculating the `argsort` (the inverse) instead of the true `rank` vector. Added non-involutory test cases to `test_physics.py` to prevent regression.
+- **The Ordvec SIMD Alignment Crash:** Plugged a massive silent failure loop in `spores/memory.py` where the Fastscan `ordvec` C++ bindings were silently crashing and falling back to exact NumPy math.
+  - Fixed 1D/2D dimensional mismatches during vector appends.
+  - Enforced strict coercion from Python `list` to `numpy.ndarray`.
+  - Implemented dynamic zero-padding to guarantee all vectors are multiples of 64, satisfying the Rust/C++ SIMD hardware requirements.
+  - Applied the padding safeguards to both the active `bury()` method and the `_load_index()` cold-boot sequence to ensure persistence compatibility.
 
 ---
 

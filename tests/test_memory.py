@@ -68,13 +68,11 @@ class TestSubconsciousStrata(BoneTestCase):
 
         mock_w2v.side_effect = lambda w: mock_vecs.get(w, rng.randn(128).astype(np.float32))
 
-        # We can inject just 10 items because it is data-oblivious (no K-Means limit)
         for i in range(10):
             self.strata.bury({"word": f"node_{i}", "mass": float(i)})
 
         self.assertEqual(self.strata.rank_bank.shape[0], 10)
 
-        # Verify the bindings successfully booted without TypeErrors
         self.assertIsNotNone(self.strata.bitmap)
         self.assertIsNotNone(self.strata.quantizer)
 
@@ -146,6 +144,52 @@ class TestMemoryCore(BoneTestCase):
         self.assertIn("strong_node", self.core.graph)
         self.assertIn("diamond_node", self.core.graph)
         self.assertNotIn("weak_node", self.core.graph["strong_node"]["edges"])
+
+class TestRankQuantAccuracy(unittest.TestCase):
+
+    @patch('spores.memory._word_to_vector')
+    def test_fastscan_recall_accuracy(self, mock_w2v):
+        """Ensures the 4-bit RankQuant retrieves mathematically accurate results."""
+        rng = np.random.RandomState(42)
+        total_memories = 500
+        dim = 128
+
+        mock_vecs = {}
+        for i in range(total_memories):
+            v = rng.randn(dim).astype(np.float32)
+            v /= np.linalg.norm(v)
+            mock_vecs[f"concept_{i}"] = v
+
+        mock_w2v.side_effect = lambda w: mock_vecs.get(w, rng.randn(dim).astype(np.float32))
+
+        strata = SubconsciousStrata("test_strata.json")
+        for i in range(total_memories):
+            strata.bury({"word": f"concept_{i}", "mass": 1.0})
+
+        self.assertIsNotNone(strata.quantizer, "Quantizer failed to boot.")
+
+        query_word = "concept_99"
+
+        temp_quantizer = strata.quantizer
+        strata.quantizer = None
+
+        exact_results = strata.dredge_vibe(query_word, k=15)
+        exact_words = {res["word"] for res in exact_results}
+
+        strata.quantizer = temp_quantizer
+        fastscan_results = strata.dredge_vibe(query_word, k=15)
+        fastscan_words = {res["word"] for res in fastscan_results}
+
+        intersection = exact_words.intersection(fastscan_words)
+        recall_rate = len(intersection) / 15.0
+
+        print(f"\n[METRIC] 4-Bit Recall Rate: {recall_rate * 100}%")
+
+        self.assertGreaterEqual(
+            recall_rate,
+            0.80,
+            f"[FAIL] Fastscan Recall degraded heavily! Only {recall_rate * 100}% matched exact math."
+        )
 
 if __name__ == "__main__":
     unittest.main()

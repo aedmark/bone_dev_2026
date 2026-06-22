@@ -83,8 +83,17 @@ class SubconsciousStrata:
                 self.index[e["word"]] = e
                 self.metadata_log.append(e)
                 if np is not None:
-                    vec = _word_to_vector(e["word"])
-                    if vec is not None:
+                    raw_vec = _word_to_vector(e["word"])
+                    if raw_vec is not None:
+                        # 1. Guarantee it is a NumPy array
+                        vec = np.array(raw_vec, dtype=np.float32)
+
+                        # 2. Pad to a multiple of 64 for Rust SIMD constraints
+                        remainder = vec.shape[0] % 64
+                        if remainder != 0:
+                            pad_width = 64 - remainder
+                            vec = np.pad(vec, (0, pad_width), mode='constant')
+
                         raw_vectors.append(vec)
 
         if np is not None and raw_vectors:
@@ -118,13 +127,23 @@ class SubconsciousStrata:
                 self.index[word] = clean_fossil
             self.metadata_log.append(clean_fossil)
             if np is not None:
-                vec = _word_to_vector(word)
-                if vec is not None:
+                raw_vec = _word_to_vector(word)
+                if raw_vec is not None:
+                    # 1. Guarantee it is a NumPy array
+                    vec = np.array(raw_vec, dtype=np.float32)
+
+                    # 2. Pad to a multiple of 64 for Rust SIMD constraints
+                    remainder = vec.shape[0] % 64
+                    if remainder != 0:
+                        pad_width = 64 - remainder
+                        vec = np.pad(vec, (0, pad_width), mode='constant')
+
+                    # Continue with the standard logic...
                     if self.rank_bank is None:
                         self.rank_bank = np.ascontiguousarray([vec], dtype=np.float32)
                         if ordvec:
                             try:
-                                dim = vec.shape[0]
+                                dim = vec.shape[0]  # This is now guaranteed to be safe!
                                 self.bitmap = SignBitmap(dim)
                                 self.quantizer = RankQuant(dim, 4)
                                 self.bitmap.add(self.rank_bank)
