@@ -155,8 +155,12 @@ class TestRankQuantAccuracy(unittest.TestCase):
         dim = 128
 
         mock_vecs = {}
+        base_clusters = [rng.randn(dim).astype(np.float32) for _ in range(5)]
+
         for i in range(total_memories):
-            v = rng.randn(dim).astype(np.float32)
+            base = base_clusters[i % 5]
+            noise = rng.randn(dim).astype(np.float32) * 0.2
+            v = base + noise
             v /= np.linalg.norm(v)
             mock_vecs[f"concept_{i}"] = v
 

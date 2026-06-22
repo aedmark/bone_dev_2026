@@ -85,31 +85,24 @@ class SubconsciousStrata:
                 if np is not None:
                     raw_vec = _word_to_vector(e["word"])
                     if raw_vec is not None:
-                        # 1. Guarantee it is a NumPy array
                         vec = np.array(raw_vec, dtype=np.float32)
-
-                        # 2. Pad to a multiple of 64 for Rust SIMD constraints
                         remainder = vec.shape[0] % 64
                         if remainder != 0:
-                            pad_width = 64 - remainder
-                            vec = np.pad(vec, (0, pad_width), mode='constant')
-
+                            vec = np.pad(vec, (0, 64 - remainder), mode='constant')
                         raw_vectors.append(vec)
 
         if np is not None and raw_vectors:
             self.rank_bank = np.ascontiguousarray(np.vstack(raw_vectors), dtype=np.float32)
-            if ordvec:
+            # PHASE 1 CHECK: Only boot if >= 32 memories
+            if ordvec and len(self.rank_bank) >= 32:
                 try:
-                    # TRUE INIT: Use scalar dimensions, not the data matrix
                     dim = self.rank_bank.shape[1]
                     self.bitmap = SignBitmap(dim)
                     self.quantizer = RankQuant(dim, 4)
-
-                    # TRUE ADD: Populate the instances
                     self.bitmap.add(self.rank_bank)
                     self.quantizer.add(self.rank_bank)
                 except Exception as e:
-                    print(f"\n[ORDVEC] Boot Failure: {e}") # NEVER FLY BLIND AGAIN
+                    print(f"\n[ORDVEC] Boot Failure: {e}")
                     self.bitmap = None
                     self.quantizer = None
 
@@ -126,24 +119,26 @@ class SubconsciousStrata:
             if word:
                 self.index[word] = clean_fossil
             self.metadata_log.append(clean_fossil)
+
             if np is not None:
                 raw_vec = _word_to_vector(word)
                 if raw_vec is not None:
-                    # 1. Guarantee it is a NumPy array
                     vec = np.array(raw_vec, dtype=np.float32)
-
-                    # 2. Pad to a multiple of 64 for Rust SIMD constraints
                     remainder = vec.shape[0] % 64
                     if remainder != 0:
-                        pad_width = 64 - remainder
-                        vec = np.pad(vec, (0, pad_width), mode='constant')
+                        vec = np.pad(vec, (0, 64 - remainder), mode='constant')
 
-                    # Continue with the standard logic...
                     if self.rank_bank is None:
                         self.rank_bank = np.ascontiguousarray([vec], dtype=np.float32)
-                        if ordvec:
+                    else:
+                        self.rank_bank = np.ascontiguousarray(np.vstack([self.rank_bank, vec]), dtype=np.float32)
+
+                    # ORDVEC LIFECYCLE MANAGEMENT
+                    if ordvec:
+                        if len(self.rank_bank) == 32:
+                            # CROSSING THE THRESHOLD: Boot the quantizer
                             try:
-                                dim = vec.shape[0]  # This is now guaranteed to be safe!
+                                dim = self.rank_bank.shape[1]
                                 self.bitmap = SignBitmap(dim)
                                 self.quantizer = RankQuant(dim, 4)
                                 self.bitmap.add(self.rank_bank)
@@ -152,9 +147,8 @@ class SubconsciousStrata:
                                 print(f"\n[ORDVEC] Boot Failure: {e}")
                                 self.bitmap = None
                                 self.quantizer = None
-                    else:
-                        self.rank_bank = np.ascontiguousarray(np.vstack([self.rank_bank, vec]), dtype=np.float32)
-                        if ordvec and self.bitmap is not None and self.quantizer is not None:
+                        elif len(self.rank_bank) > 32 and self.bitmap is not None and self.quantizer is not None:
+                            # STANDARD APPEND
                             try:
                                 vec_2d = np.ascontiguousarray([vec], dtype=np.float32)
                                 self.bitmap.add(vec_2d)
@@ -184,7 +178,7 @@ class SubconsciousStrata:
                 self.index = {e["word"]: e for e in self.metadata_log if "word" in e}
             if self.rank_bank is not None and len(self.rank_bank) >= keep_count:
                 self.rank_bank = np.ascontiguousarray(self.rank_bank[-keep_count:], dtype=np.float32)
-                if ordvec:
+                if ordvec and len(self.rank_bank) >= 32:
                     try:
                         dim = self.rank_bank.shape[1]
                         self.bitmap = SignBitmap(dim)
@@ -210,7 +204,12 @@ class SubconsciousStrata:
         effective_k = min(effective_k, total_memories)
         min_score_threshold = cortisol * 0.3
 
-        Q_arr = np.ascontiguousarray(query_vector, dtype=np.float32)
+        Q_arr = np.array(query_vector, dtype=np.float32)
+        remainder = Q_arr.shape[0] % 64
+        if remainder != 0:
+            Q_arr = np.pad(Q_arr, (0, 64 - remainder), mode='constant')
+
+        Q_arr = np.ascontiguousarray(Q_arr, dtype=np.float32)
         top_indices, scores = [], []
 
         if ordvec is not None and self.quantizer is not None:
