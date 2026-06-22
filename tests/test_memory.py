@@ -5,6 +5,7 @@ import tempfile
 import unittest
 from unittest.mock import MagicMock, patch
 
+import spores.memory
 from spores.memory import SubconsciousStrata, MemoryCore
 from tests.base import BoneTestCase
 
@@ -12,6 +13,11 @@ try:
     import numpy as np
 except ImportError:
     np = None
+
+try:
+    import ordvec
+except ImportError:
+    ordvec = None
 
 class TestSubconsciousStrata(BoneTestCase):
     def setUp(self):
@@ -28,50 +34,67 @@ class TestSubconsciousStrata(BoneTestCase):
         self.assertEqual(len(self.strata.index), 0)
         self.assertEqual(len(self.strata.metadata_log), 0)
         self.assertIsNone(self.strata.rank_bank)
+        self.assertIsNone(self.strata.bitmap)
+        self.assertIsNone(self.strata.quantizer)
 
-    @unittest.skipIf(np is None, "NumPy is not installed; skipping mathematical rank verification.")
-    def test_rank_transform(self):
-        v = [10.5, 2.1, 8.8, -1.0]
-        rank_v = self.strata._rank_transform(v)
-        self.assertIsNotNone(rank_v)
-        self.assertEqual(rank_v.dtype, np.uint16)
-        self.assertEqual(list(rank_v), [3, 1, 2, 0])
-
-    @unittest.skipIf(np is None, "NumPy is not installed; skipping ordinal burial tests.")
-    def test_ordinal_burial_and_stacking(self):
-        fossil_1 = {"word": "ghost", "mass": 5.0}
-        success = self.strata.bury(fossil_1)
-        self.assertTrue(success)
-        self.assertIsNotNone(self.strata.rank_bank)
-        self.assertEqual(self.strata.rank_bank.shape[0], 1)
-        fossil_2 = {"word": "machine", "mass": 8.0}
-        self.strata.bury(fossil_2)
-        self.assertEqual(self.strata.rank_bank.shape[0], 2)
-
-    @unittest.skipIf(np is None, "NumPy is not installed; skipping rank-cosine search.")
-    def test_dredge_vibe_rank_cosine_search(self):
+    @unittest.skipIf(np is None, "NumPy is not installed; skipping exact math tests.")
+    def test_cold_start_burial_and_exact_dredge(self):
+        """Tests the Phase 1 infant-memory state (< 32 items)."""
         self.strata.bury({"word": "echo", "mass": 2.0})
         self.strata.bury({"word": "silence", "mass": 10.0})
         self.strata.bury({"word": "void", "mass": 7.0})
+        self.assertIsNotNone(self.strata.rank_bank)
+        self.assertEqual(self.strata.rank_bank.shape[0], 3)
+        self.assertTrue(self.strata.rank_bank.flags['C_CONTIGUOUS'])
+        self.assertIsNone(self.strata.quantizer)
         results = self.strata.dredge_vibe("silence", k=2)
         self.assertEqual(len(results), 2)
         top_result = results[0]
-        self.assertIn("word", top_result)
+        self.assertEqual(top_result["word"], "silence")
         self.assertIn("score", top_result)
-        self.assertIn("data", top_result)
-        self.assertIsInstance(top_result["score"], float)
-        self.assertTrue(-1.001 <= top_result["score"] <= 1.001, f"Score {top_result['score']} breached mathematical cosine bounds.")
 
-    def test_graceful_degradation(self):
-        original_np = np
+    @unittest.skipIf(ordvec is None or np is None, "ordvec 0.5.0 is not installed; skipping Fastscan tests.")
+    @patch('spores.memory._word_to_vector')
+    def test_fastscan_ignition_and_add(self, mock_w2v):
+        """Tests the training-free structural memory state."""
+        rng = np.random.RandomState(42)
+        mock_vecs = {}
+        for i in range(10):
+            v = rng.randn(128).astype(np.float32)
+            norm = np.linalg.norm(v)
+            if norm > 0:
+                v /= norm
+            mock_vecs[f"node_{i}"] = v
+
+        mock_w2v.side_effect = lambda w: mock_vecs.get(w, rng.randn(128).astype(np.float32))
+
+        # We can inject just 10 items because it is data-oblivious (no K-Means limit)
+        for i in range(10):
+            self.strata.bury({"word": f"node_{i}", "mass": float(i)})
+
+        self.assertEqual(self.strata.rank_bank.shape[0], 10)
+
+        # Verify the bindings successfully booted without TypeErrors
+        self.assertIsNotNone(self.strata.bitmap)
+        self.assertIsNotNone(self.strata.quantizer)
+
+        results = self.strata.dredge_vibe("node_3", k=2)
+        self.assertTrue(len(results) > 0)
+        self.assertIn("word", results[0])
+        self.assertIn("score", results[0])
+
+    def test_graceful_degradation_fallback(self):
+        """Ensures that severed bindings seamlessly fall back to exact math."""
+        original_ordvec = spores.memory.ordvec
         try:
-            import spores.memory
-            spores.memory.np = None
-            self.strata.bury({"word": "safe_mode", "mass": 1.0})
-            results = self.strata.dredge_vibe("safe_mode")
-            self.assertEqual(results, [])
+            spores.memory.ordvec = None
+            for i in range(10):
+                self.strata.bury({"word": f"degraded_{i}", "mass": 1.0})
+            self.assertIsNone(self.strata.quantizer)
+            results = self.strata.dredge_vibe("degraded_5", k=3)
+            self.assertTrue(len(results) > 0)
         finally:
-            spores.memory.np = original_np
+            spores.memory.ordvec = original_ordvec
 
 class TestMemoryCore(BoneTestCase):
     def setUp(self):

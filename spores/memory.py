@@ -23,6 +23,12 @@ try:
 except ImportError:
     np = None
 
+try:
+    import ordvec
+    from ordvec import SignBitmap, RankQuant
+except ImportError:
+    ordvec = None
+
 _ZERO_WIDTH_RE = re.compile(r'[\u200B-\u200D\uFEFF\u202A-\u202E]')
 
 def _billy_mitchell_protocol(data: Any, seen: set = None) -> Any:
@@ -49,14 +55,9 @@ class SubconsciousStrata:
         self.index = {}
         self.metadata_log = []
         self.rank_bank = None
+        self.bitmap = None
+        self.quantizer = None
         self._load_index()
-
-    def _rank_transform(self, vec: list) -> Optional['np.ndarray']:
-        """Convert absolute float vectors into noise-resistant ordinal ranks."""
-        if np is None:
-            return None
-        arr = np.array(vec, dtype=np.float32)
-        return np.argsort(np.argsort(arr)).astype(np.uint16)
 
     def _iter_entries(self):
         if not os.path.exists(self.filepath):
@@ -76,16 +77,32 @@ class SubconsciousStrata:
     def _load_index(self):
         self.index = {}
         self.metadata_log = []
-        ranks = []
+        raw_vectors = []
         for e in self._iter_entries():
             if e.get("word"):
                 self.index[e["word"]] = e
                 self.metadata_log.append(e)
                 if np is not None:
                     vec = _word_to_vector(e["word"])
-                    ranks.append(self._rank_transform(vec))
-        if np is not None and ranks:
-            self.rank_bank = np.vstack(ranks)
+                    if vec is not None:
+                        raw_vectors.append(vec)
+
+        if np is not None and raw_vectors:
+            self.rank_bank = np.ascontiguousarray(np.vstack(raw_vectors), dtype=np.float32)
+            if ordvec:
+                try:
+                    # TRUE INIT: Use scalar dimensions, not the data matrix
+                    dim = self.rank_bank.shape[1]
+                    self.bitmap = SignBitmap(dim)
+                    self.quantizer = RankQuant(dim, 4)
+
+                    # TRUE ADD: Populate the instances
+                    self.bitmap.add(self.rank_bank)
+                    self.quantizer.add(self.rank_bank)
+                except Exception as e:
+                    print(f"\n[ORDVEC] Boot Failure: {e}") # NEVER FLY BLIND AGAIN
+                    self.bitmap = None
+                    self.quantizer = None
 
     def bury(self, fossil_data: Dict, config_ref=None):
         try:
@@ -101,12 +118,32 @@ class SubconsciousStrata:
                 self.index[word] = clean_fossil
             self.metadata_log.append(clean_fossil)
             if np is not None:
-                K = _word_to_vector(word)
-                rank_vec = self._rank_transform(K)
-                if self.rank_bank is None:
-                    self.rank_bank = rank_vec.reshape(1, -1)
-                else:
-                    self.rank_bank = np.vstack([self.rank_bank, rank_vec])
+                vec = _word_to_vector(word)
+                if vec is not None:
+                    if self.rank_bank is None:
+                        self.rank_bank = np.ascontiguousarray([vec], dtype=np.float32)
+                        if ordvec:
+                            try:
+                                dim = vec.shape[0]
+                                self.bitmap = SignBitmap(dim)
+                                self.quantizer = RankQuant(dim, 4)
+                                self.bitmap.add(self.rank_bank)
+                                self.quantizer.add(self.rank_bank)
+                            except Exception as e:
+                                print(f"\n[ORDVEC] Boot Failure: {e}")
+                                self.bitmap = None
+                                self.quantizer = None
+                    else:
+                        self.rank_bank = np.ascontiguousarray(np.vstack([self.rank_bank, vec]), dtype=np.float32)
+                        if ordvec and self.bitmap is not None and self.quantizer is not None:
+                            try:
+                                # Data-oblivious append handles new vectors natively
+                                self.bitmap.add(vec)
+                                self.quantizer.add(vec)
+                            except Exception as e:
+                                print(f"\n[ORDVEC] Append Failure: {e}")
+                                self.bitmap = None
+                                self.quantizer = None
             return True
         except IOError:
             return False
@@ -126,44 +163,67 @@ class SubconsciousStrata:
             if keep_count:
                 self.metadata_log = self.metadata_log[-keep_count:]
                 self.index = {e["word"]: e for e in self.metadata_log if "word" in e}
-                if self.rank_bank is not None and len(self.rank_bank) >= keep_count:
-                    self.rank_bank = self.rank_bank[-keep_count:]
+            if self.rank_bank is not None and len(self.rank_bank) >= keep_count:
+                self.rank_bank = np.ascontiguousarray(self.rank_bank[-keep_count:], dtype=np.float32)
+                if ordvec:
+                    try:
+                        dim = self.rank_bank.shape[1]
+                        self.bitmap = SignBitmap(dim)
+                        self.quantizer = RankQuant(dim, 4)
+                        self.bitmap.add(self.rank_bank)
+                        self.quantizer.add(self.rank_bank)
+                    except Exception as e:
+                        print(f"\n[ORDVEC] Prune Rebuild Failure: {e}")
+                        self.bitmap = None
+                        self.quantizer = None
             else:
                 self.metadata_log, self.index, self.rank_bank = [], {}, None
+                self.bitmap, self.quantizer = None, None
         except Exception:
             pass
 
-    def dredge(self, trigger_word: str) -> Optional[Dict]:
-        return self.index.get(trigger_word)
-
     def dredge_vibe_by_vector(self, query_vector, k: int = 3, cortisol: float = 0.0) -> list:
-        """Core Asymmetric Rank-Cosine Search accepting a raw vector."""
-        if np is None or self.rank_bank is None or len(self.rank_bank) == 0:
+        total_memories = len(self.metadata_log)
+        if total_memories == 0 or self.rank_bank is None:
             return []
+
         effective_k = max(1, int(k * (1.0 - (cortisol * 0.75)))) if cortisol > 0.4 else k
+        effective_k = min(effective_k, total_memories)
         min_score_threshold = cortisol * 0.3
-        dim = self.rank_bank.shape[1]
-        mean = (dim - 1) / 2.0
-        norm = np.sqrt((dim * (dim**2 - 1.0)) / 12.0)
-        inv_norm = 1.0 / norm
-        Q_arr = np.array(query_vector, dtype=np.float32)
-        q_norm = np.linalg.norm(Q_arr)
-        q_unit = Q_arr / q_norm if q_norm > 0 else Q_arr
-        q_sum = np.sum(q_unit)
-        raw_scores = np.dot(self.rank_bank, q_unit)
-        scores = (raw_scores - (mean * q_sum)) * inv_norm
-        if len(scores) <= effective_k:
-            top_k_idx = np.argsort(scores)[::-1]
-        else:
-            top_k_idx = np.argpartition(scores, -effective_k)[-effective_k:]
-            top_k_idx = top_k_idx[np.argsort(scores[top_k_idx])[::-1]]
+
+        Q_arr = np.ascontiguousarray(query_vector, dtype=np.float32)
+        top_indices, scores = [], []
+
+        if ordvec is not None and self.quantizer is not None:
+            coarse_k = min(effective_k * 8, total_memories)
+            try:
+                candidate_indices = self.bitmap.scan(Q_arr, coarse_k)
+                top_indices, scores = self.quantizer.rerank(Q_arr, candidate_indices, effective_k)
+            except Exception as e:
+                pass # Graceful fallback to NumPy if C-bounds are tripped
+
+        if not len(top_indices):
+            norm_q = np.linalg.norm(Q_arr)
+            if norm_q > 0:
+                norms_bank = np.linalg.norm(self.rank_bank, axis=1)
+                valid = norms_bank > 0
+                all_scores = np.zeros(total_memories, dtype=np.float32)
+                all_scores[valid] = np.dot(self.rank_bank[valid], Q_arr) / (norms_bank[valid] * norm_q)
+
+                if total_memories <= effective_k:
+                    top_indices = np.argsort(all_scores)[::-1]
+                else:
+                    top_indices = np.argpartition(all_scores, -effective_k)[-effective_k:]
+                    top_indices = top_indices[np.argsort(all_scores[top_indices])[::-1]]
+
+                scores = all_scores[top_indices]
+
         results = []
-        for idx in top_k_idx:
-            if 0 <= idx < len(self.metadata_log):
-                score = float(scores[idx])
-                if score >= min_score_threshold:
-                    meta = self.metadata_log[idx]
-                    results.append({"word": meta.get("word"), "score": score, "data": meta})
+        for idx, score in zip(top_indices, scores):
+            if score >= min_score_threshold and 0 <= int(idx) < len(self.metadata_log):
+                meta = self.metadata_log[int(idx)]
+                results.append({"word": meta.get("word"), "score": float(score), "data": meta})
+
         return results
 
     def dredge_vibe(self, trigger_word: str, k: int = 3, cortisol: float = 0.0) -> list:
@@ -323,7 +383,6 @@ class MemoryCore:
                        "death_tick": current_tick}
         if mass >= shadow_mass_threshold:
             if hasattr(self, "events") and self.events:
-                # Provide standard 'coords' to satisfy Akashic RAG (Creative Drive) requirements
                 self.events.publish("GHOST_SIGNAL", {
                     "concept": victim,
                     "mass": round(mass, 2),
