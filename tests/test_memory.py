@@ -8,6 +8,10 @@ from unittest.mock import MagicMock, patch
 import spores.memory
 from spores.memory import SubconsciousStrata, MemoryCore
 from tests.base import BoneTestCase
+from brain.linear_cortex import LinearCortexRouter
+from body.metabolism import MitochondrialForge
+from body.models import MitochondrialState
+from unittest.mock import MagicMock
 
 try:
     import numpy as np
@@ -193,6 +197,92 @@ class TestRankQuantAccuracy(unittest.TestCase):
             recall_rate,
             0.80,
             f"[FAIL] Fastscan Recall degraded heavily! Only {recall_rate * 100}% matched exact math."
+        )
+
+
+class TestLinearCortexRouter(BoneTestCase):
+    def setUp(self):
+        super().setUp()
+        # Restrict the budget heavily to force the sparsity mask to prove its worth
+        self.router = LinearCortexRouter(token_budget=50)
+
+    def test_ingest_and_structural_sweep(self):
+        codebase = (
+            "class Metabolism:\n"
+            "    def __init__(self):\n"
+            "        self.ATP = 100\n"
+            "        self.ROS = 0\n"
+            "    def process(self):\n"
+            "        print('hello')\n"
+        )
+        self.router.ingest_artifact("metabolism.py", codebase)
+
+        # Query should heavily boost 'ATP' and structural keywords ('class', 'def')
+        sparse_mask = self.router.route_attention("How is ATP initialized?")
+
+        # The mask should contain the class definition, the init definition, and the ATP line.
+        # It should completely ignore the "print('hello')" line because it has 0 resonance.
+        self.assertIn("[metabolism.py_L0]", sparse_mask)
+        self.assertIn("[metabolism.py_L2]", sparse_mask)
+        self.assertNotIn("print('hello')", sparse_mask)
+
+        # [FULLER]: Check topological tensegrity. L0 must come before L2.
+        idx_l0 = sparse_mask.find("metabolism.py_L0")
+        idx_l2 = sparse_mask.find("metabolism.py_L2")
+        self.assertLess(idx_l0, idx_l2)
+
+    def test_token_budget_enforcement(self):
+        # Create a massive, highly resonant artifact
+        codebase = "\n".join([f"line {i} ATP" for i in range(100)])
+        self.router.ingest_artifact("big.py", codebase)
+
+        mask = self.router.route_attention("ATP")
+
+        # The budget is 50 tokens. Each returned line is ~3-4 tokens including the ID tag.
+        # It should cap out and refuse to append all 100 lines.
+        tokens_used = len(mask.split())
+        self.assertLessEqual(tokens_used, 55)
+
+
+class TestMetabolicRouting(BoneTestCase):
+    def setUp(self):
+        super().setUp()
+        self.state = MitochondrialState()
+        self.state.atp_pool = 100.0
+        self.state.ros_buildup = 0.0
+        self.events = MagicMock()
+        self.forge = MitochondrialForge(self.state, self.events)
+
+    def test_fast_twitch_vector_cost(self):
+        # Simulate a 2000 token FAISS retrieval
+        self.forge.process_cognitive_load(2000, "VECTOR_FAST_TWITCH")
+
+        # 2000 tokens / 100 * 0.02 = 0.4 ATP drain
+        self.assertAlmostEqual(self.state.atp_pool, 99.6)
+        self.assertEqual(self.state.ros_buildup, 0.0)
+
+    def test_deep_tissue_linear_cost(self):
+        # Simulate a heavy 10,000 token CPU codebase sweep
+        self.forge.process_cognitive_load(10000, "LINEAR_DEEP_TISSUE")
+
+        # 10000 tokens / 100 * 0.15 = 15.0 ATP drain
+        self.assertAlmostEqual(self.state.atp_pool, 85.0)
+        # Contexts over 8000 tokens spike the ROS (stress) by 0.8
+        self.assertAlmostEqual(self.state.ros_buildup, 0.8)
+
+    def test_gordon_intervention_exhaustion(self):
+        # Drop the organism's ATP near the critical threshold
+        self.state.atp_pool = 12.0
+
+        # Fire a medium-heavy sweep (5000 / 100 * 0.15 = 7.5 drain)
+        self.forge.process_cognitive_load(5000, "LINEAR_DEEP_TISSUE")
+
+        # New ATP should be 4.5. This crosses the <= 10.0 threshold.
+        self.assertLess(self.state.atp_pool, 10.0)
+        self.assertEqual(self.state.retrograde_signal, "HIBERNATING")
+        self.events.log.assert_called_with(
+            "[GORDON INTERVENTION]: Your query forced a massive structural sweep. The organism's ATP is depleted. Narrow your scope.",
+            "BIO_CRIT"
         )
 
 if __name__ == "__main__":

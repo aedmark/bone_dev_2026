@@ -29,7 +29,7 @@ class LinearCortexRouter:
                 self.unified_manifold.append({
                     "id": f"{artifact_name}_L{idx}",
                     "content": node,
-                    "length": len(node.split())
+                    "length": len(node.split()) + 1
                 })
 
     def _calculate_resonance(self, query: str, node: str) -> float:
@@ -48,7 +48,8 @@ class LinearCortexRouter:
 
         # Boost structural/physics keys native to BoneAmanita
         if any(keyword in node for keyword in ['@', 'class ', 'def ', 'ATP', 'ROS']):
-            resonance *= 1.5
+            # Ensure structural nodes survive the zero-overlap purge
+            resonance = max(resonance, 1.0) * 1.5
 
             # Penalize bloat (emulating sparsity pressure)
         density = resonance / len(n_terms)
