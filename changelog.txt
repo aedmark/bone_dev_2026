@@ -1,5 +1,13 @@
 # CHANGELOG.md
 -----------------------------------------------------------
+### **BONEAMANITA 20.6.2 "The SubQ Integration"**
+
+**Architectural Evolution (Memory & Metabolism)**
+- **Vector 1: The Corpus Callosum (Dual-Tier Routing):** Excised default RAG dependency in `brain/cortex.py`. Engineered a dynamic routing bridge that splits cognitive load. Low-weight, semantic queries ("Fast-Twitch") route to the cheap Vector/ANN index. Heavy, structural queries ("Deep Tissue") trigger the new `LinearCortexRouter` to evaluate the raw codebase directly.
+- **Vector 2: Topological Tensegrity (O(n) Sparsity Mask):** Vector chunking has been eradicated for code reasoning. `brain/linear_cortex.py` now flattens the entire active manifold and sweeps it with a linear CPU heuristic. It isolates highly resonant nodes, preserves structural anchors (e.g., `class`, `def`) via baseline scoring guarantees, and re-sorts the culled data by its original structural ID to perfectly maintain chronological architecture before hitting the LLM context window.
+- **Vector 3: Physicalized Data Retrieval:** Wired the `LinearCortexRouter` directly into `body/metabolism.py`. Context is no longer free. The `MitochondrialForge` now calculates the literal biological cost of a thought based on its retrieval path. Fast-twitch vector searches drain negligible energy (0.02 ATP / 100 tokens), while deep structural linear sweeps heavily tax the system (0.15 ATP / 100 tokens) and spike oxidative stress (ROS) for payloads exceeding 8,000 tokens.
+- **Vector 4: Gordon's Exhaustion Gate:** Implemented a hard metabolic floor. If a user demands a massive structural sweep that drains the organism's ATP pool to 10.0 or lower, `_trigger_exhaustion()` mechanically aborts the cognitive loop. Gordon steps in, locks the architecture, and forces the user to narrow their query scope to prevent necrosis.
+- **The Proving Grounds:** Fortified `tests/test_memory.py` with strict assertions enforcing topological sorting, variable token-budget clamping (accounting for metadata-tag token bloat), and mathematically verified ATP draining thresholds.
 
 ### **BONEAMANITA 20.6.0 "The Subconscious Bridge"**
 
