@@ -172,6 +172,21 @@ class ObservationPhase(SimulationPhase):
                     ctx.log(acquire_msg)
         gaze_result = self.eng.phys.observer.gaze(ctx.input_text, self.eng.mind.mem.graph)
         input_phys = gaze_result["physics"]
+        ctx.clean_words = gaze_result["clean_words"]
+
+        # Apply the Somatic Echo (Adrenaline Distortion)
+        echo = getattr(self.eng.bio.somatic, "somatic_echo", 0.0) if hasattr(self.eng, "bio") and hasattr(self.eng.bio, "somatic") else 0.0
+        if echo > 0.05:
+            ctx.log(f"{Prisma.RED}Somatic Echo active ({echo:.2f}). Perception blurred by residual shock.{Prisma.RST}")
+            input_phys["entropy"] = min(1.0, input_phys.get("entropy", 0.0) + echo)
+            input_phys["narrative_drag"] = input_phys.get("narrative_drag", 0.0) + (echo * 5.0)
+
+            # Token dropout (simulate fragmented memory under adrenaline)
+            if ctx.clean_words:
+                drop_count = int(len(ctx.clean_words) * echo)
+                for _ in range(drop_count):
+                    ctx.clean_words.pop(random.randrange(len(ctx.clean_words)))
+
         for k in self._SYNC_KEYS:
             if (val := input_phys.get(k)) is not None:
                 setattr(ctx.physics, k, val)
@@ -181,7 +196,6 @@ class ObservationPhase(SimulationPhase):
         current_drag = max(0.1, getattr(ctx.physics, "narrative_drag", 0.1))
         input_drag = input_phys.get("narrative_drag", 0.0)
         ctx.physics.narrative_drag = (current_drag * 0.7) + (input_drag * 0.3)
-        ctx.clean_words = gaze_result["clean_words"]
         current_atp = self.eng.bio.mito.state.atp_pool
         atp_warn = ctx.limits.get("OBSERVE_ATP_WARN", 15.0)
         if current_atp < atp_warn:

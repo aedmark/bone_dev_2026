@@ -13,6 +13,7 @@ class SynestheticCortex:
         self.cfg = config_ref or BoneConfig
         self.last_reflex = None
         self.library = LoreManifest.get_instance(config_ref=self.cfg).get("SOMATIC_LIBRARY") or {}
+        self.somatic_echo = 0.0
 
     def perceive(self, physics: Dict, traits: Any = None, latency: float = 0.0) -> BiologicalImpulse:
         impulse = BiologicalImpulse()
@@ -131,4 +132,8 @@ class SynestheticCortex:
             current_val = getattr(self.bio.endo, chem)
             delta_val = getattr(impulse, f"{chem}_delta")
             setattr(self.bio.endo, chem, max(0.0, min(1.0, current_val + delta_val)))
+        if getattr(self, "somatic_echo", 0.0) > 0.0:
+            atp = self.bio.mito.state.atp_pool if hasattr(self.bio, "mito") else 100.0
+            recovery_rate = 0.1 * (atp / 100.0)
+            self.somatic_echo = max(0.0, self.somatic_echo - recovery_rate)
         return impulse.stamina_impact

@@ -341,8 +341,19 @@ class SimulationPreflightPhase(SimulationPhase):
                     "log": f"{Prisma.CYN}?↗ Scope widened. Shadow Cast explicitly triggered.{Prisma.RST}"})
         if "?↺" in raw_input:
             safe_set(phys_obj, "beta_index", min(1.0, float(getattr(phys_obj, "beta_index", 0.5)) + 0.5))
+
+            # Apply Somatic Shock for Paradox
+            tension = float(getattr(phys_obj, "beta_index", 1.0))
+            atp_burn = 10.0 * tension
+            if mito:
+                mito.adjust_atp(-atp_burn, "Somatic Shock (Contradiction Flag)")
+            shock_value = (atp_burn / max(1.0, current_atp)) * tension
+            if hasattr(self.eng.bio, "somatic"):
+                self.eng.bio.somatic.somatic_echo = min(1.0, getattr(self.eng.bio.somatic, "somatic_echo",
+                                                                     0.0) + shock_value)
+
             ctx.council_mandates.append({"action": "SYSTEM_DIRECTIVE", "value": "CONTRADICTION_FLAG",
-                    "log": f"{Prisma.YEL}?↺ (Contradiction Flag): Paradox Engine override active.{Prisma.RST}"})
+                                         "log": f"{Prisma.YEL}?↺ (Contradiction Flag): Paradox Engine override active. Somatic Echo registered.{Prisma.RST}"})
         if "[CASCADE]" in upper_input:
             ctx.council_mandates.append({"action": "SYSTEM_DIRECTIVE", "value": "CASCADE_AWARENESS",
                     "log": f"{Prisma.OCHRE}[CASCADE]: Counterfactual math explicitly demanded.{Prisma.RST}"})
@@ -441,6 +452,12 @@ class SimulationPreflightPhase(SimulationPhase):
                 scar_msg = f"{Prisma.VIOLET}Productive Worry activated. Logging Scar for vector. Immune Competence permanently increased.{Prisma.RST}"
                 ctx.log(log_msg)
                 ctx.log(scar_msg)
+                atp_burn = 15.0
+                if mito:
+                    mito.adjust_atp(-atp_burn, "Somatic Shock (ROS Toxicity)")
+                shock_value = (atp_burn / max(1.0, current_atp)) * max(1.0, chaos)
+                if hasattr(self.eng.bio, "somatic"):
+                    self.eng.bio.somatic.somatic_echo = min(1.0, getattr(self.eng.bio.somatic, "somatic_echo", 0.0) + shock_value)
                 if hasattr(self.eng.mind, "mem") and hasattr(self.eng.mind.mem, "record_scar"):
                     self.eng.mind.mem.record_scar("Counterfactual ROS Toxicity", phys_obj)
                 ctx.refusal_triggered = True
