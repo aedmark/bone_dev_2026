@@ -86,5 +86,35 @@ class BrainSubstrateTests(BoneTestCase):
         self.assertIn("Apoptotic cascade", dream_text, "[FAIL] Engine failed to trigger terminal death on starved REM.")
         self.assertEqual(shift.get("voltage"), 100.0, "[FAIL] Terminal sleep did not instantly spike the voltage.")
 
+    def test_hippocampal_stress_blindness(self):
+        """Ensures HippocampalCache violently amputates memories when cortisol spikes."""
+        from brain.ann import HippocampalCache
+        cache = HippocampalCache(max_capacity=10)
+        for i in range(10):
+            cache.encode(f"node_{i}", [0.1] * 8, {"data": i})
+        self.assertEqual(len(cache.nodes), 10, "[FAIL] Cache failed to fill to base capacity.")
+        cache.apply_stress_blindness(cortisol=0.9)
+        self.assertEqual(len(cache.nodes), 1, "[FAIL] HippocampalCache failed to amputate nodes under high cortisol.")
+        self.assertEqual(cache.current_capacity, 1, "[FAIL] Cache capacity float math failed.")
+
+    def test_cerebral_tunnel_vision(self):
+        """Ensures FAISS K-limit is clamped and positive dimensions are blocked under stress."""
+        from brain.ann import CerebralIndex
+        idx = CerebralIndex(dimension=2)
+        vectors = [[0.1, 0.1], [0.1, 0.1], [0.1, 0.1]]
+        payloads = [
+            {"id": "trauma", "dimensions": ["heavy", "void"]},
+            {"id": "playful", "dimensions": ["social", "play"]},
+            {"id": "neutral", "dimensions": ["standard"]}
+        ]
+        idx.add_memories(vectors, payloads)
+        res_normal = idx.query_neighborhood([0.1, 0.1], k=3, physics_state={"cortisol": 0.1})
+        self.assertEqual(len(res_normal), 3, "[FAIL] FAISS failed to return all nodes under low cortisol.")
+        res_stress = idx.query_neighborhood([0.1, 0.1], k=3, physics_state={"cortisol": 0.9})
+        ids = [r["id"] for r in res_stress]
+        self.assertNotIn("playful", ids, "[FAIL] Cortisol failed to block positive dimensions (Tunnel Vision failed).")
+        self.assertLess(len(res_stress), 3, "[FAIL] Cortisol failed to clamp the FAISS K limit.")
+
+
 if __name__ == '__main__':
     unittest.main()

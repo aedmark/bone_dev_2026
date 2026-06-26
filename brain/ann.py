@@ -13,8 +13,18 @@ from core import EventBus
 
 class HippocampalCache:
     def __init__(self, max_capacity: int = 500):
-        self.max_capacity = max_capacity
+        self.base_capacity = max_capacity
+        self.current_capacity = max_capacity
         self.nodes: Dict[str, Any] = {}
+
+    def apply_stress_blindness(self, cortisol: float):
+        """Actively dials down max_capacity based on cortisol to simulate biological stress blindness."""
+        if cortisol > 0.8:
+            self.current_capacity = max(1, int(self.base_capacity * (1.0 - cortisol)))
+        else:
+            self.current_capacity = self.base_capacity
+        while len(self.nodes) > self.current_capacity:
+            del self.nodes[next(iter(self.nodes))]
 
     def encode(self, node_id: str, vector: List[float], metadata: Dict[str, Any]):
         self.nodes.pop(node_id, None)
@@ -24,7 +34,7 @@ class HippocampalCache:
             "wing_id": metadata.get("wing_id", "GLOBAL"),
             "room_id": metadata.get("room_id", "GENERAL")
         }, "vector": vector, "meta": metadata, "timestamp": time.time()}
-        if len(self.nodes) > self.max_capacity:
+        if len(self.nodes) > self.current_capacity:
             del self.nodes[next(iter(self.nodes))]
 
     def retrieve_exact(self, node_id: str) -> Optional[Dict]:
@@ -103,11 +113,15 @@ class CerebralIndex:
         if not self.is_trained or self.total_nodes == 0 or len(query_vector) != self.dimension:
             return []
         target_wing, is_lateral = None, False
+        cortisol = 0.0
         if isinstance(physics_state, dict):
+            cortisol = float(physics_state.get("cortisol", 0.0))
             if float(physics_state.get("voltage", 0.0)) > 80.0 and float(physics_state.get("chi", 0.0)) > 0.7:
                 return self.lateral_ofc_retrieval(physics_state, k=k)
             target_wing = physics_state.get("wing_id", "GLOBAL")
             is_lateral = bool(physics_state.get("lateral_search", False))
+        if cortisol > 0.8:
+            k = max(1, min(k, 2))
         np_query = np.array([query_vector], dtype=np.float32)
         distances, indices = self._index.search(np_query, min(k, self.total_nodes))
         results = []
@@ -119,6 +133,10 @@ class CerebralIndex:
                 continue
             if target_wing and not is_lateral and payload.get("wing_id", "GLOBAL") != target_wing:
                 continue
+            if cortisol > 0.8:
+                dims = payload.get("dimensions", [])
+                if isinstance(dims, list) and any(d in dims for d in ("constructive", "play", "social")):
+                    continue
             resonance = 1.0 / (1.0 + float(dist))
             if resonance >= resonance_threshold:
                 results.append({**payload, "resonance": resonance})
