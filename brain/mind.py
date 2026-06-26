@@ -6,6 +6,8 @@ import re
 import hashlib
 from collections import deque
 from dataclasses import dataclass
+
+_ALPHA_RE = re.compile(r"[^a-z]")
 from typing import Dict, Any, Tuple, Optional
 
 try:
@@ -76,7 +78,6 @@ class NeurotransmitterModulator:
             "T_MODS": safe_get(cfg, "TOKEN_CHEM_MODIFIERS", {"dop": 800, "adr": 400, "cor": 200}),
             "MIN_TOK": float(safe_get(cfg, "MIN_TOKENS", 150.0))}
 
-    # noinspection PyTypeChecker
     def modulate(self, base_voltage: float, latency_penalty: float = 0.0, physics_state: Dict[str, float] = None, simulate: bool = False) -> Dict[str, Any]:
         if physics_state is None:
             physics_state = {}
@@ -165,7 +166,6 @@ class NoeticLoop:
         clean_words = safe_get(physics_packet, "clean_words", [])
         avg_v = sum(voltage_history) / len(voltage_history) if voltage_history else 0
         b = self.b
-
         ignition = min(1.0, (avg_v / b["IGNITION_V_DIV"]) * (len(clean_words) / b["IGNITION_W_DIV"]))
         if voltage > b["LINK_VOLTAGE_THRESH"] and random.random() < b["LINK_CHANCE"]:
             unique_words = list(set(clean_words))
@@ -204,23 +204,21 @@ class DreamEngine:
         self.context_queue = []
         self.dspy_critic = None
         self.epi_prune = int(safe_get(safe_get(self.cfg, "CORTEX", {}), "EPIGENETIC_PRUNE_THRESHOLD", 12))
+        from spores.spore_utils import _word_to_vector
+        from mechanics.tools import TheTclWeaver
+        self._w2v = _word_to_vector
+        self._weaver = TheTclWeaver.get_instance()
 
-    # noinspection PyProtectedMember
     def enter_rem_cycle(self, soul_snapshot: Dict[str, Any], bio_state: Dict[str, Any]) -> Tuple[str, Dict[str, float]]:
         chem = safe_get(bio_state, "chem", {})
         cortisol = float(safe_get(chem, "cortisol", 0.0))
         available_atp = float(safe_get(safe_get(bio_state, "mito", {}), "atp", 0.0))
         shift = {"cortisol": -0.3, "dopamine": 0.1} if cortisol <= 0.6 else {"cortisol": 0.1}
-
-        # 1. Biological/Memory Consolidation Pipeline
         dream_text, consolidated_shift = self._run_biological_rem(soul_snapshot, bio_state, available_atp)
         shift.update(consolidated_shift)
-
-        # 2. Narrative/Hallucination Pipeline
         if not dream_text:
             dream_text, narrative_shift = self._generate_narrative_dream(soul_snapshot, chem, cortisol)
             shift.update(narrative_shift)
-
         if (shift.pop("is_deep_rem", False)) or (random.random() < 0.10 and cortisol <= 0.6):
             shift["glimmers"] = 1
         return dream_text, shift
@@ -229,7 +227,6 @@ class DreamEngine:
         shift = {}
         dream_text = None
         is_deep_rem = False
-
         if available_atp < 5.0 and random.random() < 0.50:
             death_hallucination, _ = self.hallucinate({"chi": 0.99, "voltage": 100.0}, trauma_level=1.0)
             shift["atp_drain"] = available_atp + 10.0
@@ -238,15 +235,11 @@ class DreamEngine:
             if self.events:
                 self.events.log(f"{Prisma.RED}TERMINAL SLEEP FAILURE: {fatal_msg}{Prisma.RST}", "CRIT")
             return fatal_msg, shift
-
         if self.context_queue:
             raw_payloads = self.context_queue
             self.context_queue = []
             s_cost = min(available_atp * 0.4, len(raw_payloads) * 10.0)
             shift["atp_drain"] = s_cost
-            if not hasattr(self, "_w2v"):
-                from spores import _word_to_vector
-                self._w2v = _word_to_vector
             vectors, metadata = [], []
             for text in raw_payloads:
                 vec = self._w2v(text[:50])
@@ -319,7 +312,6 @@ class DreamEngine:
                             print(err_msg)
                     dream_text = f"The system processes conversational trauma in its sleep. It permanently mutates its own source code, forming a scar-tissue axiom: '{new_axiom}'"
                     is_deep_rem = True
-
         shift["is_deep_rem"] = is_deep_rem
         return dream_text, shift
 
@@ -327,7 +319,6 @@ class DreamEngine:
         shift = {}
         dream_text = None
         is_deep_rem = False
-
         if self.llm:
             index = list(self.mem.subconscious.index)
             if self.eng and getattr(self.eng, "akashic", None): # This getattr is load bearing
@@ -355,17 +346,13 @@ class DreamEngine:
             dream_type = ("NIGHTMARES" if cortisol > 0.6 else ("SURREAL" if chem.get("dopamine", 0) > 0.6 else "CONSTRUCTIVE"))
             residue = soul_snapshot.get("obsession", {}).get("title") or "The Void"
             dream_text = self._weave_dream(residue, dream_type, "SURREAL")
-
         if dream_text:
             try:
-                clean_seed = (re.sub(r"[^a-z]", "", soul_snapshot.get("obsession", {}).get(
-                    "title", "The Void").split()[-1].lower(), ) or "echo")
-                self.mem.subconscious.bury_memory(clean_seed, {
-                    "mass": min(10.0, 5.0 + (cortisol * 5.0))
-                })
+                clean_seed = (_ALPHA_RE.sub("", soul_snapshot.get("obsession", {}).get(
+                    "title", "The Void").split()[-1].lower()) or "echo")
+                self.mem.subconscious.bury({"word": clean_seed, "mass": min(10.0, 5.0 + (cortisol * 5.0))}, config_ref=self.cfg)
             except Exception:
                 pass
-
         shift["is_deep_rem"] = is_deep_rem
         return dream_text, shift
 
@@ -419,9 +406,6 @@ class DreamEngine:
             templates = [item for v in templates.values() for item in (v if isinstance(v, list) else [v])]
         if not templates:
             return "The walls breathe.", 0.1
-        if not hasattr(self, "_weaver"):
-            from mechanics.tools import TheTclWeaver
-            self._weaver = TheTclWeaver.get_instance()
         weaver = self._weaver
         v = _vector or {}
         active_chi = float(safe_get(v, "chi", safe_get(v, "entropy", 0.85)))

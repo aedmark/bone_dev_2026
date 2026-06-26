@@ -1,5 +1,24 @@
 # CHANGELOG.md
 -----------------------------------------------------------
+
+### **BONEAMANITA 20.6.3 "The REM Cycle Audit"**
+
+**Stability & Testing (The MagicMock Trap)**
+
+- **The Hallucinated Method:** Patched a fatal structural flaw in `DreamEngine._generate_narrative_dream` (`brain/mind.py`) where the engine attempted to call a non-existent `bury_memory` method during deep REM fallback cycles. Re-wired the neural pathway to correctly target the verified `SubconsciousStrata.bury()` method.
+- **Strict Speccing Mandate:** Eradicated the "MagicMock Trap" blind spot in the CI/CD pipeline. Wired comprehensive, strictly specced tests for the `DreamEngine` into `tests/test_brain.py`, ensuring that future hallucinated method calls will violently crash the test suite rather than silently passing under loose mock logic.
+- **Apoptotic Assertions:** Re-aligned the terminal sleep failure test to properly target the `Apoptotic cascade` narrative payload instead of the broadcasting prefix, ensuring mathematically accurate biological starvation validation.
+
+**Performance & Architecture (TONIC Enforcement)**
+
+- **Global Import Lock Amputation:** Eradicated dynamic mid-loop imports (`_word_to_vector`, `TheTclWeaver`) inside the `DreamEngine` hallucination and REM execution paths. These heavy dependencies are now rigidly pre-compiled and bound during `__init__` Bedrock Caching, eliminating severe computational drag and locking during biological cognition.
+
+**Security & Immunity**
+
+- **Physics Vector Coercion:** Maintained the Constitution's strict language-specific conventions by restoring explicit `float()` type casting in `drivers/liminal.py` during `physics_vector` extraction. This guarantees structural type safety against loosely passed dictionaries, patching a catastrophic sequence-multiplication `TypeError` during high-frequency mathematical flux.
+
+---
+
 ### **BONEAMANITA 20.6.2 "The SubQ Integration"**
 
 **Architectural Evolution (Memory & Metabolism)**
