@@ -61,4 +61,6 @@ Only after this entire pipeline successfully completes does the orchestrator pas
 
 ## 3. Open Questions
 
-*(Currently no open architectural questions for Domain 04. The phase pipeline is strictly sealed.)*
+### [OQ-1] The Somatic Echo (Cycle Carryover)
+**Status:** `Backlog`
+**Question:** When the `GatekeeperPhase` reaches backward to execute a Somatic Shock (instant ATP burn due to paradox/lore violation), the penalty is currently contained to the active execution cycle. Should this violent biological intervention leave a "Somatic Echo"—a raw float modifier that mathematically bleeds into the `ObservationPhase` of the *subsequent* cycle, simulating a lingering adrenaline shake that distorts the engine's perception of the next input?

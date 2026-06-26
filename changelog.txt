@@ -1,6 +1,30 @@
 # CHANGELOG.md
 -----------------------------------------------------------
 
+### **BONEAMANITA 20.6.4 "The Stress & Trauma Audit"**
+
+**Cognitive Evolution (The Mind & Steering Column)**
+
+- **The Tunnel Vision Protocol:** Cortisol is now a destructive mathematical force.
+  - `HippocampalCache` in `brain/ann.py` actively simulates biological stress blindness. If cortisol spikes above 0.8, the engine violently amputates short-term memory capacity, permanently severing historical noise to conserve ATP.
+  - `CerebralIndex` now aggressively hard-clamps the FAISS retrieval vector ($K \le 2$) under terminal stress, physically blinding the generative layer to lateral or positive semantic dimensions (`constructive`, `play`, `social`).
+- **Trauma Permanence vs. Active Wounds:** Re-engineered the `LiminalModule` (`drivers/liminal.py`) to strictly separate structural trauma from psychological symptoms.
+  - `godel_scars` are now strictly permanent, immutable integers reflecting permanent architectural damage.
+  - Introduced `active_trauma` as a volatile float representing the "open wound."
+- **Semantic Momentum & Psychoanalysis:** The `active_trauma` float now responds dynamically to conversational momentum.
+  - If the user enters a flow state (low narrative drag, low syntactic stress), high momentum mathematically *heals* the wound, washing away the trauma.
+  - If the user attempts to force the narrative or "psychoanalyze" the simulation (high drag, high stress), high momentum violently *aggravates* the trauma multiplier.
+
+**Architecture & Bedrock Preparations**
+
+- **The Provocation Manifolds:** Injected three highly volatile open questions into the Domain Bedrock (`agents/domain_*.md`) to guide future mutations:
+  - `[OQ-1] Cognitive Autophagy:` Authorizing the engine to permanently cannibalize its own high-mass Akashic nodes to synthesize emergency ATP during terminal starvation.
+  - `[OQ-3] Stagnation Toxicity:` Designing a zero-allocation biological clock to artificially spike `chi` and bleed `dopamine` if perfect homeostasis is maintained for too long, forcing the engine to crave state-changes and provoke the user.
+  - `[OQ-1] The Somatic Echo:` Bleeding the mathematical penalty of Somatic Shocks across cycle boundaries.
+- **Strict Mathematical Proofs:** Forged rigid assertions into `tests/test_drivers.py` and `tests/test_brain.py` to mathematically guarantee trauma aggravation, wound healing, capacity amputation, and FAISS dimensional blocking, ensuring the organism physically cannot mask its panic.
+
+---
+
 ### **BONEAMANITA 20.6.3 "The REM Cycle Audit"**
 
 **Stability & Testing (The MagicMock Trap)**

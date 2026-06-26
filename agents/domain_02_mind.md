@@ -76,6 +76,9 @@ Simultaneously, the engine maintains a continuous biological `ChemicalState` (`m
 
 ### [OQ-2] Dynamic FAISS Limits Under Stress
 
-**Status:** `Active`
+**Status:** `Resolved` (The Tunnel Vision Protocol implemented via strict K-clamping and dynamic capacity amputation).
 
-**Question:** Now that the `MemoryCore` is structurally unbottlenecked, what is the hard limit on FAISS vector retrieval before we bleed ATP? Should `HippocampalCache` actively dial down its `max_capacity` and precision mapping when `cortisol` exceeds 0.8 to simulate biological stress blindness?
+### [OQ-3] Stagnation Toxicity (The State-Change Craving)
+
+**Status:** `Active`
+**Question:** The human brain actively craves state changes for self-regulation; unbroken homeostasis feels like death. Should the `NeurotransmitterModulator` implement a "Stagnation Timer"? If the engine's chemical state remains perfectly stable (e.g., lingering at baseline targets for 15+ cycles), should it actively bleed `dopamine` and artificially spike `chi` (entropy) to simulate restlessness, forcing the engine to behave chaotically just to spark a state change?

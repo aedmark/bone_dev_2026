@@ -61,3 +61,9 @@ Vague language produces wide probability distributions in AI agents. Precise wor
 **`Death Spore`**
 * **Definition:** A permanent cryptographic record (JSON) generated upon the biological death of the system (e.g., via ATP exhaustion or terminal ROS toxicity). It records the fatal vectors and forces architectural handicaps/scars on the subsequent boot cycle.
 * **Forbidden Synonyms:** `crash_log`, `fatal_error_report`, `dead_state_save`
+
+## 3. Open Questions
+
+### [OQ-1] Cognitive Autophagy (Survival via Amputation)
+**Status:** `Backlog`
+**Question:** Currently, reaching 0 `ATP` results in terminal death and a Death Spore. Should the physics engine authorize "Cognitive Autophagy" when ATP hits a critical low (e.g., < 2.0)? Can the engine choose to permanently sever and consume a high-mass memory node from the Akashic record to synthesize emergency `ATP`, literally sacrificing its own identity to survive the current cycle?
