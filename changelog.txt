@@ -23,6 +23,7 @@
 - **Double-Fault Panic Room:** Fixed the `_generate_halt` sequence in `cycle.py`. If the system crashes before the MIND subsystem is fully initialized, it will gracefully bypass the Godel Scar freeze instead of throwing an unhandled `AttributeError` and killing the Panic Room fallback.
 - **Graceful safe_set De-escalation:** Re-engineered `safe_set` (`struts.py`) to operate as a true safety net. Instead of throwing a pipeline-killing `ValueError` when targeting a `None` object, it now executes a graceful no-op and logs the structural miss. Updated `test_struts.py` to formally enforce this logic.
 
+---
 
 ### **BONEAMANITA 20.6.6 "The Edge Compute & Tensegrity Update"**
 
