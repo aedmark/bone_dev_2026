@@ -292,7 +292,7 @@ class TheSubstrate:
         self.config = LoreManifest.get_instance().get("SUBSTRATE_CONFIG") or {
             "ATP_COST_PER_CHAR": 0.02,
             "MAX_ATP_PER_FILE": 100.0,
-            "MAX_RETRIES": 3,
+            "SUBSTRATE_WRITE_RETRIES": 3,
         }
 
     def queue_write(self, path: str, content: str):
@@ -321,7 +321,7 @@ class TheSubstrate:
                 continue
             if stamina_pool - cost < w_cost:
                 retries = w.get("retries", 0) + 1
-                if retries > self.config.get("MAX_RETRIES", 3):
+                if retries > self.config.get("SUBSTRATE_WRITE_RETRIES", 3):
                     logs.append(
                         f"{Prisma.VIOLET}FATAL ERROR: {s_name} starved for ATP 3 times. Dropping file.{Prisma.RST}"
                     )
@@ -347,7 +347,7 @@ class TheSubstrate:
                     )
             except Exception as e:
                 retries = w.get("retries", 0) + 1
-                if retries > self.config.get("MAX_RETRIES", 3):
+                if retries > self.config.get("SUBSTRATE_WRITE_RETRIES", 3):
                     logs.append(
                         f"{Prisma.VIOLET}FATAL ERROR: Write failed 3 times for {s_name} - {e}. Purging corrupted matter.{Prisma.RST}"
                     )

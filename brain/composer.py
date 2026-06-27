@@ -81,7 +81,7 @@ class LLMInterface:
         self,
         payload: Dict[str, Any],
         timeout: float = 60.0,
-        max_retries: int = 2,
+        network_retries: int = 2,
         override_url: Optional[str] = None,
         override_key: Optional[str] = None,
     ) -> str:
@@ -93,7 +93,7 @@ class LLMInterface:
             "Authorization": f"Bearer {target_key}",
         }
         data = json.dumps(payload, cls=JSONEncoder).encode()
-        for attempt in range(max_retries + 1):
+        for attempt in range(network_retries + 1):
             try:
                 req = urllib.request.Request(target_url, data=data, headers=headers)
                 with urllib.request.urlopen(req, timeout=timeout) as response:
@@ -114,10 +114,10 @@ class LLMInterface:
             except Exception as e:
                 err = f"Unexpected Protocol Failure: {e}"
             self._log_flicker(attempt, err)
-            if attempt < max_retries:
+            if attempt < network_retries:
                 time.sleep(2**attempt)
         raise TransientError(
-            f"Max retries ({max_retries}) exhausted. Last error: {err}"
+            f"Network retries ({network_retries}) exhausted. Last error: {err}"
         )
 
     @staticmethod
@@ -188,7 +188,7 @@ class LLMInterface:
         }
         payload.update(params)
         c_cfg = safe_get(self.cfg, "CORTEX", {})
-        synapse_timeout = float(safe_get(c_cfg, "LLM_TIMEOUT", 180.0))
+        synapse_timeout = float(safe_get(c_cfg, "LLM_TIMEOUT", 300.0))
         try:
             content = self._transmit(payload, timeout=synapse_timeout)
             if content:
@@ -240,11 +240,11 @@ class LLMInterface:
         fallback_payload["model"] = safe_get(self.cfg, "OLLAMA_FALLBACK", "llama3.1:8b")
         try:
             c_cfg = safe_get(self.cfg, "CORTEX", {})
-            fallback_timeout = float(safe_get(c_cfg, "LLM_FALLBACK_TIMEOUT", 60.0))
+            fallback_timeout = float(safe_get(c_cfg, "LLM_FALLBACK_TIMEOUT", 120.0))
             return self._transmit(
                 fallback_payload,
                 timeout=fallback_timeout,
-                max_retries=1,
+                network_retries=1,
                 override_url=url,
                 override_key="ollama",
             )

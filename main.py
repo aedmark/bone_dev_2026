@@ -213,17 +213,16 @@ class BoneAmanita:
 
     @property
     def trauma_accum(self) -> dict:
-        return getattr(self.mind.mem, "session_trauma_vector", {})
+        mem = getattr(getattr(self, "mind", None), "mem", None)
+        return getattr(mem, "session_trauma_vector", {}) if mem else {}
 
     @trauma_accum.setter
     def trauma_accum(self, value: dict):
-        mem = getattr(getattr(self, "mind", None), "mem", None)
-        if not mem:
-            return
-        if not hasattr(mem, "session_trauma_vector"):
-            mem.session_trauma_vector = {}
-        mem.session_trauma_vector.clear()
-        mem.session_trauma_vector.update(value)
+        if mem := getattr(getattr(self, "mind", None), "mem", None):
+            if not hasattr(mem, "session_trauma_vector"):
+                mem.session_trauma_vector = {}
+            mem.session_trauma_vector.clear()
+            mem.session_trauma_vector.update(value)
 
     @property
     def stamina(self) -> float:
@@ -509,7 +508,13 @@ class BoneAmanita:
                 and hasattr(gordon, "apply_filters")
             ):
                 user_message = gordon.apply_filters(user_message, self.active_physics)
-            timeout_val = float(getattr(self.config, "ORCHESTRATOR_TIMEOUT", 120.0))
+            c_cfg = getattr(self.config, "CORTEX", None)
+            llm_timeout = (
+                float(getattr(c_cfg, "LLM_TIMEOUT", 300.0)) if c_cfg else 300.0
+            )
+            timeout_val = float(
+                getattr(self.config, "ORCHESTRATOR_TIMEOUT", llm_timeout + 60.0)
+            )
             try:
                 self.orchestrator.input_queue.put((user_message, is_system))
                 snapshot = self.orchestrator.output_queue.get(timeout=timeout_val)

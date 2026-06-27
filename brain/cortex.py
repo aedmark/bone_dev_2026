@@ -258,7 +258,8 @@ class TheCortex:
             mood_override=self.modulator.get_mood_directive(),
         )
         start_time = time.time()
-        max_retries = 5
+        c_cfg = safe_get(self.cfg, "CORTEX", {})
+        cognitive_retries = int(safe_get(c_cfg, "COGNITIVE_RETRY_LIMIT", 2))
         final_output, inv_logs, extracted_logs = "", [], []
         raw_resp: str = ""
         val_res: Dict[str, Any] = {"valid": False}
@@ -281,7 +282,7 @@ class TheCortex:
             from physics import TheGatekeeper
 
             gk = TheGatekeeper(self.svc.lexicon, config_ref=self.cfg)
-        if max_retries > 0:
+        if cognitive_retries > 0:
             final_output, raw_resp, extracted_logs, inv_logs, val_res, final_prompt = (
                 self._execute_cognitive_loop(
                     user_input,
@@ -293,7 +294,7 @@ class TheCortex:
                     is_boot_sequence,
                     firewall_active,
                     gk,
-                    max_retries,
+                    cognitive_retries,
                 )
             )
         if val_res["valid"] and phys_state.get("psi", 0.0) > 0.6 and allow_loot:
@@ -568,13 +569,13 @@ class TheCortex:
         is_boot_sequence: bool,
         firewall_active: bool,
         gk: Any,
-        max_retries: int,
+        cognitive_retries: int,
     ) -> Tuple[str, str, List[str], List[str], Dict[str, Any], str]:
         final_output, inv_logs, extracted_logs = "", [], []
         raw_resp = ""
         val_res = {"valid": False}
         final_prompt = base_prompt
-        for attempt in range(max_retries):
+        for attempt in range(cognitive_retries):
             if attempt > 0:
                 phys_state["is_steering_retry"] = True
             val_res = {"valid": False}
@@ -673,7 +674,7 @@ class TheCortex:
             if self.svc.bio:
                 lbl = (
                     "Cognitive Stumble (Terminal)"
-                    if attempt == max_retries - 1
+                    if attempt == cognitive_retries - 1
                     else "Cognitive Stumble"
                 )
                 penalty = (
@@ -686,7 +687,7 @@ class TheCortex:
                 self.svc.bio.mito.state.ros_buildup = (
                     float(self.svc.bio.mito.state.ros_buildup) + penalty
                 )
-            if attempt == max_retries - 1:
+            if attempt == cognitive_retries - 1:
                 fallback_msg = "I'm sorry. My thoughts are tangling and I'm burning too much energy trying to piece this together. I'm dropping the tension. Can we take a breath and try a simpler path?"
                 final_output = ux("brain_strings", "cortex_tangled") or fallback_msg
                 extracted_logs.append(

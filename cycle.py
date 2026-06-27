@@ -475,8 +475,8 @@ class GeodesicOrchestrator:
 
         def _bg_hallucinate(trauma, objs):
             try:
-                if hasattr(self.eng.mind, "dream_engine"):
-                    dream_txt, _ = self.eng.mind.dream_engine.hallucinate(
+                if hasattr(self.eng.mind, "dreamer") and self.eng.mind.dreamer:
+                    dream_txt, _ = self.eng.mind.dreamer.hallucinate(
                         {"chi": 0.85}, trauma_level=trauma
                     )
                     self.dream_log.append(
@@ -533,7 +533,8 @@ class GeodesicOrchestrator:
 
     def _verify_semantic_topology(self, ctx: CycleContext):
         """Native Maslov-Sneppen rewiring (Project Navi, Apache 2.0)."""
-        if self.eng.tick_count % 3 != 0:
+        check_freq = int(getattr(self.eng.config.CORE, "TOPOLOGY_FREQ", 10))
+        if self.eng.tick_count % check_freq != 0:
             return
         try:
             mem = self.eng.mind.mem
@@ -673,15 +674,7 @@ class GeodesicOrchestrator:
             self.eng.governor.calculate_coupling(phi_val, res_delta, u_exhaustion)
             ctx.physics.macro_policy = self.eng.governor.get_policy_shift()
             raw_vector = getattr(ctx.physics, "vector", {})
-            _tags = [
-                "critique_mode",
-                "objective_mode",
-                "healing_mode",
-                "void_mode",
-                "lateral_shuffle",
-                "literal_mode",
-                "yeetinator_mode",
-            ]
+            _tags = list(tags_map.keys())
             goal_vec = np.array(
                 [float(raw_vector.get(k, 0.0)) for k in _tags], dtype=np.float32
             )
@@ -725,13 +718,10 @@ class GeodesicOrchestrator:
             if self.eng.observer:
                 self.eng.observer.last_physics_packet = ctx.physics.snapshot()
             if self.eng.telemetry.active_crystal:
-                metrics: Optional[Dict[str, Any]] = getattr(
-                    self.eng.telemetry.active_crystal, "leverage_metrics", None
-                )
-                if isinstance(metrics, dict):
-                    metrics["b"] = getattr(self.eng.governor, "last_b", 0.0)
-                    metrics["a"] = getattr(self.eng.governor, "last_a", 0.0)
-                    metrics["lam1"] = getattr(self.eng.governor, "last_lam1", 0.0)
+                metrics = self.eng.telemetry.active_crystal.leverage_metrics
+                metrics["b"] = getattr(self.eng.governor, "last_b", 0.0)
+                metrics["a"] = getattr(self.eng.governor, "last_a", 0.0)
+                metrics["lam1"] = getattr(self.eng.governor, "last_lam1", 0.0)
             return ctx
         except Exception as e:
             full_trace = traceback.format_exc()
@@ -860,7 +850,8 @@ class GeodesicOrchestrator:
         if clean_message != "(Waiting)":
             if ctx.physics:
                 self.voltage_history.append(float(getattr(ctx.physics, "voltage", 0.0)))
-            if cortex and self.eng.tick_count % 3 == 0:
+            check_freq = int(getattr(self.eng.config.CORE, "WLS_FREQ", 8))
+            if cortex and self.eng.tick_count % check_freq == 0:
                 self._async_pool.submit(_bg_wls_check, clean_message)
                 try:
                     v_history = list(self.voltage_history)
