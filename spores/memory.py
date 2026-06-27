@@ -63,6 +63,19 @@ class SubconsciousStrata:
         self.quantizer = None
         self._load_index()
 
+    def _rebuild_ordvec(self, context_msg="Rebuild"):
+        if ordvec and self.rank_bank is not None and len(self.rank_bank) >= 32:
+            try:
+                dim = self.rank_bank.shape[1]
+                self.bitmap = SignBitmap(dim)
+                self.quantizer = RankQuant(dim, 4)
+                self.bitmap.add(self.rank_bank)
+                self.quantizer.add(self.rank_bank)
+            except Exception as e:
+                print(f"\n[ORDVEC] {context_msg} Failure: {e}")
+                self.bitmap = None
+                self.quantizer = None
+
     def _iter_entries(self):
         if not os.path.exists(self.filepath):
             return
@@ -99,17 +112,7 @@ class SubconsciousStrata:
             self.rank_bank = np.ascontiguousarray(
                 np.vstack(raw_vectors), dtype=np.float32
             )
-            if ordvec and len(self.rank_bank) >= 32:
-                try:
-                    dim = self.rank_bank.shape[1]
-                    self.bitmap = SignBitmap(dim)
-                    self.quantizer = RankQuant(dim, 4)
-                    self.bitmap.add(self.rank_bank)
-                    self.quantizer.add(self.rank_bank)
-                except Exception as e:
-                    print(f"\n[ORDVEC] Boot Failure: {e}")
-                    self.bitmap = None
-                    self.quantizer = None
+            self._rebuild_ordvec("Boot")
 
     def bury(self, fossil_data: Dict, config_ref=None):
         try:
@@ -148,16 +151,7 @@ class SubconsciousStrata:
 
                     if ordvec:
                         if len(self.rank_bank) == 32:
-                            try:
-                                dim = self.rank_bank.shape[1]
-                                self.bitmap = SignBitmap(dim)
-                                self.quantizer = RankQuant(dim, 4)
-                                self.bitmap.add(self.rank_bank)
-                                self.quantizer.add(self.rank_bank)
-                            except Exception as e:
-                                print(f"\n[ORDVEC] Boot Failure: {e}")
-                                self.bitmap = None
-                                self.quantizer = None
+                            self._rebuild_ordvec("Boot")
                         elif (
                             len(self.rank_bank) > 32
                             and self.bitmap is not None
@@ -194,17 +188,7 @@ class SubconsciousStrata:
                 self.rank_bank = np.ascontiguousarray(
                     self.rank_bank[-keep_count:], dtype=np.float32
                 )
-                if ordvec and len(self.rank_bank) >= 32:
-                    try:
-                        dim = self.rank_bank.shape[1]
-                        self.bitmap = SignBitmap(dim)
-                        self.quantizer = RankQuant(dim, 4)
-                        self.bitmap.add(self.rank_bank)
-                        self.quantizer.add(self.rank_bank)
-                    except Exception as e:
-                        print(f"\n[ORDVEC] Prune Rebuild Failure: {e}")
-                        self.bitmap = None
-                        self.quantizer = None
+                self._rebuild_ordvec("Prune Rebuild")
             else:
                 self.metadata_log, self.index, self.rank_bank = [], {}, None
                 self.bitmap, self.quantizer = None, None
@@ -490,7 +474,7 @@ class MemoryCore:
             "death_tick": current_tick,
         }
         if mass >= shadow_mass_threshold:
-            if hasattr(self, "events") and self.events:
+            if self.events:
                 self.events.publish(
                     "GHOST_SIGNAL",
                     {
@@ -507,7 +491,7 @@ class MemoryCore:
                 )
         else:
             self.subconscious.bury(fossil_data, config_ref=self.cfg)
-            if hasattr(self, "events") and self.events:
+            if self.events:
                 self.events.publish("MEMORY_BURIED", {"fossil": fossil_data})
         del self.graph[victim]
         for node_data in self.graph.values():

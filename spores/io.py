@@ -53,12 +53,6 @@ class LocalFileSporeLoader:
         final_path = os.path.realpath(
             os.path.join(base_dir, os.path.basename(filepath))
         )
-        if os.path.commonpath([base_dir, final_path]) != base_dir:
-            if msg := ux_format(
-                "spore_strings", "loader_read_err", e="Path containment violation"
-            ):
-                print(f"{Prisma.RED}{msg}{Prisma.RST}")
-            return None
         if not os.path.exists(final_path):
             if msg := ux_format(
                 "spore_strings", "loader_not_found", filepath=final_path
@@ -99,8 +93,6 @@ class LocalFileSporeLoader:
         final_path = os.path.realpath(
             os.path.join(base_dir, os.path.basename(filepath))
         )
-        if os.path.commonpath([base_dir, final_path]) != base_dir:
-            return False
         try:
             os.remove(final_path)
             return True

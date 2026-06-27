@@ -28,7 +28,6 @@ class MycelialNetwork:
     ):
         self.events = events
         self.cfg = config_ref or BoneConfig
-        self.subconscious = SubconsciousStrata()
         self.lex = lexicon_ref
         self.loader = loader if loader else LocalFileSporeLoader()
         self.session_id = f"session_{int(time.time())}"
@@ -48,6 +47,7 @@ class MycelialNetwork:
         self.session_health = getattr(self.cfg, "MAX_HEALTH", 100.0)
         self.session_stamina = getattr(self.cfg, "MAX_STAMINA", 100.0)
         self.session_trauma_vector = {}
+        self.village_legacy = {}
         if seed_file:
             self.ingest(seed_file)
         self._sync_q_matrix()
@@ -63,8 +63,6 @@ class MycelialNetwork:
 
     def _on_scar_recorded(self, payload):
         if concept := payload.get("concept"):
-            if hasattr(self.subconscious, "apply_scar"):
-                self.subconscious.apply_scar(concept)
             self._sync_q_matrix()
 
     @property
@@ -139,7 +137,7 @@ class MycelialNetwork:
         if victim:
             cfg = safe_get(self.cfg, "AKASHIC", {})
             atp_gain = float(safe_get(cfg, "AUTOPHAGY_YIELD", 15.0))
-            if hasattr(self.events, "publish"):
+            if self.events:
                 self.events.publish(
                     "AUTOPHAGY_EVENT", {"node": victim, "atp_gained": atp_gain}
                 )

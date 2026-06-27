@@ -117,21 +117,18 @@ class LiteraryReproduction:
         self, engine_ref, mode="MITOSIS", target_spore=None
     ) -> Tuple[str, Dict]:
         mem = engine_ref.mind.mem
-        mito_state = getattr(
-            getattr(getattr(engine_ref, "bio", None), "mito", None), "state", None
-        )
+        bio = getattr(engine_ref, "bio", None)
+        mito = getattr(bio, "mito", None)
+        mito_state = getattr(mito, "state", None)
         bio_state = {
             "trauma_vector": getattr(engine_ref, "trauma_accum", {}),
             "mito": getattr(mito_state, "__dict__", {}),
         }
-        phys_packet = getattr(getattr(engine_ref, "cortex", None), "last_physics", None)
+        cortex = getattr(engine_ref, "cortex", None)
+        phys_packet = getattr(cortex, "last_physics", None)
         if not phys_packet:
-            phys_packet = (
-                getattr(
-                    getattr(engine_ref, "observer", None), "last_physics_packet", {}
-                )
-                or {}
-            )
+            observer = getattr(engine_ref, "observer", None)
+            phys_packet = getattr(observer, "last_physics_packet", {}) or {}
         genome = {}
         child_id = "UNKNOWN"
         if mode == "MITOSIS":
