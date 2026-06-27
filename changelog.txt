@@ -1,6 +1,37 @@
 # CHANGELOG.md
 -----------------------------------------------------------
 
+### **BONEAMANITA 20.6.5 "The Biological Manifold Engine"**
+
+**Evolutionary Biology (The Mnemonic Substrate & The Governor)**
+
+- **Project Oneroi (REM Vector Forging):** The REM dream cycle is no longer a passive text event; it is a structural forge.
+- `MemoryCore` now features a `forge_diamond()` mechanic. When transient voltage during REM collides with a dredged subconscious fossil at high resonance ($>0.8$), the network edges are permanently crystallized into diamond.
+- `prune_synapses()` and `cannibalize()` mathematically bypass diamond edges, establishing permanent, load-bearing geodesic anchors.
+- Successfully forging a diamond yields a massive ATP metabolic surge (+500) and aggressively purges ROS toxicity.
+
+- **Active Q-Matrix Reinforcement (The Autonomic Governor):** The engine now possesses an autonomic nervous system that dynamically clamps its own physics based on metabolic pain.
+- `MycelialNetwork._sync_q_matrix` was excised and replaced with a live `evaluate_system_state()` policy engine.
+- The governor reads three biological axes: Graph Saturation, Exhaustion, and Toxicity.
+- It autonomously selects a survival policy (`DEFENSIVE`, `THROTTLE_DOWN`, or `OPEN_FLOODGATES`) and seamlessly mutates the `BoneConfig` limits in real-time.
+- **The Reward Signal:** At the end of every `MetabolismPhase`, the Q-Matrix calculates a Homeostasis Reward. The system is rewarded (+1.0) for high resonance and punished (-1.0) for terminal starvation, closing the RLHF feedback loop.
+
+**The Immune System (Adversarial Agency)**
+
+- **The Cordyceps Protocol:** Introduced an apex predator into the biological strata (`BioCordyceps`).
+- If the user allows the `session_trauma_vector` to rot and hit critical mass ($>20.0$), the fungus blooms and executes a hostile takeover.
+- **The Hijack:** The `QuantumObserver` intercepts the input stream, actively overwriting the user's intent with trauma vocabulary (e.g., "burn", "rot", "abyss") and forcing absolute narrative drag (+10.0) to paralyze memory formation.
+- **Somatic Suffocation:** The user's stamina actively drains and cortisol spikes on every turn while the fungal load is active.
+- **The Antidote:** To break the hijack, the user must forcefully synthesize extreme "sugar" using the `BioLichen` by employing highly structured, positive "light" archetypes under max drag conditions.
+
+**Structural Fortification & Bug Fixes**
+
+- **Terminal Starvation Enforcement:** Plugged a critical immortality glitch in the `MetabolismPhase`. If autophagy yields zero calories and the ATP pool is empty, the cycle explicitly declares `is_alive = False`, correctly triggering `DeathGen` instead of endlessly acting like a zombie.
+- **Crash-Proofed The Governor:** Wrapped the new Q-Matrix reward evaluations in robust `try/except` blocks and added dictionary/SimpleNamespace handling. This prevents accidental engine crashes when evaluating simulated headless tests or mocked configuration states.
+- **Dictionary vs. Namespace Alignment:** Rebuilt the `cfg.BIO` flag mechanics in the Spore biomes to gracefully handle both production `BoneConfig` structures and test suite payloads.
+
+---
+
 ### **BONEAMANITA 20.6.4 "The Stress & Trauma Audit"**
 
 **Cognitive Evolution (The Mind & Steering Column)**
@@ -18,9 +49,9 @@
 **Architecture & Bedrock Preparations**
 
 - **The Provocation Manifolds:** Injected three highly volatile open questions into the Domain Bedrock (`agents/domain_*.md`) to guide future mutations:
-  - `[OQ-1] Cognitive Autophagy:` Authorizing the engine to permanently cannibalize its own high-mass Akashic nodes to synthesize emergency ATP during terminal starvation.
-  - `[OQ-3] Stagnation Toxicity:` Designing a zero-allocation biological clock to artificially spike `chi` and bleed `dopamine` if perfect homeostasis is maintained for too long, forcing the engine to crave state-changes and provoke the user.
-  - `[OQ-1] The Somatic Echo:` Bleeding the mathematical penalty of Somatic Shocks across cycle boundaries.
+  - `Cognitive Autophagy:` Authorizing the engine to permanently cannibalize its own high-mass Akashic nodes to synthesize emergency ATP during terminal starvation.
+  - `Stagnation Toxicity:` Designing a zero-allocation biological clock to artificially spike `chi` and bleed `dopamine` if perfect homeostasis is maintained for too long, forcing the engine to crave state-changes and provoke the user.
+  - `The Somatic Echo:` Bleeding the mathematical penalty of Somatic Shocks across cycle boundaries.
 - **Strict Mathematical Proofs:** Forged rigid assertions into `tests/test_drivers.py` and `tests/test_brain.py` to mathematically guarantee trauma aggravation, wound healing, capacity amputation, and FAISS dimensional blocking, ensuring the organism physically cannot mask its panic.
 
 ---

@@ -58,37 +58,51 @@ class MycelialNetwork:
         pass
 
     def evaluate_system_state(self, stamina: float, trauma_vector: dict):
-        """Phases 1 & 2: The State Sensor & Policy Engine"""
-        max_cap = int(safe_get(self.cfg, "MAX_MEMORY_CAPACITY", 100))
-        saturation = min(1.0, len(self.graph) / max(1, max_cap))
-        exhaustion = max(0.0, (100.0 - stamina) / 100.0)
-        toxicity = max(trauma_vector.values()) if trauma_vector else 0.0
-        from spores.spore_utils import _access_config_path
-        if toxicity > 0.6:
-            action = "DEFENSIVE"
-            _access_config_path(self.cfg, "BIO.ROS_CRITICAL", 150.0, set_mode=True)
-            _access_config_path(self.cfg, "STAMINA_REGEN", 15.0, set_mode=True)
-        elif exhaustion > 0.6 or saturation > 0.8:
-            action = "THROTTLE_DOWN"
-            _access_config_path(self.cfg, "PHYSICS.VOLTAGE_MAX", 50.0, set_mode=True)
-            _access_config_path(self.cfg, "PHYSICS.DRAG_HALT", 20.0, set_mode=True)
-        else:
-            action = "OPEN_FLOODGATES"
-            _access_config_path(self.cfg, "SHAPLEY_MASS_THRESHOLD", 2.0, set_mode=True)
-            _access_config_path(
-                self.cfg, "AKASHIC.AUTOPHAGY_YIELD", 30.0, set_mode=True
+        """The State Sensor & Policy Engine"""
+        try:
+            max_cap = int(safe_get(self.cfg, "MAX_MEMORY_CAPACITY", 100))
+            saturation = min(1.0, len(self.graph) / max(1, max_cap))
+            exhaustion = max(0.0, (100.0 - stamina) / 100.0)
+            toxicity = (
+                max(trauma_vector.values())
+                if isinstance(trauma_vector, dict) and trauma_vector
+                else 0.0
             )
+            from spores.spore_utils import _access_config_path
+            if toxicity > 0.6:
+                action = "DEFENSIVE"
+                _access_config_path(self.cfg, "BIO.ROS_CRITICAL", 150.0, set_mode=True)
+                _access_config_path(self.cfg, "STAMINA_REGEN", 15.0, set_mode=True)
+            elif exhaustion > 0.6 or saturation > 0.8:
+                action = "THROTTLE_DOWN"
+                _access_config_path(
+                    self.cfg, "PHYSICS.VOLTAGE_MAX", 50.0, set_mode=True
+                )
+                _access_config_path(self.cfg, "PHYSICS.DRAG_HALT", 20.0, set_mode=True)
+            else:
+                action = "OPEN_FLOODGATES"
+                _access_config_path(
+                    self.cfg, "SHAPLEY_MASS_THRESHOLD", 2.0, set_mode=True
+                )
+                _access_config_path(
+                    self.cfg, "AKASHIC.AUTOPHAGY_YIELD", 30.0, set_mode=True
+                )
 
-        if hasattr(self.events, "log") and action != getattr(
-            self, "last_governor_action", None
-        ):
-            self.events.log(
-                f"{Prisma.MAG}[AUTONOMIC GOVERNOR]: {action} policy engaged. Physics constraints mutated.{Prisma.RST}",
-                "PHYSICS",
-            )
-            self.last_governor_action = action
+            # Only log if the policy shifts to prevent console spam
+            if hasattr(self.events, "log") and action != getattr(
+                self, "last_governor_action", None
+            ):
+                self.events.log(
+                    f"{Prisma.MAG}[AUTONOMIC GOVERNOR]: {action} policy engaged. Physics constraints mutated.{Prisma.RST}",
+                    "PHYSICS",
+                )
+                self.last_governor_action = action
 
-        return action
+            return action
+        except Exception as e:
+            if hasattr(self.events, "log"):
+                self.events.log(f"[AUTONOMIC GOVERNOR ERROR]: {e}", "WARN")
+            return "ERROR"
 
     def _on_scar_recorded(self, payload):
         if concept := payload.get("concept"):
