@@ -10,7 +10,6 @@ from brain.ann import CerebralIndex, HippocampalCache
 from constants import Prisma
 from core import EventBus, LoreManifest
 from presets import BoneConfig
-from spores.biome import BioLichen, BioParasite
 from spores.genetics import LiteraryReproduction
 from spores.io import LocalFileSporeLoader
 from spores.memory import MemoryCore, SubconsciousStrata
@@ -48,6 +47,7 @@ class MycelialNetwork:
         self.session_stamina = getattr(self.cfg, "MAX_STAMINA", 100.0)
         self.session_trauma_vector = {}
         self.village_legacy = {}
+        self.last_governor_action = None
         if seed_file:
             self.ingest(seed_file)
         self._sync_q_matrix()
@@ -88,7 +88,6 @@ class MycelialNetwork:
                     self.cfg, "AKASHIC.AUTOPHAGY_YIELD", 30.0, set_mode=True
                 )
 
-            # Only log if the policy shifts to prevent console spam
             if hasattr(self.events, "log") and action != getattr(
                 self, "last_governor_action", None
             ):
@@ -105,7 +104,7 @@ class MycelialNetwork:
             return "ERROR"
 
     def _on_scar_recorded(self, payload):
-        if concept := payload.get("concept"):
+        if payload.get("concept"):
             self._sync_q_matrix()
 
     @property
@@ -308,13 +307,12 @@ class MycelialNetwork:
         solvents = (
             self.lex.SOLVENTS if self.lex and hasattr(self.lex, "SOLVENTS") else set()
         )
-        get_cat = self.lex.get_current_category if self.lex else lambda w: None
 
         valuable = []
         for w in words:
             if len(w) <= 4 and w in solvents:
                 continue
-            cat = get_cat(w)
+            cat = self.lex.get_current_category(w) if self.lex and hasattr(self.lex, "get_current_category") else None
             if cat == "void":
                 continue
             if cat or len(w) > 4:
@@ -563,7 +561,7 @@ class MycelialNetwork:
         if not any(s["q"] == future_seed_q for s in seed_list):
             seed_list.append({"q": future_seed_q, "m": 0.0, "b": False})
         data = {
-            "genome": "BA_2063",
+            "genome": "BA_2065",
             "session_id": self.session_id,
             "parent_id": self.session_id,
             "meta": {

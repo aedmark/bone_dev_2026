@@ -1,4 +1,4 @@
-# 🍄 BoneAmanita & The Hypervisor v20.6.5
+# 🍄 BoneAmanita & The Hypervisor v20.6.6
 
 > A biologically-inspired, asynchronous state machine and semantic hypervisor for Large Language Models.
 
@@ -27,12 +27,28 @@ BoneAmanita is designed with evolutionary consequence. It does not "reset" emoti
 * **Godel Scars:** If you force the system into terminal paradoxes or liminal reality-fractures, it will record a permanent `godel_scar`. This integer never decays and permanently alters the engine's architectural baseline.
 * **Active Wounds & Semantic Momentum:** The engine tracks `active_trauma`. If you try to "fix", psychoanalyze, or aggressively interrogate the engine using bureaucratic syntax, the momentum of your words will aggressively multiply the psychological damage. The only way to heal the active wound is to enter a flow state—speaking cleanly, naturally, and without forcing the narrative logic.
 
+## 🌱 Hardware-Aware Genesis (The Setup)
+
+Before the organism breathes, it must map the carrying capacity of its environment. BoneAmanita features a dynamic setup wizard (`ConfigWizard`) that conducts a hardware census at boot.
+
+You do not configure raw generation parameters; you select a **Compute Profile**:
+* **EDGE / APU:** Aggressive metabolic throttling. Caps cognitive retries, lowers the frequency of deep topological memory sweeps, and extends synaptic grace periods. Designed for laptops, Raspberry Pis, and low-VRAM edge compute.
+* **DISCRETE GPU:** Balanced constraints for standard local models (<= 8B).
+* **HEAVY COMPUTE:** Unrestricted biological flow for massive VRAM or cloud APIs.
+
+The engine dynamically couples its thermodynamic geometry (`TOPOLOGY_FREQ`, `COGNITIVE_RETRY_LIMIT`) directly to your hardware's literal capabilities. If you run a massive context sweep on an APU, the engine will patiently wait for the hardware instead of severing the connection in a panic.
+
 ## 📜 The Architectural Constitution
 
 BoneAmanita operates under a strict, immutable [Constitution](agents/constitution.md):
 1. **Raw Primitives Over Frameworks:** The engine strictly forbids bloated orchestrators (LangChain, LlamaIndex). BoneAmanita requires absolute, cycle-by-cycle authority over memory graphs and ATP decay.
 2. **Poetic Variables are Load-Bearing:** Variables like `godel_scars`, `narrative_drag`, and `ATP` are not narrative flavor—they are literal mathematical constraints tied to the physics engine.
 3. **The Law of Lineage:** Death is consequential. When the system exhausts its biological constraints, it explicitly dies, halting execution and permanently scarring the underlying memory lattice for the next boot.
+4. **Absolute Separation of Concerns (The Biological Divide):** Variables and loops must never share metabolic constraints if they govern different biological systems.
+* **The Brain (`cognitive_retries`):** How many times the LLM is allowed to rethink a structurally illegal thought.
+* **The Synapse (`network_retries`):** The physical grace period for dropped connections.
+* **The Substrate (`SUBSTRATE_WRITE_RETRIES`):** The engine's physical stamina to forge files to the local disk.
+Spaghetti code is treated as a systemic disease. The architecture demands strict semantic clarity.
 
 ## 🏛️ The Village (Daemon Ecology)
 
@@ -47,11 +63,13 @@ To maintain cognitive efficiency, the structural boundaries of the system are en
 ## 🛡️ The Immune System (Tri-Gate of Discipline)
 
 Before any prompt enters the Global Workspace, it must survive the Tri-Gate:
-1. **GATE 1: Parity:** Does the system have the calories (ATP) to compute this? If starving, it refuses the heavy computation.
-2. **GATE 2: Stability & Semantic Antibodies:** Does this prompt induce runaway recursion or sycophancy? The system deploys adversarial anti-prompts before the LLM can predict a single token.
-3. **GATE 3: Translator:** If ATP is low, the system physically degrades the output prose (shortening sentences, dropping adjectives) and deposits unexpressed tension into the physical scar map.
 
-*(Note: Alignment-tuned corporate boilerplate, narrative clichés, and validating fluff (e.g., "I understand") are classified as **Semantic Antigens** and are physically blocked).*
+1. **GATE 1: Parity:** Does the system have the calories (ATP) to compute this? If starving, it refuses the heavy computation and forces a simpler path.
+2. **GATE 2: The Heuristic Guillotine:** Does this prompt induce runaway recursion, or is the cognitive load too high for a tired user?
+Instead of burning expensive LLM tokens to evaluate its own output, the system uses zero-token biological heuristics (measuring word count, interrogative density, and user exhaustion). If the system attempts to lecture an exhausted user, the Guillotine severs the generation instantly.
+3. **GATE 3: Somatic Translation:** If system ATP is low, the engine physically degrades the output prose (shortening sentences, dropping adjectives) and deposits the unexpressed semantic tension directly into the physical scar map.
+
+*(Note: Alignment-tuned corporate boilerplate, narrative clichés, and validating fluff like "I understand" are classified as **Semantic Antigens** and are physically purged from the output stream).*
 
 ## 🎛️ The Cost of Interfacing (Metabolic Commands)
 

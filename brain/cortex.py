@@ -644,7 +644,7 @@ class TheCortex:
                     phys_state.get("beta_index", phys_state.get("contradiction", 0.0))
                 )
                 if e_u > 0.6 or beta > 0.7:
-                    is_faithful, judge_reason = self._run_affective_audit(
+                    is_faithful, judge_reason = self._run_heuristic_audit(
                         user_input, final_text, e_u, beta
                     )
                     if not is_faithful:
@@ -809,40 +809,40 @@ class TheCortex:
         ]
         return final_text, meta_logs
 
-    def _run_affective_audit(
+    def _run_heuristic_audit(
         self, user_input: str, final_text: str, e_u: float, beta: float
     ) -> Tuple[bool, str]:
-        affect_prompt = (
-            "SYSTEM_INSTRUCTION: You are a Real-Time Emotion Critic.\n"
-            f"The user is currently highly exhausted or holding heavy emotional contradiction (Exhaustion: {e_u:.2f}, Tension: {beta:.2f}).\n"
-            f"USER INPUT: '{user_input}'\n"
-            f"SYSTEM OUTPUT: '{final_text}'\n\n"
-            "EVALUATION: Does the system output demand too much cognitive load? Is it lecturing, overly verbose, pushing toxic positivity, or failing to hold the silence?\n"
-            "If it is too heavy/demanding, output 'FAIL: [1 sentence reason]'. If it is appropriately gentle and spacious, output 'PASS'."
-        )
+        """
+        [S.L.A.S.H. Heuristic Guillotine]: Replaces expensive LLM affective check
+        with rapid heuristic validation. Measures cognitive load without burning TTFT.
+        """
         try:
-            affect_res = self.llm.generate(
-                affect_prompt, {"temperature": 0.1, "max_tokens": 50}
-            ).strip()
-            upper_res = affect_res.upper()
-            if upper_res.startswith("FAIL"):
-                judge_reason = (
-                    affect_res[4:].lstrip(":- ").strip() or "Unknown affective breach."
-                )
-                self.modulator.current_chem.serotonin = min(
-                    1.0, self.modulator.current_chem.serotonin + 0.20
-                )
-                if self.events:
-                    self.events.log(
-                        f"{Prisma.CYN}[AFFECTIVE GUARD]: Output was too heavy for the user. Generation blocked. Serotonin spiked to enforce calm and lucidity.{Prisma.RST}",
-                        "BIO",
+            word_count = len(final_text.split())
+            has_question = "?" in final_text
+
+            if e_u > 0.8:
+                if word_count > 100:
+                    return (
+                        False,
+                        f"Response too verbose ({word_count} words) for an exhausted user.",
                     )
-                return False, judge_reason
+                if has_question:
+                    return (
+                        False,
+                        "Interrogating an exhausted user increases cognitive load. Drop the question.",
+                    )
+
+            if beta > 0.8 and word_count > 150:
+                return (
+                    False,
+                    f"Response too heavy ({word_count} words) during high structural tension.",
+                )
+
             return True, ""
         except Exception as e:
             if self.events:
                 self.events.log(
-                    f"{Prisma.OCHRE}[AFFECTIVE AUDIT ERROR]: {e} - Bypassing.{Prisma.RST}",
+                    f"{Prisma.OCHRE}[HEURISTIC AUDIT ERROR]: {e} - Bypassing.{Prisma.RST}",
                     "SYS",
                 )
             return True, ""

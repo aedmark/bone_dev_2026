@@ -97,7 +97,7 @@ class ConfigWizard:
                     "base_url": "https://api.openai.com/v1/chat/completions",
                 }
             )
-            config["model"] = input(f"Model ID [gpt-4]: ").strip() or "gpt-4"
+            config["model"] = input("Model ID [gpt-4]: ").strip() or "gpt-4"
             prompt_api = ux("main_strings", "prompt_api")
             config["api_key"] = input(f"{Prisma.paint(prompt_api, 'R')} ").strip()
         elif choice == "3":
@@ -117,9 +117,25 @@ class ConfigWizard:
                     "base_url": "http://127.0.0.1:11434/v1/chat/completions",
                 }
             )
-            config["model"] = input(f"Model ID [llama3]: ").strip() or "llama3"
+            config["model"] = input("Model ID [llama3]: ").strip() or "llama3"
 
-        print(f"\n{Prisma.paint('STEP 4: INTERFACE COMPLEXITY', 'W')}")
+        print(f"\n{Prisma.paint('STEP 4: COMPUTE PROFILE (METABOLIC TUNING)', 'W')}")
+        for k, name, col, desc in [
+            ("1", "EDGE / APU", "Y", "Aggressive throttling. (Low VRAM / Laptops / Pi)"),
+            ("2", "DISCRETE GPU", "G", "Balanced limits. (Local models <= 8B)"),
+            ("3", "HEAVY COMPUTE", "M", "Unrestricted. (Cloud API / Massive VRAM / Models > 8B)"),
+        ]:
+            print(f"  {k}. {Prisma.paint(name, col):<15} - {desc}")
+        compute_choice = input(f"{Prisma.paint('>', 'C')} ").strip()
+
+        if compute_choice == "1":
+            config["CORTEX"] = {"TOPOLOGY_FREQ": 10, "WLS_FREQ": 10, "COGNITIVE_RETRY_LIMIT": 1}
+        elif compute_choice == "3":
+            config["CORTEX"] = {"TOPOLOGY_FREQ": 3, "WLS_FREQ": 3, "COGNITIVE_RETRY_LIMIT": 3}
+        else:
+            config["CORTEX"] = {"TOPOLOGY_FREQ": 5, "WLS_FREQ": 5, "COGNITIVE_RETRY_LIMIT": 2}
+
+        print(f"\n{Prisma.paint('STEP 5: INTERFACE COMPLEXITY', 'W')}")
         for k, name, col, desc in [
             ("1", "DEEP", "M", "Full Multidimensional Matrix (Requires VSL Knowledge)"),
             ("2", "CORE", "C", "Standard Physics & Shared Co-Regulation"),

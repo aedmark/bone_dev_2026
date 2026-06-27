@@ -1,6 +1,28 @@
 # CHANGELOG.md
 -----------------------------------------------------------
 
+### **BONEAMANITA 20.6.6 "The Edge Compute & Tensegrity Update"**
+
+**Hardware-Aware Metabolism & Edge Compute Optimization**
+- **Compute Profiles (Hardware Census):** Introduced a new setup step in `mechanics/setup.py` that allows users to select their hardware architecture at genesis (Edge/APU, Discrete GPU, Heavy Compute). The engine dynamically adjusts cognitive retries and background topology frequencies based on this profile.
+- **The Heuristic Guillotine:** Deprecated the metabolically expensive secondary LLM check (`_run_affective_audit`) in `brain/cortex.py` and replaced it with `_run_heuristic_audit`. The engine now uses a lightning-fast, zero-token Python heuristic (measuring word count, punctuation, and tension) to determine if a response is too heavy for an exhausted user, drastically reducing Time-to-First-Token (TTFT) on local APUs.
+- **Dynamic Topology Throttling:** Graph calculation frequencies (Maslov-Sneppen rewiring and WLS checks) are no longer hardcoded to fire every 3 ticks. They are now governed by `TOPOLOGY_FREQ` and `WLS_FREQ` in the core configuration, preventing ThreadPool exhaustion on shared-memory hardware.
+- **Synapse Breathing Room:** Dynamically coupled the `ORCHESTRATOR_TIMEOUT` to the `LLM_TIMEOUT` + a 60s buffer. The default local timeout was raised to 300s (5 minutes) to give slower local models (Hermes 3, Qwen) the time they need to complete heavy "Shadow Dredge" context sweeps without the orchestrator abruptly hanging up the connection.
+
+**Architectural Tensegrity & Semantic Clarity (S.L.A.S.H. Audit)**
+- **Semantic Untangling:** Resolved a massive variable collision by explicitly renaming the overloaded `max_retries` variable across three distinct biological systems: `cognitive_retries` (The Brain / `cortex.py`), `network_retries` (The Synapse / `composer.py`), and `SUBSTRATE_WRITE_RETRIES` (The File System / `tools.py`).
+- **Dead Code Restoration:** Fixed a fatal `hasattr` typo in `cycle.py` (`dream_engine` to `dreamer`), successfully restoring the engine's ability to trigger background REM hallucinations and process trauma during idle states.
+- **Fragility Amputation:** Eliminated asymmetrical `getattr` crashes in `main.py`'s `trauma_accum` property by implementing the walrus operator (`:=`). The metric getter is now perfectly crash-safe, even if the system boots in a degraded state without a mind memory structure.
+- **Dynamic Tensor Shapes:** Replaced brittle, hardcoded array keys (`_tags`) in the cycle physics with dynamic references directly to `tags_map.keys()`, preventing silent dimension mismatches in the Cybernetic Governor.
+- **Syntactic Sludge Purge:** Removed redundant `isinstance` and `getattr` checks wrapped around dataclass fields (`leverage_metrics`) to reclaim wasted CPU cycles.
+
+**Testing & Verification**
+- Re-aligned the mock architecture in `test_brain.py` to prevent `AttributeError` tracebacks when instantiating `CortexServices`.
+- Expanded the test matrix to mathematically prove the new `_run_heuristic_audit` successfully blocks interrogative verbosity on exhausted users without burning API calls.
+- Re-aligned the chaos engineering test suite (`test_terminal_topology_collapse`) to respect dynamic topology frequencies instead of hardcoded modulo operators.
+
+---
+
 ### **BONEAMANITA 20.6.5 "The Biological Manifold Engine"**
 
 **Evolutionary Biology (The Mnemonic Substrate & The Governor)**
