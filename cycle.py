@@ -326,7 +326,6 @@ class CycleSimulator:
                 if mem_graph and hasattr(mem_graph, "adj"):
                     ctx.physics.space.godel_scar = _native_freeze_graph(mem_graph.adj)
             except AttributeError:
-                pass
                 self.eng.events.log(
                     f"{Prisma.VIOLET}System state safely loaded. Mnemonic structure frozen into Godel Scar.{Prisma.RST}",
                     "SYS",
@@ -382,8 +381,10 @@ class GeodesicOrchestrator:
             current_time = time.time()
             task_acquired = False
             try:
-                user_message, is_system = self.input_queue.get(timeout=0.1)
+                task_data = self.input_queue.get(timeout=0.1)
                 task_acquired = True
+                user_message, is_system = task_data[0], task_data[1]
+                turn_ticket = task_data[2] if len(task_data) > 2 else None
                 self.last_interaction_time = current_time
                 if self.engine_state == "REM":
                     self.engine_state = "WAKE"
@@ -393,6 +394,8 @@ class GeodesicOrchestrator:
                     )
                     self.eng.events.publish("SYSTEM_WAKE", {"timestamp": current_time})
                 snapshot = self.run_turn(user_message, is_system)
+                if turn_ticket:
+                    snapshot["_ticket"] = turn_ticket
                 if self.dream_log and "ui" in snapshot:
                     dream_summary = "\n".join(list(self.dream_log))
                     snapshot["ui"] = (
@@ -754,24 +757,18 @@ class GeodesicOrchestrator:
         lattice = self.eng.shared_lattice
         mem = self.eng.mind.mem
         cortex = self.eng.cortex
-        akashic = getattr(self.eng, "akashic", None)
 
-        def _bg_wls_check(msg_str):
+        def _bg_wls_check(msg_str, frozen_adj):
             try:
-                graph = getattr(mem.hippocampus, "get_graph", lambda: None)()
-                actual_adj = getattr(graph, "adj", None)
-                if not isinstance(actual_adj, dict) or not actual_adj:
+                if not isinstance(frozen_adj, dict) or not frozen_adj:
                     return
                 words = [w.strip() for w in msg_str.split()] if msg_str else []
-                seed_concept = next((w for w in words if w in actual_adj), None)
+                seed_concept = next((w for w in words if w in frozen_adj), None)
+                actual_adj = frozen_adj
                 if not seed_concept:
                     seed_concept = max(
                         actual_adj.keys(),
-                        key=lambda k: (
-                            len(actual_adj[k])
-                            if isinstance(actual_adj[k], (list, set, dict))
-                            else 0
-                        ),
+                        key=lambda k: len(actual_adj[k]),
                     )
                 distances = {seed_concept: 0}
                 bfs_queue = deque([seed_concept])
@@ -785,8 +782,6 @@ class GeodesicOrchestrator:
                     if d >= max_radius:
                         continue
                     neighbors = actual_adj.get(curr, [])
-                    if isinstance(neighbors, dict):
-                        neighbors = neighbors.keys()
                     for neighbor in neighbors:
                         if neighbor not in distances:
                             distances[neighbor] = d + 1
@@ -865,7 +860,17 @@ class GeodesicOrchestrator:
                 self.voltage_history.append(float(getattr(ctx.physics, "voltage", 0.0)))
             check_freq = int(getattr(self.eng.config.CORE, "WLS_FREQ", 8))
             if cortex and self.eng.tick_count % check_freq == 0:
-                self._async_pool.submit(_bg_wls_check, clean_message)
+                try:
+                    graph = mem.hippocampus.get_graph()
+                    raw_adj = getattr(graph, "adj", {})
+                except AttributeError:
+                    raw_adj = {}
+
+                frozen_adj = {
+                    k: list(v.keys()) if isinstance(v, dict) else list(v)
+                    for k, v in raw_adj.items()
+                }
+                self._async_pool.submit(_bg_wls_check, clean_message, frozen_adj)
                 try:
                     v_history = list(self.voltage_history)
                     has_active_tags = (

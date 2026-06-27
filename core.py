@@ -62,8 +62,13 @@ class JSONEncoder(json.JSONEncoder):
 
         if hasattr(o, "__dict__"):
             safe_dict = {}
+            _lock_types = (
+                type(threading.Lock()),
+                type(threading.RLock()),
+                threading.Thread,
+            )
             for k, v in vars(o).items():
-                if isinstance(v, (threading.Lock, threading.RLock, threading.Thread)):
+                if isinstance(v, _lock_types):
                     continue
                 if any(
                     sec in k.lower()
@@ -73,6 +78,7 @@ class JSONEncoder(json.JSONEncoder):
                 else:
                     safe_dict[k] = v
             return safe_dict
+
         try:
             return super().default(o)
         except TypeError:
@@ -356,29 +362,29 @@ class LoreManifest:
                 f"{Prisma.RED}[ARTICLE 11 VIOLATION] Blocked attempt to mutate bedrock file '{cat_key}.json'.{Prisma.RST}"
             )
             return
-        with self._lock:
-            if cat_key not in self._cache or self._cache[cat_key] is None:
-                logger.warning(
-                    f"{Prisma.YEL}Refusing to save null cache for '{cat_key}'.{Prisma.RST}"
+
+        if cat_key not in self._cache or self._cache[cat_key] is None:
+            logger.warning(
+                f"{Prisma.YEL}Refusing to save null cache for '{cat_key}'.{Prisma.RST}"
+            )
+            return
+        filepath = os.path.join(self.DATA_DIR, f"{cat_key}.json")
+        try:
+            with open(filepath, "w", encoding="utf-8") as f:
+                json.dump(self._cache[cat_key], f, indent=2, cls=JSONEncoder)
+            logger.info(f"{Prisma.GRY}Persisted '{cat_key}'.{Prisma.RST}")
+        except Exception as e:
+            err_msg = f"Failed to save '{cat_key}': {e}"
+            logger.critical(f"{Prisma.RED}{err_msg}{Prisma.RST}")
+            if tel := TelemetryService.get_instance():
+                tel.record_event(
+                    {
+                        "source": "LORE",
+                        "level": "CRIT",
+                        "text": err_msg,
+                        "_type": "EVENT_LOG",
+                    }
                 )
-                return
-            filepath = os.path.join(self.DATA_DIR, f"{cat_key}.json")
-            try:
-                with open(filepath, "w", encoding="utf-8") as f:
-                    json.dump(self._cache[cat_key], f, indent=2, cls=JSONEncoder)
-                logger.info(f"{Prisma.GRY}Persisted '{cat_key}'.{Prisma.RST}")
-            except Exception as e:
-                err_msg = f"Failed to save '{cat_key}': {e}"
-                logger.critical(f"{Prisma.RED}{err_msg}{Prisma.RST}")
-                if tel := TelemetryService.get_instance():
-                    tel.record_event(
-                        {
-                            "source": "LORE",
-                            "level": "CRIT",
-                            "text": err_msg,
-                            "_type": "EVENT_LOG",
-                        }
-                    )
 
     def flush_cache(self, category: Optional[str] = None):
         with self._lock:

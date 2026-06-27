@@ -19,11 +19,11 @@ def ux_format(section: str, key: str, default: str = "", **kwargs) -> str:
     try:
         return str(msg).format(**kwargs)
     except (KeyError, ValueError, IndexError, AttributeError, TypeError) as e:
-                import logging
-                logging.getLogger("bone").warning(
-                    f"{Prisma.GRY}[UX] Formatting mismatch ({e}) in {section}.{key}. Falling back to raw string.{Prisma.RST}"
-                )
-                return str(msg)
+        import logging
+        logging.getLogger("bone").warning(
+            f"{Prisma.GRY}[UX] Formatting mismatch ({e}) in {section}.{key}. Falling back to raw string.{Prisma.RST}"
+        )
+        return str(msg)
 
 
 def safe_get(obj: Any, key: Any, default: Any = None) -> Any:

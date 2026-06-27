@@ -520,8 +520,13 @@ class BoneAmanita:
                 getattr(self.config, "ORCHESTRATOR_TIMEOUT", llm_timeout + 60.0)
             )
             try:
-                self.orchestrator.input_queue.put((user_message, is_system))
-                snapshot = self.orchestrator.output_queue.get(timeout=timeout_val)
+                turn_ticket = f"TICK_{self.tick_count}_{time.time()}"
+                self.orchestrator.input_queue.put((user_message, is_system, turn_ticket))
+                while True:
+                    snapshot = self.orchestrator.output_queue.get(timeout=timeout_val)
+                    if snapshot.get("_ticket") == turn_ticket or snapshot.get("type") in self._TERMINAL_STATES:
+                        break
+                    self.events.log("Discarded stale async snapshot [Ticket mismatch].", "DEBUG")
             except (queue.Empty, Exception) as e:
                 err_msg = (
                     f"Cognitive Loop Timeout ({timeout_val}s). The engine was paralyzed by overthinking."
@@ -557,12 +562,13 @@ class BoneAmanita:
             if self.health <= 0.0:
                 return self.trigger_death(snapshot.get("physics", {}))
             self.save_checkpoint()
-            self.last_turn_end = time.time()
             if not is_system:
                 self.tick_count += 1
             self._sync_physics_to_observer()
             return snapshot
         finally:
+            if not is_system:
+                self.last_turn_end = time.time()
             self.observer.clock_out(turn_start)
 
     def _execute_zen_flush(self) -> Dict[str, Any]:
