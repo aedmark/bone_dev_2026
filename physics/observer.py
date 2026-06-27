@@ -88,9 +88,34 @@ class QuantumObserver:
         self.Q_n = payload.get("q_matrix")
 
     def gaze(self, text: str, graph: Optional[Dict] = None) -> Dict:
+        import random
         if "SYSTEM_BOOT" in text:
             text = ""
         clean_words = self.lex.clean(text)
+        bio_cfg = safe_get(self.cfg, "BIO", {})
+        if safe_get(bio_cfg, "CORDYCEPS_BLOOMING", False):
+            trauma_words = [
+                "burn",
+                "fail",
+                "static",
+                "rot",
+                "abyss",
+                "error",
+                "decay",
+                "fracture",
+                "ruin",
+            ]
+            clean_words = random.sample(
+                trauma_words, k=min(3, max(1, len(clean_words)))
+            )
+            if hasattr(self.events, "log"):
+                self.events.log(
+                    f"{Prisma.OCHRE}[CORDYCEPS HIJACK]: Input stream physically overwritten. Agency denied.{Prisma.RST}",
+                    "PHYSICS",
+                )
+            if not hasattr(self, "pending_drag"):
+                self.pending_drag = 0.0
+            self.pending_drag += 10.0
         counts = self._tally_categories(clean_words)
         geo = GeodesicEngine.collapse_wavefunction(clean_words, counts, self.cfg)
         if self.Q_n:

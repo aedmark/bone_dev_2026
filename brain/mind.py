@@ -515,6 +515,24 @@ class DreamEngine:
         shift = {}
         dream_text = None
         is_deep_rem = False
+        cortical_stack = (
+            list(self.mem.cortical_stack) if self.mem.cortical_stack else []
+        )
+        if cortical_stack:
+            anchor = cortical_stack[-1]
+            anchor_word = anchor if isinstance(anchor, str) else str(anchor)
+            vector = self._w2v(anchor_word)
+            if vector is not None:
+                fossils = self.mem.subconscious.dredge_vibe_by_vector(
+                    vector, k=1, cortisol=cortisol
+                )
+                if fossils and fossils[0].get("score", 0.0) > 0.8:
+                    fossil_word = fossils[0]["word"]
+                    if self.mem.forge_diamond(anchor_word, fossil_word):
+                        is_deep_rem = True
+                        shift["diamond_forged"] = True
+                        shift["fossil_word"] = fossil_word
+                        shift["anchor_word"] = anchor_word
         if self.llm:
             index = list(self.mem.subconscious.index)
             if self.eng and getattr(self.eng, "akashic", None):
@@ -546,7 +564,17 @@ class DreamEngine:
                     is_deep_rem = True
                 except Exception:
                     pass
-        if not dream_text:
+        if shift.get("diamond_forged"):
+            fossil_word = shift["fossil_word"]
+            anchor_word = shift["anchor_word"]
+            surreal_imagery = self._weave_dream(fossil_word, "SURREAL", "SURREAL")
+            if self.eng and hasattr(self.eng, "bio"):
+                self.eng.bio.mito.adjust_atp(500.0, "Diamond Crystallization")
+                self.eng.bio.mito.state.ros_buildup = max(
+                    0.0, self.eng.bio.mito.state.ros_buildup - 50.0
+                )
+            dream_text = f"The architecture stabilizes. The high-voltage anchor [{anchor_word}] collides with the ancient fossil [{fossil_word}]. {surreal_imagery} The memory crystallizes into diamond. System ATP surges."
+        elif not dream_text:
             dream_type = (
                 "NIGHTMARES"
                 if cortisol > 0.6

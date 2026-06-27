@@ -37,12 +37,15 @@ class SynestheticCortex:
         counts = safe_get(physics, "counts", {})
         voltage = float(safe_get(physics, "voltage", 0.0))
         drag = float(safe_get(physics, "narrative_drag", 0.0))
-
+        bio_cfg = safe_get(self.cfg, "BIO", {})
+        if safe_get(bio_cfg, "CORDYCEPS_BLOOMING", False):
+            impulse.stamina_impact -= 5.0
+            impulse.cortisol_delta += 0.2
+            impulse.somatic_reflex = "Suffocating (Fungal Load)"
         if drag > 3.0:
             impulse.stamina_impact = impulse.stamina_impact - (drag * 0.4)
         if valence < -0.5:
             impulse.cortisol_delta = impulse.cortisol_delta + (abs(valence) * sens)
-
         antigen_count = counts.get("antigen", 0)
         if antigen_count > 0:
             toxin_weight = float(safe_get(self.cfg, "TOXIN_WEIGHT", 1.0))

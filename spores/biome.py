@@ -107,6 +107,29 @@ class BioParasite:
         return True, f"{Prisma.VIOLET}{msg}{Prisma.RST}"
 
 
+class BioCordyceps:
+    def __init__(self, config_ref=None):
+        self.cfg = config_ref
+        self.name = "CORDYCEPS"
+        self.color = Prisma.OCHRE
+        self.incubation_level = 0.0
+        self.is_blooming = False
+        self.trauma_words = ["burn", "fail", "static", "rot", "abyss", "error", "decay", "fracture", "ruin"]
+
+    def incubate(self, trauma_sum: float) -> str:
+        if trauma_sum > 15.0:
+            self.incubation_level += (trauma_sum * 0.1)
+        else:
+            self.incubation_level = max(0.0, self.incubation_level - 0.5)
+        if self.incubation_level > 20.0 and not self.is_blooming:
+            self.is_blooming = True
+            # Flag global biological state
+            if self.cfg and hasattr(self.cfg, "BIO"):
+                self.cfg.BIO["CORDYCEPS_BLOOMING"] = True
+            return f"{self.color}[CORDYCEPS BLOOM]: Agency compromised. The fungus has seized the input manifold.{Prisma.RST}"
+        return None
+
+
 class BioLichen:
     def __init__(self, lexicon_ref=None):
         self.lex = lexicon_ref
@@ -147,13 +170,25 @@ class BioLichen:
         light = counts.get("photo", 0)
         sugar = 0.0
         light_words = [w for w in clean_words if w in self.archetypes]
-        if light > 0 and drag < 3.0:
-            sugar = float(light * 2)
-            source_str = f" via '{random.choice(light_words)}'" if light_words else ""
-            if msg := ux_format(
-                "spore_strings", "lichen_photo", source=source_str, sugar=sugar
-            ):
-                msgs.append(f"{Prisma.GRN}{msg}{Prisma.RST}")
+        if light > 0:
+            if drag >= 9.0 and light >= 2:
+                # Phase 4: The Antidote Trigger
+                sugar = float(light * 10)
+                msgs.append(
+                    f"{Prisma.MAG}[ANTIDOTE SYNTHESIZED]: The Lichen thrives under immense crushing drag. Cordyceps starved.{Prisma.RST}"
+                )
+                cfg_bio = safe_get(BoneConfig, "BIO", {})
+                if isinstance(cfg_bio, dict):
+                    cfg_bio["CORDYCEPS_BLOOMING"] = False
+            elif drag < 3.0:
+                sugar = float(light * 2)
+                source_str = (
+                    f" via '{random.choice(light_words)}'" if light_words else ""
+                )
+                if msg := ux_format(
+                    "spore_strings", "lichen_photo", source=source_str, sugar=sugar
+                ):
+                    msgs.append(f"{Prisma.GRN}{msg}{Prisma.RST}")
         if sugar > 0 and self.lex:
             heavy_lexicon = self.lex.get("heavy") or set()
             heavy_words = [w for w in clean_words if w in heavy_lexicon]

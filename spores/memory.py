@@ -396,6 +396,16 @@ class MemoryCore:
                 w_in = self.graph[phantom_word].setdefault("edges", {}).get(node, 0.0)
                 self.graph[phantom_word]["edges"][node] = min(10.0, w_in + 0.5)
 
+    def forge_diamond(self, node_a, node_b):
+        """Permanently crystallizes a high-resonance vector collision."""
+        if node_a in self.graph and node_b in self.graph:
+            self.graph[node_a].setdefault("diamond_edges", set()).add(node_b)
+            self.graph[node_b].setdefault("diamond_edges", set()).add(node_a)
+            self.graph[node_a]["is_diamond"] = True
+            self.graph[node_b]["is_diamond"] = True
+            return True
+        return False
+
     def calculate_mass(self, node):
         if node not in self.graph:
             return 0.0
@@ -416,7 +426,11 @@ class MemoryCore:
         for node in list(self.graph.keys()):
             edges = self.graph[node]["edges"]
             new_edges = {}
+            diamond_edges = self.graph[node].get("diamond_edges", set())
             for t, w in edges.items():
+                if t in diamond_edges:
+                    new_edges[t] = w
+                    continue
                 decayed_w = w * (scaling_factor + (0.14 * min(1.0, w / 10.0)))
                 if decayed_w >= prune_threshold:
                     new_edges[t] = decayed_w
