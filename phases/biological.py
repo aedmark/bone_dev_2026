@@ -92,7 +92,31 @@ class MetabolismPhase(SimulationPhase):
         self._check_autophagy(ctx)
         self._check_narcolepsy(ctx)
         self._check_ros_toxicity(ctx)
+        self._calculate_homeostasis_reward(ctx)
         return ctx
+
+    def _calculate_homeostasis_reward(self, ctx: CycleContext):
+        """Phase 4: The Reward Signal"""
+        resonance = getattr(ctx.physics, "resonance", 0.0)
+        trauma_sum = (
+            sum(getattr(self.eng, "trauma_accum", {}).values())
+            if hasattr(self.eng, "trauma_accum")
+            else 0.0
+        )
+        atp = self.eng.bio.mito.state.atp_pool if self.eng._mito_state else 0.0
+        reward = 0.0
+        if resonance > 0.6 and trauma_sum < 10.0:
+            reward += 1.0
+        if atp <= self.starvation_thresh or self.eng.stamina <= 0:
+            reward -= 1.0
+        if reward != 0.0:
+            if not hasattr(self.eng.config, "Q_MATRIX_REWARD"):
+                self.eng.config.Q_MATRIX_REWARD = 0.0
+            self.eng.config.Q_MATRIX_REWARD += reward
+            color = Prisma.GRN if reward > 0 else Prisma.RED
+            ctx.log(
+                f"{color}[Q-MATRIX]: Policy evaluated. Homeostasis Reward {reward:+.1f} applied.{Prisma.RST}"
+            )
 
     def _apply_economic_stimulus(self, ctx: CycleContext, efficiency: float):
         base_cost = min(1.5, max(0.0, (0.8 - efficiency) * 5.0))

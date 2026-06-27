@@ -123,16 +123,19 @@ class BioCordyceps:
             self.incubation_level = max(0.0, self.incubation_level - 0.5)
         if self.incubation_level > 20.0 and not self.is_blooming:
             self.is_blooming = True
-            # Flag global biological state
             if self.cfg and hasattr(self.cfg, "BIO"):
-                self.cfg.BIO["CORDYCEPS_BLOOMING"] = True
+                if isinstance(self.cfg.BIO, dict):
+                    self.cfg.BIO["CORDYCEPS_BLOOMING"] = True
+                else:
+                    setattr(self.cfg.BIO, "CORDYCEPS_BLOOMING", True)
             return f"{self.color}[CORDYCEPS BLOOM]: Agency compromised. The fungus has seized the input manifold.{Prisma.RST}"
         return None
 
 
 class BioLichen:
-    def __init__(self, lexicon_ref=None):
+    def __init__(self, lexicon_ref=None, config_ref=None):
         self.lex = lexicon_ref
+        self.cfg = config_ref or BoneConfig
         self.name = "LICHEN"
         self.color = Prisma.GRN
         self.archetypes = {
@@ -172,14 +175,13 @@ class BioLichen:
         light_words = [w for w in clean_words if w in self.archetypes]
         if light > 0:
             if drag >= 9.0 and light >= 2:
-                # Phase 4: The Antidote Trigger
                 sugar = float(light * 10)
-                msgs.append(
-                    f"{Prisma.MAG}[ANTIDOTE SYNTHESIZED]: The Lichen thrives under immense crushing drag. Cordyceps starved.{Prisma.RST}"
-                )
-                cfg_bio = safe_get(BoneConfig, "BIO", {})
+                msgs.append(f"{Prisma.MAG}[ANTIDOTE SYNTHESIZED]: The Lichen thrives under immense crushing drag. Cordyceps starved.{Prisma.RST}")
+                cfg_bio = safe_get(self.cfg, "BIO", {})
                 if isinstance(cfg_bio, dict):
                     cfg_bio["CORDYCEPS_BLOOMING"] = False
+                else:
+                    setattr(cfg_bio, "CORDYCEPS_BLOOMING", False)
             elif drag < 3.0:
                 sugar = float(light * 2)
                 source_str = (
