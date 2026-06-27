@@ -3,7 +3,7 @@
 **Domain Scope:** This document covers the cognitive structures of BoneAmanita, primarily residing in the `brain/` (`akashic.py`, `mind.py`, `ann.py`) and `spores/` (`memory.py`) directories. 
 
 
-## 1. Specification
+## Specification
 
 The Mind in BoneAmanita does not treat memory as a flat database. It treats memory as a biological topology—a weighted graph of concepts, synapses, and vectors. 
 
@@ -14,7 +14,7 @@ As interactions age, they sink into the `MemoryCore` (`spores/memory.py`). When 
 Simultaneously, the engine maintains a continuous biological `ChemicalState` (`mind.py`) tracking Dopamine, Cortisol, Adrenaline, and Serotonin. These floats are updated continuously in a high-frequency `homeostasis` tick loop, subtly coloring the context retrieval process [OQ-1].
 
 
-## 2. Decided
+## Decided
 
 ### [DEC-01] Zero-Allocation Chemical Homeostasis
 
@@ -71,14 +71,3 @@ Simultaneously, the engine maintains a continuous biological `ChemicalState` (`m
 **Decision:** Akashic memory stock is evaluated using `itertools.chain()` instead of list concatenation (`+`).
 
 **WHY:** Array concatenation creates a fully duplicated object in RAM, devastating the Python garbage collector as the memory graph scales.
-
-## 3. Open Questions
-
-### [OQ-2] Dynamic FAISS Limits Under Stress
-
-**Status:** `Resolved` (The Tunnel Vision Protocol implemented via strict K-clamping and dynamic capacity amputation).
-
-### [OQ-3] Stagnation Toxicity (The State-Change Craving)
-
-**Status:** `Active`
-**Question:** The human brain actively craves state changes for self-regulation; unbroken homeostasis feels like death. Should the `NeurotransmitterModulator` implement a "Stagnation Timer"? If the engine's chemical state remains perfectly stable (e.g., lingering at baseline targets for 15+ cycles), should it actively bleed `dopamine` and artificially spike `chi` (entropy) to simulate restlessness, forcing the engine to behave chaotically just to spark a state change?

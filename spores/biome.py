@@ -2,9 +2,11 @@
 
 import random
 from typing import Tuple
-from struts import ux, ux_format, safe_get
-from presets import BoneConfig
+
 from constants import Prisma
+from presets import BoneConfig
+from struts import safe_get, ux, ux_format
+
 
 class BioParasite:
     def __init__(self, memory_ref, lexicon_ref, config_ref=None):
@@ -16,11 +18,22 @@ class BioParasite:
         self.MAX_SPORES = int(safe_get(cfg, "PARASITE_MAX_SPORES", 8))
         self.name = "PARASITE"
         self.color = Prisma.RED
-        self.archetypes = {"antigen", "toxin", "heavy", "meat", "void", "static", "rot", "decay", }
+        self.archetypes = {
+            "antigen",
+            "toxin",
+            "heavy",
+            "meat",
+            "void",
+            "static",
+            "rot",
+            "decay",
+        }
 
     def opine(self, clean_words: list, voltage: float) -> Tuple[float, str]:
-        score = (sum(1 for w in clean_words if w in self.archetypes) /
-                 max(1, len(clean_words))) * 10.0
+        score = (
+            sum(1 for w in clean_words if w in self.archetypes)
+            / max(1, len(clean_words))
+        ) * 10.0
         if score > 3.0:
             comment = ux("spore_strings", "para_op_great")
         elif score > 1.0:
@@ -58,7 +71,9 @@ class BioParasite:
         if not heavy_candidates or not abstract_candidates:
             return False, None
         valid_pairs = [
-            (h, p) for h in heavy_candidates for p in abstract_candidates
+            (h, p)
+            for h in heavy_candidates
+            for p in abstract_candidates
             if p not in graph[h].get("edges", {}) and h != p
         ]
         if not valid_pairs:
@@ -74,21 +89,45 @@ class BioParasite:
         para_edges[host] = weight
         self.spores_deployed += 1
         if is_metaphor:
-            msg = ux_format("spore_strings", "para_syn_spark", "A parasitic metaphor bloomed.", host=host.upper(), para=parasite.upper())
+            msg = ux_format(
+                "spore_strings",
+                "para_syn_spark",
+                "A parasitic metaphor bloomed.",
+                host=host.upper(),
+                para=parasite.upper(),
+            )
             return True, f"{Prisma.CYN}{msg}{Prisma.RST}"
-        msg = ux_format("spore_strings", "para_intrusive", "An intrusive thought took root.", host=host.upper(), para=parasite.upper())
+        msg = ux_format(
+            "spore_strings",
+            "para_intrusive",
+            "An intrusive thought took root.",
+            host=host.upper(),
+            para=parasite.upper(),
+        )
         return True, f"{Prisma.VIOLET}{msg}{Prisma.RST}"
+
 
 class BioLichen:
     def __init__(self, lexicon_ref=None):
         self.lex = lexicon_ref
         self.name = "LICHEN"
         self.color = Prisma.GRN
-        self.archetypes = {"photo", "play", "sacred", "social", "solar", "vital", "bloom", "grow", }
+        self.archetypes = {
+            "photo",
+            "play",
+            "sacred",
+            "social",
+            "solar",
+            "vital",
+            "bloom",
+            "grow",
+        }
 
     def opine(self, clean_words: list, voltage: float) -> Tuple[float, str]:
-        score = (sum(1 for w in clean_words if w in self.archetypes) /
-                 max(1, len(clean_words))) * 10.0
+        score = (
+            sum(1 for w in clean_words if w in self.archetypes)
+            / max(1, len(clean_words))
+        ) * 10.0
         if score > 3.0:
             comment = ux("spore_strings", "lichen_op_great")
         elif score > 1.0:
@@ -111,7 +150,9 @@ class BioLichen:
         if light > 0 and drag < 3.0:
             sugar = float(light * 2)
             source_str = f" via '{random.choice(light_words)}'" if light_words else ""
-            if msg := ux_format("spore_strings", "lichen_photo", source=source_str, sugar=sugar):
+            if msg := ux_format(
+                "spore_strings", "lichen_photo", source=source_str, sugar=sugar
+            ):
                 msgs.append(f"{Prisma.GRN}{msg}{Prisma.RST}")
         if sugar > 0 and self.lex:
             heavy_lexicon = self.lex.get("heavy") or set()
@@ -119,7 +160,9 @@ class BioLichen:
             if heavy_words:
                 chosen_heavy_word = random.choice(heavy_words)
                 self.lex.teach(chosen_heavy_word, "photo", tick_count)
-                formatted_msg = ux_format("spore_strings", "lichen_sub", word=chosen_heavy_word)
+                formatted_msg = ux_format(
+                    "spore_strings", "lichen_sub", word=chosen_heavy_word
+                )
                 if formatted_msg:
                     msgs.append(f"{Prisma.MAG}{formatted_msg}{Prisma.RST}")
         return sugar, " ".join(msgs) if msgs else None

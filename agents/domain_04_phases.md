@@ -3,7 +3,7 @@
 **Domain Scope:** This document defines the sequential, immutable execution pipeline of BoneAmanita. Every user input travels through these phases exactly in order.
 
 
-## 1. Specification
+## Specification
 
 BoneAmanita processes input not as a chatbot, but as a biological simulation. The `phases/` pipeline is the heart of this process. It guarantees that mathematical reality (Physics), bodily state (Biology), and environmental context (Observation) are evaluated *before* any cognitive processing (AI Generation) occurs. 
 
@@ -20,7 +20,7 @@ The pipeline order is strict and immutable:
 Only after this entire pipeline successfully completes does the orchestrator pass the mutated physics vector and sanitized context to the `LLMInterface` for generation.
 
 
-## 2. Decided
+## Decided
 
 ### [DEC-01] The Front-Loaded Configuration Map
 
@@ -56,11 +56,5 @@ Only after this entire pipeline successfully completes does the orchestrator pas
 
 
 ### [DEC-05] Waking Dream Injection
-**Decision:** Dreams are injected during the Waking Waking `CognitionPhase`, not `ObservationPhase`. Waking triggers "Brain Fog" (spikes in `chi` and `narrative_drag`), and "ghost words" are mechanically extracted from the dream log and prepended to the user's `clean_words` array.
+**Decision:** Dreams are injected during the Waking `CognitionPhase`, not `ObservationPhase`. Waking triggers "Brain Fog" (spikes in `chi` and `narrative_drag`), and "ghost words" are mechanically extracted from the dream log and prepended to the user's `clean_words` array.
 **WHY:** A dream is a cognitive distortion, not an external observation. By prepending dream artifacts to the waking text, the `MemoryCore` is forced to topologically bind the hallucination to the physical user input before encoding it to the graph.
-
-## 3. Open Questions
-
-### [OQ-1] The Somatic Echo (Cycle Carryover)
-**Status:** `Backlog`
-**Question:** When the `GatekeeperPhase` reaches backward to execute a Somatic Shock (instant ATP burn due to paradox/lore violation), the penalty is currently contained to the active execution cycle. Should this violent biological intervention leave a "Somatic Echo"—a raw float modifier that mathematically bleeds into the `ObservationPhase` of the *subsequent* cycle, simulating a lingering adrenaline shake that distorts the engine's perception of the next input?

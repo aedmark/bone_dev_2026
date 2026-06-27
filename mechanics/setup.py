@@ -5,10 +5,12 @@ import os
 import subprocess
 import sys
 import time
+
 from core import Prisma
-from struts import ux
-from presets import BoneConfig
 from mechanics.terminal import typewriter
+from presets import BoneConfig
+from struts import ux
+
 
 class ConfigWizard:
     CONFIG_FILE = "config.json"
@@ -41,16 +43,25 @@ class ConfigWizard:
             msg = ux("main_strings", "config_backup")
             print(f"{Prisma.YEL}{msg.format(backup_name=backup_name)}{Prisma.RST}")
         except Exception as e:
-            print(f"{Prisma.YEL}[WIZARD] Non-fatal issue archiving config: {e}{Prisma.RST}")
+            print(
+                f"{Prisma.YEL}[WIZARD] Non-fatal issue archiving config: {e}{Prisma.RST}"
+            )
 
     @staticmethod
     def _run_setup():
 
         cfg_obj = BoneConfig
-        cfg = cfg_obj.get("GUI", {}) if isinstance(cfg_obj, dict) else getattr(cfg_obj, "GUI", {})
+        cfg = (
+            cfg_obj.get("GUI", {})
+            if isinstance(cfg_obj, dict)
+            else getattr(cfg_obj, "GUI", {})
+        )
         is_cfg_dict = isinstance(cfg, dict)
         setup_speed = float(
-            cfg.get("RENDER_SPEED_SETUP", 0.02) if is_cfg_dict else getattr(cfg, "RENDER_SPEED_SETUP", 0.02))
+            cfg.get("RENDER_SPEED_SETUP", 0.02)
+            if is_cfg_dict
+            else getattr(cfg, "RENDER_SPEED_SETUP", 0.02)
+        )
         subprocess.run("cls" if os.name == "nt" else "clear", shell=True)
         seq_msg = ux("main_strings", "init_seq")
         hyp_msg = ux("main_strings", "init_hypervisor")
@@ -63,13 +74,15 @@ class ConfigWizard:
         step2 = ux("main_strings", "step2_mode")
         print(f"\n{Prisma.paint(step2, 'W')}")
         for k, name, desc, col in (
-                ("1", "ADVENTURE", ux("main_strings", "mode_adv_desc"), "G"),
-                ("2", "CONVERSATION", ux("main_strings", "mode_conv_desc"), "C"),
-                ("3", "CREATIVE", ux("main_strings", "mode_crea_desc"), "V"),
-                ("4", "TECHNICAL", ux("main_strings", "mode_tech_desc"), "0"),
+            ("1", "ADVENTURE", ux("main_strings", "mode_adv_desc"), "G"),
+            ("2", "CONVERSATION", ux("main_strings", "mode_conv_desc"), "C"),
+            ("3", "CREATIVE", ux("main_strings", "mode_crea_desc"), "V"),
+            ("4", "TECHNICAL", ux("main_strings", "mode_tech_desc"), "0"),
         ):
             print(f"  {k}. {Prisma.paint(name, col):<25} - {desc}")
-        mode_choice = input(f"{Prisma.paint(ux('main_strings', 'prompt_mode'), 'C')} ").strip()
+        mode_choice = input(
+            f"{Prisma.paint(ux('main_strings', 'prompt_mode'), 'C')} "
+        ).strip()
         boot_mode = ConfigWizard._MODES.get(mode_choice, "ADVENTURE")
         step3 = ux("main_strings", "step3_backend")
         print(f"\n{Prisma.paint(step3, 'W')}")
@@ -78,17 +91,32 @@ class ConfigWizard:
         choice = input(f"{Prisma.paint('>', 'C')} ").strip()
         config = {"user_name": user_name, "boot_mode": boot_mode}
         if choice == "2":
-            config.update({"provider": "openai", "base_url": "https://api.openai.com/v1/chat/completions"})
+            config.update(
+                {
+                    "provider": "openai",
+                    "base_url": "https://api.openai.com/v1/chat/completions",
+                }
+            )
             config["model"] = input(f"Model ID [gpt-4]: ").strip() or "gpt-4"
             prompt_api = ux("main_strings", "prompt_api")
             config["api_key"] = input(f"{Prisma.paint(prompt_api, 'R')} ").strip()
         elif choice == "3":
-            config.update({"provider": "lm_studio", "base_url": "http://127.0.0.1:1234/v1/chat/completions",
-                           "model": "local-model"})
+            config.update(
+                {
+                    "provider": "lm_studio",
+                    "base_url": "http://127.0.0.1:1234/v1/chat/completions",
+                    "model": "local-model",
+                }
+            )
         elif choice == "4":
             config.update({"provider": "mock", "model": "simulation"})
         else:
-            config.update({"provider": "ollama", "base_url": "http://127.0.0.1:11434/v1/chat/completions"})
+            config.update(
+                {
+                    "provider": "ollama",
+                    "base_url": "http://127.0.0.1:11434/v1/chat/completions",
+                }
+            )
             config["model"] = input(f"Model ID [llama3]: ").strip() or "llama3"
 
         print(f"\n{Prisma.paint('STEP 4: INTERFACE COMPLEXITY', 'W')}")
