@@ -1,6 +1,8 @@
 
 find . -type d -name "__pycache__" -exec rm -rf {} +
 find . -type d -name "MagicMock" -exec rm -rf {} +
+rm -rf ./tests/.pytest_cache
+rm -rf .pytest_cache
 rm -rf ./logs
 rm -rf ./memories
 rm -rf ./saves
