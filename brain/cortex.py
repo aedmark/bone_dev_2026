@@ -19,7 +19,7 @@ from mechanics.pragmatics import ThePragmatist
 from mechanics.projector import beautify_thoughts
 from mechanics.tools import LibraryGraph, RandomRetrievalNavigator
 from presets import BoneConfig, BonePresets
-from struts import safe_get, safe_set, ux
+from struts import dump_state, safe_get, safe_set, ux
 
 
 @dataclass
@@ -167,15 +167,7 @@ class TheCortex:
         if self.consultant and "/vsl" in user_input.lower():
             return self._handle_vsl_command(user_input)
         is_boot_sequence = "SYSTEM_BOOT" in user_input
-        if isinstance(ctx.physics, dict):
-            phys_proxy = ctx.physics
-        elif ctx.physics is not None:
-            try:
-                phys_proxy = ctx.physics.to_dict()
-            except (AttributeError, TypeError):
-                phys_proxy = vars(ctx.physics).copy()
-        else:
-            phys_proxy = {}
+        phys_proxy = dump_state(ctx.physics) if ctx.physics is not None else {}
         sim_result = {
             "physics": phys_proxy,
             "bio": getattr(ctx, "bio_result", {}),
@@ -742,7 +734,7 @@ class TheCortex:
                     path, _, safe_content = data.partition(":::")
                     if path and safe_content:
                         clean_path = path.strip()
-                        if ".." in clean_path or clean_path.startswith("/"):
+                        if ".." in clean_path or os.path.isabs(clean_path):
                             raise ValueError(
                                 f"Path traversal blocked by Cortex Sentinel: {clean_path}"
                             )

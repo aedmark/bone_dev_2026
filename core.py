@@ -37,46 +37,33 @@ if not logger.handlers:
 
 
 class JSONEncoder(json.JSONEncoder):
-    """Leave this alone unless you know what you're doing. S.L.A.S.H. Secured."""
     def default(self, o):
         if isinstance(o, (set, deque)):
             return list(o)
         if hasattr(o, "to_dict") and callable(o.to_dict):
             return o.to_dict()
+        def _redact(k, v):
+            if any(sec in k.lower() for sec in ("api_key", "secret", "token", "password")):
+                return "[REDACTED]"
+            return v
+
         if hasattr(o, "__slots__"):
             safe_dict = {}
             for k in o.__slots__:
                 try:
-                    v = getattr(o, k)
-                    if any(
-                        sec in k.lower()
-                        for sec in ("api_key", "secret", "token", "password")
-                    ):
-                        safe_dict[k] = "[REDACTED]"
-                    else:
-                        safe_dict[k] = v
+                    safe_dict[k] = _redact(k, getattr(o, k))
                 except AttributeError:
                     pass
             return safe_dict
 
         if hasattr(o, "__dict__"):
-            safe_dict = {}
-            _lock_types = (
-                type(threading.Lock()),
-                type(threading.RLock()),
-                threading.Thread,
-            )
-            for k, v in vars(o).items():
-                if isinstance(v, _lock_types):
-                    continue
-                if any(
-                    sec in k.lower()
-                    for sec in ("api_key", "secret", "token", "password")
-                ):
-                    safe_dict[k] = "[REDACTED]"
-                else:
-                    safe_dict[k] = v
-            return safe_dict
+            _lock_types = (type(threading.Lock()), type(threading.RLock()), threading.Thread)
+            return {
+                k: _redact(k, v)
+                for k, v in vars(o).items()
+                if not isinstance(v, _lock_types)
+            }
+
         try:
             return super().default(o)
         except TypeError:
@@ -584,14 +571,18 @@ class CyberneticGovernor:
         self.memory_bitmap = None
         self.memory_rq = None
         self.cached_nodes = []
+        self._cached_vectorizer = self._resolve_vectorizer()
 
-    def _get_vectorizer(self):
-        """Abstracts the vectorization dependency."""
+    def _resolve_vectorizer(self):
+        """Abstracts the vectorization dependency at boot to avoid hot-path ROS."""
         try:
             from spores.spore_utils import _word_to_vector
             return _word_to_vector
         except ImportError:
             return None
+
+    def _get_vectorizer(self):
+        return self._cached_vectorizer
 
     def _sync_ordvec_indices(self, memory_core: Any):
         if not ORDVEC_AVAILABLE or not memory_core or not hasattr(memory_core, "graph"):
