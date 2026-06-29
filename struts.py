@@ -1,10 +1,15 @@
 """struts.py"""
 
+import hashlib
 import logging
 from typing import Any
 from constants import Prisma
 
 logger = logging.getLogger("bone")
+
+def _word_to_vector(word: str, dim: int = 8) -> list:
+    h = hashlib.shake_256(word.encode("utf-8")).digest(dim)
+    return [(b / 127.5) - 1.0 for b in h]
 
 def ux(section: str, key: str, default: Any = "") -> Any:
     from core import LoreManifest

@@ -36,16 +36,17 @@ if not logger.handlers:
     logger.setLevel(logging.INFO)
 
 
+def _redact(k, v):
+    if any(sec in k.lower() for sec in ("api_key", "secret", "token", "password")):
+        return "[REDACTED]"
+    return v
+
 class JSONEncoder(json.JSONEncoder):
     def default(self, o):
         if isinstance(o, (set, deque)):
             return list(o)
         if hasattr(o, "to_dict") and callable(o.to_dict):
             return o.to_dict()
-        def _redact(k, v):
-            if any(sec in k.lower() for sec in ("api_key", "secret", "token", "password")):
-                return "[REDACTED]"
-            return v
 
         if hasattr(o, "__slots__"):
             safe_dict = {}
@@ -576,7 +577,7 @@ class CyberneticGovernor:
     def _resolve_vectorizer(self):
         """Abstracts the vectorization dependency at boot to avoid hot-path ROS."""
         try:
-            from spores.spore_utils import _word_to_vector
+            from struts import _word_to_vector
             return _word_to_vector
         except ImportError:
             return None
