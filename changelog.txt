@@ -1,7 +1,21 @@
 # CHANGELOG.md
 -----------------------------------------------------------
 
-### **BONEAMANITA 20.6.8 "The S.L.A.S.H. Architectural Overhaul"**
+### **BONEAMANITA 20.6.9 (Nice) "The Paranoia Purge"**
+
+**Performance & Architecture (The Paranoia Purge: Part III)**
+
+- **Hot-Path Thermodynamics:** Cached the `_word_to_vector` dynamic import at boot in `core.py` (`_resolve_vectorizer`) to prevent burning unnecessary ROS inside high-frequency regulation loops.
+- **The Lexical Firewall (Syntax DRYing):** Excised repetitive secret-redaction boilerplate in `core.py`'s `JSONEncoder`, replacing `__dict__` and `__slots__` loops with a unified `_redact` helper and clean dictionary comprehensions.
+- **Bureaucratic Overhead Elimination:** Hoisted buried, inline `import logging` declarations out of error handlers in `struts.py` and `mechanics/commands.py`, restoring them to the module level where they belong.
+- **Redundant Logic Pruning:** Swapped the bespoke, 8-line dict-casting block in `brain/cortex.py`'s pre-flight routing for the unified, native `dump_state` utility.
+- **Cross-Platform Sentinel Validation:** Upgraded the file-forging path traversal firewall in `brain/cortex.py` from naive string matching (`.startswith("/")`) to absolute OS geometry using `os.path.isabs()`, ensuring security across Windows and UNIX environments.
+- **The Synchronized Sweep (Mock Parity):** Resolved a critical unit test isolation failure where `mechanics/commands.py` (`/rest`, `/hallucinate`, `/shuffle`) bypassed the test environment's mock engine. Commands now execute a dynamic, single-pass sweep over both `active_physics` and `phys` proxies, ensuring the engine mutates exactly once without paranoid duplication.
+- **Test Integrity Stabilized:** Re-wired `test_struts.py` to patch `struts.logger` directly rather than the runtime `logging.getLogger` mock, ensuring terminal outputs are correctly captured.
+
+---
+
+### **BONEAMANITA 20.6.8 "The Architectural Overhaul"**
 
 **Cognitive & Execution Layers**
 
@@ -33,7 +47,7 @@
 
 ---
 
-### **BONEAMANITA 20.6.7 "The S.L.A.S.H. Stabilization Update"**
+### **BONEAMANITA 20.6.7 "The Stabilization Update"**
 
 **Thermodynamic Optimizations & Loop Economy**
 
