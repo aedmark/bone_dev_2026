@@ -463,13 +463,10 @@ class CommandProcessor:
         cortex = getattr(self.interface.eng, "cortex", None)
         if cortex:
             cortex.purge_context()
-        target_phys = getattr(
-            self.interface.eng,
-            "active_physics",
-            getattr(self.interface.eng, "phys", None),
-        )
-        if target_phys is not None:
-            safe_set(target_phys, "narrative_drag", 0.0)
+        for p_attr in ("active_physics", "phys"):
+            p_obj = getattr(self.interface.eng, p_attr, None)
+            if p_obj is not None:
+                safe_set(p_obj, "narrative_drag", 0.0)
         vitals = self.interface.get_vitals()
         self.interface.modify_resource("stamina", vitals.get("max_stamina", 100.0))
         self.interface.modify_resource("atp", vitals.get("max_atp", 100.0))
@@ -589,22 +586,11 @@ class CommandProcessor:
         cost = float(safe_get(self.cmd_cfg, "COST_HALLUCINATE", 25.0))
         if not self.tax.levy("HALLUCINATE", {"atp": cost}):
             return True
-        target_phys = getattr(
-            self.interface.eng,
-            "active_physics",
-            getattr(self.interface.eng, "phys", None),
-        )
-        if target_phys is not None:
-            safe_set(
-                target_phys,
-                "mu",
-                min(1.0, float(safe_get(target_phys, "mu", 0.0)) + 0.8),
-            )
-            safe_set(
-                target_phys,
-                "kappa",
-                max(0.5, float(safe_get(target_phys, "kappa", 0.0))),
-            )
+        for p_attr in ("active_physics", "phys"):
+            p_obj = getattr(self.interface.eng, p_attr, None)
+            if p_obj is not None:
+                safe_set(p_obj, "mu", min(1.0, float(safe_get(p_obj, "mu", 0.0)) + 0.8))
+                safe_set(p_obj, "kappa", max(0.5, float(safe_get(p_obj, "kappa", 0.0))))
         cortex = getattr(self.interface.eng, "cortex", None)
         if cortex and hasattr(cortex, "dialogue_buffer"):
             cortex.dialogue_buffer.append(
@@ -620,13 +606,10 @@ class CommandProcessor:
         cost = float(safe_get(self.cmd_cfg, "COST_SHUFFLE", 5.0))
         if not self.tax.levy("SHUFFLE", {"atp": cost}):
             return True
-        target_phys = getattr(
-            self.interface.eng,
-            "active_physics",
-            getattr(self.interface.eng, "phys", None),
-        )
-        if target_phys is not None:
-            safe_set(target_phys, "narrative_drag", 0.0)
+        for p_attr in ("active_physics", "phys"):
+            p_obj = getattr(self.interface.eng, p_attr, None)
+            if p_obj is not None:
+                safe_set(p_obj, "narrative_drag", 0.0)
         self.interface.log(
             f"{self.P.VIOLET}[ !s ] THE SHUFFLE: Lateral shift initiated.{self.P.RST}")
         self.interface.log(
