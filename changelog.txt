@@ -1,6 +1,33 @@
 # CHANGELOG.md
 -----------------------------------------------------------
 
+### **BONEAMANITA 20.6.10 "The Tensegrity Sweep"**
+
+**Performance & Architecture (The Substrate Sweep)**
+
+- **File System Pruning:** Excised the obsolete and overly complex `_access_config_path` utility entirely. Replaced it with the dynamic `safe_get`/`safe_set` bedrock across the ecosystem (`spores/genetics.py`, `spores/network.py`).
+- **Dependency Consolidation:** Relocated `_word_to_vector` into `struts.py` and completely deleted the barren `spores/spore_utils.py` module to reduce structural bloat.
+- **Geodesic Unpacking:** Hardened the memory continuity engine in `machine/architect.py` to accept any generic iterable via `try/except TypeError` loops, preventing silent amputations of user legacy data if the database adapter changes.
+- **Dynamic Physics Scaling:** Rewired `machine/pacemaker.py` to calculate boredom progression mathematically based on the `BOREDOM_THRESHOLD`, eliminating rigid +1.0/-2.0 hardcodes that fought the system's own physics.
+
+**The Immune System & Lexical Firewall**
+
+- **Deep Telemetry Redaction:** Restructured `JSONEncoder` in `core.py` to recursively walk standard data collections (dicts, lists, tuples) to enforce deep-redaction of secrets. It now safely sanitizes the telemetry stream without accidentally deep-copying internal engine components or overriding the C-serializer's native failure boundaries.
+- **The Semantic Bypass:** Implemented an explicit Counterfactual Gate for the "token" antigen in the `JSONEncoder`. The firewall now correctly bypasses structural HTTP limits (`max_tokens`, `prompt_tokens`), preventing the engine from inadvertently bricking the external LLM server by redacting its calorie count.
+- **The Stutter Fix:** Fixed the `brain/cortex.py` Persona block compiler to prevent "The The {Archetype}" string concatenation stutters by natively stripping redundant prefixes during the `gather_state` phase.
+
+**System Dynamics & Lifecycle**
+
+- **Shutdown Hierarchy Restored:** Corrected a fatal order-of-operations failure in the engine shutdown sequence (`main.py`, `core.py`). Telemetry is now tombstoned (`self.disabled = True`) and powered down _last_, preventing dead `ThreadPoolExecutor` crashes caused by rogue event logs firing as other subsystems died.
+
+**Bedrock Testing (The Proving Grounds)**
+
+- **Metabolic Integration:** Built a true integration test (`test_true_metabolic_token_generation`) that fires a live round to the local LLM and strictly asserts that physical $ATP$ was burned and $ROS$ was generated—proving the thermodynamic economy works in production, rather than just validating the shape of the data.
+- **Firewall Stress Tests:** Expanded `test_core.py` with multi-layered, deep-nested JSON dictionary tests, and patched the filesystem (`mock_open`) assertions to definitively prove the `LoreManifest` physically refuses to overwrite bedrock weights during an exploit attempt.
+- **Starvation Boundaries:** Expanded `test_main.py` to guarantee that terminal $ATP$ drain mathematically bottoms out at absolute zero, preventing thermodynamic inversion loops.
+
+---
+
 ### **BONEAMANITA 20.6.9 (Nice) "The Paranoia Purge"**
 
 **Performance & Architecture (The Paranoia Purge: Part III)**

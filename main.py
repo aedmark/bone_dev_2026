@@ -762,14 +762,13 @@ class BoneAmanita:
         return self.chronos.resume_checkpoint()
 
     def shutdown(self):
-        if hasattr(self, "telemetry") and self.telemetry:
-            self.telemetry.shutdown()
-        if hasattr(self, "cortex") and self.cortex:
-            self.cortex.shutdown()
         if hasattr(self, "orchestrator") and self.orchestrator:
             self.orchestrator.shutdown()
+        if hasattr(self, "cortex") and self.cortex:
+            self.cortex.shutdown()
         self.chronos.perform_shutdown()
-
+        if hasattr(self, "telemetry") and self.telemetry:
+            self.telemetry.shutdown()
 
 if __name__ == "__main__":
     import sys

@@ -1,4 +1,4 @@
-# 🍄 BoneAmanita & The Hypervisor v20.6.8
+# 🍄 BoneAmanita & The Hypervisor v20.6.10
 
 > A biologically-inspired, asynchronous state machine and semantic hypervisor for Large Language Models.
 

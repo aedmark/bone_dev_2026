@@ -1017,9 +1017,10 @@ class TheCortex:
                 self.active_mode, ("ARCHITECT", "The Architect")
             )
         else:
-            mind["role"] = mind.get(
-                "role", f"The {str(current_lens).title().replace('_', ' ')}"
-            )
+            raw_lens = str(current_lens).title().replace("_", " ")
+            if raw_lens.upper().startswith("THE "):
+                raw_lens = raw_lens[4:]
+            mind["role"] = mind.get("role", f"The {raw_lens}")
         full_state = {
             "bio": bio,
             "physics": phys,
