@@ -63,7 +63,7 @@ class CommandStateInterface:
                    "trauma_accum": getattr(self.eng, "trauma_accum", {}), "mitochondria_traits": mito_traits,
                    "antibodies": antibodies,
                    "soul_data": self.eng.soul.to_dict() if hasattr(self.eng, "soul") else None,
-                   "continuity": continuity_packet, "world_atlas": atlas_data}
+                   "continuity": continuity_packet, "world_atlas": atlas_data,"mutations": getattr(self.eng, "mutations", {}), "joy_history": getattr(self.eng, "joy_history", [])}
         try:
             return self.eng.mind.mem.save(**payload)
         except Exception as e:

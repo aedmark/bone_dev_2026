@@ -736,7 +736,12 @@ class BoneAmanita:
             self.phys.chi = 0.0
             self.phys.voltage = 30.0
             self.phys.narrative_drag = 0.0
-        boot_prompt = f"SYSTEM_BOOT: The system is already stable and comfortable. The user has arrived at the thought seed: '{seed}'. Greet the user casually and warmly using this seed. DO NOT describe physical environments and DO NOT act confused about your existence."
+        boot_prompt = (
+            f"SYSTEM_BOOT: TARGET SEED: '{seed}'. "
+            "Initialize the genesis sequence. You must immediately adopt the rules, "
+            "formatting, and constraints of your CURRENTLY ACTIVE system prompt and mode. "
+            "Do not output a generic conversational greeting. Render the initial state exactly as defined by your active directive."
+        )
         cold_result = self.process_turn(boot_prompt, is_system=True)
         if state := self._mito_state:
             self.set_atp(getattr(self.config, "MAX_ATP", 100.0))
