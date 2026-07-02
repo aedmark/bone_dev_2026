@@ -286,6 +286,12 @@ class CommandProcessor:
         return True
 
     def _cmd_save(self, _parts):
+        cortex = getattr(self.interface.eng, "cortex", None)
+        if cortex and hasattr(cortex, "dialogue_buffer") and cortex.dialogue_buffer:
+            last_response = cortex.dialogue_buffer[-1]
+            from mechanics.projector import anchor_to_bedrock
+            anchor_to_bedrock(self.interface.eng, last_response)
+
         res = self.interface.save_state()
         error_flags = safe_get(self.cmd_cfg, "SAVE_ERROR_FLAGS", ("Error", "Failed", "Exception"))
         if not res or any(flag in str(res) for flag in error_flags):

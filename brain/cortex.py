@@ -287,6 +287,23 @@ class TheCortex:
                     cognitive_retries,
                 )
             )
+            if self.svc.bio and raw_resp:
+                gen_tokens = max(1, len(raw_resp) // 4)
+                ros_yield = gen_tokens * 0.015
+                atp_burn = gen_tokens * 0.025
+
+                try:
+                    current_ros = float(self.svc.bio.mito.state.ros_buildup)
+                    self.svc.bio.mito.state.ros_buildup = min(
+                        100.0, current_ros + ros_yield
+                    )
+                except (TypeError, ValueError, AttributeError):
+                    pass
+
+                try:
+                    self.svc.bio.mito.adjust_atp(-atp_burn, "LLM Token Generation")
+                except (TypeError, AttributeError):
+                    pass
         if val_res["valid"] and phys_state.get("psi", 0.0) > 0.6 and allow_loot:
             if self.svc.bio:
                 self.svc.bio.mito.adjust_atp(-1.0, "Anti-AI Substrate Filter")
