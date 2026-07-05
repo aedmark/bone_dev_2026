@@ -1202,6 +1202,9 @@ class TheCortex:
         The Corpus Callosum: Routes to Vector (ANN) or Linear Sweep (SubQ).
         Returns: (sparse_context, cognitive_path, token_cost)
         """
+        if not query.strip():
+            return "", "LINGUISTIC_DARK_MATTER", 0
+
         heavy_keywords = [
             "code",
             "debug",

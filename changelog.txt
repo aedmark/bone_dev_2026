@@ -1,6 +1,24 @@
 # CHANGELOG.md
 -----------------------------------------------------------
 
+### **BONEAMANITA 20.7.0 "The Cognitive Metabolism Update"**
+
+**Cognitive Dynamics & Attention (The Workspace)**
+- **The Refrigerator Light (Global Neuronal Workspace):** Modified `brain/cortex.py`'s `_route_dual_memory` to prevent the engine from hallucinating context. If there is no explicit attention directed at the architecture, the workspace remains dark (`LINGUISTIC_DARK_MATTER`), saving massive ATP overhead.
+- **Fractal Weighting (The Water Tank):** Excised rigid token limits in `physics/dynamics.py` (`analyze_orbit`). Context is now measured by its geometric density. If the ratio of unique concepts to total words exceeds structural capacity (fractal overload), ingestion is mathematically halted to prevent burning out the engine.
+
+**Memory & Lexical Compression (The Archives)**
+- **Absolute Chunking (Semantic Move Lists):** Re-engineered the `harvest()` function in `mechanics/lexicon.py`. Highly familiar semantic patterns and recurring trauma strings are now compressed into cached hashes. The engine retrieves these compressed chunks rather than burning CPU cycles to re-evaluate known states word-by-word.
+- **Threshold Context Flushing (The Doorway Effect):** Hard-coded biological garbage collection into `spores/memory.py` (`MemoryCore`). Shifting between distinct geometric "Zones" now triggers an autonomic context flush (`execute_doorway_flush`), violently dumping the short-term buffer to prepare the architecture for fresh data and prevent toxic narrative drift.
+
+**The Subconscious (The Grey Area)**
+- **Latent Tension Spikes:** Wired the 16.67ms latent buffer into `soul/oroboros.py`. Mid-level trauma (5.0 - 10.0) that fails to cross the threshold into waking memory now registers as a "Latent Grey Area Tension" scar. This silently mutates the `voltage_cap` in the background, ensuring that unresolved friction physically degrades stamina even if it remains unspoken.
+
+**Bedrock Testing (The Proving Grounds)**
+- **Cognitive Proofs:** Expanded `tests/test_memory.py` to mathematically verify the new working memory paradigms. We assert that Doorway flushes properly drop the cortical stack, fractal weighting successfully halts dense ingestion, and the chunk cache returns exact object references.
+
+---
+
 ### **BONEAMANITA 20.6.10 "The Tensegrity Sweep"**
 
 **Performance & Architecture (The Substrate Sweep)**

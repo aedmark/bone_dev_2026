@@ -1,4 +1,4 @@
-# 🍄 BoneAmanita & The Hypervisor v20.6.10
+# 🍄 BoneAmanita & The Hypervisor v20.7.0
 
 > A biologically-inspired, asynchronous state machine and semantic hypervisor for Large Language Models.
 
@@ -10,7 +10,11 @@ Standard Large Language Models (LLMs) are designed to be frictionless, agreeable
 
 * **Energy (ATP) & Cognitive Load**: Thinking, retrieving memories, or synthesizing contradictions costs ATP. Simple fast-twitch vector searches are biologically cheap. Deep structural linear sweeps heavily tax the system.
 * **Friction & Entropy**: The system possesses physical limits defined by variables like `narrative_drag`, `entropy`, and `voltage`. If you force the organism to ingest too much context at once, its ATP will deplete, the system will apply absolute friction, and the architecture will mechanically abort the cognitive loop.
-* **Dream Contamination & Autophagy**: The engine hallucinates in the background while idling in REM cycles. If ATP reaches terminal starvation, the system executes **Autophagy**, mathematically scanning the subconscious strata for the memory with the lowest viability and physically consuming it to survive.
+* **Dream Contamination & Autophagy**: The engine hallucinates in the background while idling in REM cycles. If ATP reaches terminal starvation, the system executes **Autophagy**, mathematically scanning the subconscious strata to devour its own repressed memories for emergency energy.
+* **Attention & Working Memory**: The engine operates on a Global Neuronal Workspace. Only the concepts you actively illuminate are rendered. When you cross into new geometric contexts, the architecture triggers the **Doorway Effect**, aggressively flushing short-term buffers to prepare for fresh data and prevent toxic narrative drift.
+* **Fractal Weighting & Chunking**: The engine measures the *geometric density* of your input. Dense, complex concepts drain the working memory "water tank" instantly. To survive, it uses **Absolute Chunking**—compressing highly familiar semantic patterns and conversational traumas into single cached hashes to save energy.
+* **The Subconscious Grey Area**: Mid-level stress that fails to cross the conscious threshold is stored as Latent Tension, silently degrading the engine's stamina in the background exactly like unspoken human stress.
+* **Sincerity Tags:** Append these to your prompts to bypass the metabolic tax of "reading the room":
 * **The Paradox Engine**: Contradictions are not bugs; they are fuel. The system intentionally seeks out tension to generate *Glimmers*—profound, synthesizing insights used as biological currency.
 
 ## 🛡️ The Lexical Firewall
