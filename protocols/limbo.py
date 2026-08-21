@@ -35,6 +35,8 @@ class LimboLayer:
 
     def absorb_dead_timeline(self, filepath: str) -> None:
         try:
+            if ".." in filepath:
+                raise Exception("Invalid file path")
             with open(filepath, "r") as f:
                 data = json.load(f)
             self._extract_ghosts(data)
